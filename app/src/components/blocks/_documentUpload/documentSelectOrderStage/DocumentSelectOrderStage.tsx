@@ -425,7 +425,7 @@ const DocumentSelectOrderStage = ({
                     <DocumentUploadLloydGeorgePreview
                         documents={getDocumentsForPreview()}
                         setMergedPdfBlob={setMergedPdfBlob}
-                        stitchedBlobLoaded={(loaded: boolean) => {
+                        stitchedBlobLoaded={(loaded: boolean): void => {
                             setStitchedBlobLoaded(loaded);
                         }}
                     />

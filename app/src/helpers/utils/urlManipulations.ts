@@ -6,7 +6,7 @@ export interface EnhancedNavigate extends NavigateFunction {
 
 export type JourneyType = 'new' | 'update' | undefined;
 
-export function getLastURLPath(url: string) {
+export function getLastURLPath(url: string): string | undefined {
     return url.split('/').at(-1);
 }
 

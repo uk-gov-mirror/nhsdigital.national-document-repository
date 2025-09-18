@@ -12,7 +12,7 @@ type Props = {
     documents: UploadDocument[];
 };
 
-const DocumentUploadConfirmStage = ({ documents }: Props) => {
+const DocumentUploadConfirmStage = ({ documents }: Props): React.JSX.Element => {
     const [currentPage, setCurrentPage] = useState<number>(0);
     const navigate = useEnhancedNavigate();
     const pageSize = 10;
@@ -21,7 +21,7 @@ const DocumentUploadConfirmStage = ({ documents }: Props) => {
     const pageTitle = 'Check your files before uploading';
     useTitle({ pageTitle });
 
-    const currentItems = () => {
+    const currentItems = (): UploadDocument[] => {
         const skipCount = currentPage * pageSize;
         return documents.slice(skipCount, skipCount + pageSize);
     };
@@ -64,7 +64,7 @@ const DocumentUploadConfirmStage = ({ documents }: Props) => {
                                 className="govuk-link"
                                 rel="change"
                                 data-testid="change-files-button"
-                                onClick={(e) => {
+                                onClick={(e): void => {
                                     e.preventDefault();
                                     navigate.withParams(routes.DOCUMENT_UPLOAD);
                                 }}
@@ -106,7 +106,7 @@ const DocumentUploadConfirmStage = ({ documents }: Props) => {
 
             <Button
                 data-testid="confirm-button"
-                onClick={() => navigate.withParams(routeChildren.DOCUMENT_UPLOAD_UPLOADING)}
+                onClick={(): void => navigate.withParams(routeChildren.DOCUMENT_UPLOAD_UPLOADING)}
             >
                 Confirm file order and upload files
             </Button>
