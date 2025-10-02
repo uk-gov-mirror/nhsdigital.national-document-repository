@@ -1,9 +1,10 @@
 import time
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Sequence
 
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
 from botocore.exceptions import ClientError
+
 from utils.audit_logging_setup import LoggingService
 from utils.dynamo_utils import (
     create_expression_attribute_values,
@@ -29,7 +30,7 @@ class DynamoDBService:
             self.dynamodb = boto3.resource("dynamodb", region_name="eu-west-2")
             self.initialised = True
 
-    def get_table(self, table_name):
+    def get_table(self, table_name: str):
         try:
             return self.dynamodb.Table(table_name)
         except ClientError as e:
@@ -48,17 +49,15 @@ class DynamoDBService:
         try:
             table = self.get_table(table_name)
 
-            query_params = {
+            query_params: dict = {
                 "KeyConditionExpression": Key(search_key).eq(search_condition),
             }
 
             if index_name:
                 query_params["IndexName"] = index_name
-
             if requested_fields:
                 projection_expression = ",".join(requested_fields)
                 query_params["ProjectionExpression"] = projection_expression
-
             if query_filter:
                 query_params["FilterExpression"] = query_filter
             items = []
@@ -92,12 +91,12 @@ class DynamoDBService:
             raise e
 
     def update_item(
-            self,
-            table_name: str,
-            key_pair: dict[str, str],
-            updated_fields: dict,
-            condition_expression: str = None,
-            expression_attribute_values: dict = None,
+        self,
+        table_name: str,
+        key_pair: dict[str, str],
+        updated_fields: dict,
+        condition_expression: str | None = None,
+        expression_attribute_values: dict | None = None,
     ):
         table = self.get_table(table_name)
         updated_field_names = list(updated_fields.keys())
@@ -121,7 +120,7 @@ class DynamoDBService:
 
         if condition_expression:
             update_item_args["ConditionExpression"] = condition_expression
-
+            
         return table.update_item(**update_item_args)
 
     def delete_item(self, table_name: str, key: dict):
@@ -136,10 +135,10 @@ class DynamoDBService:
             raise e
 
     def scan_table(
-            self,
-            table_name: str,
-            exclusive_start_key: dict = None,
-            filter_expression: str = None,
+        self,
+        table_name: str,
+        exclusive_start_key: dict | None = None,
+        filter_expression: str | None = None,
     ):
         try:
             table = self.get_table(table_name)
