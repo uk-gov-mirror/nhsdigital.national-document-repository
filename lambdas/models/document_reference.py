@@ -22,6 +22,33 @@ class UploadRequestDocument(BaseModel):
     contentType: str
     docType: SupportedDocumentTypes
     clientId: str
+    versionId: Optional[str] = None
+
+
+class Attachment(BaseModel):
+    attachment: list[UploadRequestDocument]
+
+
+class Identifier(BaseModel):
+    value: str
+
+
+class Subject(BaseModel):
+    identifier: Identifier
+
+
+class UpdateBody(BaseModel):
+    resourceType: str
+    subject: Subject
+    content: list[Attachment]
+    created: str
+
+
+class UpdateEventModel(BaseModel):
+    httpMethod: str
+    body: UpdateBody
+    queryStringParameters: dict
+    pathParameters: dict
 
 
 class UploadDocumentReference(BaseModel):
@@ -80,6 +107,7 @@ class DocumentReference(BaseModel):
     nhs_number: str
     s3_bucket_name: str = Field(exclude=True, default=None)
     s3_file_key: str = Field(default=None)
+    s3_upload_key: str = Field(default=None, exclude=True)
     status: Literal["current", "superseded", "entered-in-error"] = Field(
         default="current"
     )
@@ -111,8 +139,9 @@ class DocumentReference(BaseModel):
                 data["s3_file_key"] = key
         elif "s3_bucket_name" in data:
             current_s3_file_key = cls._build_s3_key(data)
+            data["s3_upload_key"] = current_s3_file_key
             if "s3_file_key" not in data:
-                data["s3_file_key"] = current_s3_file_key
+                data["s3_file_key"] = cls._build_final_s3_key(data)
             data["file_location"] = cls._build_s3_location(
                 data["s3_bucket_name"], current_s3_file_key
             )
@@ -133,6 +162,16 @@ class DocumentReference(BaseModel):
             key_parts = data["sub_folder"].split("/")
             if "doc_type" in data:
                 key_parts.append(data["doc_type"])
+
+        key_parts.extend([data["nhs_number"], data["id"]])
+        s3_key = "/".join(key_parts)
+
+        return s3_key
+    
+    @staticmethod
+    def _build_final_s3_key(data: dict) -> str:
+        """Build the S3 key from document data."""
+        key_parts = []
 
         key_parts.extend([data["nhs_number"], data["id"]])
         s3_key = "/".join(key_parts)
@@ -182,3 +221,4 @@ class DocumentReference(BaseModel):
         if self.uploading:
             return "preliminary"
         return None
+

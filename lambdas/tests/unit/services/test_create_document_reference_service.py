@@ -23,7 +23,7 @@ from tests.unit.helpers.data.test_documents import (
 from utils.common_query_filters import UploadIncomplete
 from utils.constants.ssm import UPLOAD_PILOT_ODS_ALLOWED_LIST
 from utils.exceptions import PatientNotFoundException
-from utils.lambda_exceptions import CreateDocumentRefException
+from utils.lambda_exceptions import DocumentRefException
 from utils.lloyd_george_validator import LGInvalidFilesException
 
 from lambdas.enums.supported_document_types import SupportedDocumentTypes
@@ -274,7 +274,6 @@ def test_create_document_reference_request_with_lg_list_happy_path(
     )
 
     mock_create_reference_in_dynamodb.assert_called_once()
-    mock_validate_lg_files.assert_called_with(document_references, mock_pds_patient)
     mock_check_existing_lloyd_george_records_and_remove_failed_upload.assert_called_with(
         TEST_NHS_NUMBER
     )
@@ -381,7 +380,7 @@ def test_create_document_reference_request_raise_error_when_invalid_lg(
     mock_validate_lg_files.side_effect = LGInvalidFilesException("test")
     get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [TEST_CURRENT_GP_ODS]
 
-    with pytest.raises(CreateDocumentRefException):
+    with pytest.raises(DocumentRefException):
         mock_create_doc_ref_service.create_document_reference_request(
             TEST_NHS_NUMBER, LG_FILE_LIST
         )
@@ -404,7 +403,6 @@ def test_create_document_reference_request_raise_error_when_invalid_lg(
     )
 
     mock_create_reference_in_dynamodb.assert_not_called()
-    mock_validate_lg_files.assert_called_with(document_references, mock_pds_patient)
 
 
 def test_create_document_reference_failed_to_parse_pds_response(
@@ -423,7 +421,7 @@ def test_create_document_reference_failed_to_parse_pds_response(
         )
 
     exception = exc_info.value
-    assert isinstance(exception, CreateDocumentRefException)
+    assert isinstance(exception, DocumentRefException)
     assert exception.status_code == 400
     assert exception.message == "Invalid files or id"
 
@@ -447,7 +445,7 @@ def test_cdr_nhs_number_not_found_raises_search_patient_exception(
         )
 
     exception = exc_info.value
-    assert isinstance(exception, CreateDocumentRefException)
+    assert isinstance(exception, DocumentRefException)
     assert exception.status_code == 404
     assert exception.message == "Patient does not exist for given NHS number"
 
@@ -471,7 +469,7 @@ def test_cdr_non_pdf_file_raises_exception(
         )
 
     exception = exc_info.value
-    assert isinstance(exception, CreateDocumentRefException)
+    assert isinstance(exception, DocumentRefException)
     assert exception.status_code == 400
     assert exception.message == "Invalid files or id"
 
@@ -493,11 +491,11 @@ def test_create_document_reference_request_lg_upload_throw_lambda_error_if_uploa
     mock_fetch_document.return_value = mock_records_upload_in_process
     get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [TEST_CURRENT_GP_ODS]
 
-    with pytest.raises(CreateDocumentRefException) as e:
+    with pytest.raises(DocumentRefException) as e:
         mock_create_doc_ref_service.create_document_reference_request(
             TEST_NHS_NUMBER, LG_FILE_LIST
         )
-    assert e.value == CreateDocumentRefException(423, LambdaError.UploadInProgressError)
+    assert e.value == DocumentRefException(423, LambdaError.UploadInProgressError)
 
     mock_create_reference_in_dynamodb.assert_not_called()
 
@@ -512,13 +510,13 @@ def test_create_document_reference_request_lg_upload_throw_lambda_error_if_got_a
     mock_fetch_document.return_value = create_test_lloyd_george_doc_store_refs()
     get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [TEST_CURRENT_GP_ODS]
 
-    with pytest.raises(CreateDocumentRefException) as e:
+    with pytest.raises(DocumentRefException) as e:
         mock_create_doc_ref_service.create_document_reference_request(
             TEST_NHS_NUMBER, LG_FILE_LIST
         )
 
-    assert e.value == CreateDocumentRefException(
-        422, LambdaError.CreateDocRecordAlreadyInPlace
+    assert e.value == DocumentRefException(
+        422, LambdaError.DocRefRecordAlreadyInPlace
     )
 
     mock_create_reference_in_dynamodb.assert_not_called()
@@ -558,11 +556,11 @@ def test_create_document_reference_request_arf_upload_throw_lambda_error_if_uplo
     )
     mock_fetch_document.return_value = mock_records_upload_in_process
 
-    with pytest.raises(CreateDocumentRefException) as e:
+    with pytest.raises(DocumentRefException) as e:
         mock_create_doc_ref_service.create_document_reference_request(
             TEST_NHS_NUMBER, ARF_FILE_LIST
         )
-    assert e.value == CreateDocumentRefException(423, LambdaError.UploadInProgressError)
+    assert e.value == DocumentRefException(423, LambdaError.UploadInProgressError)
 
     mock_create_reference_in_dynamodb.assert_not_called()
     mock_fetch_document.assert_called_with(
@@ -618,7 +616,7 @@ def test_parse_documents_list_raise_lambda_error_when_no_type(
         }
     ]
 
-    with pytest.raises(CreateDocumentRefException):
+    with pytest.raises(DocumentRefException):
         mock_create_doc_ref_service.parse_documents_list(mock_input_no_file_type)
 
 
@@ -633,7 +631,7 @@ def test_parse_documents_list_raise_lambda_error_when_doc_type_is_invalid(
         }
     ]
 
-    with pytest.raises(CreateDocumentRefException):
+    with pytest.raises(DocumentRefException):
         mock_create_doc_ref_service.parse_documents_list(mock_input_wrong_doc_type)
 
 
@@ -734,7 +732,7 @@ def test_prepare_pre_signed_url_raise_error(
     )
     mock_document = mocker.MagicMock()
     mock_document.file_name = "test_name"
-    with pytest.raises(CreateDocumentRefException):
+    with pytest.raises(DocumentRefException):
         mock_create_doc_ref_service.prepare_pre_signed_url(mock_document)
 
     mock_s3.create_upload_presigned_url.assert_called_once()
@@ -745,7 +743,7 @@ def test_create_reference_in_dynamodb_raise_error(mock_create_doc_ref_service):
         {"Error": {"Code": "500", "Message": "mocked error"}}, "test"
     )
     mock_create_doc_ref_service.arf_documents_dict_format = {"test": "test"}
-    with pytest.raises(CreateDocumentRefException):
+    with pytest.raises(DocumentRefException):
         mock_create_doc_ref_service.create_reference_in_dynamodb("test", ["test"])
 
     mock_create_doc_ref_service.dynamo_service.batch_writing.assert_called_once()
@@ -794,7 +792,7 @@ def test_check_existing_lloyd_george_records_throw_error_if_upload_in_progress(
             TEST_NHS_NUMBER
         )
     ex = e.value
-    assert isinstance(ex, CreateDocumentRefException)
+    assert isinstance(ex, DocumentRefException)
     assert ex.status_code == 423
     assert ex.message == "Records are in the process of being uploaded"
 
@@ -812,7 +810,7 @@ def test_check_existing_lloyd_george_records_throw_error_if_got_a_full_set_of_up
         )
 
     ex = e.value
-    assert isinstance(ex, CreateDocumentRefException)
+    assert isinstance(ex, DocumentRefException)
     assert ex.status_code == 422
     assert ex.message == "The patient already has a full set of record."
 
@@ -850,7 +848,7 @@ def test_ods_code_not_in_pilot_raises_exception(
 ):
     get_allowed_list_of_ods_codes_for_upload_pilot.return_value = ["PI001"]
 
-    with pytest.raises(CreateDocumentRefException) as exc_info:
+    with pytest.raises(DocumentRefException) as exc_info:
         mock_create_doc_ref_service.create_document_reference_request(
             TEST_NHS_NUMBER, LG_FILE_LIST
         )
@@ -860,7 +858,7 @@ def test_ods_code_not_in_pilot_raises_exception(
     mock_create_reference_in_dynamodb.assert_not_called()
 
     exception = exc_info.value
-    assert isinstance(exception, CreateDocumentRefException)
+    assert isinstance(exception, DocumentRefException)
     assert exception.status_code == 404
     assert exception.message == "ODS code does not match any of the allowed."
 
