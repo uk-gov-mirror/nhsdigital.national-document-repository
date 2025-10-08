@@ -176,13 +176,13 @@ def test_return_deny_all_policy_user_when_auth_exception(set_env, mocker, contex
     mock_auth_service.assert_not_called()
 
 
-def test_deny_cdr_for_deceased_patients(set_env, context, mocker):
+def test_deny_dr_for_deceased_patients(set_env, context, mocker):
     expected_deny_policy = {
         "Statement": [
             {
                 "Action": "execute-api:Invoke",
                 "Effect": "Deny",
-                "Resource": [f"{MOCK_METHOD_ARN_PREFIX}/POST/CreateDocumentReference"],
+                "Resource": [f"{MOCK_METHOD_ARN_PREFIX}/POST/DocumentReference"],
             }
         ],
         "Version": "2012-10-17",
@@ -192,7 +192,7 @@ def test_deny_cdr_for_deceased_patients(set_env, context, mocker):
     test_event = {
         "headers": {"authorization": auth_token},
         "queryStringParameters": {"patientId": TEST_NHS_NUMBER},
-        "methodArn": f"{MOCK_METHOD_ARN_PREFIX}/POST/CreateDocumentReference",
+        "methodArn": f"{MOCK_METHOD_ARN_PREFIX}/POST/DocumentReference",
     }
     mock_auth_service = mocker.patch(
         "services.authoriser_service.AuthoriserService.auth_request", return_value=False
@@ -201,7 +201,7 @@ def test_deny_cdr_for_deceased_patients(set_env, context, mocker):
     response = lambda_handler(test_event, context=context)
 
     mock_auth_service.assert_called_with(
-        "/CreateDocumentReference",
+        "/DocumentReference",
         SSM_PARAM_JWT_TOKEN_PUBLIC_KEY,
         auth_token,
         TEST_NHS_NUMBER,
@@ -209,13 +209,13 @@ def test_deny_cdr_for_deceased_patients(set_env, context, mocker):
     assert response["policyDocument"] == expected_deny_policy
 
 
-def test_deny_cdr_for_non_gp_admins_or_clinicians(set_env, context, mocker):
+def test_deny_dr_for_non_gp_admins_or_clinicians(set_env, context, mocker):
     expected_deny_policy = {
         "Statement": [
             {
                 "Action": "execute-api:Invoke",
                 "Effect": "Deny",
-                "Resource": [f"{MOCK_METHOD_ARN_PREFIX}/POST/CreateDocumentReference"],
+                "Resource": [f"{MOCK_METHOD_ARN_PREFIX}/POST/DocumentReference"],
             }
         ],
         "Version": "2012-10-17",
@@ -225,7 +225,7 @@ def test_deny_cdr_for_non_gp_admins_or_clinicians(set_env, context, mocker):
     test_pcse_event = {
         "headers": {"authorization": auth_pcse_token},
         "queryStringParameters": {"patientId": TEST_NHS_NUMBER},
-        "methodArn": f"{MOCK_METHOD_ARN_PREFIX}/POST/CreateDocumentReference",
+        "methodArn": f"{MOCK_METHOD_ARN_PREFIX}/POST/DocumentReference",
     }
     mock_auth_service = mocker.patch(
         "services.authoriser_service.AuthoriserService.auth_request", return_value=False
@@ -234,7 +234,7 @@ def test_deny_cdr_for_non_gp_admins_or_clinicians(set_env, context, mocker):
     pcse_response = lambda_handler(test_pcse_event, context=context)
 
     mock_auth_service.assert_called_with(
-        "/CreateDocumentReference",
+        "/DocumentReference",
         SSM_PARAM_JWT_TOKEN_PUBLIC_KEY,
         auth_pcse_token,
         TEST_NHS_NUMBER,

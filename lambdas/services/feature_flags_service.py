@@ -77,6 +77,7 @@ class FeatureFlagService:
                     if flag in [
                         FeatureFlags.UPLOAD_LLOYD_GEORGE_WORKFLOW_ENABLED,
                         FeatureFlags.UPLOAD_LAMBDA_ENABLED,
+                        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED,
                     ]:
                         formatted_flags[flag] = False
 
@@ -108,6 +109,7 @@ class FeatureFlagService:
                 in [
                     FeatureFlags.UPLOAD_LLOYD_GEORGE_WORKFLOW_ENABLED,
                     FeatureFlags.UPLOAD_LAMBDA_ENABLED,
+                    FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED,
                 ]
                 and not self.check_if_ods_code_is_in_pilot()
             ):

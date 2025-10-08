@@ -1,7 +1,6 @@
 import json
 
 import pytest
-from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes, SnomedCode
 from models.document_reference import DocumentReference
 from models.fhir.R4.fhir_document_reference import (
@@ -15,18 +14,12 @@ from tests.unit.helpers.data.test_documents import (
     create_test_lloyd_george_doc_store_refs,
     create_valid_fhir_doc_json
 )
-from pydantic import ValidationError
-from utils.lambda_exceptions import (
-    InvalidDocTypeException,
-)
 from tests.unit.conftest import (
     EXPECTED_PARSED_PATIENT_BASE_CASE as mock_pds_patient_details,
 )
 from botocore.exceptions import ClientError
 from utils.exceptions import (
     FhirDocumentReferenceException,
-    FileUploadInProgress,
-    NoAvailableDocument,
     PatientNotFoundException,
 )
 from models.fhir.R4.base_models import Identifier, Reference, Coding

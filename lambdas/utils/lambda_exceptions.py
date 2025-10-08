@@ -16,10 +16,9 @@ class LambdaException(Exception):
             and self.err_code == other.err_code
         )
 
-
-class CreateDocumentRefException(LambdaException):
+class DocumentRefException(LambdaException):
     pass
-
+  
 
 class SearchPatientException(LambdaException):
     pass
