@@ -547,7 +547,9 @@ class IMAlertingService:
                 f"Unexpected error updating original Slack message for alarm {alarm_entry.alarm_name_metric}: {e}"
             )
 
-    def compose_slack_message_blocks(self, alarm_entry: AlarmEntry):
+    def compose_slack_message_blocks(
+        self, alarm_entry: AlarmEntry, is_initial_message: bool
+    ):
         with open(f"{os.getcwd()}/models/templates/slack_alert_blocks.json", "r") as f:
             template_content = f.read()
 
@@ -560,6 +562,7 @@ class IMAlertingService:
             "action_url": self.create_action_url(
                 self.confluence_base_url, alarm_entry.alarm_name_metric
             ),
+            "is_initial_message": is_initial_message,
         }
 
         rendered_json = template.render(context)

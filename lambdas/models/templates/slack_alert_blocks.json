@@ -27,7 +27,7 @@
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": "*Info:*\n <{{ action_url }}>"
+            "text": "{% if is_initial_message %}*Info:*\n <{{ action_url }}>{% endif %}"
         }
     }
 ]

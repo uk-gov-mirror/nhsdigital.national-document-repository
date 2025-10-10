@@ -473,7 +473,7 @@ def test_compose_teams_message(alerting_service):
     assert actual == expected
 
 
-def test_compose_slack_message_blocks(alerting_service):
+def test_compose_slack_message_blocks_initial_message(alerting_service):
     alarm_entry = AlarmEntry(
         alarm_name_metric=ALARM_METRIC_NAME,
         time_created=ALERT_TIMESTAMP,
@@ -481,9 +481,29 @@ def test_compose_slack_message_blocks(alerting_service):
         channel_id=MOCK_ALERTING_SLACK_CHANNEL_ID,
         history=[AlarmSeverity.HIGH],
     )
-    expected = read_json("../helpers/data/mock_slack_alert.json")
+    expected = read_json("../helpers/data/mock_slack_initial_alert.json")
 
-    actual = alerting_service.compose_slack_message_blocks(alarm_entry)
+    actual = alerting_service.compose_slack_message_blocks(
+        alarm_entry=alarm_entry, is_initial_message=True
+    )
+
+    assert actual == expected
+
+
+def test_compose_slack_message_blocks_message_reply(alerting_service):
+    alarm_entry = AlarmEntry(
+        alarm_name_metric=ALARM_METRIC_NAME,
+        time_created=ALERT_TIMESTAMP,
+        last_updated=ALERT_TIMESTAMP,
+        channel_id=MOCK_ALERTING_SLACK_CHANNEL_ID,
+        history=[AlarmSeverity.HIGH],
+    )
+
+    expected = read_json("../helpers/data/mock_slack_reply.json")
+
+    actual = alerting_service.compose_slack_message_blocks(
+        alarm_entry=alarm_entry, is_initial_message=False
+    )
 
     assert actual == expected
 
