@@ -2,6 +2,7 @@ import json
 
 import pytest
 from botocore.exceptions import ClientError
+
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCode, SnomedCodes
@@ -46,6 +47,19 @@ def mock_service(set_env, mocker, mock_pds_service_fetch):
     service.dynamo_service = mock_dynamo.return_value
 
     yield service
+
+
+@pytest.fixture
+def valid_non_mtls_request_context():
+    return {
+        "accountId": "123456789012",
+        "apiId": "abc123",
+        "domainName": "api.example.com",
+        "identity": {
+            "sourceIp": "1.2.3.4",
+            "userAgent": "curl/7.64.1",
+        },
+    }
 
 
 @pytest.fixture
@@ -103,7 +117,29 @@ def valid_mtls_header():
     return {
         "Accept": "text/json",
         "Host": "example.com",
-        "x-amzn-mtls-clientcert-subject": "CN=client.dev.ndr.national.nhs.uk",
+    }
+
+
+@pytest.fixture
+def valid_mtls_request_context():
+    return {
+        "accountId": "123456789012",
+        "apiId": "abc123",
+        "domainName": "api.example.com",
+        "identity": {
+            "sourceIp": "1.2.3.4",
+            "userAgent": "curl/7.64.1",
+            "clientCert": {
+                "clientCertPem": "-----BEGIN CERTIFICATE-----...",
+                "subjectDN": "CN=client.dev.ndr.national.nhs.uk,O=NHS,C=UK",
+                "issuerDN": "CN=NHS Root CA,O=NHS,C=UK",
+                "serialNumber": "12:34:56",
+                "validity": {
+                    "notBefore": "May 10 00:00:00 2024 GMT",
+                    "notAfter": "May 10 00:00:00 2025 GMT",
+                },
+            },
+        },
     }
 
 
@@ -497,7 +533,7 @@ def test_create_document_reference_without_custodian(mock_service, mocker):
     fhir_doc.custodian = None
 
     doc_type = SnomedCode(code="test-code", display_name="Test Type")
-    current_gp_ods = "C13579"
+    current_gp_ods = "REST"
 
     result = mock_service._create_document_reference(
         nhs_number="9000000009",
@@ -508,7 +544,7 @@ def test_create_document_reference_without_custodian(mock_service, mocker):
 
     assert (
         result.custodian == current_gp_ods
-    )  # Custodian should default to current_gp_ods
+    )
 
 
 def test_create_fhir_response_with_presigned_url(mock_service, mocker):
@@ -733,13 +769,13 @@ def test_process_fhir_document_reference_with_invalid_base64_data(mock_service):
 
 
 def test_process_mtls_fhir_document_reference_with_binary(
-    mock_service, valid_mtls_fhir_doc_with_binary, valid_mtls_header
+    mock_service, valid_mtls_fhir_doc_with_binary, valid_mtls_request_context
 ):
     """Test a happy path with binary data in the request."""
     custom_endpoint = f"{APIM_API_URL}/DocumentReference"
 
     result = mock_service.process_fhir_document_reference(
-        valid_mtls_fhir_doc_with_binary, valid_mtls_header
+        valid_mtls_fhir_doc_with_binary, valid_mtls_request_context
     )
 
     assert isinstance(result, str)
