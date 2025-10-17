@@ -826,6 +826,7 @@ $hunit: '%';
 
 #pdf-viewer {
     height: 75vh;
+    min-height: fit-content;
 
     &.upload-preview {
         height: 90vh;
