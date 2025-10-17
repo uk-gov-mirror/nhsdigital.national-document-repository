@@ -19,6 +19,7 @@ type UploadDocumentsArgs = {
     nhsNumber: string;
     baseUrl: string;
     baseHeaders: AuthHeaders;
+    documentReferenceId?: string | undefined;
 };
 
 type UploadDocumentsToS3Args = {
@@ -78,9 +79,10 @@ const uploadDocuments = async ({
     documents,
     baseUrl,
     baseHeaders,
+    documentReferenceId,
 }: UploadDocumentsArgs): Promise<UploadSession> => {
     const requestBody = {
-        resourceType: 'CreateDocumentReference',
+        resourceType: 'DocumentReference',
         subject: {
             identifier: {
                 system: 'https://fhir.nhs.uk/Id/nhs-number',
@@ -108,10 +110,14 @@ const uploadDocuments = async ({
         created: new Date(Date.now()).toISOString(),
     };
 
-    const gatewayUrl = baseUrl + endpoints.DOCUMENT_UPLOAD;
+    const gatewayUrl =
+        baseUrl +
+        endpoints.DOCUMENT_UPLOAD +
+        (documentReferenceId ? `/${documentReferenceId}` : '');
 
     try {
-        const { data } = await axios.post<UploadSession>(gatewayUrl, JSON.stringify(requestBody), {
+        const axiosMethod = documentReferenceId ? axios.put : axios.post;
+        const { data } = await axiosMethod<UploadSession>(gatewayUrl, JSON.stringify(requestBody), {
             headers: {
                 ...baseHeaders,
             },
