@@ -15,6 +15,9 @@ import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import useRole from '../../../../helpers/hooks/useRole';
 import useConfig from '../../../../helpers/hooks/useConfig';
+import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
+import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
+import getDocumentSearchResults from '../../../../helpers/requests/getDocumentSearchResults';
 
 import {
     buildPatientDetails,
@@ -30,6 +33,7 @@ vi.mock('../../../../helpers/hooks/useRole');
 vi.mock('../../../../helpers/hooks/useConfig');
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
+vi.mock('../../../../helpers/requests/getDocumentSearchResults');
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -45,6 +49,9 @@ const mockNavigate = vi.fn();
 const mockedUsePatient = usePatient as Mock;
 const mockedUseRole = useRole as Mock;
 const mockUseConfig = useConfig as Mock;
+const mockUseBaseAPIUrl = useBaseAPIUrl as Mock;
+const mockUseBaseAPIHeaders = useBaseAPIHeaders as Mock;
+const mockGetDocumentSearchResults = getDocumentSearchResults as Mock;
 
 const mockPdf = buildLgSearchResult();
 const mockPatientDetails = buildPatientDetails();
@@ -83,12 +90,16 @@ const renderComponent = (propsOverride?: Partial<Props>) => {
     );
 };
 
-// Test suite
 describe('<LloydGeorgeViewRecordStage />', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockedUsePatient.mockReturnValue(mockPatientDetails);
         mockUseConfig.mockReturnValue(buildConfig());
+        mockUseBaseAPIUrl.mockReturnValue('http://test-api.com');
+        mockUseBaseAPIHeaders.mockReturnValue({ Authorization: 'Bearer token' });
+        mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
+
+        global.fetch = vi.fn();
     });
 
     afterEach(() => {
@@ -172,14 +183,14 @@ describe('<LloydGeorgeViewRecordStage />', () => {
             },
         );
 
-        it('renders cannot upload content when upload is enabled and patient already has a record', () => {
+        it('renders Add Files button when upload is enabled and patient already has a record', () => {
             mockUseConfig.mockReturnValueOnce(
                 buildConfig({}, { uploadLloydGeorgeWorkflowEnabled: true }),
             );
 
             renderComponent({ downloadStage: DOWNLOAD_STAGE.SUCCEEDED });
 
-            expect(screen.getByText('Uploading files')).toBeInTheDocument();
+            expect(screen.getByTestId('add-files-btn')).toBeInTheDocument();
         });
 
         it('does not render cannot upload content when upload is disabled and patient already has a record', () => {
@@ -258,6 +269,234 @@ describe('<LloydGeorgeViewRecordStage />', () => {
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(routes.VERIFY_PATIENT);
             });
+        });
+
+        it('navigates to verify patient screen for non-deceased patient', async () => {
+            mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
+            mockedUsePatient.mockReturnValue(buildPatientDetails({ deceased: false }));
+
+            renderComponent();
+
+            await userEvent.click(screen.getByTestId('go-back-button'));
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(routes.VERIFY_PATIENT);
+            });
+        });
+    });
+
+    describe('Add Files functionality', () => {
+        beforeEach(() => {
+            mockUseConfig.mockReturnValue(
+                buildConfig({}, { uploadLloydGeorgeWorkflowEnabled: true }),
+            );
+            mockGetDocumentSearchResults.mockResolvedValue([
+                {
+                    fileName: 'test-document.pdf',
+                    id: 'test-doc-id-123',
+                },
+            ]);
+            (global.fetch as Mock).mockResolvedValue({
+                blob: vi
+                    .fn()
+                    .mockResolvedValue(new Blob(['pdf content'], { type: 'application/pdf' })),
+            });
+        });
+
+        it('navigates to upload page with correct state when Add Files is clicked', async () => {
+            renderComponent({ downloadStage: DOWNLOAD_STAGE.SUCCEEDED });
+
+            await userEvent.click(screen.getByTestId('add-files-btn'));
+
+            await waitFor(() => {
+                expect(mockGetDocumentSearchResults).toHaveBeenCalledWith({
+                    nhsNumber: mockPatientDetails.nhsNumber,
+                    baseUrl: 'http://test-api.com',
+                    baseHeaders: { Authorization: 'Bearer token' },
+                });
+            });
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        pathname: routes.DOCUMENT_UPLOAD,
+                        search: 'journey=update',
+                    }),
+                    expect.objectContaining({
+                        state: expect.objectContaining({
+                            journey: 'update',
+                            existingDocuments: expect.arrayContaining([
+                                expect.objectContaining({
+                                    fileName: 'test-document.pdf',
+                                    documentId: 'test-doc-id-123',
+                                }),
+                            ]),
+                        }),
+                    }),
+                );
+            });
+        });
+
+        it('fetches PDF blob from pdfObjectUrl', async () => {
+            const pdfUrl = 'http://test.com/pdf';
+            renderComponent({ downloadStage: DOWNLOAD_STAGE.SUCCEEDED, pdfObjectUrl: pdfUrl });
+
+            await userEvent.click(screen.getByTestId('add-files-btn'));
+
+            await waitFor(() => {
+                expect(global.fetch).toHaveBeenCalledWith(pdfUrl);
+            });
+        });
+
+        it('navigates to server error page when patient NHS number is missing', async () => {
+            mockedUsePatient.mockReturnValue(buildPatientDetails({ nhsNumber: undefined }));
+            renderComponent({ downloadStage: DOWNLOAD_STAGE.SUCCEEDED });
+
+            await userEvent.click(screen.getByTestId('add-files-btn'));
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(routes.SERVER_ERROR);
+            });
+        });
+
+        it('does not show Add Files button when upload feature is disabled', () => {
+            mockUseConfig.mockReturnValue(
+                buildConfig({}, { uploadLloydGeorgeWorkflowEnabled: false }),
+            );
+            renderComponent({ downloadStage: DOWNLOAD_STAGE.SUCCEEDED });
+
+            expect(screen.queryByTestId('add-files-btn')).not.toBeInTheDocument();
+        });
+
+        it('does not show Add Files button when no record is available', () => {
+            renderComponent({ downloadStage: DOWNLOAD_STAGE.NO_RECORDS });
+
+            expect(screen.queryByTestId('add-files-btn')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('Full screen mode', () => {
+        it('shows RecordMenuCard in full screen mode', async () => {
+            renderComponent();
+
+            await userEvent.click(await screen.findByText('View in full screen'));
+
+            await screen.findByText('Exit full screen');
+
+            expect(screen.getByText('Lloyd George record')).toBeInTheDocument();
+        });
+
+        it('sign out link exits fullscreen when clicked', async () => {
+            const mockExitFullscreen = vi.fn();
+            document.exitFullscreen = mockExitFullscreen;
+
+            renderComponent();
+
+            await userEvent.click(await screen.findByText('View in full screen'));
+            const signOutLink = await screen.findByText('Sign out');
+
+            await userEvent.click(signOutLink);
+
+            expect(signOutLink).toHaveAttribute('href', routes.LOGOUT);
+        });
+    });
+
+    describe('Download stages', () => {
+        it.each([DOWNLOAD_STAGE.FAILED, DOWNLOAD_STAGE.NO_RECORDS, DOWNLOAD_STAGE.TIMEOUT])(
+            'renders error component for download stage: %s',
+            async (stage) => {
+                renderComponent({ downloadStage: stage });
+
+                expect(screen.queryByTitle(EMBEDDED_PDF_VIEWER_TITLE)).not.toBeInTheDocument();
+                expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+            },
+        );
+    });
+
+    describe('Component lifecycle', () => {
+        it('calls resetDocState and refreshRecord on mount', async () => {
+            const mockResetDocState = vi.fn();
+            const mockRefreshRecord = vi.fn();
+
+            renderComponent({
+                resetDocState: mockResetDocState,
+                refreshRecord: mockRefreshRecord,
+            });
+
+            await waitFor(() => {
+                expect(mockResetDocState).toHaveBeenCalledTimes(1);
+                expect(mockRefreshRecord).toHaveBeenCalledTimes(1);
+            });
+        });
+
+        it('does not call resetDocState and refreshRecord on re-render', async () => {
+            const mockResetDocState = vi.fn();
+            const mockRefreshRecord = vi.fn();
+
+            const { rerender } = render(
+                <SessionProvider sessionOverride={{ isLoggedIn: true }}>
+                    <TestApp
+                        downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                        lastUpdated={mockPdf.lastUpdated}
+                        refreshRecord={mockRefreshRecord}
+                        pdfObjectUrl="http://test.com"
+                        showMenu={true}
+                        resetDocState={mockResetDocState}
+                    />
+                </SessionProvider>,
+            );
+
+            await waitFor(() => {
+                expect(mockResetDocState).toHaveBeenCalledTimes(1);
+            });
+
+            rerender(
+                <SessionProvider sessionOverride={{ isLoggedIn: true }}>
+                    <TestApp
+                        downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                        lastUpdated="2023-01-02"
+                        refreshRecord={mockRefreshRecord}
+                        pdfObjectUrl="http://test.com"
+                        showMenu={true}
+                        resetDocState={mockResetDocState}
+                    />
+                </SessionProvider>,
+            );
+
+            expect(mockResetDocState).toHaveBeenCalledTimes(1);
+            expect(mockRefreshRecord).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('Menu variations', () => {
+        it('applies correct CSS class when showMenu is false', () => {
+            renderComponent({ showMenu: false });
+
+            const flexRow = document.querySelector('.lloydgeorge_record-stage_flex-row--upload');
+            expect(flexRow).toBeInTheDocument();
+        });
+
+        it('applies correct CSS class when showMenu is true', () => {
+            renderComponent({ showMenu: true });
+
+            const flexRow = document.querySelector('.lloydgeorge_record-stage_flex-row--menu');
+            expect(flexRow).toBeInTheDocument();
+        });
+    });
+
+    describe('RecordCard props', () => {
+        it('passes empty pdfObjectUrl to RecordCard when no record in storage pdf viewer should not visible', () => {
+            renderComponent({ downloadStage: DOWNLOAD_STAGE.PENDING, pdfObjectUrl: '' });
+
+            expect(screen.queryByTitle(EMBEDDED_PDF_VIEWER_TITLE)).not.toBeInTheDocument();
+        });
+
+        it('passes pdfObjectUrl to RecordCard when record is in storage', async () => {
+            renderComponent({ downloadStage: DOWNLOAD_STAGE.SUCCEEDED });
+
+            await screen.findByTitle(EMBEDDED_PDF_VIEWER_TITLE);
+
+            expect(screen.getByTitle(EMBEDDED_PDF_VIEWER_TITLE)).toBeInTheDocument();
         });
     });
 });
