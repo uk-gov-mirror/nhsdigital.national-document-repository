@@ -1,4 +1,4 @@
-from tests.unit.conftest import MOCK_LG_METADATA_SQS_QUEUE
+from tests.unit.conftest import MOCK_LG_METADATA_SQS_QUEUE, TEST_UUID
 
 ALERT_TIME = "2025-04-17T15:10:41.433+0000"
 
@@ -44,19 +44,23 @@ LAMBDA_ALERT_MESSAGE = {
     },
 }
 
-MOCK_ALARM_SNS_ALERT = {
-        "Records": [
-            {
-                "EventSource": "aws:sns",
-                "EventVersion": "1.0",
-                "EventSubscriptionArn": "arn:aws:sns:eu-west-2:xxxxxx:ndra-sns-search_patient_details_alarms-topicxxxxx:xxxxxx",
-                "Sns": {
-                    "Type": "Notification",
-                    "MessageId": "xxxxxx",
-                    "TopicArn": "arn:aws:sns:eu-west-2:xxxxxx:ndra-sns-search_patient_details_alarms-topicxxxxx",
-                    "Subject": 'ALARM: "ndra-alarm_search_patient_details_handler_error" in EU (London)',
-                    "Message": LAMBDA_ALERT_MESSAGE,
-                },
-            }
-        ]
-    }
+MOCK_LAMBDA_ALARM_SNS_ALERT = {
+    "EventSource": "aws:sns",
+    "EventVersion": "1.0",
+    "EventSubscriptionArn": "arn:aws:sns:region:xxxxxx:dev-sns-search_patient_details_alarms-topicxxxxx:xxxxxx",
+    "Sns": {
+        "Type": "Notification",
+        "MessageId": "xxxxxx",
+        "TopicArn": "arn:aws:sns:region:xxxxxx:dev-sns-search_patient_details_alarms-topicxxxxx",
+        "Subject": 'ALARM: "dev-alarm_search_patient_details_handler_error"',
+        "Message": LAMBDA_ALERT_MESSAGE,
+    },
+}
+
+MOCK_VIRUS_SCANNER_ALERT_SNS_MESSAGE = {
+    "Type": "Notification",
+    "MessageId": "xxxxxx",
+    "TopicArn": "",
+    "Subject": "",
+    "Message": {"id": TEST_UUID, "dateScanned": ALERT_TIME, "result": "Error"},
+}

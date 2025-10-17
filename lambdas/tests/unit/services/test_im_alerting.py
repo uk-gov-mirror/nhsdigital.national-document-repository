@@ -15,8 +15,10 @@ from tests.unit.conftest import (
     MOCK_CONFLUENCE_URL,
     MOCK_LG_METADATA_SQS_QUEUE,
 )
-
-from tests.unit.helpers.data.alerting.mock_sns_alerts import QUEUE_ALERT_MESSAGE, LAMBDA_ALERT_MESSAGE
+from tests.unit.helpers.data.alerting.mock_sns_alerts import (
+    LAMBDA_ALERT_MESSAGE,
+    QUEUE_ALERT_MESSAGE,
+)
 
 ALERT_TIME = "2025-04-17T15:10:41.433+0000"
 TTL_IN_SECONDS = 300
@@ -35,6 +37,7 @@ QUEUE_ALERT_TAGS = {
     "alarm_metric": "ApproximateAgeOfOldestMessage",
     "severity": "medium",
 }
+
 
 def read_json(filename: str) -> str:
     filepath = os.path.join(os.path.dirname(__file__), filename)
