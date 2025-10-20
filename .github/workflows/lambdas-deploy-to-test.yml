@@ -1,4 +1,4 @@
-name: "TEST Lambdas - Deploy Feature Branch to Test"
+name: "Deploy: Test - Lambdas"
 
 on:
   workflow_dispatch:
@@ -49,6 +49,3 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
-  
-
-        

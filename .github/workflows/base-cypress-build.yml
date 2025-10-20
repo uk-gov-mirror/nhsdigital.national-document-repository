@@ -1,13 +1,13 @@
 # .github/workflows/terraform-dev
-name: 'Z-BASE Cypress Build: Run a cypress build job'
+name: "Z-BASE Build: Cypress"
 
 on:
   workflow_call:
     inputs:
       build_branch:
-        description: 'Branch with smoke tests.'
+        description: "Branch with smoke tests."
         required: true
-        type: 'string'
+        type: "string"
 
 permissions:
   pull-requests: write
@@ -22,13 +22,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          repository: 'NHSDigital/national-document-repository'
+          repository: "NHSDigital/national-document-repository"
           ref: ${{ github.event.inputs.build_branch }}
 
       - name: Cypress install
         run: npm install --legacy-peer-deps
         working-directory: ./app
-      
+
       - name: Configure React environment vars
         env:
           ENDPOINT_DOC_STORE_API: http://localhost:3000
@@ -37,7 +37,7 @@ jobs:
           IDENTITY_PROVIDER_POOL_ID: not provided yet
           MONITOR_ACCOUNT_ID: not provided yet
           BUILD_ENV: development
-          IMAGE_VERSION: 'not-required'
+          IMAGE_VERSION: "not-required"
         run: |
           ./react-environment-config.sh
         working-directory: ./app

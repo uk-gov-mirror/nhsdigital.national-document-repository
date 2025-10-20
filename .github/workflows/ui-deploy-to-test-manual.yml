@@ -1,16 +1,15 @@
-# .github/workflows/terraform-dev
-name: 'TEST UI - Deploy Main to Test'
+name: "Deploy: Test - UI"
 
 on:
   workflow_dispatch:
     inputs:
       build_branch:
-        description: 'Feature branch to push to test?'
+        description: "Feature branch to push to test?"
         required: true
-        type: 'string'
+        type: "string"
 
 permissions:
-  actions: read   # Required for anchore/sbom-action
+  actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   pull-requests: write
   id-token: write # This is required for requesting the JWT
@@ -27,7 +26,7 @@ jobs:
     uses: ./.github/workflows/base-cypress-build.yml
     with:
       build_branch: ${{ inputs.build_branch }}
-  
+
   cypress_test_job:
     name: Run Cypress E2E Tests
     needs: [cypress_build_job]
@@ -35,7 +34,7 @@ jobs:
     with:
       cypress_base_url: ${{ vars.CYPRESS_BASE_URL }}
       build_branch: ${{ inputs.build_branch }}
-        
+
   deploy_ui:
     name: Deploy UI
     uses: ./.github/workflows/base-deploy-ui.yml

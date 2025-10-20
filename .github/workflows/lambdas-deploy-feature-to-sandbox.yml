@@ -1,4 +1,4 @@
-name: "SANDBOX Lambdas - Deploy Feature Branch to Sandbox"
+name: "Deploy: Dev - Lambdas"
 
 on:
   workflow_dispatch:
@@ -87,6 +87,3 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
-  
-
-        

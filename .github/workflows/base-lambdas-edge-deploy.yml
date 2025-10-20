@@ -1,4 +1,4 @@
-name: 'Z-BASE Lambdas: action to deploy a single lambda'
+name: "Z-BASE Deploy: Edge Lambda"
 
 on:
   workflow_call:
@@ -51,9 +51,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          repository: 'NHSDigital/national-document-repository'
+          repository: "NHSDigital/national-document-repository"
           ref: ${{ inputs.build_branch }}
-          fetch-depth: '0'
+          fetch-depth: "0"
 
       - name: Set up Python ${{ inputs.python_version }}
         uses: actions/setup-python@v5
@@ -68,7 +68,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
           role-skip-session-tagging: true
-          aws-region: 'us-east-1'
+          aws-region: "us-east-1"
           mask-aws-account-id: true
 
       - name: Create release package for Lambda ${{ inputs.lambda_aws_name }}
@@ -86,7 +86,7 @@ jobs:
 
           LAMBDA_VERSION=$(echo $RESPONSE | jq -r '.Version')
           echo "Lambda function updated to version: $LAMBDA_VERSION"
-          
+
           LAMBDA_ARN=$(echo $RESPONSE | jq -r '.FunctionArn')
           echo "LAMBDA_ARN=$LAMBDA_ARN" >> $GITHUB_ENV
 
@@ -104,5 +104,6 @@ jobs:
         run: |
           ./lambdas/venv/bin/python3 lambdas/scripts/update_cloudfront.py
         env:
-          AWS_REGION: 'us-east-1'
+          AWS_REGION: "us-east-1"
           LAMBDA_ARN: ${{ env.LAMBDA_ARN }}
+

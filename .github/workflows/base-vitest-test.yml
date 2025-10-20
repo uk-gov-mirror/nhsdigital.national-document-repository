@@ -1,13 +1,13 @@
 # .github/workflows/terraform-dev
-name: 'Z-BASE Vitest Test: Run a vitest test job'
+name: "Z-BASE Test: UI Vitetest "
 
 on:
   workflow_call:
     inputs:
       build_branch:
-        description: 'Branch with smoke tests.'
+        description: "Branch with smoke tests."
         required: true
-        type: 'string'
+        type: "string"
 
 permissions:
   pull-requests: write
@@ -25,9 +25,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          repository: 'NHSDigital/national-document-repository'
+          repository: "NHSDigital/national-document-repository"
           ref: ${{ github.event.inputs.build_branch }}
-          fetch-depth: '0'
+          fetch-depth: "0"
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -40,9 +40,9 @@ jobs:
           AWS_REGION: test region
           OIDC_PROVIDER_ID: not provided yet
           IDENTITY_PROVIDER_POOL_ID: not provided yet
-          MONITOR_ACCOUNT_ID: not provided yet          
+          MONITOR_ACCOUNT_ID: not provided yet
           BUILD_ENV: development
-          IMAGE_VERSION: 'ndr-not-required'
+          IMAGE_VERSION: "ndr-not-required"
         run: |
           ./react-environment-config.sh
         working-directory: app

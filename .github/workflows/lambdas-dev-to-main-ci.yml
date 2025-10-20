@@ -1,9 +1,9 @@
-name: "CI Lambdas - CI Feature to Main"
+name: "Z-AUTOMATED: Dev - Lambdas"
 
 on:
   push:
     branches:
-      - main
+      - 1ain
     paths:
       - "lambdas/**"
       - "Makefile"

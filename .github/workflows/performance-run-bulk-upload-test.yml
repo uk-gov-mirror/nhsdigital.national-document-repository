@@ -1,4 +1,4 @@
-name: Performance Run Bulk Upload - Test
+name: "Test - Bulk Upload Performance"
 
 permissions:
   pull-requests: write
@@ -46,3 +46,4 @@ jobs:
       use_bulk_upload_metadata_processor: "${{ inputs.use_bulk_upload_metadata_processor }}"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+

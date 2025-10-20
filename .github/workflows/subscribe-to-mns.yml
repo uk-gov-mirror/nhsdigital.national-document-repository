@@ -1,4 +1,4 @@
-name: Subscribe to MNS
+name: "Tool: Subscribe to MNS"
 
 on:
   workflow_dispatch:
@@ -46,8 +46,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
