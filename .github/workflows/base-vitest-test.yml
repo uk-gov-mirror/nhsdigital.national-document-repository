@@ -1,5 +1,5 @@
 # .github/workflows/terraform-dev
-name: "Z-BASE Test: UI Vitetest "
+name: "Z-BASE Test: UI Vitetest"
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: "Deploy: Data Collection Image"
+name: "Deploy: Data Collection"
 
 on:
   workflow_dispatch:

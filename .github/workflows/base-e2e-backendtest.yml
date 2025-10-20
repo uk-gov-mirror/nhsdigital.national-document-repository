@@ -1,5 +1,5 @@
 # .github/workflows/terraform-dev
-name: "Z-BASE Test: Backend E2e Test"
+name: "Z-BASE: Test - Backend E2e Test"
 
 on:
   workflow_call:
