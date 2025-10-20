@@ -1,4 +1,4 @@
-name: Run Bulk Upload - Dev
+name: "Tool: Bulk Upload on Dev"
 
 permissions:
   pull-requests: write

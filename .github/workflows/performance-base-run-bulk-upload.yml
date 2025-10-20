@@ -1,4 +1,4 @@
-name: "Performance Base Bulk Upload - Execute a Bulk Upload"
+name: "Z-BASE: Test - Performance Base Bulk Upload"
 
 permissions:
   pull-requests: write

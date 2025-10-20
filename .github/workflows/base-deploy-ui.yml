@@ -1,5 +1,5 @@
 # .github/workflows/terraform-dev
-name: "Z-BASE Deploy UI: Run a deploy job for the UI"
+name: "Z-BASE Deploy: UI"
 
 on:
   workflow_call:
@@ -21,7 +21,7 @@ on:
         required: true
 
 permissions:
-  actions: read   # Required for anchore/sbom-action
+  actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   id-token: write # This is required for requesting the JWT
   pull-requests: write
@@ -37,9 +37,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          repository: 'NHSDigital/national-document-repository'
+          repository: "NHSDigital/national-document-repository"
           ref: ${{ inputs.build_branch }}
-          fetch-depth: '0'
+          fetch-depth: "0"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -48,10 +48,10 @@ jobs:
           role-skip-session-tagging: true
           aws-region: ${{ vars.AWS_REGION }}
           mask-aws-account-id: true
-          
+
       - name: Get SSM parameters from SSM
         id: ssm-parameters
-        run: | 
+        run: |
           doc_store_api_endpoint=$(aws ssm get-parameter --name "/ndr/${{ inputs.sandbox }}/api_endpoint" --with-decryption --query "Parameter.Value" --output text)
           echo "::add-mask::$doc_store_api_endpoint"
           echo "ENDPOINT_DOC_STORE_API=$doc_store_api_endpoint" >> $GITHUB_ENV
@@ -65,7 +65,7 @@ jobs:
           cloudfront_domain_name=$(aws cloudfront list-distributions --query "DistributionList.Items[?starts_with(Origins.Items[0].DomainName, '${{ inputs.sandbox }}')].DomainName" --output text)
           echo "Cloudfront domain name found for environment: $cloudfront_domain_name"
           echo "CLOUDFRONT_DOMAIN_NAME=$cloudfront_domain_name" >> $GITHUB_ENV
-        
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -86,16 +86,16 @@ jobs:
             --query "AppMonitorSummaries[?starts_with(Name, '${{ inputs.sandbox }}')].Id" \
             --output text)
           echo "::add-mask::$app_monitor_id"
-          echo "MONITOR_ACCOUNT_ID=$app_monitor_id" >> $GITHUB_OUTPUT  
+          echo "MONITOR_ACCOUNT_ID=$app_monitor_id" >> $GITHUB_OUTPUT
 
       - name: Configure React environment vars
         env:
           AWS_REGION: ${{ vars.AWS_REGION }}
           OIDC_PROVIDER_ID: not provided yet
-          IDENTITY_PROVIDER_POOL_ID: ${{ steps.cognito-identity-pool.outputs.IDENTITY_PROVIDER_POOL_ID }} 
-          MONITOR_ACCOUNT_ID: ${{ steps.rum-app-monitor.outputs.MONITOR_ACCOUNT_ID }} 
+          IDENTITY_PROVIDER_POOL_ID: ${{ steps.cognito-identity-pool.outputs.IDENTITY_PROVIDER_POOL_ID }}
+          MONITOR_ACCOUNT_ID: ${{ steps.rum-app-monitor.outputs.MONITOR_ACCOUNT_ID }}
           BUILD_ENV: ${{ inputs.environment }}
-          IMAGE_VERSION: 'ndr-${{ inputs.sandbox }}-app:${{ github.sha }}'
+          IMAGE_VERSION: "ndr-${{ inputs.sandbox }}-app:${{ github.sha }}"
         run: |
           ./react-environment-config.sh
 

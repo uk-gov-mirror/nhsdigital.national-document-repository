@@ -1,24 +1,24 @@
 # .github/workflows/terraform-dev
-name: 'SANDBOX - UI Smoke Test'
+name: "Test: Dev - UI"
 
 on:
   workflow_dispatch:
     inputs:
       build_branch:
-        description: 'Branch with smoke tests.'
+        description: "Branch with smoke tests."
         required: true
-        type: 'string'
-        default: 'main'
+        type: "string"
+        default: "main"
       environment:
-        description: 'Which Environment type are we using'
+        description: "Which Environment type are we using"
         required: true
-        type: 'string'
-        default: 'development'
+        type: "string"
+        default: "development"
       sandbox:
-        description: 'Sandbox to run the smoke tests on.'
+        description: "Sandbox to run the smoke tests on."
         required: true
-        type: 'string'
-        default: 'ndr'
+        type: "string"
+        default: "ndr"
 
 permissions:
   pull-requests: write

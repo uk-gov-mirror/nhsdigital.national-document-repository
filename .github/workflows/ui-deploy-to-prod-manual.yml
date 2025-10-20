@@ -1,15 +1,15 @@
-name: 'PROD UI - Deploy tagged version to Prod'
+name: "Deploy: Prod - UI"
 
 on:
   workflow_dispatch:
     inputs:
       tag_version:
-        description: 'Which tagged version do you want to push to prod?'
+        description: "Which tagged version do you want to push to prod?"
         required: true
-        type: 'string'
+        type: "string"
 
 permissions:
-  actions: read   # Required for anchore/sbom-action
+  actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   pull-requests: write
   id-token: write # This is required for requesting the JWT

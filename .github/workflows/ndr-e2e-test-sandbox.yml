@@ -1,5 +1,5 @@
 # .github/workflows/terraform-dev
-name: "SANDBOX: E2e Tests Backend"
+name: "Test: Backend"
 
 on:
   workflow_dispatch:

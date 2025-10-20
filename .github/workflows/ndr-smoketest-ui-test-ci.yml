@@ -1,12 +1,12 @@
 # .github/workflows/terraform-dev
-name: "Cypress Smoketest CI to Main: Smoketest shared actions checking CI deployments"
+name: "Z-AUTOMATED: Test - Smoke Test"
 
 on:
   workflow_run:
     workflows:
       [
-        'CI UI - Development CI Feature Branch to Main',
-        'CI Lambdas - CI Feature to Main'
+        "1I UI - Development CI Feature Branch to Main",
+        "CI Lambdas - CI Feature to Main",
       ]
     types:
       - completed

@@ -1,4 +1,4 @@
-name: "Z-BASE Deploy Data Collection: Build data collection image"
+name: "Z-BASE Deploy: Data Collection"
 
 on:
   workflow_call:
@@ -32,9 +32,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          repository: 'NHSDigital/national-document-repository'
+          repository: "NHSDigital/national-document-repository"
           ref: ${{ inputs.build_branch }}
-          fetch-depth: '0'
+          fetch-depth: "0"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4

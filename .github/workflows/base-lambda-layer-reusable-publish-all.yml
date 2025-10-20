@@ -1,4 +1,4 @@
-name: 'ZBASE Lambda Layers: Deploy all required Lambda layers'
+name: "Z-BASE Deploy: Lambda layers"
 
 on:
   workflow_call:
@@ -10,13 +10,13 @@ on:
         required: true
         type: string
       build_branch:
-        description: 'Feature branch to push to test?'
+        description: "Feature branch to push to test?"
         required: true
-        type: 'string'
+        type: "string"
       sandbox:
-        description: 'Which Sandbox to push to'
+        description: "Which Sandbox to push to"
         required: true
-        type: 'string'
+        type: "string"
     secrets:
       AWS_ASSUME_ROLE:
         required: true

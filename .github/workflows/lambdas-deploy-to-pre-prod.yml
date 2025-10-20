@@ -1,4 +1,4 @@
-name: "PRE PROD Lambdas - Deploy to Pre-Prod"
+name: "Deploy: Pre-Prod - Lambdas"
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
     with:
       python_version: "3.11"
       build_branch: main
-  
+
   tag_and_release:
     needs: ["run_tests"]
     runs-on: ubuntu-latest
@@ -33,25 +33,25 @@ jobs:
     permissions: write-all
 
     steps:
-    - name: Checkout main
-      if: ${{ github.event.inputs.branch_or_tag == 'main' }}
-      uses: actions/checkout@v5
-      with:
-        ref: main
-        fetch-depth: '0'
+      - name: Checkout main
+        if: ${{ github.event.inputs.branch_or_tag == 'main' }}
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: "0"
 
-    - name: Bump version and push tag
-      if: ${{ github.event.inputs.branch_or_tag == 'main' }}
-      id: versioning
-      uses: anothrNick/github-tag-action@1.64.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        WITH_V: false
-        DEFAULT_BUMP: patch
-    
-    - name: View outputs
-      run: |
-        echo Deploying branch or tagged version to pre-prod lambdas: ${{ steps.versioning.outputs.tag || github.event.inputs.branch_or_tag }}
+      - name: Bump version and push tag
+        if: ${{ github.event.inputs.branch_or_tag == 'main' }}
+        id: versioning
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: false
+          DEFAULT_BUMP: patch
+
+      - name: View outputs
+        run: |
+          echo Deploying branch or tagged version to pre-prod lambdas: ${{ steps.versioning.outputs.tag || github.event.inputs.branch_or_tag }}
 
   deploy_all:
     name: Deploy all Lambdas
@@ -63,4 +63,3 @@ jobs:
       environment: pre-prod
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
-        

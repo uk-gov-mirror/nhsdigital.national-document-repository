@@ -1,4 +1,4 @@
-name: 'SANDBOX UI - Deploy Feature Branch to Sandbox'
+name: "Deploy: Dev - UI"
 
 on:
   workflow_dispatch:
@@ -40,13 +40,12 @@ on:
         required: true
 
 permissions:
-  actions: read   # Required for anchore/sbom-action
+  actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   pull-requests: write
   id-token: write # This is required for requesting the JWT
 
 jobs:
-
   react_testing_job:
     name: Run UI Unit Tests
     uses: ./.github/workflows/base-vitest-test.yml

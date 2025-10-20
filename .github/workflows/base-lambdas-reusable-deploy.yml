@@ -1,4 +1,4 @@
-name: 'Z-BASE Lambdas: action to deploy a single lambda'
+name: "Z-BASE Deploy: Lambda"
 
 on:
   workflow_call:
@@ -27,7 +27,7 @@ on:
         required: true
         type: string
       lambda_layer_names:
-        description: 'Comma-separated list of Lambda Layer names'
+        description: "Comma-separated list of Lambda Layer names"
         required: true
         type: string
     secrets:
@@ -59,9 +59,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          repository: 'NHSDigital/national-document-repository'
+          repository: "NHSDigital/national-document-repository"
           ref: ${{ inputs.build_branch }}
-          fetch-depth: '0'
+          fetch-depth: "0"
 
       - name: Set up Python ${{ inputs.python_version }}
         uses: actions/setup-python@v5

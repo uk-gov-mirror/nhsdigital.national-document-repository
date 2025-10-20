@@ -1,4 +1,4 @@
-name: "SANDBOX Full- Deploy feature branch to sandbox"
+name: "Deploy: Dev"
 
 on:
   workflow_dispatch:
@@ -30,7 +30,7 @@ on:
         default: true
 
 permissions:
-  actions: read   # Required for anchore/sbom-action
+  actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   pull-requests: write
   id-token: write # This is required for requesting the JWT

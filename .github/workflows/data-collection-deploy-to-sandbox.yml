@@ -1,4 +1,4 @@
-name: 'SANDBOX Data Collection - Publish Data Collection Image to ECR'
+name: "Deploy: Data Collection"
 
 on:
   workflow_dispatch:

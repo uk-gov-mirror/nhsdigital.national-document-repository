@@ -1,4 +1,4 @@
-name: Run Bulk Upload - Pre-prod
+name: "Tool: Bulk Upload on Pre-prod"
 
 permissions:
   pull-requests: write

@@ -1,4 +1,4 @@
-name: SonarCloud-Analysis
+name: "Z-AUTOMATED: SonarCloud"
 on:
   push:
     branches:
@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Use Node.js 24.x
         uses: actions/setup-node@v4
@@ -30,9 +30,9 @@ jobs:
           AWS_REGION: test region
           OIDC_PROVIDER_ID: not provided yet
           IDENTITY_PROVIDER_POOL_ID: not provided yet
-          MONITOR_ACCOUNT_ID: not provided yet     
+          MONITOR_ACCOUNT_ID: not provided yet
           BUILD_ENV: development
-          IMAGE_VERSION: 'ndr-${{ vars.BUILD_ENV }}-app:${{ github.sha }}'
+          IMAGE_VERSION: "ndr-${{ vars.BUILD_ENV }}-app:${{ github.sha }}"
         run: |
           ./react-environment-config.sh
         working-directory: ./app
@@ -47,9 +47,9 @@ jobs:
           python-version: 3.11
 
       - name: Make virtual environment
-        run: | 
+        run: |
           make env
-      
+
       - name: Start virtual environment
         run: |
           source ./lambdas/venv/bin/activate
@@ -65,5 +65,5 @@ jobs:
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
