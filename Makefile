@@ -109,6 +109,9 @@ zip:
 	mkdir -p $(ZIP_BASE_PATH)/handlers
 	cp lambdas/handlers/${lambda_path}/$(lambda_name).py $(ZIP_BASE_PATH)/handlers
 	cp -r $(ZIP_COMMON_FILES) $(ZIP_BASE_PATH)
+	if [ "$(lambda_name)" = "dynamodb_migration_handler" ]; then \
+		cp -r lambdas/scripts $(ZIP_BASE_PATH); \
+	fi
 	cd $(ZIP_BASE_PATH) ; zip -r ../$(lambda_name).zip .
 	rm -rf $(ZIP_BASE_PATH)
 
