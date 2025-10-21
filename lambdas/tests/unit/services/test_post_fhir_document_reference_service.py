@@ -2,7 +2,6 @@ import json
 
 import pytest
 from botocore.exceptions import ClientError
-
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCode, SnomedCodes
@@ -542,9 +541,7 @@ def test_create_document_reference_without_custodian(mock_service, mocker):
         current_gp_ods=current_gp_ods,
     )
 
-    assert (
-        result.custodian == current_gp_ods
-    )
+    assert result.custodian == current_gp_ods
 
 
 def test_create_fhir_response_with_presigned_url(mock_service, mocker):

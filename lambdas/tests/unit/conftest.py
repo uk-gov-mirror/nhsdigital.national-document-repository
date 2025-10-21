@@ -225,6 +225,7 @@ def set_env(monkeypatch):
     monkeypatch.setenv("SLACK_BOT_TOKEN", MOCK_SLACK_BOT_TOKEN)
     monkeypatch.setenv("SLACK_CHANNEL_ID", MOCK_ALERTING_SLACK_CHANNEL_ID)
     monkeypatch.setenv("ITOC_TESTING_ODS_CODES", MOCK_ITOC_ODS_CODES)
+    monkeypatch.setenv("VIRUS_SCANNER_TOPIC_ARN", "virus_scanner_topic_arn")
 
 
 EXPECTED_PARSED_PATIENT_BASE_CASE = PatientDetails(

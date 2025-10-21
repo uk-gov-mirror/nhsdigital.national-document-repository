@@ -22,7 +22,7 @@ QUEUE_ALERT_MESSAGE = {
     },
 }
 
-LAMBDA_ALERT_MESSAGE = {
+MOCK_LAMBDA_ALERT_MESSAGE = {
     "AlarmName": "dev-alarm_search_patient_details_handler_error",
     "AlarmDescription": "Triggers when an error has occurred in dev_SearchPatientDetailsLambda.",
     "AlarmConfigurationUpdatedTimestamp": "2025-04-17T15:08:51.604+0000",
@@ -53,14 +53,14 @@ MOCK_LAMBDA_ALARM_SNS_ALERT = {
         "MessageId": "xxxxxx",
         "TopicArn": "arn:aws:sns:region:xxxxxx:dev-sns-search_patient_details_alarms-topicxxxxx",
         "Subject": 'ALARM: "dev-alarm_search_patient_details_handler_error"',
-        "Message": LAMBDA_ALERT_MESSAGE,
+        "Message": MOCK_LAMBDA_ALERT_MESSAGE,
     },
 }
 
 MOCK_VIRUS_SCANNER_ALERT_SNS_MESSAGE = {
     "Type": "Notification",
     "MessageId": "xxxxxx",
-    "TopicArn": "",
+    "TopicArn": "virus_scanner_topic_arn",
     "Subject": "",
     "Message": {"id": TEST_UUID, "dateScanned": ALERT_TIME, "result": "Error"},
 }

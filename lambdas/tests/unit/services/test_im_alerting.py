@@ -16,7 +16,7 @@ from tests.unit.conftest import (
     MOCK_LG_METADATA_SQS_QUEUE,
 )
 from tests.unit.helpers.data.alerting.mock_sns_alerts import (
-    LAMBDA_ALERT_MESSAGE,
+    MOCK_LAMBDA_ALERT_MESSAGE,
     QUEUE_ALERT_MESSAGE,
 )
 
@@ -375,8 +375,8 @@ def test_create_action_url_with_lambda_alert(alerting_service):
         "https://confluence.example.com#:~:text=SearchPatientDetailsLambda%20Errors"
     )
     alarm_metric_name = (
-        f'{LAMBDA_ALERT_MESSAGE["Trigger"]["Dimensions"][0]["value"]}'
-        f' {LAMBDA_ALERT_MESSAGE["Trigger"]["MetricName"]}'
+        f'{MOCK_LAMBDA_ALERT_MESSAGE["Trigger"]["Dimensions"][0]["value"]}'
+        f' {MOCK_LAMBDA_ALERT_MESSAGE["Trigger"]["MetricName"]}'
     )
 
     actual = alerting_service.create_action_url(BASE_URL, alarm_metric_name)

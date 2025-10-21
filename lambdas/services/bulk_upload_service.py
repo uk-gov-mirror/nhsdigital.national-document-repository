@@ -5,7 +5,6 @@ from datetime import datetime
 
 import pydantic
 from botocore.exceptions import ClientError
-
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.snomed_codes import SnomedCodes
 from enums.upload_status import UploadStatus

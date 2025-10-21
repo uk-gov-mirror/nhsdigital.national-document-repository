@@ -12,7 +12,6 @@ from models.fhir.R4.base_models import (
     Reference,
 )
 from pydantic import BaseModel, Field
-
 from utils.ods_utils import PCSE_ODS_CODE
 
 # Constants

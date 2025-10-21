@@ -1,4 +1,5 @@
 import json
+import os
 
 from services.im_alerting_service import IMAlertingService
 from utils.audit_logging_setup import LoggingService
@@ -21,6 +22,7 @@ logger = LoggingService(__name__)
         "SLACK_CHANNEL_ID",
         "SLACK_BOT_TOKEN",
         "WORKSPACE",
+        "VIRUS_SCANNER_TOPIC_ARN",
     ]
 )
 def lambda_handler(event, context):
@@ -33,3 +35,9 @@ def lambda_handler(event, context):
 
         message_service = IMAlertingService(message)
         message_service.handle_alarm_alert()
+
+
+def is_virus_scanner_topic(message):
+
+    topic_arn = message.get("TopicArn", "")
+    return topic_arn == os.environ["VIRUS_SCANNER_TOPIC_ARN"]
