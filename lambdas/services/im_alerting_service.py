@@ -40,6 +40,9 @@ class IMAlertingService:
             "Content-type": "application/json; charset=utf-8",
         }
 
+    def handle_virus_scanner_alert(self):
+        pass
+
     def handle_alarm_alert(self):
         alarm_state = self.message["NewStateValue"]
         alarm_time = self.message["StateChangeTime"]

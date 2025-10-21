@@ -34,6 +34,11 @@ def lambda_handler(event, context):
         logger.info(f"Processing message: {message}")
 
         message_service = IMAlertingService(message)
+
+        if is_virus_scanner_topic(message):
+            message_service.handle_virus_scanner_alert()
+            return
+
         message_service.handle_alarm_alert()
 
 

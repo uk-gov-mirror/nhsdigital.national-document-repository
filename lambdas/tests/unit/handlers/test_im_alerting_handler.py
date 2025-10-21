@@ -47,7 +47,8 @@ def test_handler_calls_handle_virus_scanner_alert_lambda_triggered_by_virus_scan
         ]
     }
     lambda_handler(event, context)
-    # mock_service_with_virus_scanner_alert.handle_virus_scanner_alert.assert_called()
+    mock_service_with_virus_scanner_alert.handle_virus_scanner_alert.assert_called()
+    mock_service_with_virus_scanner_alert.handle_alarm_alert.assert_not_called()
 
 
 def test_is_virus_scanner_topic(set_env):
