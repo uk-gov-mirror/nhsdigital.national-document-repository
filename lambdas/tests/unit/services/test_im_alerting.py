@@ -14,9 +14,11 @@ from tests.unit.conftest import (
     MOCK_ALERTING_SLACK_CHANNEL_ID,
     MOCK_CONFLUENCE_URL,
     MOCK_LG_METADATA_SQS_QUEUE,
+    MOCK_SLACK_BOT_TOKEN,
 )
 from tests.unit.helpers.data.alerting.mock_sns_alerts import (
     MOCK_LAMBDA_ALERT_MESSAGE,
+    MOCK_VIRUS_SCANNER_ALERT_SNS_MESSAGE,
     QUEUE_ALERT_MESSAGE,
 )
 
@@ -86,6 +88,14 @@ def existing_alarm_alerting_service(alerting_service, mocker):
     yield alerting_service
 
 
+@pytest.fixture
+def virus_scanner_alerting_service(mocker, set_env):
+    service = IMAlertingService(MOCK_VIRUS_SCANNER_ALERT_SNS_MESSAGE)
+    mocker.patch.object(service, "dynamo_service")
+    mocker.patch.object(service, "send_initial_slack_alert")
+    yield service
+
+
 ALARM_METRIC_NAME = (
     f'{QUEUE_ALERT_MESSAGE["Trigger"]["Dimensions"][0]["QueueName"]}'
     f' {QUEUE_ALERT_MESSAGE["Trigger"]["MetricName"]}'
@@ -104,7 +114,7 @@ def existing_alarm_entry():
 
 
 @freeze_time(ALERT_TIME)
-def test_handle_new_alert_happy_path(alerting_service):
+def test_handle_new_alarm_alert_happy_path(alerting_service):
     alerting_service.get_all_alarm_tags.return_value = QUEUE_ALERT_TAGS
     alerting_service.get_alarm_history.return_value = []
 
@@ -163,7 +173,7 @@ def test_handle_existing_alarm_entry_happy_path(alerting_service, existing_alarm
 
 
 @freeze_time(ALERT_TIME)
-def test_handle_ok_action_happy_path(ok_alerting_service, existing_alarm_entry):
+def test_handle_alarm_ok_action_happy_path(ok_alerting_service, existing_alarm_entry):
     ok_alerting_service.all_alarm_state_ok.return_value = True
     ok_alerting_service.is_last_updated.return_value = True
     ok_alerting_service.get_all_alarm_tags.return_value = QUEUE_ALERT_TAGS
@@ -206,7 +216,7 @@ def test_handle_ok_action_happy_path(ok_alerting_service, existing_alarm_entry):
 
 
 @freeze_time(ALERT_TIME)
-def test_handle_ok_action_not_all_alarms_ok(
+def test_handle_alarm_ok_action_not_all_alarms_ok(
     mocker, ok_alerting_service, existing_alarm_entry
 ):
     ok_alerting_service.all_alarm_state_ok.return_value = False
@@ -227,7 +237,7 @@ def test_handle_ok_action_not_all_alarms_ok(
 
 
 @freeze_time(ALERT_TIME)
-def test_handle_ok_action_not_last_updated(
+def test_handle_alarm_ok_action_not_last_updated(
     mocker, ok_alerting_service, existing_alarm_entry
 ):
     ok_alerting_service.all_alarm_state_ok.return_value = True
@@ -296,7 +306,7 @@ def test_handle_existing_alarm_history_no_active_alarm_new_episode_created(
     existing_alarm_alerting_service.handle_new_alarm_episode.assert_called()
 
 
-def test_handle_existing_alarm_history_ok_action_trigger_alert_ignored(
+def test_handle_existing_alarm_history_alarm_ok_action_trigger_alert_ignored(
     existing_alarm_alerting_service, existing_alarm_entry
 ):
     alarm_history = [existing_alarm_entry]
@@ -503,6 +513,15 @@ def test_extract_alarm_names_from_arns(alerting_service):
     assert actual == expected
 
 
+def test_extract_topic_name_from_arns(alerting_service):
+    arn = "arn:aws:sns:region:xxxxxx:dev-sns-search_patient_details_alarms-topicxxxxx"
+
+    expected = "dev-sns-search_patient_details_alarms-topicxxxxx"
+    actual = alerting_service.extract_topic_name_from_arn(arn)
+
+    assert actual == expected
+
+
 @freeze_time(ALERT_TIME)
 def test_is_last_updated(alerting_service, existing_alarm_entry):
     alerting_service.dynamo_service.get_item.return_value = {
@@ -589,3 +608,38 @@ def test_is_episode_expired_TTL_past_returns_false(alerting_service):
     )
 
     assert alerting_service.is_episode_expired(alarm_entry) is False
+
+
+def test_compose_virus_scanner_slack_blocks(virus_scanner_alerting_service, set_env):
+
+    expected_blocks = read_json(
+        "../helpers/data/alerting/mock_virus_scanner_alert.json"
+    )
+
+    actual_blocks = virus_scanner_alerting_service.compose_virus_scanner_slack_blocks()
+
+    assert actual_blocks == expected_blocks
+
+
+def test_handle_virus_scanner_alert(virus_scanner_alerting_service, mocker):
+    mock_post = mocker.patch("lambdas.services.im_alerting_service.requests.post")
+
+    expected_blocks = read_json(
+        "../helpers/data/alerting/mock_virus_scanner_alert.json"
+    )
+
+    expected_slack_message = {
+        "blocks": expected_blocks,
+        "channel": MOCK_ALERTING_SLACK_CHANNEL_ID,
+    }
+
+    virus_scanner_alerting_service.handle_virus_scanner_alert()
+
+    mock_post.assert_called_with(
+        url="https://slack.com/api/chat.postMessage",
+        headers={
+            "Content-type": "application/json; charset=utf-8",
+            "Authorization": f"Bearer {MOCK_SLACK_BOT_TOKEN}",
+        },
+        data=json.dumps(expected_slack_message),
+    )

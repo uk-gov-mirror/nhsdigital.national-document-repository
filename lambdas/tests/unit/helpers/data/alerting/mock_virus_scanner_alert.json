@@ -1,0 +1,33 @@
+[
+    {
+        "type": "header",
+        "text": {
+            "type": "plain_text",
+            "text": "virus_scanner_topic_arn: Error :red_circle:"
+        }
+    },
+    {
+        "type": "divider"
+    },
+    {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": "Scan date and time: 15:10:41 17-04-2025 UTC"
+        }
+    },
+    {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": "Scan ID: 1234-4567-8912-HSDF-TEST"
+        }
+    },
+    {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "*Info:*\n <https://confluence.example.com#:~:text=virus%20scanner%20topic%20arn%20Error>"
+        }
+    }
+]

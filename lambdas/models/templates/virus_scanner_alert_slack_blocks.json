@@ -1,0 +1,33 @@
+[
+    {
+        "type": "header",
+        "text": {
+            "type": "plain_text",
+            "text": "{{ topic }}: {{ scan_result }} {{ severity }}"
+        }
+    },
+    {
+        "type": "divider"
+    },
+    {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": "Scan date and time: {{ scan_date }}"
+        }
+    },
+    {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": "Scan ID: {{ scan_id }}"
+        }
+    },
+    {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "*Info:*\n <{{ action_url }}>"
+        }
+    }
+]

@@ -40,9 +40,6 @@ class IMAlertingService:
             "Content-type": "application/json; charset=utf-8",
         }
 
-    def handle_virus_scanner_alert(self):
-        pass
-
     def handle_alarm_alert(self):
         alarm_state = self.message["NewStateValue"]
         alarm_time = self.message["StateChangeTime"]
@@ -196,6 +193,19 @@ class IMAlertingService:
             logger.info(
                 f"Alarm entry for {alarm_entry.alarm_name_metric} has been updated since reaching OK state"
             )
+
+    def handle_virus_scanner_alert(self):
+
+        slack_blocks = {
+            "blocks": self.compose_virus_scanner_slack_blocks(),
+            "channel": os.environ["SLACK_CHANNEL_ID"],
+        }
+
+        requests.post(
+            url=self.SLACK_POST_CHAT_API,
+            headers=self.slack_headers,
+            data=json.dumps(slack_blocks),
+        )
 
     """
     We want to wait for a set time (ALARM_OK_WAIT_SECONDS) to allow the alarm's OK state to stabilise before updating 
@@ -386,6 +396,10 @@ class IMAlertingService:
             alarm_names.append(match.group(1))
         return alarm_names
 
+    def extract_topic_name_from_arn(self, arn: str) -> str:
+        components = arn.split(":")
+        return components[-1]
+
     def add_ttl_to_alarm_entry(self, alarm_entry: AlarmEntry):
         alarm_entry.time_to_exist = int(
             (
@@ -474,7 +488,9 @@ class IMAlertingService:
     def send_initial_slack_alert(self, alarm_entry: AlarmEntry):
         slack_message = {
             "channel": alarm_entry.channel_id,
-            "blocks": self.compose_slack_message_blocks(alarm_entry),
+            "blocks": self.compose_slack_message_blocks(
+                alarm_entry=alarm_entry, is_initial_message=True
+            ),
         }
 
         try:
@@ -508,7 +524,9 @@ class IMAlertingService:
         slack_message = {
             "channel": alarm_entry.channel_id,
             "thread_ts": alarm_entry.slack_timestamp,
-            "blocks": self.compose_slack_message_blocks(alarm_entry),
+            "blocks": self.compose_slack_message_blocks(
+                alarm_entry, is_initial_message=False
+            ),
         }
 
         try:
@@ -532,7 +550,9 @@ class IMAlertingService:
             slack_message = {
                 "channel": alarm_entry.channel_id,
                 "ts": alarm_entry.slack_timestamp,
-                "blocks": self.compose_slack_message_blocks(alarm_entry),
+                "blocks": self.compose_slack_message_blocks(
+                    alarm_entry=alarm_entry, is_initial_message=True
+                ),
             }
 
             requests.post(
@@ -551,7 +571,9 @@ class IMAlertingService:
             )
 
     def compose_slack_message_blocks(
-        self, alarm_entry: AlarmEntry, is_initial_message: bool
+        self,
+        alarm_entry: AlarmEntry,
+        is_initial_message: bool,
     ):
         with open(f"{os.getcwd()}/models/templates/slack_alert_blocks.json", "r") as f:
             template_content = f.read()
@@ -566,6 +588,36 @@ class IMAlertingService:
                 self.confluence_base_url, alarm_entry.alarm_name_metric
             ),
             "is_initial_message": is_initial_message,
+        }
+
+        rendered_json = template.render(context)
+        return json.loads(rendered_json)
+
+    def compose_virus_scanner_slack_blocks(self):
+        with open(
+            f"{os.getcwd()}/models/templates/virus_scanner_alert_slack_blocks.json", "r"
+        ) as f:
+            template_content = f.read()
+
+        template = Template(template_content)
+
+        topic = self.extract_topic_name_from_arn(self.message["TopicArn"])
+        result = self.message["Message"].get("result", "")
+
+        timestamp = self.create_alarm_timestamp(
+            self.message["Message"].get("dateScanned", "")
+        )
+        scan_date = self.format_time_string(timestamp)
+
+        context = {
+            "topic": topic,
+            "scan_result": result,
+            "scan_date": scan_date,
+            "severity": f":{AlarmSeverity.HIGH.additional_value}:",
+            "scan_id": self.message["Message"].get("id", ""),
+            "action_url": self.create_action_url(
+                self.confluence_base_url, f"{topic} {result}"
+            ),
         }
 
         rendered_json = template.render(context)
