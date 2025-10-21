@@ -15,7 +15,7 @@ LAMBDA_LAYERS_BUILD_PATH=build/lambda_layers
 LAMBDA_LAYER_PYTHON_PATH=python/lib/python$(PYTHON_VERSION)/site-packages
 
 ZIP_BASE_PATH = ./$(LAMBDAS_BUILD_PATH)/$(lambda_name)/tmp
-ZIP_COMMON_FILES = lambdas/utils lambdas/models lambdas/services lambdas/repositories lambdas/enums
+ZIP_COMMON_FILES = lambdas/utils lambdas/models lambdas/services lambdas/repositories lambdas/enums lambdas/scripts
 
 default: help
 
@@ -109,9 +109,6 @@ zip:
 	mkdir -p $(ZIP_BASE_PATH)/handlers
 	cp lambdas/handlers/${lambda_path}/$(lambda_name).py $(ZIP_BASE_PATH)/handlers
 	cp -r $(ZIP_COMMON_FILES) $(ZIP_BASE_PATH)
-	if [ "$(lambda_name)" = "dynamodb_migration_handler" ]; then \
-		cp -r lambdas/scripts $(ZIP_BASE_PATH); \
-	fi
 	cd $(ZIP_BASE_PATH) ; zip -r ../$(lambda_name).zip .
 	rm -rf $(ZIP_BASE_PATH)
 
