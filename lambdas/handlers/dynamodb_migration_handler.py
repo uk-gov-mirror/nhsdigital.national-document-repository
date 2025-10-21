@@ -6,8 +6,41 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def extract_table_info(event):
+    """
+    Extracts table_name and environment either from tableArn or from separate fields.
+    Supports both formats:
+      - tableArn
+      - tableName + environment
+    """
+    if "tableArn" in event:
+        table_arn = str(event["tableArn"]).strip()
+        if not table_arn.startswith("arn:aws:dynamodb:"):
+            raise ValueError("Invalid DynamoDB ARN format — must start with 'arn:aws:dynamodb:'")
+
+        # Example: "arn:aws:dynamodb:eu-west-2:533825906475:table/dev_prmp562_LloydGeorgeReferenceMetadata"
+        try:
+            arn_parts = table_arn.split(":")
+            region = arn_parts[3]
+            table_name = table_arn.split(":table/")[-1]
+
+            # Derive environment prefix if the table is named like "dev_MyTable"
+            environment = table_name.split("_")[0] if "_" in table_name else "unknown"
+
+            return table_name, environment, region
+        except Exception as e:
+            raise ValueError(f"Unable to parse tableArn: {e}")
+
+    # Fallback to option of receiving tableName and environment as variables
+    elif "tableName" in event and "environment" in event:
+        return str(event["tableName"]).strip(), str(event["environment"]).strip(), None
+
+    else:
+        raise ValueError("Event must include either 'tableArn' or both 'tableName' and 'environment'")
+
+
 def validate_event_input(event):
-    required_fields = ["segment", "totalSegments", "tableName", "environment", "migrationScript"]
+    required_fields = ["segment", "totalSegments", "migrationScript"]
     for field in required_fields:
         if field not in event:
             raise ValueError(f"Missing required field: '{field}' in event")
@@ -25,24 +58,30 @@ def validate_event_input(event):
     if segment >= total_segments:
         raise ValueError("'segment' must be less than 'totalSegments'")
 
-    table_name = str(event["tableName"]).strip()
-    environment = str(event["environment"]).strip()
     migration_script = str(event["migrationScript"]).strip()
-    run_migration = bool(event.get("run_migration", False))
-
-    if not table_name:
-        raise ValueError("'tableName' cannot be empty")
-    if not environment:
-        raise ValueError("'environment' cannot be empty")
     if not migration_script:
         raise ValueError("'migrationScript' cannot be empty")
 
-    return segment, total_segments, table_name, environment, run_migration, migration_script
+    run_migration = bool(event.get("run_migration", False))
+
+    table_name, environment, region = extract_table_info(event)
+
+    return segment, total_segments, table_name, environment, region, run_migration, migration_script
 
 
 def lambda_handler(event, context):
     try:
-        segment, total_segments, table_name, environment, run_migration, migration_script = validate_event_input(event)
+        (
+            segment,
+            total_segments,
+            table_name,
+            environment,
+            region,
+            run_migration,
+            migration_script
+        ) = validate_event_input(event)
+
+        logger.info(f"Starting DynamoDB migration for table: {table_name} (env={environment}, region={region})")
 
         service = DynamoDBMigrationService(
             segment=segment,
