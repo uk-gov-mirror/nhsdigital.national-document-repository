@@ -43,7 +43,14 @@ def test_handler_calls_handle_virus_scanner_alert_lambda_triggered_by_virus_scan
 
     event = {
         "Records": [
-            {"Sns": {"Message": json.dumps(MOCK_VIRUS_SCANNER_ALERT_SNS_MESSAGE)}}
+            {
+                "Sns": {
+                    "TopicArn": MOCK_VIRUS_SCANNER_ALERT_SNS_MESSAGE["TopicArn"],
+                    "Message": json.dumps(
+                        MOCK_VIRUS_SCANNER_ALERT_SNS_MESSAGE["Message"]
+                    ),
+                }
+            }
         ]
     }
     lambda_handler(event, context)

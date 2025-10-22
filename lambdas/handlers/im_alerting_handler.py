@@ -35,7 +35,7 @@ def lambda_handler(event, context):
 
         message_service = IMAlertingService(message)
 
-        if is_virus_scanner_topic(message):
+        if is_virus_scanner_topic(sns_message["Sns"]):
             message_service.handle_virus_scanner_alert()
             return
 
