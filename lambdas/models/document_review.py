@@ -1,14 +1,13 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field, ConfigDict
-from pydantic.alias_generators import to_pascal
-
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_pascal
 
 
-class DocumentReview(BaseModel):
+class DocumentReviewFileDetails(BaseModel):
     model_config = ConfigDict(
         validate_by_alias=True,
         validate_by_name=True,
@@ -19,7 +18,7 @@ class DocumentReview(BaseModel):
     file_location: str
 
 
-class DocumentsUploadReview(BaseModel):
+class DocumentUploadReview(BaseModel):
     model_config = ConfigDict(
         validate_by_alias=True,
         validate_by_name=True,
@@ -34,12 +33,10 @@ class DocumentsUploadReview(BaseModel):
     review_date: int = Field(default=None)
     reviewer: str = Field(default=None)
     upload_date: int
-    files: list[DocumentReview]
+    files: list[DocumentReviewFileDetails]
     nhs_number: str
     ttl: Optional[int] = Field(
         alias=str(DocumentReferenceMetadataFields.TTL.value), default=None
     )
     document_reference_id: str = Field(default=None)
-    document_snomed_code_type: str = Field(
-        default=SnomedCodes.LLOYD_GEORGE.value.code
-    )
+    document_snomed_code_type: str = Field(default=SnomedCodes.LLOYD_GEORGE.value.code)

@@ -19,6 +19,7 @@ logger = LoggingService(__name__)
         "APPCONFIG_CONFIGURATION",
         "APPCONFIG_ENVIRONMENT",
         "LLOYD_GEORGE_DYNAMODB_NAME",
+        "DOCUMENT_REVIEW_DYNAMODB_NAME",
         "MNS_NOTIFICATION_QUEUE_URL",
     ]
 )

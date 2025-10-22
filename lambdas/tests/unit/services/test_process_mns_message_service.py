@@ -241,7 +241,7 @@ def test_update_patient_ods_code_with_documents(mns_service, mock_document_refer
         )
 
         mns_service.document_service.update_document.assert_any_call(
-            mns_service.table,
+            mns_service.lg_table,
             doc,
             mns_service.DOCUMENT_UPDATE_FIELDS,
         )
@@ -263,7 +263,7 @@ def test_update_patient_ods_code_with_deceased_status(
         )
 
         mns_service.document_service.update_document.assert_any_call(
-            mns_service.table,
+            mns_service.lg_table,
             doc,
             mns_service.DOCUMENT_UPDATE_FIELDS,
         )
@@ -285,7 +285,7 @@ def test_update_patient_ods_code_with_suspended_status(
         )
 
         mns_service.document_service.update_document.assert_any_call(
-            mns_service.table,
+            mns_service.lg_table,
             doc,
             mns_service.DOCUMENT_UPDATE_FIELDS,
         )
@@ -320,7 +320,7 @@ def test_get_patient_documents(mns_service):
 
     assert result == expected_documents
     mns_service.document_service.fetch_documents_from_table_with_nhs_number.assert_called_once_with(
-        TEST_NHS_NUMBER, mns_service.table
+        TEST_NHS_NUMBER, mns_service.lg_table
     )
 
 

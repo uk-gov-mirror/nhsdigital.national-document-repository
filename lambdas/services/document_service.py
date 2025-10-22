@@ -1,10 +1,12 @@
 import os
 from datetime import datetime, timezone
+from typing import Union
 
 from boto3.dynamodb.conditions import Attr, ConditionBase
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.supported_document_types import SupportedDocumentTypes
 from models.document_reference import DocumentReference
+from models.document_review import DocumentUploadReview
 from pydantic import ValidationError
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
@@ -38,14 +40,19 @@ class DocumentService:
         )
 
     def fetch_documents_from_table_with_nhs_number(
-        self, nhs_number: str, table: str, query_filter: Attr | ConditionBase = None
-    ) -> list[DocumentReference]:
+        self,
+        nhs_number: str,
+        table: str,
+        query_filter: Attr | ConditionBase = None,
+        model_class=None,
+    ) -> Union[list[DocumentReference], list[DocumentUploadReview]]:
         documents = self.fetch_documents_from_table(
             table=table,
             index_name="NhsNumberIndex",
             search_key="NhsNumber",
             search_condition=nhs_number,
             query_filter=query_filter,
+            model_class=model_class,
         )
 
         return documents
@@ -57,7 +64,8 @@ class DocumentService:
         search_key: str,
         index_name: str = None,
         query_filter: Attr | ConditionBase = None,
-    ) -> list[DocumentReference]:
+        model_class=DocumentReference,
+    ) -> Union[list[DocumentReference], list[DocumentUploadReview]]:
         documents = []
         exclusive_start_key = None
 
@@ -73,7 +81,7 @@ class DocumentService:
 
             for item in response["Items"]:
                 try:
-                    document = DocumentReference.model_validate(item)
+                    document = model_class.model_validate(item)
                     documents.append(document)
                 except ValidationError as e:
                     logger.error(f"Validation error on document: {item}")
@@ -148,7 +156,7 @@ class DocumentService:
     def update_document(
         self,
         table_name: str,
-        document_reference: DocumentReference,
+        document_reference: Union[DocumentReference, DocumentUploadReview],
         update_fields_name: set[str] = None,
     ):
         self.dynamo_service.update_item(
