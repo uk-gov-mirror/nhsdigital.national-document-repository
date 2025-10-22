@@ -608,3 +608,43 @@ def test_query_with_pagination(mock_service, mock_table):
     assert expected_result == actual
     mock_table.assert_called_with(MOCK_TABLE_NAME)
     mock_table.return_value.query.assert_has_calls(expected_calls)
+
+def test_stream_whole_table_yields_items(mock_service, mock_table, mock_scan_method):
+
+    mock_scan = mock_table.return_value.scan
+    mock_scan.side_effect = [
+        {
+            "Items": [{"ID": "1"}, {"ID": "2"}],
+            "LastEvaluatedKey": {"ID": "page2"},
+        },
+        {
+            "Items": [{"ID": "3"}, {"ID": "4"}],
+        },
+    ]
+
+    result = list(mock_service.stream_whole_table(table_name=MOCK_TABLE_NAME))
+
+    assert result == [{"ID": "1"}, {"ID": "2"}, {"ID": "3"}, {"ID": "4"}]
+    assert mock_scan.call_count == 2
+
+    mock_scan.assert_has_calls(
+        [
+            call(
+                ExclusiveStartKey={"ID": "page2"},
+            )
+        ]
+    )
+
+
+def test_stream_whole_table_returns_correct_exception_upon_failure(
+    mock_service, mock_table, mock_scan_method
+):
+
+    mock_service.get_table.return_value = mock_table
+    mock_scan = mock_table.scan
+    mock_scan.side_effect = MOCK_CLIENT_ERROR
+
+    with pytest.raises(ClientError):
+        list(mock_service.stream_whole_table(MOCK_TABLE_NAME))
+
+    mock_scan.assert_called_once()

@@ -1,6 +1,7 @@
 import pytest
 
-from handlers.dynamodb_migration_handler import lambda_handler, validate_event_input, extract_table_info
+from handlers.dynamodb_migration_handler import lambda_handler, extract_table_info
+from handlers.dynamodb_migration_handler import validate_event_input
 
 
 @pytest.fixture
@@ -44,7 +45,19 @@ def test_handler_catches_client_error(mocker, mock_validate_event_input, context
     with pytest.raises(ClientError):
         lambda_handler(event, context)
 
-def test_validate_event_with_table_name():
+
+
+@pytest.mark.parametrize(
+    "update, expected_message",
+    [
+        ({"segment": "not-int"}, "'segment' and 'totalSegments' must be integers"),
+        ({"segment": -1}, "'segment' must be >= 0"),
+        ({"totalSegments": 0}, "'totalSegments' must be positive"),
+        ({"segment": 10}, "'segment' must be less than 'totalSegments'"),
+        ({"migrationScript": "  "}, "'migrationScript' cannot be empty"),
+    ],
+)
+def test_validate_event_invalid_inputs_raise_valueerror(update, expected_message):
     event = {
         "segment": 0,
         "totalSegments": 10,
@@ -53,15 +66,12 @@ def test_validate_event_with_table_name():
         "migrationScript": "scripts.my_script"
     }
 
-    segment, total_segments, table_name, environment, region, run_migration, script = validate_event_input(event)
+    event.update(update)
 
-    assert segment == 0
-    assert total_segments == 10
-    assert table_name == "my_table"
-    assert environment == "dev"
-    assert region is None
-    assert run_migration is False
-    assert script == "scripts.my_script"
+    with pytest.raises(ValueError) as exc:
+        validate_event_input(event)
+
+    assert expected_message in str(exc.value)
 
 
 def test_validate_event_missing_required_field():
@@ -99,3 +109,28 @@ def test_extract_table_info_invalid_arn_format():
     event = {"tableArn": "not-a-valid-arn"}
     with pytest.raises(ValueError):
         extract_table_info(event)
+
+def test_extract_table_info_raises_valueerror():
+    bad_arn = "arn:aws:dynamodb"
+    event = {"tableArn": bad_arn}
+
+    with pytest.raises(ValueError):
+        extract_table_info(event)
+
+
+def test_lambda_handler_catches_valueerror_exception(mocker, context):
+    mocker.patch(
+        "handlers.dynamodb_migration_handler.validate_event_input",
+        side_effect=ValueError("bad event"),
+    )
+    mock_logger = mocker.patch("handlers.dynamodb_migration_handler.logger")
+
+    event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script"}
+
+    with pytest.raises(ValueError):
+        lambda_handler(event, context)
+
+    mock_logger.error.assert_any_call(
+        "Unexpected error in dynamodb_migration_handler: bad event", exc_info=True
+    )
+

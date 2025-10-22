@@ -1,6 +1,8 @@
 from datetime import datetime
 
+import pytest
 from freezegun import freeze_time
+
 from models.document_reference import DocumentReference
 from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_SEARCH_RESPONSE
 
@@ -49,3 +51,26 @@ def test_last_updated_within_three_minutes_return_false_when_last_updated_is_mor
     expected = False
 
     assert expected == actual
+
+@pytest.mark.parametrize(
+    "deleted, uploaded, uploading, expected",
+    [
+        ("2024-01-01T00:00:00Z", False, False, "deprecated"),  # deleted = string timestamp
+        ("", True, False, "final"),                            # deleted empty → not deleted
+        ("", False, True, "preliminary"),
+        ("", False, False, None),
+    ],
+)
+def test_infer_doc_status(deleted, uploaded, uploading, expected):
+    document = DocumentReference(
+        id="123",
+        file_name="test.pdf",
+        nhs_number="1234567890",
+        deleted=deleted,
+        uploaded=uploaded,
+        uploading=uploading,
+    )
+
+    actual = document.infer_doc_status()
+
+    assert actual == expected
