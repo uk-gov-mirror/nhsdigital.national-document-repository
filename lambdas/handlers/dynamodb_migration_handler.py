@@ -92,7 +92,13 @@ def lambda_handler(event, context):
             migration_script=migration_script
         )
 
-        return service.execute_migration()
+        result = service.execute_migration()
+        logger.info(
+            f"Migration completed: status={result.get('status')}, "
+            f"scanned={result.get('scannedCount')}, updated={result.get('updatedCount')}, "
+            f"errors={result.get('errorCount')}"
+        )
+        return result
 
     except ClientError as aws_error:
         logger.error(f"AWS error while processing segment: {aws_error}", exc_info=True)
