@@ -14,6 +14,12 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 echo "Selected workspace: $WORKSPACE"
+
+if [ "$WORKSPACE" = "prod" ]; then
+    echo "Error: Cannot run E2E tests in production workspace."
+    exit 1
+fi
+
 # Set environment variables
 source ./scripts/test/set-e2e-env-vars.sh $WORKSPACE
 

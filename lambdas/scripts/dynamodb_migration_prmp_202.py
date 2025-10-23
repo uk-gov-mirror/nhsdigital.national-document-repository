@@ -41,7 +41,6 @@ class VersionMigration(MigrationBase):
         self.logger.info(f"Target table: {self.target_table}")
         self.logger.info(f"Dry run mode: {not self.run_migration}")
 
-
         if entries is None:
             self.logger.error("No entries provided after scanning entire table.")
             raise ValueError("Entries must be provided to main().")

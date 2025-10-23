@@ -9,10 +9,17 @@ fi
 
 WORKSPACE="$1"
 
+# Set domain
+if [[ "$WORKSPACE" = "ndr-test" || "$WORKSPACE" = "pre-prod" ]]; then
+    DOMAIN="national-document-repository.nhs.uk"
+else
+    DOMAIN="access-request-fulfilment.patient-deductions.nhs.uk"
+fi
+
 # Set environment variables
 export PDM_METADATA_TABLE="${WORKSPACE}_PDMDocumentMetadata"
 export PDM_S3_BUCKET="${WORKSPACE}-pdm-document-store"
-export MTLS_ENDPOINT="mtls.${WORKSPACE}.access-request-fulfilment.patient-deductions.nhs.uk"
+export MTLS_ENDPOINT="mtls.${WORKSPACE}.${DOMAIN}"
 
 # Ensure Client certificates in place
 if ! make download-api-certs WORKSPACE="${WORKSPACE}"
