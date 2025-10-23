@@ -3,10 +3,14 @@ from enum import Enum
 
 class FhirIssueCoding(Enum):
     INVALID = ("invalid", "Invalid Content")
+    REQUIRED = ("required", "Required element missing")
     FORBIDDEN = ("forbidden", "Forbidden")
     NOT_FOUND = ("not-found", "Not Found")
     EXCEPTION = ("exception", "Exception")
     UNKNOWN = ("unknown", "Unknown User")
+    CONFLICT = ("conflict", "Edit Version Conflict")
+    INVARIANT = ("invariant", "Validation rule failed")
+    DUPLICATE = ("duplicate", "Duplicate")
 
     @property
     def code(self):
