@@ -19,7 +19,6 @@ from tests.unit.helpers.data.s3_responses import (
     MOCK_PRESIGNED_URL_RESPONSE,
 )
 from utils.exceptions import TagNotFoundException
-from utils.utilities import flatten
 
 TEST_DOWNLOAD_PATH = "test_path"
 MOCK_EVENT_BODY = {
@@ -28,6 +27,11 @@ MOCK_EVENT_BODY = {
     "content": [{"attachment": {"contentType": "application/pdf"}}],
     "description": "test_filename.pdf",
 }
+
+
+def flatten(list_of_lists):
+    """Flatten a list of lists into a single list."""
+    return [item for sublist in list_of_lists for item in sublist]
 
 
 @freeze_time("2023-10-30T10:25:00")
@@ -485,3 +489,52 @@ def test_stream_s3_object_to_memory(mock_service, mock_client, mocker):
     result = mock_service.stream_s3_object_to_memory(MOCK_BUCKET, TEST_FILE_KEY)
 
     assert result.getvalue() == b"first-chunksecond-chunk"
+
+
+def test_get_head_object_returns_metadata(mock_service, mock_client):
+    mock_response = {
+        "ResponseMetadata": {
+            "RequestId": "mock_req",
+            "HostId": "",
+            "HTTPStatusCode": 200,
+            "HTTPHeaders": {},
+            "RetryAttempts": 0,
+        },
+        "ContentLength": 3191,
+        "ETag": '"eb2996dae99afd8308e4c97bdb6a4178"',
+        "ContentType": "application/pdf",
+        "Metadata": {"custom-key": "custom-value"},
+    }
+
+    mock_client.head_object.return_value = mock_response
+
+    result = mock_service.get_head_object(bucket=MOCK_BUCKET, key=TEST_FILE_KEY)
+
+    assert result == mock_response
+    mock_client.head_object.assert_called_once_with(Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY)
+
+
+def test_get_head_object_raises_client_error_when_object_not_found(mock_service, mock_client):
+    mock_error = ClientError(
+        {"Error": {"Code": "404", "Message": "Not Found"}},
+        "HeadObject"
+    )
+    mock_client.head_object.side_effect = mock_error
+
+    with pytest.raises(ClientError):
+        mock_service.get_head_object(bucket=MOCK_BUCKET, key=TEST_FILE_KEY)
+
+    mock_client.head_object.assert_called_once_with(Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY)
+
+
+def test_get_head_object_raises_client_error_on_access_denied(mock_service, mock_client):
+    mock_error = ClientError(
+        {"Error": {"Code": "403", "Message": "Forbidden"}},
+        "HeadObject"
+    )
+    mock_client.head_object.side_effect = mock_error
+
+    with pytest.raises(ClientError):
+        mock_service.get_head_object(bucket=MOCK_BUCKET, key=TEST_FILE_KEY)
+
+    mock_client.head_object.assert_called_once_with(Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY)
