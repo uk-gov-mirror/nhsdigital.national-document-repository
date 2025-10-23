@@ -79,7 +79,7 @@ class DocumentReference(BaseModel):
     )
     nhs_number: str
     s3_bucket_name: str = Field(exclude=True, default=None)
-    s3_file_key: str = Field(exclude=True, default=None)
+    s3_file_key: str = Field(default=None)
     status: Literal["current", "superseded", "entered-in-error"] = Field(
         default="current"
     )
@@ -107,11 +107,14 @@ class DocumentReference(BaseModel):
             file_location = data.get("file_location") or data.get("FileLocation")
             bucket, key = cls._parse_s3_location(file_location)
             data["s3_bucket_name"] = bucket
-            data["s3_file_key"] = key
+            if "s3_file_key" not in data and "S3FileKey" not in data:
+                data["s3_file_key"] = key
         elif "s3_bucket_name" in data:
-            data["s3_file_key"] = cls._build_s3_key(data)
+            current_s3_file_key = cls._build_s3_key(data)
+            if "s3_file_key" not in data:
+                data["s3_file_key"] = current_s3_file_key
             data["file_location"] = cls._build_s3_location(
-                data["s3_bucket_name"], data["s3_file_key"]
+                data["s3_bucket_name"], current_s3_file_key
             )
         return data
 
@@ -170,3 +173,12 @@ class DocumentReference(BaseModel):
 
     def set_uploaded_to_true(self):
         self.uploaded = True
+
+    def infer_doc_status(self) -> str | None:
+        if self.deleted:
+            return "deprecated"
+        if self.uploaded:
+            return "final"
+        if self.uploading:
+            return "preliminary"
+        return None
