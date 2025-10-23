@@ -220,6 +220,7 @@ class UploadDocumentReferenceService:
                 "virus_scanner_result",
                 "doc_status",
                 "file_location",
+                "s3_file_key",
                 "file_size",
                 "uploaded",
                 "uploading",
