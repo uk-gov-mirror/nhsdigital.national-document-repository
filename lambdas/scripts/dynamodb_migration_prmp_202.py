@@ -1,4 +1,3 @@
-import argparse
 from typing import Iterable, Callable
 
 from enums.snomed_codes import SnomedCodes
