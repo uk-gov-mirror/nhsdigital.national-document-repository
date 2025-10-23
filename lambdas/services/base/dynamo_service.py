@@ -1,6 +1,5 @@
 import time
-from typing import Iterator
-from typing import Optional
+from typing import Iterator, Optional
 
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
@@ -287,10 +286,10 @@ class DynamoDBService:
             raise e
 
     def stream_whole_table(
-            self,
-            table_name: str,
-            filter_expression: Optional[str] = None,
-            projection_expression: Optional[str] = None,
+        self,
+        table_name: str,
+        filter_expression: Optional[str] = None,
+        projection_expression: Optional[str] = None,
     ) -> Iterator[dict]:
         """
         Streams all items from a DynamoDB table using pagination.
