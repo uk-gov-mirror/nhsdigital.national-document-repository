@@ -1,4 +1,4 @@
-from typing import Iterable, Callable
+from typing import Callable, Iterable
 
 from enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
@@ -9,13 +9,13 @@ from utils.audit_logging_setup import LoggingService
 
 class VersionMigration(MigrationBase):
     """
-        Migration that ensures the following fields are correctly set:
-        - Custodian matches CurrentGpOds
-        - Status is 'current'
-        - DocumentSnomedCodeType is the expected Lloyd George SNOMED code
-        - DocStatus inferred from the document reference
-        - Version set to '1'
-        """
+    Migration that ensures the following fields are correctly set:
+    - Custodian matches CurrentGpOds
+    - Status is 'current'
+    - DocumentSnomedCodeType is the expected Lloyd George SNOMED code
+    - DocStatus inferred from the document reference
+    - Version set to '1'
+    """
 
     name = "VersionMigration"
     description = (
@@ -29,7 +29,7 @@ class VersionMigration(MigrationBase):
         self.dynamo_service = DynamoDBService()
 
     def main(
-            self, entries: Iterable[dict]
+        self, entries: Iterable[dict]
     ) -> list[tuple[str, Callable[[dict], dict | None]]]:
         """
         Main entry point for the migration.
@@ -44,9 +44,7 @@ class VersionMigration(MigrationBase):
             self.logger.error("No entries provided after scanning entire table.")
             raise ValueError("Entries must be provided to main().")
 
-        return [
-            ("LGTableValues", self.get_updated_items)
-        ]
+        return [("LGTableValues", self.get_updated_items)]
 
     def get_updated_items(self, entry: dict) -> dict | None:
         """
@@ -61,7 +59,9 @@ class VersionMigration(MigrationBase):
         if status_update_items := self.get_update_status_items(entry):
             update_items.update(status_update_items)
 
-        if snomed_code_update_items := self.get_update_document_snomed_code_type_items(entry):
+        if snomed_code_update_items := self.get_update_document_snomed_code_type_items(
+            entry
+        ):
             update_items.update(snomed_code_update_items)
 
         if doc_status_update_items := self.get_update_doc_status_items(entry):
@@ -81,7 +81,9 @@ class VersionMigration(MigrationBase):
         custodian = entry.get("Custodian")
 
         if current_gp_ods is None:
-            self.logger.warning(f"[Custodian] CurrentGpOds is missing for item {entry.get('ID')}")
+            self.logger.warning(
+                f"[Custodian] CurrentGpOds is missing for item {entry.get('ID')}"
+            )
             return None
         if current_gp_ods is None or current_gp_ods != custodian:
             return {"Custodian": current_gp_ods}
@@ -129,13 +131,17 @@ class VersionMigration(MigrationBase):
         try:
             document = DocumentReference(**entry)
         except Exception as e:
-            self.logger.warning(f"[DocStatus] Skipping invalid item {entry.get('ID')}: {e}")
+            self.logger.warning(
+                f"[DocStatus] Skipping invalid item {entry.get('ID')}: {e}"
+            )
             return None
 
         inferred_status = document.infer_doc_status()
 
         if entry.get("uploaded") and entry.get("uploading"):
-            self.logger.warning(f"{entry.get('ID')}: Document has a status of uploading and uploaded.")
+            self.logger.warning(
+                f"{entry.get('ID')}: Document has a status of uploading and uploaded."
+            )
 
         if entry.get("DocStatus", "") == inferred_status:
             return None
@@ -145,6 +151,7 @@ class VersionMigration(MigrationBase):
         if inferred_status:
             return {"DocStatus": inferred_status}
 
-        self.logger.warning(f"[DocStatus] Cannot determine status for item {entry.get('ID')}")
+        self.logger.warning(
+            f"[DocStatus] Cannot determine status for item {entry.get('ID')}"
+        )
         return None
-

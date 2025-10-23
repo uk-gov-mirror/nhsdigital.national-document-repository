@@ -1,176 +1,89 @@
-import argparse
-from typing import Iterable, Callable
+from datetime import datetime
+from typing import Callable, Iterable
+
+from enums.metadata_field_names import DocumentReferenceMetadataFields
+from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 from utils.audit_logging_setup import LoggingService
-from services.base.s3_service import S3Service
 
-class VersionMigration:
-    filesize_key_field_name = "FileSize"
-    s3_key_field_name = "S3FileKey" 
-    s3_version_id_field_name = "S3VersionID"
+Fields = DocumentReferenceMetadataFields
 
-    def __init__(self, environment: str, table_name: str, dry_run: bool = False):
-        self.environment = environment
-        self.table_name = table_name
-        self.dry_run = dry_run
-        self.logger = LoggingService("S3Migration")
+
+class BatchUpdate(MigrationBase):
+    """
+    Migration that ensures the following fields exist and are correctly set:
+    - uploaded (bool)
+    - uploading (bool)
+    - lastUpdated (int timestamp)
+    """
+
+    name = "BatchUpdate"
+    description = (
+        "Adds or corrects missing fields: uploaded, uploading, and lastUpdated."
+    )
+
+    def __init__(self, environment: str, table_name: str, run_migration: bool = False):
+        super().__init__(environment, table_name, run_migration)
+        self.logger = LoggingService(self.name)
         self.dynamo_service = DynamoDBService()
-        self.s3_service = S3Service()
-
-        self.target_table = f"{self.environment}_{self.table_name}"
 
     def main(
-            self, entries: Iterable[dict]
+        self, entries: Iterable[dict]
     ) -> list[tuple[str, Callable[[dict], dict | None]]]:
-
         """
-        Main entry point. Returns a list of update functions with labels.
+        Main entry point for the migration.
+        Returns a list of (label, update function) tuples.
         Accepts a list of entries for Lambda-based execution, or scans the table if `entries` is None.
         """
-        self.logger.info("Starting version migration")
+        self.logger.info("Starting batch update migration")
         self.logger.info(f"Target table: {self.target_table}")
-        self.logger.info(f"Dry run mode: {self.dry_run}")
+        self.logger.info(f"Dry run mode: {not self.run_migration}")
 
         if entries is None:
             self.logger.error("No entries provided after scanning entire table.")
             raise ValueError("Entries must be provided to main().")
 
-        return [
-            ("s3Metadata", self.update_s3_metadata_entry)
+        return [("AddMissingFields", self.get_updated_items)]
+
+    def get_updated_items(self, entry: dict) -> dict | None:
+        """
+        Aggregates updates for a single item.
+        Returns a dict of fields to update, or None if no update is needed.
+        """
+        doc_ref_id = entry.get(Fields.ID.value)
+        created = entry.get(Fields.CREATED.value)
+        timestamp_now = int(datetime.now().timestamp())
+
+        fields_to_check = [
+            Fields.UPLOADED.value,
+            Fields.UPLOADING.value,
+            Fields.LAST_UPDATED.value,
         ]
 
-    def process_entries(
-            self,
-            label: str,
-            entries: Iterable[dict],
-            update_fn: Callable[[dict], dict | None],
-    ):
-        self.logger.info(f"Running {label} migration")
-
-        for index, entry in enumerate(entries, start=1):
-            item_id = entry.get("ID")
-
-            # Add entry ID validation
-            if not item_id:
-                self.logger.error(f"[{label}] Item {index} missing ID field, skipping")
-                continue
-
-            self.logger.info(
-                f"[{label}] Processing item {index} (ID: {item_id})"
-            )
-
-            updated_fields = update_fn(entry)
-            if not updated_fields:
-                self.logger.info(
-                    f"[{label}] Item {item_id} does not require update, skipping."
-                )
-                continue
-
-            if self.dry_run:
-                self.logger.info(
-                    f"[Dry Run] Would update item {item_id} with {updated_fields}"
-                )
-            else:
-                self.logger.info(f"Updating item {item_id} with {updated_fields}")
-                try:
-                    self.dynamo_service.update_item(
-                        table_name=self.target_table,
-                        key_pair={"ID": item_id},
-                        updated_fields=updated_fields,
-                    )
-                    self.logger.info(f"Successfully updated item {item_id}")
-                except Exception as e:
-                    self.logger.error(f"Failed to update item {item_id}: {str(e)}")
-                    continue
-
-        self.logger.info(f"{label} migration completed.")
-
-
-    @staticmethod
-    def parse_s3_path(s3_path: str) -> tuple[str, str] | None:
-        """Parse S3 path into bucket and key components"""
-        if not s3_path or not s3_path.startswith("s3://"):
+        need_update = any(entry.get(field) is None for field in fields_to_check)
+        if not need_update:
             return None
 
-        path = s3_path.removeprefix("s3://")
-        parts = path.split("/", 1)
-
-        if len(parts) != 2 or not parts[0] or not parts[1]:
-            return None
-
-        return parts[0], parts[1]
-
-    def get_meta_data(self, s3_bucket: str, s3_key: str) -> tuple[int, str] | None:
+        uploaded = True
+        uploading = False
         try:
-            s3_head = self.s3_service.get_head_object(s3_bucket, s3_key)
-            if s3_head:
-                return s3_head.get('ContentLength'), s3_head.get('VersionId')
+            last_updated = (
+                int(datetime.fromisoformat(created).timestamp())
+                if created
+                else timestamp_now
+            )
         except Exception as e:
-            self.logger.error(f"Failed to retrieve S3 metadata for {s3_key}: {str(e)}")
-        return None
+            self.logger.warning(
+                f"[{doc_ref_id}] Could not parse created timestamp '{created}': {e}. "
+                f"Falling back to current timestamp."
+            )
+            last_updated = timestamp_now
 
-    def update_s3_metadata_entry(self, entry: dict) -> dict | None:
-        """Update entry with S3 metadata (FileSize, S3Key, S3VersionID)"""
+        update_fields = {
+            Fields.UPLOADED.value: uploaded,
+            Fields.UPLOADING.value: uploading,
+            Fields.LAST_UPDATED.value: last_updated,
+        }
 
-        file_location = entry.get("FileLocation")
-        if not file_location:
-            self.logger.warning(f"Missing FileLocation for entry: {entry.get('ID')}")
-            return None
-
-        if not (pathResult := self.parse_s3_path(file_location)) or not all(pathResult):
-            self.logger.warning(f"Invalid S3 path: {file_location}")
-            return None
-        s3_bucket, s3_key = pathResult
-
-        if not (metadata := self.get_meta_data(s3_bucket, s3_key)) or not all(metadata):
-            self.logger.warning(f"Could not retrieve S3 metadata for item {s3_key}")
-            return None
-        content_length, version_id = metadata
-
-        updated_fields = {}
-
-        if self.filesize_key_field_name not in entry:
-            if content_length is None:
-                self.logger.error(f"FileSize missing in both DynamoDB and S3 for item {s3_key}")
-                return None
-            updated_fields[self.filesize_key_field_name] = content_length
-
-        if self.s3_key_field_name not in entry:
-            updated_fields[self.s3_key_field_name] = s3_key
-
-        if self.s3_version_id_field_name not in entry:
-            if version_id is None:
-                self.logger.error(f"S3VersionID missing in both DynamoDB and S3 for item {s3_key}")
-                return None
-            updated_fields[self.s3_version_id_field_name] = version_id
-
-        return updated_fields if updated_fields else None
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="dynamodb_migration.py",
-        description="Migrate DynamoDB table columns",
-    )
-    parser.add_argument("environment", help="Environment prefix for DynamoDB table")
-    parser.add_argument("table_name", help="DynamoDB table name to migrate")
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Run migration in dry-run mode (no writes)",
-    )
-    args = parser.parse_args()
-
-    migration = VersionMigration(
-        environment=args.environment,
-        table_name=args.table_name,
-        dry_run=args.dry_run,
-    )
-
-    entries_to_process = list(
-        migration.dynamo_service.scan_whole_table(migration.target_table)
-    )
-
-    update_functions = migration.main(entries=entries_to_process)
-
-    for label, fn in update_functions:
-        migration.process_entries(label=label, entries=entries_to_process, update_fn=fn)
+        self.logger.info(f"[{doc_ref_id}] Fields to update: {update_fields}")
+        return update_fields
