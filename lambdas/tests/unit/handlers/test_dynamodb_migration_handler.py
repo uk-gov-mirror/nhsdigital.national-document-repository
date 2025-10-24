@@ -1,7 +1,7 @@
 import pytest
 
-from handlers.dynamodb_migration_handler import lambda_handler, extract_table_info
-from handlers.dynamodb_migration_handler import validate_event_input
+from handlers.migration_dynamodb_handler import lambda_handler, extract_table_info
+from handlers.migration_dynamodb_handler import validate_event_input
 
 
 @pytest.fixture
