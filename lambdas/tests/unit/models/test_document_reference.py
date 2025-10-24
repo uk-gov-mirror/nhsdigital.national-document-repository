@@ -230,14 +230,6 @@ def test_infer_doc_status_returns_preliminary_when_uploading():
 
     assert expected == actual
 
-
-def test_infer_doc_status_returns_none_when_no_status_indicators():
-    MOCK_DOCUMENT_REFERENCE.deleted = None
-    MOCK_DOCUMENT_REFERENCE.uploaded = False
-    MOCK_DOCUMENT_REFERENCE.uploading = False
-
-    actual = MOCK_DOCUMENT_REFERENCE.infer_doc_status()
-    expected = None
 @pytest.mark.parametrize(
     "deleted, uploaded, uploading, expected",
     [
