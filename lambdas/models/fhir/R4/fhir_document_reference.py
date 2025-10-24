@@ -12,6 +12,7 @@ from models.fhir.R4.base_models import (
     Reference,
 )
 from pydantic import BaseModel, Field
+from utils.exceptions import FhirDocumentReferenceException
 
 from utils.ods_utils import PCSE_ODS_CODE
 
@@ -126,6 +127,19 @@ class DocumentReference(BaseModel):
     content: List[DocumentReferenceContent]
     context: Optional[DocumentReferenceContext] = None
     meta: Optional[Meta] = None
+
+    def extract_nhs_number_from_fhir(self) -> str:
+        """Extract NHS number from FHIR document"""
+        # Extract NHS number from subject.identifier where the system identifier is NHS number
+        if (
+            self.subject
+            and self.subject.identifier
+            and self.subject.identifier.system
+            == "https://fhir.nhs.uk/Id/nhs-number"
+        ):
+            return self.subject.identifier.value
+        else:
+            raise FhirDocumentReferenceException("NHS number was not found")
 
 
 class DocumentReferenceInfo(BaseModel):
