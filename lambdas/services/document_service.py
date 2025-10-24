@@ -44,7 +44,7 @@ class DocumentService:
         nhs_number: str,
         table: str,
         query_filter: Attr | ConditionBase = None,
-        model_class=None,
+        model_class=DocumentReference,
     ) -> Union[list[DocumentReference], list[DocumentUploadReview]]:
         documents = self.fetch_documents_from_table(
             table=table,
