@@ -1,19 +1,21 @@
 import pytest
 
-from handlers.migration_dynamodb_handler import lambda_handler, extract_table_info
-from handlers.migration_dynamodb_handler import validate_event_input
-
+from handlers.migration_dynamodb_handler import (
+    lambda_handler,
+    extract_table_info,
+    validate_event_input,
+)
 
 @pytest.fixture
 def mock_validate_event_input(mocker):
     return mocker.patch(
-        "handlers.dynamodb_migration_handler.validate_event_input",
+        "handlers.migration_dynamodb_handler.validate_event_input",
         return_value=(0, 10, "my_table", "dev", "eu-west-2", False, "scripts.my_script")
     )
 
 @pytest.fixture
 def mock_service(mocker):
-    mock_class = mocker.patch("handlers.dynamodb_migration_handler.DynamoDBMigrationService")
+    mock_class = mocker.patch("handlers.migration_dynamodb_handler.DynamoDBMigrationService")
     instance = mock_class.return_value
     instance.execute_migration.return_value = {
         "segmentId": 0,
@@ -34,7 +36,7 @@ def test_handler_calls_dependencies_and_returns_result(mock_validate_event_input
 def test_handler_catches_client_error(mocker, mock_validate_event_input, context):
     from botocore.exceptions import ClientError
 
-    mock_service_class = mocker.patch("handlers.dynamodb_migration_handler.DynamoDBMigrationService")
+    mock_service_class = mocker.patch("handlers.migration_dynamodb_handler.DynamoDBMigrationService")
     mock_instance = mock_service_class.return_value
     mock_instance.execute_migration.side_effect = ClientError(
         {"Error": {"Code": "AccessDeniedException", "Message": "Denied"}}, "Scan"
@@ -120,10 +122,10 @@ def test_extract_table_info_raises_valueerror():
 
 def test_lambda_handler_catches_valueerror_exception(mocker, context):
     mocker.patch(
-        "handlers.dynamodb_migration_handler.validate_event_input",
+        "handlers.migration_dynamodb_handler.validate_event_input",
         side_effect=ValueError("bad event"),
     )
-    mock_logger = mocker.patch("handlers.dynamodb_migration_handler.logger")
+    mock_logger = mocker.patch("handlers.migration_dynamodb_handler.logger")
 
     event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script"}
 
