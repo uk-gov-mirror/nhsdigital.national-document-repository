@@ -1,4 +1,5 @@
 import logging
+
 from botocore.exceptions import ClientError
 from services.dynamodb_migration_service import DynamoDBMigrationService
 
@@ -16,7 +17,9 @@ def extract_table_info(event):
     if "tableArn" in event:
         table_arn = str(event["tableArn"]).strip()
         if not table_arn.startswith("arn:aws:dynamodb:"):
-            raise ValueError("Invalid DynamoDB ARN format — must start with 'arn:aws:dynamodb:'")
+            raise ValueError(
+                "Invalid DynamoDB ARN format — must start with 'arn:aws:dynamodb:'"
+            )
 
         # Example: "arn:aws:dynamodb:eu-west-2:533825906475:table/dev_prmp562_LloydGeorgeReferenceMetadata"
         try:
@@ -36,7 +39,9 @@ def extract_table_info(event):
         return str(event["tableName"]).strip(), str(event["environment"]).strip(), None
 
     else:
-        raise ValueError("Event must include either 'tableArn' or both 'tableName' and 'environment'")
+        raise ValueError(
+            "Event must include either 'tableArn' or both 'tableName' and 'environment'"
+        )
 
 
 def validate_event_input(event):
@@ -66,7 +71,15 @@ def validate_event_input(event):
 
     table_name, environment, region = extract_table_info(event)
 
-    return segment, total_segments, table_name, environment, region, run_migration, migration_script
+    return (
+        segment,
+        total_segments,
+        table_name,
+        environment,
+        region,
+        run_migration,
+        migration_script,
+    )
 
 
 def lambda_handler(event, context):
@@ -78,10 +91,12 @@ def lambda_handler(event, context):
             environment,
             region,
             run_migration,
-            migration_script
+            migration_script,
         ) = validate_event_input(event)
 
-        logger.info(f"Starting DynamoDB migration for table: {table_name} (env={environment}, region={region})")
+        logger.info(
+            f"Starting DynamoDB migration for table: {table_name} (env={environment}, region={region})"
+        )
 
         service = DynamoDBMigrationService(
             segment=segment,
@@ -89,7 +104,7 @@ def lambda_handler(event, context):
             table_name=table_name,
             environment=environment,
             run_migration=run_migration,
-            migration_script=migration_script
+            migration_script=migration_script,
         )
 
         result = service.execute_migration()
@@ -104,5 +119,7 @@ def lambda_handler(event, context):
         logger.error(f"AWS error while processing segment: {aws_error}", exc_info=True)
         raise
     except Exception as e:
-        logger.error(f"Unexpected error in dynamodb_migration_handler: {e}", exc_info=True)
+        logger.error(
+            f"Unexpected error in dynamodb_migration_handler: {e}", exc_info=True
+        )
         raise

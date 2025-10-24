@@ -1,3 +1,4 @@
+import os
 from typing import Callable, Iterable
 
 from scripts.MigrationBase import MigrationBase
@@ -11,6 +12,7 @@ class AuthorMigration(MigrationBase):
     based on the latest completed bulk upload report for each NHS number.
     Skips deleted items and ensures no overwrites of existing Author values.
     """
+
     name = "AuthorMigration"
     description = (
         "Populates the 'Author' field in Lloyd George Reference records "
@@ -22,10 +24,16 @@ class AuthorMigration(MigrationBase):
         self.logger = LoggingService(self.name)
         self.dynamo_service = DynamoDBService()
         self.bulk_upload_lookup: dict[str, dict] | None = None
+
+        workspace = os.environ.get("WORKSPACE", self.environment)
+        self.bulk_upload_report_table = f"{workspace}_BulkUploadReport"
+        self.logger.info(
+            f"Using BulkUploadReport table: {self.bulk_upload_report_table}"
+        )
         self.bulk_upload_report_table = f"{self.environment}_BulkUploadReport"
 
     def main(
-            self, entries: Iterable[dict]
+        self, entries: Iterable[dict]
     ) -> list[tuple[str, Callable[[dict], dict | None]]]:
         """
         Main entry point for the migration.
@@ -64,12 +72,16 @@ class AuthorMigration(MigrationBase):
 
         bulk_upload_row = self.bulk_upload_lookup.get(nhs_number)
         if not bulk_upload_row:
-            self.logger.warning(f"No completed bulk upload found for NHS number: {nhs_number}")
+            self.logger.warning(
+                f"No completed bulk upload found for NHS number: {nhs_number}"
+            )
             return None
 
         new_author = bulk_upload_row.get("UploaderOdsCode")
         if not new_author:
-            self.logger.warning(f"No uploader ODS code found for NHS number: {nhs_number}")
+            self.logger.warning(
+                f"No uploader ODS code found for NHS number: {nhs_number}"
+            )
             return None
 
         return {"Author": new_author}
@@ -79,7 +91,9 @@ class AuthorMigration(MigrationBase):
         Creates a lookup of the most recent completed bulk upload reports by NHS number.
         """
         self.logger.info("Building bulk upload lookup from BulkUploadReport table...")
-        bulk_reports = self.dynamo_service.scan_whole_table(self.bulk_upload_report_table)
+        bulk_reports = self.dynamo_service.scan_whole_table(
+            self.bulk_upload_report_table
+        )
         lookup: dict[str, dict] = {}
 
         for row in bulk_reports:

@@ -1,26 +1,24 @@
-import argparse
-from typing import Iterable, Callable
+from typing import Callable, Iterable
 
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
-from utils.audit_logging_setup import LoggingService
 from services.base.s3_service import S3Service
+from utils.audit_logging_setup import LoggingService
+
 
 class S3MetadataMigration(MigrationBase):
     """
-     Migration that ensures the following S3-related fields are correctly set:
-     - FileSize (from S3 object ContentLength)
-     - S3FileKey (from FileLocation)
-     - S3VersionID (from S3 object VersionId)
-     """
+    Migration that ensures the following S3-related fields are correctly set:
+    - FileSize (from S3 object ContentLength)
+    - S3FileKey (from FileLocation)
+    - S3VersionID (from S3 object VersionId)
+    """
+
     name = "S3MetadataMigration"
     description = (
         "Ensures FileSize, S3FileKey, and S3VersionID fields are populated "
         "based on the S3 object metadata referenced in FileLocation."
     )
-    # filesize_key_field_name = "FileSize"
-    # s3_key_field_name = "S3FileKey"
-    # s3_version_id_field_name = "S3VersionID"
 
     def __init__(self, environment: str, table_name: str, run_migration: bool = False):
         super().__init__(environment, table_name, run_migration)
@@ -31,7 +29,6 @@ class S3MetadataMigration(MigrationBase):
     def main(
         self, entries: Iterable[dict]
     ) -> list[tuple[str, Callable[[dict], dict | None]]]:
-
         """
         Main entry point for the migration.
         Returns a list of (label, update function) tuples.
