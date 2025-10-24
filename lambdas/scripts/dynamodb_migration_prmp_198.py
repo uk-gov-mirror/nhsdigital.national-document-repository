@@ -27,10 +27,6 @@ class AuthorMigration(MigrationBase):
 
         workspace = os.environ.get("WORKSPACE", self.environment)
         self.bulk_upload_report_table = f"{workspace}_BulkUploadReport"
-        self.logger.info(
-            f"Using BulkUploadReport table: {self.bulk_upload_report_table}"
-        )
-        self.bulk_upload_report_table = f"{self.environment}_BulkUploadReport"
 
     def main(
         self, entries: Iterable[dict]
