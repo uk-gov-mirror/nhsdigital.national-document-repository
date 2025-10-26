@@ -164,13 +164,10 @@ def test_lambda_handler_calls_service_with_correct_message(
     """Test handler calls service with the correctly parsed message."""
     lambda_handler(sample_sqs_event, context)
 
-    # Verify the service was called once
     mock_review_service.process_review_message.assert_called_once()
     
-    # Get the actual call argument
     call_args = mock_review_service.process_review_message.call_args[0][0]
     
-    # Verify it's a ReviewMessageBody with correct data (check type name since isinstance fails with mock)
     assert type(call_args).__name__ == "ReviewMessageBody"
     assert call_args.file_name == "test_document.pdf"
     assert call_args.nhs_number == "9000000009"
@@ -181,11 +178,10 @@ def test_lambda_handler_handles_empty_records_list(
     set_review_env, context, empty_sqs_event, mock_review_service
 ):
     """Test handler handles empty records list via @validate_sqs_event decorator."""
-    # The @validate_sqs_event decorator returns 400 for empty records
     actual_response = lambda_handler(empty_sqs_event, context)
 
     assert actual_response["statusCode"] == 400
-    assert "SQS_4001" in actual_response["body"]  # Error code for failed SQS parsing
+    assert "SQS_4001" in actual_response["body"]
     mock_review_service.process_review_message.assert_not_called()
 
 
@@ -200,12 +196,10 @@ def test_lambda_handler_handles_service_error(
         "Service processing failed"
     )
 
-    # The @handle_lambda_exceptions decorator catches exceptions
     response = lambda_handler(sample_sqs_event, context)
     
-    # Should return 500 error response
     assert response["statusCode"] == 500
-    assert "UE_500" in response["body"]  # Unhandled exception error code
+    assert "UE_500" in response["body"]
 
 
 def test_lambda_handler_handles_invalid_message_format(
@@ -218,7 +212,6 @@ def test_lambda_handler_handles_invalid_message_format(
                 "body": json.dumps(
                     {
                         "file_name": "test.pdf",
-                        # Missing required fields
                     }
                 ),
                 "eventSource": "aws:sqs",
@@ -226,11 +219,10 @@ def test_lambda_handler_handles_invalid_message_format(
         ]
     }
 
-    # The @handle_lambda_exceptions decorator catches the ValidationError
     response = lambda_handler(invalid_event, context)
     
     assert response["statusCode"] == 500
-    assert "UE_500" in response["body"]  # Unhandled exception error code
+    assert "UE_500" in response["body"]
 
 
 def test_lambda_handler_handles_partial_failure(
@@ -240,19 +232,14 @@ def test_lambda_handler_handles_partial_failure(
     mock_review_service,
 ):
     """Test handler processes messages and handles first failure."""
-    # First message succeeds, second fails
     mock_review_service.process_review_message.side_effect = [
-        None,  # First message succeeds
-        Exception("Processing failed on second message"),  # Second fails
+        None,
+        Exception("Processing failed on second message"),
     ]
 
-    # The @handle_lambda_exceptions decorator catches the exception
     response = lambda_handler(sample_sqs_event_multiple_messages, context)
 
-    # Should return error response
     assert response["statusCode"] == 500
-    
-    # Verify service was called twice before failing
     assert mock_review_service.process_review_message.call_count == 2
 
 
@@ -283,7 +270,6 @@ def test_lambda_handler_parses_json_body_correctly(
 
     lambda_handler(event, context)
 
-    # Verify service was called with parsed ReviewMessageBody
     mock_review_service.process_review_message.assert_called_once()
     call_args = mock_review_service.process_review_message.call_args[0][0]
     assert type(call_args).__name__ == "ReviewMessageBody"
@@ -299,7 +285,6 @@ def test_lambda_handler_logs_correct_counts(
     """Test handler response contains correct processed count."""
     response = lambda_handler(sample_sqs_event_multiple_messages, context)
 
-    # Extract response body
     response_body = response["body"]
 
     assert "Processed 3 messages" in response_body
@@ -314,11 +299,7 @@ def test_lambda_handler_tracks_failed_count(
     """Test handler tracks failed message count."""
     mock_review_service.process_review_message.side_effect = Exception("Test error")
 
-    # The @handle_lambda_exceptions decorator catches the exception
     response = lambda_handler(sample_sqs_event, context)
     
-    # Should return error
     assert response["statusCode"] == 500
-
-    # Verify service was still called
     mock_review_service.process_review_message.assert_called_once()

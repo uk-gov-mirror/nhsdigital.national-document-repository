@@ -74,7 +74,6 @@ def test_process_review_message_success(
     service_under_test, sample_review_message, mocker
 ):
     """Test successful processing of a review message."""
-    # Mock all the internal methods
     mock_verify = mocker.patch.object(
         service_under_test, "_verify_file_exists_in_staging"
     )
@@ -86,16 +85,13 @@ def test_process_review_message_success(
         service_under_test, "_update_review_record_with_file_location"
     )
 
-    # Configure return values
     mock_review = MagicMock()
     mock_review.id = "test-review-id"
     mock_create.return_value = mock_review
     mock_move.return_value = "9000000009/test-review-id/test_document.pdf"
 
-    # Execute
     service_under_test.process_review_message(sample_review_message)
 
-    # Verify calls
     mock_verify.assert_called_once_with(sample_review_message.file_path)
     mock_create.assert_called_once_with(sample_review_message)
     mock_move.assert_called_once_with(sample_review_message, "test-review-id")
@@ -166,7 +162,6 @@ def test_verify_file_exists_success(service_under_test):
     """Test successful file verification."""
     service_under_test.s3_service.file_exist_on_s3.return_value = True
 
-    # Should not raise exception
     service_under_test._verify_file_exists_in_staging("staging/test.pdf")
 
     service_under_test.s3_service.file_exist_on_s3.assert_called_once_with(
@@ -202,12 +197,10 @@ def test_create_review_record_success(
     service_under_test, sample_review_message, mocker
 ):
     """Test successful creation of review record."""
-    # Mock the DynamoDB create_item to succeed
     service_under_test.dynamo_service.create_item.return_value = None
 
     result = service_under_test._create_review_record(sample_review_message)
 
-    # Verify the result
     assert isinstance(result, DocumentsUploadReview)
     assert result.nhs_number == "9000000009"
     assert result.review_status == ReviewStatus.PENDING_REVIEW
@@ -218,7 +211,6 @@ def test_create_review_record_success(
     assert result.files[0].file_name == "test_document.pdf"
     assert result.files[0].file_location == "staging/9000000009/test_document.pdf"
 
-    # Verify upload_date is converted to timestamp
     expected_timestamp = int(
         datetime.fromisoformat("2024-01-15T10:30:00Z")
         .replace(tzinfo=timezone.utc)
@@ -226,7 +218,6 @@ def test_create_review_record_success(
     )
     assert result.upload_date == expected_timestamp
 
-    # Verify DynamoDB was called
     service_under_test.dynamo_service.create_item.assert_called_once()
     call_args = service_under_test.dynamo_service.create_item.call_args
     assert call_args[1]["table_name"] == "test_review_table"
@@ -278,11 +269,9 @@ def test_move_file_success(service_under_test, sample_review_message, mocker):
         sample_review_message, "test-review-id-123"
     )
 
-    # Verify new file key format
     expected_key = "9000000009/test-review-id-123/test_document.pdf"
     assert new_file_key == expected_key
 
-    # Verify S3 copy was called
     service_under_test.s3_service.copy_across_bucket.assert_called_once_with(
         source_bucket="test_staging_bucket",
         source_file_key="staging/9000000009/test_document.pdf",
@@ -290,7 +279,6 @@ def test_move_file_success(service_under_test, sample_review_message, mocker):
         dest_file_key=expected_key,
     )
 
-    # Verify delete was called
     service_under_test._delete_from_staging.assert_called_once_with(
         "staging/9000000009/test_document.pdf"
     )
@@ -372,15 +360,12 @@ def test_update_review_record_dynamo_error(service_under_test, mocker):
         "UpdateItem",
     )
 
-    # Mock logger to verify warning is logged
     mock_logger = mocker.patch("services.review_processor_service.logger")
 
-    # Should not raise - method logs error and warning instead
     service_under_test._update_review_record_with_file_location(
         "test-review-id", "path/to/file.pdf"
     )
 
-    # Verify error and warning were logged
     assert mock_logger.error.called
     assert mock_logger.warning.called
 
@@ -392,17 +377,14 @@ def test_full_workflow_with_valid_message(
     service_under_test, sample_review_message, mocker
 ):
     """Test complete workflow from message to final update."""
-    # Set up mocks
     service_under_test.s3_service.file_exist_on_s3.return_value = True
     service_under_test.dynamo_service.create_item.return_value = None
     service_under_test.s3_service.copy_across_bucket.return_value = None
     service_under_test.s3_service.delete_object.return_value = None
     service_under_test.dynamo_service.update_item.return_value = None
 
-    # Execute full workflow
     service_under_test.process_review_message(sample_review_message)
 
-    # Verify all steps were executed
     service_under_test.s3_service.file_exist_on_s3.assert_called_once()
     service_under_test.dynamo_service.create_item.assert_called_once()
     service_under_test.s3_service.copy_across_bucket.assert_called_once()
@@ -419,7 +401,6 @@ def test_workflow_stops_at_verification_failure(
     with pytest.raises(S3FileNotFoundException):
         service_under_test.process_review_message(sample_review_message)
 
-    # Verify subsequent operations were not called
     service_under_test.dynamo_service.create_item.assert_not_called()
     service_under_test.s3_service.copy_across_bucket.assert_not_called()
 
@@ -448,6 +429,5 @@ def test_workflow_handles_multiple_different_patients(service_under_test, mocker
     for message in messages:
         service_under_test.process_review_message(message)
 
-    # Verify service was called for each message
     assert service_under_test.dynamo_service.create_item.call_count == 3
     assert service_under_test.s3_service.copy_across_bucket.call_count == 3
