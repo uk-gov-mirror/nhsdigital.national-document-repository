@@ -85,4 +85,3 @@ jobs:
       lambda_layer_name: alerting_lambda_layer
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
-

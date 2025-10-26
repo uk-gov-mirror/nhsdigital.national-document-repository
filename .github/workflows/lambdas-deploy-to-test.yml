@@ -48,4 +48,3 @@ jobs:
       mock_login_enabled: ${{ inputs.mock_login_enabled }}
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
-

@@ -46,4 +46,3 @@ jobs:
       use_bulk_upload_metadata_processor: "${{ inputs.use_bulk_upload_metadata_processor }}"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
-

@@ -63,4 +63,3 @@ jobs:
       environment: pre-prod
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
-

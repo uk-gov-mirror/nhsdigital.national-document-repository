@@ -106,4 +106,3 @@ jobs:
         env:
           AWS_REGION: "us-east-1"
           LAMBDA_ARN: ${{ env.LAMBDA_ARN }}
-

@@ -100,4 +100,3 @@ jobs:
             --start-bulk-upload\
             "${BULK_UPLOAD_METADATA_PROCESSOR_FLAG}"
         working-directory: ./tests/bulk-upload/scripts
-
