@@ -65,7 +65,7 @@ class EdgePresignService:
         request_values["uri"] = "/" + "/".join(url_parts[3:])
 
     def _filter_domain_for_env(self, domain_name: str) -> str:
-        match = re.match(r"^[^-]+(?:-[^-]+)?(?=-lloyd)", domain_name)
+        match = re.match(r"^[^-]+(?:-[^-]+)?(?=-lloyd|-document)", domain_name)
         return match.group(0) if match else ""
 
     def _get_formatted_table_name(self, environment: str) -> str:
