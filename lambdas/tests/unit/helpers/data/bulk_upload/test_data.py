@@ -1,10 +1,8 @@
 import os
 
-from freezegun import freeze_time
-
 from enums.snomed_codes import SnomedCodes
 from enums.virus_scan_result import VirusScanResult
-from lambdas.enums.nrl_sqs_upload import NrlActionTypes
+from freezegun import freeze_time
 from models.document_reference import DocumentReference
 from models.sqs.nrl_sqs_message import NrlSqsMessage
 from models.sqs.pdf_stitching_sqs_message import PdfStitchingSqsMessage
@@ -17,6 +15,8 @@ from services.bulk_upload_metadata_processor_service import (
     BulkUploadMetadataProcessorService,
 )
 from tests.unit.conftest import MOCK_LG_BUCKET, TEST_CURRENT_GP_ODS, TEST_UUID
+
+from lambdas.enums.nrl_sqs_upload import NrlActionTypes
 
 convert_to_sqs_metadata = BulkUploadMetadataProcessorService.convert_to_sqs_metadata
 
