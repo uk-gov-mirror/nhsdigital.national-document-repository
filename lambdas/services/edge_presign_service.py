@@ -1,5 +1,3 @@
-import re
-import os
 
 from botocore.exceptions import ClientError
 from enums.lambda_error import LambdaError
@@ -64,11 +62,14 @@ class EdgePresignService:
         request_values["querystring"] = querystring
         request_values["uri"] = "/" + "/".join(url_parts[3:])
 
-
     def _get_formatted_table_name(self) -> str:
         base_table_name = self.ssm_service.get_ssm_parameter(self.table_name_ssm_param)
 
-        return f"{self.environment}_{base_table_name}" if self.environment else base_table_name
+        return (
+            f"{self.environment}_{base_table_name}"
+            if self.environment
+            else base_table_name
+        )
 
     def _update_dynamo_item(self, table_name: str, request_id: str) -> dict:
         return self.dynamo_service.update_item(
