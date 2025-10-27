@@ -498,7 +498,7 @@ describe('DocumentSelectOrderStage', () => {
                 continueButton = screen.getByRole('button', { name: 'Continue' });
                 expect(continueButton).toBeInTheDocument();
             });
-            
+
             await user.click(continueButton!);
 
             await waitFor(() => {
@@ -528,7 +528,7 @@ describe('DocumentSelectOrderStage', () => {
                 continueButton = screen.getByRole('button', { name: 'Continue' });
                 expect(continueButton).toBeInTheDocument();
             });
-            
+
             await user.click(continueButton!);
 
             await waitFor(() => {

@@ -45,7 +45,7 @@ const DocumentSelectOrderStage = ({
     const navigate = useEnhancedNavigate();
     const journey = getJourney();
     const [stitchedBlobLoaded, setStitchedBlobLoaded] = useState(false);
-    
+
     const documentPositionKey = (documentId: string): string => {
         return `${documentId}`;
     };
@@ -187,12 +187,10 @@ const DocumentSelectOrderStage = ({
     const submitDocuments = (): void => {
         updateDocumentPositions();
         if (documents.length === 1) {
-            console.log(`Navigating to select order screen in ${journey} journey: length ${documents.length}`);
-            console.log('Documents:', documents);
             navigate.withParams(routeChildren.DOCUMENT_UPLOAD_UPLOADING);
             return;
         }
-        console.log(`Navigating to select order screen in ${journey} journey: length ${documents.length}`);
+
         navigate.withParams(routeChildren.DOCUMENT_UPLOAD_CONFIRMATION);
     };
 
