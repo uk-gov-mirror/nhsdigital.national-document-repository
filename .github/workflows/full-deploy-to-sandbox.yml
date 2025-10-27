@@ -1,70 +1,53 @@
 name: "Deploy: Dev"
 
+run-name: "${{ github.event.inputs.git_ref }} | ${{ github.event.inputs.sandbox_name }}"
+
 on:
   workflow_dispatch:
     inputs:
-      build_branch:
-        description: "Feature branch to push?"
+      git_ref:
+        description: "Branch, tag or SHA to deploy"
         required: true
         type: "string"
         default: "main"
-      sandbox:
+      sandbox_name:
         description: "Which Sandbox to push to."
         required: true
         type: "string"
-        default: "ndr"
-      environment:
-        description: "Which Environment settings to use."
-        required: true
-        type: "string"
-        default: "development"
       bulk_upload:
-        description: "Do you want to disable the PDS stub and run a Bulk Upload on this sandbox?"
+        description: "Disable the PDS stub and run a Bulk Upload on this sandbox?"
         required: true
         type: boolean
-        default: false
       mock_login_enabled:
-        description: "Do you want to deploy with mock login enabled?"
-        required: true
+        description: "Deploy with mock login enabled?"
         type: boolean
-        default: true
+        required: true
 
 permissions:
   actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   pull-requests: write
-  id-token: write # This is required for requesting the JWT
+  id-token: write
 
 jobs:
-  view_action_parameters:
-    name: View input params
-    runs-on: ubuntu-latest
-    steps:
-      - name: Display client passed variables
-        run: |
-          echo Build Branch: ${{ inputs.build_branch }}
-          echo Sandbox: ${{ inputs.sandbox }}
-          echo Environment: ${{ inputs.environment }}
-          echo Cypress Base Url: ${{ vars.CYPRESS_BASE_URL }}
-
   lambda_test_job:
     name: Run Lambda Unit Tests
     uses: ./.github/workflows/base-lambdas-reusable-test.yml
     with:
       python_version: "3.11"
-      build_branch: ${{ inputs.build_branch }}
+      git_ref: ${{ inputs.git_ref }}
 
   react_testing_job:
     name: Run UI Unit Tests
     uses: ./.github/workflows/base-vitest-test.yml
     with:
-      build_branch: ${{ inputs.build_branch }}
+      git_ref: ${{ inputs.git_ref }}
 
   cypress_build_job:
     name: Build UI version for E2E Tests
     uses: ./.github/workflows/base-cypress-build.yml
     with:
-      build_branch: ${{ inputs.build_branch }}
+      git_ref: ${{ inputs.git_ref }}
 
   cypress_test_job:
     name: Run Cypress E2E Tests
@@ -72,16 +55,16 @@ jobs:
     uses: ./.github/workflows/base-cypress-test-all-env.yml
     with:
       cypress_base_url: ${{ vars.CYPRESS_BASE_URL }}
-      build_branch: ${{ inputs.build_branch }}
+      git_ref: ${{ inputs.git_ref }}
 
   publish_all_lambda_layers:
     name: Publish all Lambda Layers
     uses: ./.github/workflows/base-lambda-layer-reusable-publish-all.yml
     with:
-      build_branch: ${{ inputs.build_branch }}
-      sandbox: ${{ inputs.sandbox }}
-      environment: ${{ inputs.environment }}
+      git_ref: ${{ inputs.git_ref }}
+      sandbox: ${{ inputs.sandbox_name }}
       python_version: "3.11"
+      environment: "development"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
@@ -90,9 +73,9 @@ jobs:
     uses: ./.github/workflows/base-lambdas-reusable-deploy-all.yml
     needs: ["publish_all_lambda_layers"]
     with:
-      build_branch: ${{ inputs.build_branch }}
-      sandbox: ${{ inputs.sandbox }}
-      environment: ${{ inputs.environment }}
+      environment: "development"
+      git_ref: ${{ inputs.git_ref }}
+      sandbox: ${{ inputs.sandbox_name }}
       python_version: "3.11"
       is_sandbox: true
       mock_login_enabled: ${{ inputs.mock_login_enabled }}
@@ -103,9 +86,9 @@ jobs:
     name: Deploy UI
     uses: ./.github/workflows/base-deploy-ui.yml
     with:
-      build_branch: ${{ inputs.build_branch }}
-      environment: ${{ inputs.environment }}
-      sandbox: ${{ inputs.sandbox }}
+      environment: "development"
+      git_ref: ${{ inputs.git_ref }}
+      sandbox: ${{ inputs.sandbox_name }}
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
@@ -115,10 +98,10 @@ jobs:
     uses: "./.github/workflows/base-run-bulk-upload.yml"
     needs: ["deploy_all_lambdas"]
     with:
-      environment: ${{ inputs.environment }}
-      sandbox: ${{ inputs.sandbox }}
+      environment: "development"
+      sandbox: ${{ inputs.sandbox_name }}
       combi_settings: "combi300"
-      base_branch: ${{ inputs.build_branch }}
+      base_branch: ${{ inputs.git_ref }}
       file_count: "3"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
