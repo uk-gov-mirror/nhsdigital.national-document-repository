@@ -1,4 +1,4 @@
-name: "Deploy: Dev"
+name: "SANDBOX Full- Deploy feature branch to sandbox"
 
 run-name: "${{ github.event.inputs.git_ref }} | ${{ github.event.inputs.sandbox_name }}"
 
