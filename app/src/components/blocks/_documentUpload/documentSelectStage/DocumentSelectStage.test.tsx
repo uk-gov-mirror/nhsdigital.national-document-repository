@@ -10,7 +10,6 @@ import usePatient from '../../../../helpers/hooks/usePatient';
 import { buildLgFile, buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import {
     PDF_PARSING_ERROR_TYPE,
-    UPLOAD_FILE_ERROR_TYPE,
 } from '../../../../helpers/utils/fileUploadErrorMessages';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
