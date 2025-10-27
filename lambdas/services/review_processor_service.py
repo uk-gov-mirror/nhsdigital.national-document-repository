@@ -186,3 +186,4 @@ class ReviewProcessorService:
         except Exception as e:
             logger.error(f"Failed to update review record with file location: {str(e)}")
             logger.warning("Review record created but file location not updated in DynamoDB")
+            raise

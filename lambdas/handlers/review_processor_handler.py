@@ -1,6 +1,5 @@
 import json
 from lambdas.models.sqs.review_message_body import ReviewMessageBody
-# from services.review_processor_service import ReviewProcessorService // TODO
 from lambdas.services.review_processor_service import ReviewProcessorService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -48,9 +47,7 @@ def lambda_handler(event, context):
     for sqs_message in sqs_messages:
         try:
             sqs_message_body = json.loads(sqs_message["body"])
-            review_message = ReviewMessageBody(**sqs_message_body)
-
-            message = ReviewMessageBody.model_validate(review_message)
+            message = ReviewMessageBody.model_validate(sqs_message_body)
 
             review_service.process_review_message(message)
             processed_count += 1
@@ -60,8 +57,6 @@ def lambda_handler(event, context):
                 {"Result": "Review processing failed"},
             )
             failed_count += 1
-
-            raise
 
     logger.info(
         f"Review processor completed: {processed_count} processed, {failed_count} failed"

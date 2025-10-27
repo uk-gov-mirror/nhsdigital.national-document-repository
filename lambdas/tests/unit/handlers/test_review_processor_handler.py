@@ -16,9 +16,6 @@ def mock_review_service(mocker):
     return mocked_instance
 
 
-
-
-
 @pytest.fixture
 def sample_review_message_body():
     """Create a sample review message body."""
