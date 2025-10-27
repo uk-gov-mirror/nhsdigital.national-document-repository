@@ -12,24 +12,23 @@ logger = LoggingService(__name__)
 
 
 class EdgePresignService:
-    def __init__(self):
+    def __init__(self, environment):
         self.dynamo_service = DynamoDBService()
         self.ssm_service = SSMService()
         self.table_name_ssm_param = "EDGE_REFERENCE_TABLE"
+        self.environment = environment
 
     def use_presigned(self, request_values: dict) -> dict:
         request_id = self._extract_request_id(request_values)
-        domain_name = self._extract_domain_name(request_values)
 
-        presigned_url = self._attempt_presigned_ingestion(request_id, domain_name)
+        presigned_url = self._attempt_presigned_ingestion(request_id)
         self._update_request_with_presigned_url(request_values, presigned_url)
 
         return request_values
 
-    def _attempt_presigned_ingestion(self, request_id: str, domain_name: str) -> str:
+    def _attempt_presigned_ingestion(self, request_id: str) -> str:
         try:
-            environment = self._filter_domain_for_env(domain_name)
-            table_name = self._get_formatted_table_name(environment)
+            table_name = self._get_formatted_table_name()
             updated_item = self._update_dynamo_item(table_name, request_id)
             return self._extract_presigned_url(updated_item)
         except ClientError as e:
@@ -66,14 +65,10 @@ class EdgePresignService:
         request_values["uri"] = "/" + "/".join(url_parts[3:])
 
 
-    def _filter_domain_for_env(self, domain_name: str) -> str:
-        match = re.match(r"^[^-]+(?:-[^-]+)?(?=-lloyd|-document)", domain_name)
-        return match.group(0) if match else ""
-
-    def _get_formatted_table_name(self, environment) -> str:
+    def _get_formatted_table_name(self) -> str:
         base_table_name = self.ssm_service.get_ssm_parameter(self.table_name_ssm_param)
-        # environment = os.environ["AWS_LAMBDA_FUNCTION_NAME"].split("_")[0]
-        return f"{environment}_{base_table_name}" if environment else base_table_name
+
+        return f"{self.environment}_{base_table_name}" if self.environment else base_table_name
 
     def _update_dynamo_item(self, table_name: str, request_id: str) -> dict:
         return self.dynamo_service.update_item(
