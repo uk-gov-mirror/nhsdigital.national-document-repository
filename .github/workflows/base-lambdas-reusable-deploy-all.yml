@@ -567,7 +567,7 @@ jobs:
       sandbox: ${{ inputs.sandbox }}
       lambda_handler_name: migration_dynamodb_segment_handler
       lambda_aws_name: MigrationDynamodbSegment
-      lambda_layer_names: 'core_lambda_layer'
+      lambda_layer_names: "core_lambda_layer"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
@@ -650,7 +650,7 @@ jobs:
       build_branch: ${{ inputs.build_branch }}
       sandbox: ${{ inputs.sandbox }}
       lambda_handler_name: migration_dynamodb_handler
-      lambda_aws_name: MigrationDynamoDBLambda
-      lambda_layer_names: 'core_lambda_layer'
+      lambda_aws_name: MigrationDynamoDB
+      lambda_layer_names: "core_lambda_layer"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
