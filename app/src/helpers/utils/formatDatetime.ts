@@ -6,5 +6,6 @@ export const getFormattedDatetime = (date: Date) => {
         hour: 'numeric',
         minute: 'numeric',
         second: 'numeric',
+        timeZone: 'Europe/London',
     });
 };
