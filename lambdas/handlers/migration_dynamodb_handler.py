@@ -60,8 +60,8 @@ def validate_event_input(event):
         raise ValueError("'segment' must be >= 0")
     if total_segments <= 0:
         raise ValueError("'totalSegments' must be positive")
-    if segment >= total_segments:
-        raise ValueError("'segment' must be less than 'totalSegments'")
+    if segment > total_segments:
+        raise ValueError("'segment' must be less than or equal to 'totalSegments'")
 
     migration_script = str(event["migrationScript"]).strip()
     if not migration_script:
