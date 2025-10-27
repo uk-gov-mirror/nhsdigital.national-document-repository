@@ -493,8 +493,13 @@ describe('DocumentSelectOrderStage', () => {
 
             renderSut(documents);
 
-            const continueButton = screen.getByRole('button', { name: 'Continue' });
-            await user.click(continueButton);
+            let continueButton;
+            await waitFor(() => {
+                continueButton = screen.getByRole('button', { name: 'Continue' });
+                expect(continueButton).toBeInTheDocument();
+            });
+            
+            await user.click(continueButton!);
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith({
@@ -518,8 +523,13 @@ describe('DocumentSelectOrderStage', () => {
 
             renderSut(documents);
 
-            const continueButton = screen.getByRole('button', { name: 'Continue' });
-            await user.click(continueButton);
+            let continueButton;
+            await waitFor(() => {
+                continueButton = screen.getByRole('button', { name: 'Continue' });
+                expect(continueButton).toBeInTheDocument();
+            });
+            
+            await user.click(continueButton!);
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith({
