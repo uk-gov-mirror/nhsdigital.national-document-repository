@@ -2,13 +2,10 @@ import os
 from typing import Optional
 
 from botocore.exceptions import ClientError
+from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
+from enums.snomed_codes import SnomedCodes
 from enums.virus_scan_result import VirusScanResult
-from lambdas.enums.lambda_error import LambdaError
-from lambdas.enums.snomed_codes import SnomedCodes
-from lambdas.utils.dynamo_utils import DocTypeTableRouter
-from lambdas.utils.lambda_exceptions import InvalidDocTypeException
-from lambdas.utils.s3_utils import DocTypeS3BucketRouter
 from models.document_reference import DocumentReference
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
@@ -18,11 +15,14 @@ from utils.common_query_filters import (
     FinalOrPreliminaryAndNotSuperseded,
     PreliminaryStatus,
 )
+from utils.dynamo_utils import DocTypeTableRouter
 from utils.exceptions import (
     DocumentServiceException,
     FileProcessingException,
     TransactionConflictException,
 )
+from utils.lambda_exceptions import InvalidDocTypeException
+from utils.s3_utils import DocTypeS3BucketRouter
 from utils.utilities import get_virus_scan_service
 
 logger = LoggingService(__name__)
