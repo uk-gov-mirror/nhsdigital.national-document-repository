@@ -15,7 +15,7 @@ def lambda_handler(event, context):
     logger.info("Edge received S3 request")
     logger.info(f"Request: {request}")
 
-    environment = context.function_name.split("_")[0]
+    environment = context.function_name.split(".")[-1].split("_")[0]
 
     edge_presign_service = EdgePresignService(environment)
     modified_request = edge_presign_service.use_presigned(request)
