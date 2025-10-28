@@ -111,6 +111,7 @@ function LloydGeorgeViewRecordStage({
 
         const fileName = searchResults[0].fileName;
         const documentId = searchResults[0].id;
+        const versionId = searchResults[0].version;
 
         const response = await fetch(pdfObjectUrl);
         const blob = await response.blob();
@@ -120,7 +121,10 @@ function LloydGeorgeViewRecordStage({
             search: createSearchParams({ journey: 'update' }).toString(),
         };
         const options: NavigateOptions = {
-            state: { journey: 'update', existingDocuments: [{ fileName, blob, documentId }] },
+            state: {
+                journey: 'update',
+                existingDocuments: [{ fileName, blob, documentId, versionId }],
+            },
         };
         navigate(to, options);
     };
