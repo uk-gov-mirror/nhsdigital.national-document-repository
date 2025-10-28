@@ -2,6 +2,6 @@ from enum import StrEnum
 
 
 class DocumentReviewStatus(StrEnum):
-    PENDING = "pending"
-    REJECTED = "rejected"
-    REVIEWED = "reviewed"
+    PENDING_REVIEW = "PENDING_REVIEW"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"

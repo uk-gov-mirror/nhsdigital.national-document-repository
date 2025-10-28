@@ -1,3 +1,4 @@
+import uuid
 from typing import Optional
 
 from enums.document_review_status import DocumentReviewStatus
@@ -25,10 +26,10 @@ class DocumentUploadReview(BaseModel):
         alias_generator=to_pascal,
         use_enum_values=True,
     )
-    id: str = Field(..., alias=str(DocumentReferenceMetadataFields.ID.value))
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias=str(DocumentReferenceMetadataFields.ID.value))
     author: str
     custodian: str
-    review_status: DocumentReviewStatus = Field(default=DocumentReviewStatus.PENDING)
+    review_status: DocumentReviewStatus = Field(default=DocumentReviewStatus.PENDING_REVIEW)
     review_reason: str
     review_date: int = Field(default=None)
     reviewer: str = Field(default=None)
