@@ -10,7 +10,7 @@ logger = LoggingService(__name__)
 
 
 class EdgePresignService:
-    def __init__(self, environment):
+    def __init__(self, environment = None):
         self.dynamo_service = DynamoDBService()
         self.ssm_service = SSMService()
         self.table_name_ssm_param = "EDGE_REFERENCE_TABLE"
