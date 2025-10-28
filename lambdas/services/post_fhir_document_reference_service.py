@@ -6,7 +6,6 @@ import os
 from botocore.exceptions import ClientError
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
-from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference
 from models.fhir.R4.fhir_document_reference import SNOMED_URL, Attachment
@@ -28,7 +27,6 @@ from utils.exceptions import (
 )
 from utils.lambda_exceptions import CreateDocumentRefException
 from utils.lambda_header_utils import validate_common_name_in_mtls
-from utils.ods_utils import PCSE_ODS_CODE
 from utils.utilities import create_reference_id, get_pds_service, validate_nhs_number
 
 logger = LoggingService(__name__)

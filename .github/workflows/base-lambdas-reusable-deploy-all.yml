@@ -567,7 +567,7 @@ jobs:
       sandbox: ${{ inputs.sandbox }}
       lambda_handler_name: migration_dynamodb_segment_handler
       lambda_aws_name: MigrationDynamodbSegment
-      lambda_layer_names: 'core_lambda_layer'
+      lambda_layer_names: "core_lambda_layer"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
@@ -637,6 +637,20 @@ jobs:
       sandbox: ${{ inputs.sandbox }}
       lambda_handler_name: document_reference_virus_scan_handler
       lambda_aws_name: DocumentReferenceVirusScanCheck
+      lambda_layer_names: "core_lambda_layer"
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  deploy_dynamodb_migration_lambda:
+    name: Deploy DynamoDB Migration Lambda
+    uses: ./.github/workflows/base-lambdas-reusable-deploy.yml
+    with:
+      environment: ${{ inputs.environment }}
+      python_version: ${{ inputs.python_version }}
+      build_branch: ${{ inputs.build_branch }}
+      sandbox: ${{ inputs.sandbox }}
+      lambda_handler_name: migration_dynamodb_handler
+      lambda_aws_name: MigrationDynamoDB
       lambda_layer_names: "core_lambda_layer"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}

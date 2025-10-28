@@ -1,6 +1,8 @@
 from datetime import datetime
 
+import pytest
 from freezegun import freeze_time
+
 from models.document_reference import DocumentReference
 from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_SEARCH_RESPONSE
 
@@ -228,24 +230,25 @@ def test_infer_doc_status_returns_preliminary_when_uploading():
 
     assert expected == actual
 
+@pytest.mark.parametrize(
+    "deleted, uploaded, uploading, expected",
+    [
+        ("2024-01-01T00:00:00Z", False, False, "deprecated"),  # deleted = string timestamp
+        ("", True, False, "final"),                            # deleted empty → not deleted
+        ("", False, True, "preliminary"),
+        ("", False, False, None),
+    ],
+)
+def test_infer_doc_status(deleted, uploaded, uploading, expected):
+    document = DocumentReference(
+        id="123",
+        file_name="test.pdf",
+        nhs_number="1234567890",
+        deleted=deleted,
+        uploaded=uploaded,
+        uploading=uploading,
+    )
 
-def test_infer_doc_status_returns_none_when_no_status_indicators():
-    MOCK_DOCUMENT_REFERENCE.deleted = None
-    MOCK_DOCUMENT_REFERENCE.uploaded = False
-    MOCK_DOCUMENT_REFERENCE.uploading = False
+    actual = document.infer_doc_status()
 
-    actual = MOCK_DOCUMENT_REFERENCE.infer_doc_status()
-    expected = None
-
-    assert expected == actual
-
-
-def test_infer_doc_status_returns_none_when_all_flags_are_none():
-    MOCK_DOCUMENT_REFERENCE.deleted = None
-    MOCK_DOCUMENT_REFERENCE.uploaded = None
-    MOCK_DOCUMENT_REFERENCE.uploading = None
-
-    actual = MOCK_DOCUMENT_REFERENCE.infer_doc_status()
-    expected = None
-
-    assert expected == actual
+    assert actual == expected

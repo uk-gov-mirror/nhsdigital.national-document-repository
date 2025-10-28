@@ -13,7 +13,6 @@ from utils.lambda_exceptions import (
     GetFhirDocumentReferenceException,
     InvalidDocTypeException,
 )
-from utils.lambda_exceptions import GetFhirDocumentReferenceException
 from utils.ods_utils import PCSE_ODS_CODE
 
 
@@ -193,6 +192,7 @@ def test_create_document_reference_fhir_response_non_final_status(
     # Verify methods were not called
     patched_service.s3_service.get_binary_file.assert_not_called()
     patched_service.get_presigned_url.assert_not_called()
+
 
 def test_create_document_reference_fhir_response_when_patient_is_deceased(
     patched_service, mocker

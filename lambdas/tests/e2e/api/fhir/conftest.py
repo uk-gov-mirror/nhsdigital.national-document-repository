@@ -1,9 +1,11 @@
 import os
+import shutil
+import subprocess
+import tempfile
 import time
 
 import pytest
 import requests
-from syrupy.extensions.json import JSONSnapshotExtension
 
 from lambdas.tests.e2e.helpers.pdm_data_helper import PdmDataHelper
 
@@ -45,12 +47,39 @@ def fetch_with_retry_mtls(
     raise Exception("Condition not met within retry limit")
 
 
-@pytest.fixture
-def snapshot_json(snapshot):
-    return snapshot.with_defaults(extension_class=JSONSnapshotExtension)
-
-
 def create_mtls_session():
     session = requests.Session()
     session.cert = (CLIENT_CERT_PATH, CLIENT_KEY_PATH)
     return session
+
+
+@pytest.fixture
+def temp_cert_and_key():
+    import os
+
+    temp_dir = tempfile.mkdtemp()
+    key_path = os.path.join(temp_dir, "temp_key.pem")
+    cert_path = os.path.join(temp_dir, "temp_cert.pem")
+
+    try:
+        subprocess.run(["openssl", "genrsa", "-out", key_path, "2048"], check=True)
+        subprocess.run(
+            [
+                "openssl",
+                "req",
+                "-new",
+                "-x509",
+                "-key",
+                key_path,
+                "-out",
+                cert_path,
+                "-days",
+                "1",
+                "-subj",
+                "/C=GB/O=Test Org/CN=localhost",
+            ],
+            check=True,
+        )
+        yield cert_path, key_path
+    finally:
+        shutil.rmtree(temp_dir)
