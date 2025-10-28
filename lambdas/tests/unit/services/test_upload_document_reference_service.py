@@ -17,9 +17,6 @@ from utils.common_query_filters import (
 )
 from utils.exceptions import DocumentServiceException, FileProcessingException
 
-from lambdas.enums.snomed_codes import SnomedCodes
-
-
 @pytest.fixture
 def mock_document_reference():
     """Create a mock document reference"""
