@@ -14,15 +14,13 @@ class MigrationBase(ABC):
         self.environment = environment
         self.table_name = table_name
         self.run_migration = run_migration
-        self.target_table = f"{self.environment}_{self.table_name}"
+        self.target_table = f"{self.table_name}"
 
         self.logger = LoggingService(self.__class__.__name__)
         self.dynamo_service = DynamoDBService()
 
     @abstractmethod
-    def main(
-        self, entries: Iterable[dict]
-    ) -> list[tuple[str, Callable[[dict], dict | None]]]:
+    def main(self, entries: Iterable[dict]) -> list[tuple[str, Callable[[dict], dict | None]]]:
         pass
 
     def process_entries(
@@ -46,9 +44,7 @@ class MigrationBase(ABC):
 
             updated_fields = update_fn(entry)
             if not updated_fields:
-                self.logger.debug(
-                    f"[{label}] Item {item_id} does not require update, skipping."
-                )
+                self.logger.debug(f"[{label}] Item {item_id} does not require update, skipping.")
                 continue
 
             if self.run_migration:
@@ -62,8 +58,6 @@ class MigrationBase(ABC):
                 except Exception as e:
                     self.logger.error(f"[{label}] Failed to update item {item_id}: {str(e)}")
             else:
-                self.logger.info(
-                    f"[Dry Run] Would update item {item_id} with {updated_fields}"
-                )
+                self.logger.info(f"[Dry Run] Would update item {item_id} with {updated_fields}")
 
         self.logger.info(f"'{label}' migration step completed.\n")
