@@ -159,8 +159,26 @@ class InvalidFileNameException(Exception):
 class MetadataPreprocessingException(Exception):
     pass
 
+
 class FhirDocumentReferenceException(Exception):
     pass
 
+
 class TransactionConflictException(Exception):
+    pass
+
+
+class ReviewProcessVerifyingException(Exception):
+    pass
+
+
+class ReviewProcessMovingException(Exception):
+    pass
+
+
+class ReviewProcessDeleteException(Exception):
+    pass
+
+
+class ReviewProcessCreateRecordException(Exception):
     pass

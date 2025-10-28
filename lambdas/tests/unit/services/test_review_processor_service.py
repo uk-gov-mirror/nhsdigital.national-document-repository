@@ -3,8 +3,8 @@ from botocore.exceptions import ClientError
 from enums.review_status import ReviewStatus
 from models.document_review import DocumentsUploadReview
 from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
-from services.review_processor_service import ReviewProcessorService
-from utils.exceptions import S3FileNotFoundException
+from services.review_processor_service import ReviewProcessMovingException, ReviewProcessVerifyingException, ReviewProcessorService
+from utils.exceptions import ReviewProcessDeleteException, S3FileNotFoundException
 
 
 @pytest.fixture
@@ -220,7 +220,7 @@ def test_verify_file_s3_error(service_under_test):
         "HeadObject",
     )
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ReviewProcessVerifyingException):
         service_under_test._verify_file_exists_in_staging("staging/test.pdf")
 
 
@@ -395,7 +395,7 @@ def test_move_files_copy_error(service_under_test, sample_review_message, mocker
         "CopyObject",
     )
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ReviewProcessMovingException):
         service_under_test._move_files_to_review_bucket(
             sample_review_message, "test-review-id"
         )
@@ -412,7 +412,7 @@ def test_move_files_delete_error(service_under_test, sample_review_message, mock
         ),
     )
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ReviewProcessMovingException):
         service_under_test._move_files_to_review_bucket(
             sample_review_message, "test-review-id"
         )
@@ -438,7 +438,7 @@ def test_delete_from_staging_error(service_under_test):
         "DeleteObject",
     )
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ReviewProcessDeleteException):
         service_under_test._delete_from_staging("staging/test.pdf")
 
 

@@ -182,64 +182,6 @@ def test_lambda_handler_handles_empty_records_list(
     mock_review_service.process_review_message.assert_not_called()
 
 
-def test_lambda_handler_handles_service_error(
-    set_review_env,
-    context,
-    sample_sqs_event,
-    mock_review_service,
-):
-    """Test handler logs error but doesn't raise when service fails."""
-    mock_review_service.process_review_message.side_effect = Exception(
-        "Service processing failed"
-    )
-
-    result = lambda_handler(sample_sqs_event, context)
-    
-    assert result is None
-    mock_review_service.process_review_message.assert_called_once()
-
-
-def test_lambda_handler_handles_invalid_message_format(
-    set_review_env, context, mock_review_service
-):
-    """Test handler handles validation errors for invalid message format."""
-    invalid_event = {
-        "Records": [
-            {
-                "body": json.dumps(
-                    {
-                        "files": [{"file_name": "test.pdf"}],
-                    }
-                ),
-                "eventSource": "aws:sqs",
-            }
-        ]
-    }
-
-    lambda_handler(invalid_event, context)
-    
-    # Service should not be called if message validation fails
-    mock_review_service.process_review_message.assert_not_called()
-
-
-def test_lambda_handler_handles_partial_failure(
-    set_review_env,
-    context,
-    sample_sqs_event_multiple_messages,
-    mock_review_service,
-):
-    """Test handler processes all messages even when one fails."""
-    mock_review_service.process_review_message.side_effect = [
-        None,
-        Exception("Processing failed on second message"),
-        None,
-    ]
-
-    lambda_handler(sample_sqs_event_multiple_messages, context)
-    
-    assert mock_review_service.process_review_message.call_count == 3
-
-
 def test_lambda_handler_parses_json_body_correctly(
     set_review_env,
     context,
@@ -277,39 +219,3 @@ def test_lambda_handler_parses_json_body_correctly(
     assert len(call_args.files) == 1
     assert call_args.files[0].file_name == "test.pdf"
 
-
-def test_lambda_handler_logs_correct_counts(
-    set_review_env,
-    context,
-    sample_sqs_event_multiple_messages,
-    mock_review_service,
-    mocker,
-):
-    """Test handler logs correct processed count."""
-    mock_logger = mocker.patch("handlers.review_processor_handler.logger")
-    
-    lambda_handler(sample_sqs_event_multiple_messages, context)
-
-    mock_logger.info.assert_any_call(
-        "Review processor completed: 3 processed, 0 failed"
-    )
-
-
-def test_lambda_handler_tracks_failed_count(
-    set_review_env,
-    context,
-    sample_sqs_event,
-    mock_review_service,
-    mocker,
-):
-    """Test handler tracks failed message count in logs."""
-    mock_review_service.process_review_message.side_effect = Exception("Test error")
-    mock_logger = mocker.patch("handlers.review_processor_handler.logger")
-
-    lambda_handler(sample_sqs_event, context)
-    
-    mock_review_service.process_review_message.assert_called_once()
-    mock_logger.error.assert_called()
-    mock_logger.info.assert_any_call(
-        "Review processor completed: 0 processed, 1 failed"
-    )

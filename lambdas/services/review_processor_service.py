@@ -8,7 +8,7 @@ from models.sqs.review_message_body import ReviewMessageBody
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
-from utils.exceptions import S3FileNotFoundException
+from utils.exceptions import ReviewProcessCreateRecordException, ReviewProcessDeleteException, ReviewProcessMovingException, ReviewProcessVerifyingException, S3FileNotFoundException
 from utils.request_context import request_context
 
 logger = LoggingService(__name__)
@@ -79,11 +79,16 @@ class ReviewProcessorService:
 
             logger.info(f"Verified file exists in staging: {file_path}")
 
-        except S3FileNotFoundException:
+        except S3FileNotFoundException as e:
+            logger.info(e)
+            logger.info(
+                f"File not found in staging bucket {self.staging_bucket_name} for file_path {file_path}"
+            )
+
             raise
         except Exception as e:
             logger.error(f"Error checking file in staging bucket: {str(e)}")
-            raise
+            raise ReviewProcessVerifyingException(f"Error checking file in staging bucket: {str(e)}")
 
     def _build_review_record(
             self, message_data: ReviewMessageBody, review_id: str, files: list[DocumentReviewFileDetails]
@@ -139,7 +144,7 @@ class ReviewProcessorService:
 
         except Exception as e:
             logger.error(f"Failed to move file: {str(e)}")
-            raise
+            raise ReviewProcessMovingException(f"Failed to move file: {str(e)}")
 
         return moved_files
 
@@ -151,7 +156,7 @@ class ReviewProcessorService:
 
         except Exception as e:
             logger.error(f"Error deleting file from staging: {str(e)}")
-            raise
+            raise ReviewProcessDeleteException(f"Error deleting file from staging: {str(e)}")
 
     def _create_review_record(self, review_record: DocumentsUploadReview) -> None:
         try:
@@ -164,4 +169,6 @@ class ReviewProcessorService:
 
         except Exception as e:
             logger.error(f"Failed to create review record with id: {review_record.id} -- {str(e)}")
-            raise
+            raise ReviewProcessCreateRecordException(
+                f"Failed to create review record with id: {review_record.id} -- {str(e)}"
+            )

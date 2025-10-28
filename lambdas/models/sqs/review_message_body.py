@@ -1,11 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ReviewMessageFile(BaseModel):
     """Model for individual file in SQS message body from the document review queue."""
 
     file_name: str
-    file_path: str
+    file_path: str = Field(description="Location in the staging bucket")
     """Location in the staging bucket"""
 
 class ReviewMessageBody(BaseModel):

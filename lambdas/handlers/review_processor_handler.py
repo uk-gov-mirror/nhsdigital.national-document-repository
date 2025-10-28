@@ -1,8 +1,8 @@
 import json
 
 from pydantic import ValidationError
-from lambdas.models.sqs.review_message_body import ReviewMessageBody
-from lambdas.services.review_processor_service import ReviewProcessorService
+from models.sqs.review_message_body import ReviewMessageBody
+from services.review_processor_service import ReviewProcessorService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.override_error_check import override_error_check
@@ -38,28 +38,23 @@ def lambda_handler(event, context):
     sqs_messages = event.get("Records", [])
     review_service = ReviewProcessorService()
 
-    processed_count = 0
-    failed_count = 0
-
     for sqs_message in sqs_messages:
         try:
             sqs_message_body = json.loads(sqs_message["body"])
             message: ReviewMessageBody = ReviewMessageBody.model_validate(sqs_message_body)
 
             review_service.process_review_message(message)
-            processed_count += 1
+            
         except ValidationError as error:
             logger.error("Malformed review message")
             logger.error(error)
+            raise error
 
-        except Exception as e:
+        except Exception as error:
             logger.error(
-                f"Failed to process review message: {str(e)}",
+                f"Failed to process review message: {str(error)}",
                 {"Result": "Review processing failed"},
             )
-            failed_count += 1
+            raise error
+        
         logger.info("Continuing to next message.")
-
-    logger.info(
-        f"Review processor completed: {processed_count} processed, {failed_count} failed"
-    )
