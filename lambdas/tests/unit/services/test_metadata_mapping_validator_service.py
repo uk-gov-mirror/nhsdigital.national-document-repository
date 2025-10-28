@@ -1,11 +1,8 @@
 import json
-from pathlib import Path
-from pydantic import ValidationError
-import pytest
 
+import pytest
 from services.metadata_mapping_validator_service import MetadataMappingValidationService
 from utils.exceptions import BulkUploadMetadataException
-from models.staging_metadata import MetadataFile
 
 
 @pytest.fixture
@@ -58,9 +55,10 @@ def test_detect_best_alias_config_raises_when_no_match(tmp_path):
     empty_dir.mkdir()
 
     service = MetadataMappingValidationService(alias_folder=str(empty_dir))
-    with pytest.raises(BulkUploadMetadataException, match="No alias configuration matches"):
+    with pytest.raises(
+        BulkUploadMetadataException, match="No alias configuration matches"
+    ):
         service.detect_best_alias_config(["random", "headers"])
-
 
 
 def test_build_model_for_alias_creates_dynamic_model(service):
@@ -90,13 +88,14 @@ def test_build_model_for_alias_raises_if_file_not_found(service):
         service.build_model_for_alias("does_not_exist")
 
 
-
 def test_validate_and_normalize_metadata_rejects_empty_required_fields(service):
     records = [
         {"FILEPATH": "", "GP-PRACTICE-CODE": "Y123", "NHS-NO": ""},
     ]
 
-    validated, rejected, reasons = service.validate_and_normalize_metadata(records, "general")
+    validated, rejected, reasons = service.validate_and_normalize_metadata(
+        records, "general"
+    )
 
     assert len(validated) == 0
     assert len(rejected) == 1
@@ -105,6 +104,7 @@ def test_validate_and_normalize_metadata_rejects_empty_required_fields(service):
         "Missing or empty required fields" in reason_text
         or "Field required" in reason_text
     )
+
 
 def test_validate_and_normalize_metadata_with_invalid_record(service):
     records = [
@@ -133,7 +133,9 @@ def test_validate_and_normalize_metadata_with_invalid_record(service):
         },
     ]
 
-    validated, rejected, reasons = service.validate_and_normalize_metadata(records, "general")
+    validated, rejected, reasons = service.validate_and_normalize_metadata(
+        records, "general"
+    )
 
     assert len(validated) == 1
     assert len(rejected) == 1
@@ -143,8 +145,66 @@ def test_validate_and_normalize_metadata_with_invalid_record(service):
 
 def test_validate_and_normalize_metadata_calls_build_model(mocker, service):
     mock_model = mocker.MagicMock()
-    mocker.patch.object(service, "build_model_for_alias", return_value=mock_model)
+    mock_build = mocker.patch.object(
+        service, "build_model_for_alias", return_value=mock_model
+    )
 
     service.validate_and_normalize_metadata([{"x": "y"}], "mock")
 
-    service.build_model_for_alias.assert_called_once_with("mock")
+    mock_build.assert_called_once_with("mock")
+
+
+def test_load_alias_map_prefers_s3_over_local(mocker, alias_dir):
+    service = MetadataMappingValidationService(
+        alias_folder=str(alias_dir),
+        alias_bucket="fake-bucket",
+    )
+
+    mock_s3 = mocker.patch.object(service.s3_service, "stream_s3_object_to_memory")
+    mock_s3.return_value = mocker.Mock()
+    mocker.patch("json.load", return_value={"file_path": "FILE"})
+
+    result = service.load_alias_map("general")
+
+    assert result == {"file_path": "FILE"}
+    mock_s3.assert_called_once()
+
+
+def test_load_alias_map_falls_back_to_local(mocker, service, alias_dir):
+    mocker.patch.object(
+        service.s3_service,
+        "stream_s3_object_to_memory",
+        side_effect=Exception("S3 error"),
+    )
+
+    result = service.load_alias_map("general")
+
+    assert "file_path" in result
+
+
+def test_validate_alias_map_raises_on_missing_keys(service):
+    alias_map = {"file_path": "FILE"}
+    with pytest.raises(BulkUploadMetadataException, match="missing mappings"):
+        service.validate_alias_map(alias_map, "general")
+
+
+def test_create_dynamic_model_creates_correct_field_aliases(service):
+    alias_map = {
+        "file_path": "FILE",
+        "gp_practice_code": "ODS",
+        "nhs_number": "NHS",
+        "page_count": "PAGE_COUNT",
+        "section": "SECTION",
+        "sub_section": "SUB_SECTION",
+        "scan_date": "SCAN_DATE",
+        "scan_id": "SCAN_ID",
+        "user_id": "USER_ID",
+        "upload": "UPLOADED",
+    }
+
+    model = service.create_dynamic_model(alias_map, "general")
+
+    assert "file_path" in model.model_fields
+
+    field = model.model_fields["file_path"]
+    assert field.alias == "FILE"

@@ -1,16 +1,28 @@
 import json
+import os
 from pathlib import Path
-from typing import Type, Optional
-from pydantic import BaseModel, Field, ValidationError, create_model, ConfigDict
+from typing import Type
+
 from models.staging_metadata import MetadataFile
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model
+from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import BulkUploadMetadataException
 
 logger = LoggingService(__name__)
 
+
 class MetadataMappingValidationService:
-    def __init__(self, alias_folder: str = "configs/metadata_aliases"):
-        self.alias_folder = alias_folder
+    def __init__(
+        self,
+        alias_folder: str = "configs/metadata_aliases",
+        alias_bucket: str = None,
+        alias_prefix: str = None,
+    ):
+        self.alias_folder = alias_folder  # fallback in case of not finding json in S3
+        self.alias_bucket = alias_bucket or os.getenv("CONFIGS_BUCKET_NAME")
+        self.alias_prefix = (alias_prefix or "metadata_aliases/").rstrip("/") + "/"
+        self.s3_service = S3Service()
         self.logger = LoggingService(__name__)
 
     def detect_best_alias_config(self, csv_headers: list[str]) -> str:
@@ -36,40 +48,80 @@ class MetadataMappingValidationService:
                 best_match = source_name
 
         if not best_match:
-            raise BulkUploadMetadataException("No alias configuration matches the CSV headers.")
+            raise BulkUploadMetadataException(
+                "No alias configuration matches the CSV headers."
+            )
 
-        self.logger.info(f"Detected alias config '{best_match}' with score {best_score:.0%}")
+        self.logger.info(
+            f"Detected alias config '{best_match}' with score {best_score:.0%}"
+        )
         return best_match
 
     def build_model_for_alias(self, source_name: str) -> Type[BaseModel]:
-        alias_path = Path(self.alias_folder) / f"{source_name}.json"
+        """Builds a dynamic Pydantic model based on an alias mapping (S3 or local)."""
+        alias_map = self.load_alias_map(source_name)
+        self.validate_alias_map(alias_map, source_name)
+        return self.create_dynamic_model(alias_map, source_name)
+
+    def load_alias_map(self, source_name: str) -> dict:
+        alias_filename = f"{source_name}.json"
+
+        # Try to get the jsons from S3
+        if self.alias_bucket:
+            s3_key = f"{self.alias_prefix}{alias_filename}"
+            try:
+                self.logger.info(
+                    f"Trying to load alias config from S3: s3://{self.alias_bucket}/{s3_key}"
+                )
+                s3_buffer = self.s3_service.stream_s3_object_to_memory(
+                    self.alias_bucket, s3_key
+                )
+                alias_map = json.load(s3_buffer)
+                self.logger.info(f"Loaded alias config from S3: {alias_filename}")
+                if alias_map:
+                    return alias_map
+            except Exception as e:
+                self.logger.warning(
+                    f"Could not load alias from S3 ({e}), falling back to local files"
+                )
+
+        # Uses local files as fallback
+        alias_path = Path(self.alias_folder) / alias_filename
         if not alias_path.exists():
             raise FileNotFoundError(f"No alias config found for source: {source_name}")
 
+        self.logger.info(f"Loading alias config locally: {alias_path}")
         with open(alias_path, "r", encoding="utf-8") as f:
             alias_map = json.load(f)
 
-        missing_keys = set(MetadataFile.model_fields.keys()) - set(alias_map.keys())
+        if not alias_map:
+            raise BulkUploadMetadataException(
+                f"Alias file '{alias_filename}' is empty or invalid."
+            )
 
+        return alias_map
+
+    def validate_alias_map(self, alias_map: dict, source_name: str) -> None:
+        """Ensure alias mapping covers all required MetadataFile fields."""
+        missing_keys = set(MetadataFile.model_fields.keys()) - set(alias_map.keys())
         if missing_keys:
             raise BulkUploadMetadataException(
                 f"Alias config '{source_name}' is missing mappings for: {', '.join(sorted(missing_keys))}"
             )
 
-        new_fields = {}
-        for field_name, model_field in MetadataFile.model_fields.items():
-            alias = alias_map.get(field_name)
+    def create_dynamic_model(
+        self, alias_map: dict, source_name: str
+    ) -> Type[BaseModel]:
+        """Create a Pydantic model using alias mapping."""
+        new_fields = {
+            name: (field.annotation, Field(alias=alias_map.get(name)))
+            for name, field in MetadataFile.model_fields.items()
+        }
 
-            if alias is None:
-                annotation = Optional[model_field.annotation]
-                default = None
-            else:
-                annotation = model_field.annotation
-                default = ...
+        model_config = ConfigDict(
+            populate_by_name=True, from_attributes=True, extra="allow"
+        )
 
-            new_fields[field_name] = (annotation, Field(default=default, alias=alias))
-
-        model_config = ConfigDict(populate_by_name=True, from_attributes=True, extra="allow")
         dynamic_model = create_model(
             f"Metadata_{source_name.title()}",
             __config__=model_config,
@@ -84,7 +136,8 @@ class MetadataMappingValidationService:
         validated_rows, rejected_rows, rejected_reasons = [], [], []
 
         required_fields = [
-            name for name, field in MetadataFile.model_fields.items()
+            name
+            for name, field in MetadataFile.model_fields.items()
             if field.is_required()
         ]
 
@@ -93,7 +146,9 @@ class MetadataMappingValidationService:
                 instance = model.model_validate(row)
                 data = instance.model_dump(by_alias=False)
 
-                empty_required_fields = self.get_empty_required_fields(data, required_fields)
+                empty_required_fields = self.get_empty_required_fields(
+                    data, required_fields
+                )
                 if empty_required_fields:
                     raise ValueError(
                         f"Missing or empty required fields: {', '.join(empty_required_fields)}"
@@ -103,15 +158,18 @@ class MetadataMappingValidationService:
 
             except (ValidationError, ValueError) as e:
                 rejected_rows.append(row)
-                rejected_reasons.append({
-                    "FILEPATH": row.get("FILEPATH", "N/A"),
-                    "REASON": str(e),
-                })
+                rejected_reasons.append(
+                    {
+                        "FILEPATH": row.get("FILEPATH", "N/A"),
+                        "REASON": str(e),
+                    }
+                )
 
         return validated_rows, rejected_rows, rejected_reasons
 
-
-    def get_empty_required_fields(self,data: dict, required_fields: list[str]) -> list[str]:
+    def get_empty_required_fields(
+        self, data: dict, required_fields: list[str]
+    ) -> list[str]:
         """Return a list of required fields that are missing or empty."""
         return [
             field
