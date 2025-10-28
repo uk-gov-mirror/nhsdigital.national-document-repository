@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-from typing import Union
 
 from botocore.exceptions import ClientError
 from enums.death_notification_status import DeathNotificationStatus
@@ -169,7 +168,7 @@ class MNSNotificationService:
 
     def get_patient_documents(
         self, nhs_number: str, table: str, model_class: type
-    ) -> Union[list[DocumentReference], list[DocumentUploadReview]]:
+    ) -> list[DocumentReference] | list[DocumentUploadReview]:
         """Fetch patient documents and return them if they exist."""
         return self.document_service.fetch_documents_from_table_with_nhs_number(
             nhs_number, table, model_class=model_class

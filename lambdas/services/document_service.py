@@ -1,6 +1,5 @@
 import os
 from datetime import datetime, timezone
-from typing import Union
 
 from boto3.dynamodb.conditions import Attr, ConditionBase
 from enums.metadata_field_names import DocumentReferenceMetadataFields
@@ -45,7 +44,7 @@ class DocumentService:
         table: str,
         query_filter: Attr | ConditionBase = None,
         model_class=DocumentReference,
-    ) -> Union[list[DocumentReference], list[DocumentUploadReview]]:
+    ) -> list[DocumentReference] | list[DocumentUploadReview]:
         documents = self.fetch_documents_from_table(
             table=table,
             index_name="NhsNumberIndex",
@@ -65,7 +64,7 @@ class DocumentService:
         index_name: str = None,
         query_filter: Attr | ConditionBase = None,
         model_class=DocumentReference,
-    ) -> Union[list[DocumentReference], list[DocumentUploadReview]]:
+    ) -> list[DocumentReference] | list[DocumentUploadReview]:
         documents = []
 
         response = self.dynamo_service.query_table(
@@ -148,7 +147,7 @@ class DocumentService:
     def update_document(
         self,
         table_name: str,
-        document_reference: Union[DocumentReference, DocumentUploadReview],
+        document_reference: DocumentReference | DocumentUploadReview,
         update_fields_name: set[str] = None,
     ):
         self.dynamo_service.update_item(
