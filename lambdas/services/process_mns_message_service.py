@@ -111,7 +111,6 @@ class MNSNotificationService:
         self,
         patient_documents: list[DocumentReference],
         updated_ods_code: str,
-        table: str,
     ) -> None:
         if not patient_documents:
             return
@@ -135,7 +134,7 @@ class MNSNotificationService:
                 reference.last_updated = int(datetime.now().timestamp())
 
                 self.document_service.update_document(
-                    table,
+                    self.lg_table,
                     reference,
                     self.DOCUMENT_UPDATE_FIELDS,
                 )
@@ -146,18 +145,17 @@ class MNSNotificationService:
         if not patient_documents:
             return
 
-        updated_custodian = updated_ods_code
         if updated_ods_code in [
             PatientOdsInactiveStatus.DECEASED,
             PatientOdsInactiveStatus.SUSPENDED,
         ]:
-            updated_custodian = self.PCSE_ODS
+            updated_ods_code = self.PCSE_ODS
 
         for review in patient_documents:
             logger.info("Updating document review custodian...")
 
-            if review.custodian != updated_custodian:
-                review.custodian = updated_custodian
+            if review.custodian != updated_ods_code:
+                review.custodian = updated_ods_code
 
                 self.document_service.update_document(
                     self.document_review_table,
@@ -197,6 +195,6 @@ class MNSNotificationService:
     ) -> None:
         """Update documents in both tables if they exist."""
         if lg_documents:
-            self.update_patient_ods_code(lg_documents, updated_ods_code, self.lg_table)
+            self.update_patient_ods_code(lg_documents, updated_ods_code)
         if review_documents:
             self.update_document_review_custodian(review_documents, updated_ods_code)

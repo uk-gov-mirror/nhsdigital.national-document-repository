@@ -255,7 +255,7 @@ def test_update_patient_ods_code_with_documents(mns_service, mock_document_refer
     updated_ods_code = NEW_ODS_CODE
 
     mns_service.update_patient_ods_code(
-        mock_document_references, updated_ods_code, mns_service.lg_table
+        mock_document_references, updated_ods_code
     )
 
     for doc in mock_document_references:
@@ -279,7 +279,6 @@ def test_update_patient_ods_code_with_deceased_status(
     mns_service.update_patient_ods_code(
         mock_document_references,
         PatientOdsInactiveStatus.DECEASED,
-        mns_service.lg_table,
     )
 
     for doc in mock_document_references:
@@ -302,8 +301,7 @@ def test_update_patient_ods_code_with_suspended_status(
 ):
     mns_service.update_patient_ods_code(
         mock_document_references,
-        PatientOdsInactiveStatus.SUSPENDED,
-        mns_service.lg_table,
+        PatientOdsInactiveStatus.SUSPENDED
     )
 
     for doc in mock_document_references:
@@ -321,7 +319,7 @@ def test_update_patient_ods_code_with_suspended_status(
 
 
 def test_update_patient_ods_code_no_documents(mns_service):
-    mns_service.update_patient_ods_code([], NEW_ODS_CODE, mns_service.lg_table)
+    mns_service.update_patient_ods_code([], NEW_ODS_CODE)
 
     mns_service.document_service.update_document.assert_not_called()
 
@@ -335,7 +333,7 @@ def test_update_patient_ods_code_no_changes_needed(
         doc.custodian = NEW_ODS_CODE
 
     mns_service.update_patient_ods_code(
-        mock_document_references, NEW_ODS_CODE, mns_service.lg_table
+        mock_document_references, NEW_ODS_CODE
     )
 
     mns_service.document_service.update_document.assert_not_called()
@@ -422,7 +420,7 @@ def test_update_all_patient_documents_with_both_types(
     )
 
     mns_service.update_patient_ods_code.assert_called_once_with(
-        mock_document_references, NEW_ODS_CODE, mns_service.lg_table
+        mock_document_references, NEW_ODS_CODE
     )
     mns_service.update_document_review_custodian.assert_called_once_with(
         mock_document_review_references, NEW_ODS_CODE
@@ -438,7 +436,7 @@ def test_update_all_patient_documents_with_only_lg_documents(
     mns_service.update_all_patient_documents(mock_document_references, [], NEW_ODS_CODE)
 
     mns_service.update_patient_ods_code.assert_called_once_with(
-        mock_document_references, NEW_ODS_CODE, mns_service.lg_table
+        mock_document_references, NEW_ODS_CODE
     )
     mns_service.update_document_review_custodian.assert_not_called()
 
@@ -545,7 +543,7 @@ def test_update_patient_ods_code_updates_only_custodian_when_current_gp_matches(
         doc.custodian = TEST_CURRENT_GP_ODS  # Different from current_gp_ods
 
     mns_service.update_patient_ods_code(
-        mock_document_references, NEW_ODS_CODE, mns_service.lg_table
+        mock_document_references, NEW_ODS_CODE
     )
 
     for doc in mock_document_references:
@@ -570,7 +568,7 @@ def test_update_patient_ods_code_updates_only_current_gp_when_custodian_matches(
         doc.custodian = NEW_ODS_CODE
 
     mns_service.update_patient_ods_code(
-        mock_document_references, NEW_ODS_CODE, mns_service.lg_table
+        mock_document_references, NEW_ODS_CODE
     )
 
     for doc in mock_document_references:
