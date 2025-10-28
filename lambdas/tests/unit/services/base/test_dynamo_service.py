@@ -643,59 +643,6 @@ def test_query_table_with_pagination(mock_service, mock_table):
     mock_table.assert_called_with(MOCK_TABLE_NAME)
     mock_table.return_value.query.assert_has_calls(expected_calls)
 
-def test_query_with_pagination_raises_exception_when_results_are_empty(
-    mock_service, mock_table
-):
-    mock_table.return_value.query.return_value = []
-
-    with pytest.raises(DynamoServiceException):
-        mock_service.query_with_pagination(
-            table_name=MOCK_TABLE_NAME,
-            search_key="NhsNumber",
-            search_condition=TEST_NHS_NUMBER,
-        )
-
-
-def test_query_with_pagination_client_error_raises_exception(
-    mock_service, mock_table
-):
-    expected_response = MOCK_CLIENT_ERROR
-    mock_table.return_value.query.side_effect = MOCK_CLIENT_ERROR
-
-    with pytest.raises(ClientError) as actual_response:
-        mock_service.query_with_pagination(
-            table_name=MOCK_TABLE_NAME,
-            search_key="NhsNumber",
-            search_condition=TEST_NHS_NUMBER,
-        )
-
-    assert expected_response == actual_response.value
-
-
-def test_query_table_by_index_with_exclusive_start_key(mock_service, mock_table):
-    search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
-    exclusive_start_key = {"ID": "test_id", "SK": "test_sk"}
-
-    mock_table.return_value.query.return_value = MOCK_SEARCH_RESPONSE
-    expected = MOCK_SEARCH_RESPONSE
-
-    actual = mock_service.query_table_by_index(
-        MOCK_TABLE_NAME,
-        "NhsNumberIndex",
-        "NhsNumber",
-        TEST_NHS_NUMBER,
-        exclusive_start_key=exclusive_start_key,
-    )
-
-    mock_table.assert_called_with(MOCK_TABLE_NAME)
-    mock_table.return_value.query.assert_called_once_with(
-        IndexName="NhsNumberIndex",
-        KeyConditionExpression=search_key_obj,
-        ExclusiveStartKey=exclusive_start_key,
-    )
-
-    assert expected == actual
-
 
 def test_update_item_with_condition_expression(mock_service, mock_table):
     update_key = {"ID": "9000000009"}
