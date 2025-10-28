@@ -52,6 +52,7 @@ type LocationState = {
             blob: Blob | null;
             fileName: string | null;
             documentId?: string | null;
+            versionId: string;
         },
     ];
 };
@@ -103,6 +104,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
                         state: DOCUMENT_UPLOAD_STATE.SELECTED,
                         docType: DOCUMENT_TYPE.LLOYD_GEORGE,
                         progress: 0,
+                        versionId: doc.versionId,
                     }) as UploadDocument,
             ) ?? [];
 

@@ -104,6 +104,7 @@ const uploadDocuments = async ({
                     contentType: doc.file.type,
                     docType: doc.docType,
                     clientId: doc.id,
+                    versionId: doc.versionId,
                 })),
             },
         ],

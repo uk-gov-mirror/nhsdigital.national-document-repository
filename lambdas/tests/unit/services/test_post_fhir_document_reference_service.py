@@ -500,6 +500,7 @@ def test_create_document_reference_with_author(mock_service, mocker):
         doc_type=doc_type,
         fhir_doc=fhir_doc,
         current_gp_ods="C13579",
+        raw_fhir_doc=json.dumps({"foo": "bar"}),
     )
 
     assert result.nhs_number == "9000000009"
@@ -539,6 +540,7 @@ def test_create_document_reference_without_custodian(mock_service, mocker):
         doc_type=doc_type,
         fhir_doc=fhir_doc,
         current_gp_ods=current_gp_ods,
+        raw_fhir_doc=json.dumps({"foo": "bar"}),
     )
 
     assert result.custodian == current_gp_ods
@@ -825,6 +827,7 @@ def test_s3_file_key_for_pdm(mock_service, mocker):
         doc_type=doc_type,
         fhir_doc=fhir_doc,
         current_gp_ods=current_gp_ods,
+        raw_fhir_doc=json.dumps({"foo": "bar"}),
     )
 
     assert (
@@ -865,8 +868,97 @@ def test_s3_file_key_for_lg(mock_service, mocker):
         doc_type=doc_type,
         fhir_doc=fhir_doc,
         current_gp_ods=current_gp_ods,
+        raw_fhir_doc=json.dumps({"foo": "bar"}),
     )
 
     assert "user_upload/9000000009" in result.s3_upload_key
     assert (f"9000000009/{result.id}" in result.s3_file_key)
     assert result.sub_folder == "user_upload"
+
+
+def test_create_pdm_document_reference_with_raw_request(mock_service, mocker):
+    """Test _create_document_reference method with raw_request included (pdm)."""
+
+    fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
+    fhir_doc.content = [
+        DocumentReferenceContent(
+            attachment=Attachment(
+                contentType="application/pdf",
+                title="test-file.pdf",
+                creation="2023-01-01T12:00:00Z",
+            )
+        )
+    ]
+    fhir_doc.custodian = Reference(
+        identifier=Identifier(
+            system="https://fhir.nhs.uk/Id/ods-organization-code", value="A12345"
+        )
+    )
+    fhir_doc.author = [
+        Reference(
+            identifier=Identifier(
+                system="https://fhir.nhs.uk/Id/ods-organization-code", value="B67890"
+            )
+        )
+    ]
+
+    doc_type = SnomedCodes.PATIENT_DATA.value
+
+    result = mock_service._create_document_reference(
+        nhs_number="9000000009",
+        doc_type=doc_type,
+        fhir_doc=fhir_doc,
+        current_gp_ods="C13579",
+        raw_fhir_doc=json.dumps({"foo": "bar"}),
+    )
+
+    assert result.raw_request == json.dumps({"foo": "bar"})
+    assert result.nhs_number == "9000000009"
+    assert result.document_snomed_code_type == SnomedCodes.PATIENT_DATA.value.code
+    assert result.custodian == "A12345"
+    assert result.current_gp_ods == "C13579"
+    assert result.author == "B67890"  # Verify author is set
+
+
+def test_create_lg_document_reference_with_raw_request(mock_service, mocker):
+    """Test _create_document_reference method with raw_request included (LG, should be empty)."""
+
+    fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
+    fhir_doc.content = [
+        DocumentReferenceContent(
+            attachment=Attachment(
+                contentType="application/pdf",
+                title="test-file.pdf",
+                creation="2023-01-01T12:00:00Z",
+            )
+        )
+    ]
+    fhir_doc.custodian = Reference(
+        identifier=Identifier(
+            system="https://fhir.nhs.uk/Id/ods-organization-code", value="A12345"
+        )
+    )
+    fhir_doc.author = [
+        Reference(
+            identifier=Identifier(
+                system="https://fhir.nhs.uk/Id/ods-organization-code", value="B67890"
+            )
+        )
+    ]
+
+    doc_type = SnomedCodes.LLOYD_GEORGE.value
+
+    result = mock_service._create_document_reference(
+        nhs_number="9000000009",
+        doc_type=doc_type,
+        fhir_doc=fhir_doc,
+        current_gp_ods="C13579",
+        raw_fhir_doc=json.dumps({"foo": "bar"}),
+    )
+
+    assert result.raw_request is None
+    assert result.nhs_number == "9000000009"
+    assert result.document_snomed_code_type == SnomedCodes.LLOYD_GEORGE.value.code
+    assert result.custodian == "A12345"
+    assert result.current_gp_ods == "C13579"
+    assert result.author == "B67890"  # Verify author is set

@@ -80,6 +80,7 @@ class PostFhirDocumentReferenceService:
                 doc_type,
                 validated_fhir_doc,
                 patient_details.general_practice_ods,
+                fhir_document,
             )
 
             presigned_url = None
@@ -155,6 +156,7 @@ class PostFhirDocumentReferenceService:
         doc_type: SnomedCode,
         fhir_doc: FhirDocumentReference,
         current_gp_ods: str,
+        raw_fhir_doc: str,
     ) -> DocumentReference:
         """Create a document reference model"""
         document_id = create_reference_id()
@@ -163,10 +165,10 @@ class PostFhirDocumentReferenceService:
         if not custodian:
             custodian = current_gp_ods
 
-        sub_folder = (
-            "user_upload"
+        sub_folder, raw_request = (
+            ("user_upload", None)
             if doc_type != SnomedCodes.PATIENT_DATA.value
-            else f"fhir_upload/{doc_type.code}"
+            else (f"fhir_upload/{doc_type.code}", raw_fhir_doc)
         )
 
         document_reference = DocumentReference(
@@ -183,6 +185,7 @@ class PostFhirDocumentReferenceService:
             status="current",
             sub_folder=sub_folder,
             document_scan_creation=fhir_doc.content[0].attachment.creation,
+            raw_request=raw_request,
         )
 
         return document_reference

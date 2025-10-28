@@ -105,6 +105,7 @@ class DocumentReference(BaseModel):
         default_factory=lambda: int(datetime.now(timezone.utc).timestamp()),
     )
     nhs_number: str
+    raw_request: str | None = None
     s3_bucket_name: str = Field(exclude=True, default=None)
     s3_file_key: str = Field(default=None)
     s3_upload_key: str = Field(default=None, exclude=True)
