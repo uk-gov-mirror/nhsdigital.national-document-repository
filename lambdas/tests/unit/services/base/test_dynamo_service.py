@@ -642,3 +642,284 @@ def test_query_table_with_pagination(mock_service, mock_table):
     assert expected_result == actual
     mock_table.assert_called_with(MOCK_TABLE_NAME)
     mock_table.return_value.query.assert_has_calls(expected_calls)
+
+def test_query_with_pagination_raises_exception_when_results_are_empty(
+    mock_service, mock_table
+):
+    mock_table.return_value.query.return_value = []
+
+    with pytest.raises(DynamoServiceException):
+        mock_service.query_with_pagination(
+            table_name=MOCK_TABLE_NAME,
+            search_key="NhsNumber",
+            search_condition=TEST_NHS_NUMBER,
+        )
+
+
+def test_query_with_pagination_client_error_raises_exception(
+    mock_service, mock_table
+):
+    expected_response = MOCK_CLIENT_ERROR
+    mock_table.return_value.query.side_effect = MOCK_CLIENT_ERROR
+
+    with pytest.raises(ClientError) as actual_response:
+        mock_service.query_with_pagination(
+            table_name=MOCK_TABLE_NAME,
+            search_key="NhsNumber",
+            search_condition=TEST_NHS_NUMBER,
+        )
+
+    assert expected_response == actual_response.value
+
+
+def test_query_table_by_index_with_exclusive_start_key(mock_service, mock_table):
+    search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
+    exclusive_start_key = {"ID": "test_id", "SK": "test_sk"}
+
+    mock_table.return_value.query.return_value = MOCK_SEARCH_RESPONSE
+    expected = MOCK_SEARCH_RESPONSE
+
+    actual = mock_service.query_table_by_index(
+        MOCK_TABLE_NAME,
+        "NhsNumberIndex",
+        "NhsNumber",
+        TEST_NHS_NUMBER,
+        exclusive_start_key=exclusive_start_key,
+    )
+
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.query.assert_called_once_with(
+        IndexName="NhsNumberIndex",
+        KeyConditionExpression=search_key_obj,
+        ExclusiveStartKey=exclusive_start_key,
+    )
+
+    assert expected == actual
+
+
+def test_update_item_with_condition_expression(mock_service, mock_table):
+    update_key = {"ID": "9000000009"}
+    condition_expression = "attribute_exists(FileName)"
+    expression_attribute_values = {":expected_val": "expected_value"}
+    
+    expected_update_expression = "SET #FileName_attr = :FileName_val"
+    expected_expr_attr_names = {"#FileName_attr": "FileName"}
+    expected_expr_attr_values = {
+        ":FileName_val": "test-filename",
+        ":expected_val": "expected_value",
+    }
+
+    mock_service.update_item(
+        table_name=MOCK_TABLE_NAME,
+        key_pair={"ID": TEST_NHS_NUMBER},
+        updated_fields={DocumentReferenceMetadataFields.FILE_NAME.value: "test-filename"},
+        condition_expression=condition_expression,
+        expression_attribute_values=expression_attribute_values,
+    )
+
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.update_item.assert_called_once_with(
+        Key=update_key,
+        UpdateExpression=expected_update_expression,
+        ExpressionAttributeNames=expected_expr_attr_names,
+        ExpressionAttributeValues=expected_expr_attr_values,
+        ConditionExpression=condition_expression,
+        ReturnValues="ALL_NEW",
+    )
+
+
+def test_batch_writing_is_called_with_correct_parameters(mock_service, mock_table):
+    items_to_write = [
+        {"ID": "id1", "Name": "Item 1"},
+        {"ID": "id2", "Name": "Item 2"},
+        {"ID": "id3", "Name": "Item 3"},
+    ]
+    
+    mock_batch_writer = mock_table.return_value.batch_writer.return_value.__enter__.return_value
+    
+    mock_service.batch_writing(MOCK_TABLE_NAME, items_to_write)
+
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.batch_writer.assert_called_once()
+    
+    assert mock_batch_writer.put_item.call_count == 3
+    for item in items_to_write:
+        mock_batch_writer.put_item.assert_any_call(Item=item)
+
+
+def test_batch_writing_client_error_raises_exception(mock_service, mock_table):
+    items_to_write = [{"ID": "id1", "Name": "Item 1"}]
+    expected_response = MOCK_CLIENT_ERROR
+    
+    mock_table.return_value.batch_writer.return_value.__enter__.side_effect = MOCK_CLIENT_ERROR
+
+    with pytest.raises(ClientError) as actual_response:
+        mock_service.batch_writing(MOCK_TABLE_NAME, items_to_write)
+
+    assert expected_response == actual_response.value
+
+
+def test_batch_writing_with_empty_list(mock_service, mock_table):
+    items_to_write = []
+    
+    mock_batch_writer = mock_table.return_value.batch_writer.return_value.__enter__.return_value
+    
+    mock_service.batch_writing(MOCK_TABLE_NAME, items_to_write)
+
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.batch_writer.assert_called_once()
+    mock_batch_writer.put_item.assert_not_called()
+
+
+def test_transact_write_items_success(mock_service, mock_dynamo_service):
+    transact_items = [
+        {
+            "Put": {
+                "TableName": MOCK_TABLE_NAME,
+                "Item": {"ID": "id1", "Name": "Item 1"},
+            }
+        },
+        {
+            "Update": {
+                "TableName": MOCK_TABLE_NAME,
+                "Key": {"ID": "id2"},
+                "UpdateExpression": "SET #name = :name",
+                "ExpressionAttributeNames": {"#name": "Name"},
+                "ExpressionAttributeValues": {":name": "Updated Item 2"},
+            }
+        },
+    ]
+    
+    mock_response = {"ResponseMetadata": {"HTTPStatusCode": 200}}
+    mock_dynamo_service.meta.client.transact_write_items.return_value = mock_response
+
+    result = mock_service.transact_write_items(transact_items)
+
+    mock_dynamo_service.meta.client.transact_write_items.assert_called_once_with(
+        TransactItems=transact_items
+    )
+    assert result == mock_response
+
+
+def test_transact_write_items_transaction_cancelled(mock_service, mock_dynamo_service):
+    transact_items = [
+        {
+            "Put": {
+                "TableName": MOCK_TABLE_NAME,
+                "Item": {"ID": "id1", "Name": "Item 1"},
+            }
+        }
+    ]
+    
+    error_response = {
+        "Error": {"Code": "TransactionCanceledException", "Message": "Transaction cancelled"},
+        "CancellationReasons": [{"Code": "ConditionalCheckFailed"}],
+    }
+    mock_dynamo_service.meta.client.transact_write_items.side_effect = ClientError(
+        error_response, "TransactWriteItems"
+    )
+
+    with pytest.raises(ClientError) as exc_info:
+        mock_service.transact_write_items(transact_items)
+
+    assert exc_info.value.response["Error"]["Code"] == "TransactionCanceledException"
+
+
+def test_transact_write_items_generic_client_error(mock_service, mock_dynamo_service):
+    transact_items = [
+        {
+            "Put": {
+                "TableName": MOCK_TABLE_NAME,
+                "Item": {"ID": "id1", "Name": "Item 1"},
+            }
+        }
+    ]
+    
+    mock_dynamo_service.meta.client.transact_write_items.side_effect = MOCK_CLIENT_ERROR
+
+    with pytest.raises(ClientError) as exc_info:
+        mock_service.transact_write_items(transact_items)
+
+    assert exc_info.value == MOCK_CLIENT_ERROR
+
+
+def test_build_update_transaction_item_single_condition(mock_service):
+    table_name = MOCK_TABLE_NAME
+    document_key = {"ID": "test_id"}
+    update_fields = {"FileName": "new_filename.pdf", "Deleted": ""}
+    condition_fields = {"DocStatus": "final"}
+
+    result = mock_service.build_update_transaction_item(
+        table_name, document_key, update_fields, condition_fields
+    )
+
+    assert "Update" in result
+    update_item = result["Update"]
+    
+    assert update_item["TableName"] == table_name
+    assert update_item["Key"] == document_key
+    assert "SET #FileName_attr = :FileName_val, #Deleted_attr = :Deleted_val" == update_item["UpdateExpression"]
+    assert update_item["ConditionExpression"] == "#DocStatus_attr = :DocStatus_condition_val"
+    
+    assert update_item["ExpressionAttributeNames"]["#FileName_attr"] == "FileName"
+    assert update_item["ExpressionAttributeNames"]["#Deleted_attr"] == "Deleted"
+    assert update_item["ExpressionAttributeNames"]["#DocStatus_attr"] == "DocStatus"
+    
+    assert update_item["ExpressionAttributeValues"][":FileName_val"] == "new_filename.pdf"
+    assert update_item["ExpressionAttributeValues"][":Deleted_val"] == ""
+    assert update_item["ExpressionAttributeValues"][":DocStatus_condition_val"] == "final"
+
+
+def test_build_update_transaction_item_multiple_conditions(mock_service):
+    table_name = MOCK_TABLE_NAME
+    document_key = {"ID": "test_id", "SK": "test_sk"}
+    update_fields = {"FileName": "updated.pdf"}
+    condition_fields = {"DocStatus": "final", "Version": 1, "Uploaded": True}
+
+    result = mock_service.build_update_transaction_item(
+        table_name, document_key, update_fields, condition_fields
+    )
+
+    assert "Update" in result
+    update_item = result["Update"]
+    
+    assert update_item["TableName"] == table_name
+    assert update_item["Key"] == document_key
+    
+    # Check that all conditions are present (order might vary)
+    condition_expr = update_item["ConditionExpression"]
+    assert "#DocStatus_attr = :DocStatus_condition_val" in condition_expr
+    assert "#Version_attr = :Version_condition_val" in condition_expr
+    assert "#Uploaded_attr = :Uploaded_condition_val" in condition_expr
+    assert condition_expr.count(" AND ") == 2
+    
+    # Check all attribute names are present
+    assert update_item["ExpressionAttributeNames"]["#FileName_attr"] == "FileName"
+    assert update_item["ExpressionAttributeNames"]["#DocStatus_attr"] == "DocStatus"
+    assert update_item["ExpressionAttributeNames"]["#Version_attr"] == "Version"
+    assert update_item["ExpressionAttributeNames"]["#Uploaded_attr"] == "Uploaded"
+    
+    # Check all attribute values are present
+    assert update_item["ExpressionAttributeValues"][":FileName_val"] == "updated.pdf"
+    assert update_item["ExpressionAttributeValues"][":DocStatus_condition_val"] == "final"
+    assert update_item["ExpressionAttributeValues"][":Version_condition_val"] == 1
+    assert update_item["ExpressionAttributeValues"][":Uploaded_condition_val"] is True
+
+
+def test_build_update_transaction_item_empty_condition_fields(mock_service):
+    table_name = MOCK_TABLE_NAME
+    document_key = {"ID": "test_id"}
+    update_fields = {"FileName": "new_filename.pdf"}
+    condition_fields = {}
+
+    result = mock_service.build_update_transaction_item(
+        table_name, document_key, update_fields, condition_fields
+    )
+
+    assert "Update" in result
+    update_item = result["Update"]
+    
+    # With empty condition_fields, condition expression should be empty string
+    assert update_item["ConditionExpression"] == ""
+    assert update_item["TableName"] == table_name
+    assert update_item["Key"] == document_key
