@@ -1,12 +1,17 @@
 from pydantic import BaseModel
 
 
-class ReviewMessageBody(BaseModel):
-    """Model for SQS message body from the document review queue."""
+class ReviewMessageFile(BaseModel):
+    """Model for individual file in SQS message body from the document review queue."""
 
     file_name: str
     file_path: str
     """Location in the staging bucket"""
+
+class ReviewMessageBody(BaseModel):
+    """Model for SQS message body from the document review queue."""
+
+    files: list[ReviewMessageFile]
     nhs_number: str
     failure_reason: str
     upload_date: str

@@ -2,8 +2,7 @@ import json
 
 import pytest
 from handlers.review_processor_handler import lambda_handler
-from models.sqs.review_message_body import ReviewMessageBody
-from utils.lambda_response import ApiGatewayResponse
+from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
 
 
 @pytest.fixture
@@ -20,8 +19,12 @@ def mock_review_service(mocker):
 def sample_review_message_body():
     """Create a sample review message body."""
     return ReviewMessageBody(
-        file_name="test_document.pdf",
-        file_path="staging/9000000009/test_document.pdf",
+        files=[
+            ReviewMessageFile(
+                file_name="test_document.pdf",
+                file_path="staging/9000000009/test_document.pdf"
+            )
+        ],
         nhs_number="9000000009",
         failure_reason="Failed virus scan",
         upload_date="2024-01-15T10:30:00Z",
@@ -50,8 +53,12 @@ def sample_sqs_event(sample_sqs_message):
 def sample_sqs_event_multiple_messages(sample_review_message_body):
     """Create a sample SQS event with multiple messages."""
     message_1 = ReviewMessageBody(
-        file_name="document_1.pdf",
-        file_path="staging/9000000009/document_1.pdf",
+        files=[
+            ReviewMessageFile(
+                file_name="document_1.pdf",
+                file_path="staging/9000000009/document_1.pdf"
+            )
+        ],
         nhs_number="9000000009",
         failure_reason="Failed virus scan",
         upload_date="2024-01-15T10:30:00Z",
@@ -60,8 +67,12 @@ def sample_sqs_event_multiple_messages(sample_review_message_body):
     )
 
     message_2 = ReviewMessageBody(
-        file_name="document_2.pdf",
-        file_path="staging/9000000010/document_2.pdf",
+        files=[
+            ReviewMessageFile(
+                file_name="document_2.pdf",
+                file_path="staging/9000000010/document_2.pdf"
+            )
+        ],
         nhs_number="9000000010",
         failure_reason="Invalid file format",
         upload_date="2024-01-15T10:35:00Z",
@@ -70,8 +81,12 @@ def sample_sqs_event_multiple_messages(sample_review_message_body):
     )
 
     message_3 = ReviewMessageBody(
-        file_name="document_3.pdf",
-        file_path="staging/9000000011/document_3.pdf",
+        files=[
+            ReviewMessageFile(
+                file_name="document_3.pdf",
+                file_path="staging/9000000011/document_3.pdf"
+            )
+        ],
         nhs_number="9000000011",
         failure_reason="Missing metadata",
         upload_date="2024-01-15T10:40:00Z",
@@ -121,15 +136,8 @@ def test_lambda_handler_processes_single_message_successfully(
     mock_review_service,
 ):
     """Test handler successfully processes a single SQS message."""
-    expected_response = ApiGatewayResponse(
-        status_code=200,
-        body="Processed 1 messages",
-        methods="GET",
-    ).create_api_gateway_response()
+    lambda_handler(sample_sqs_event, context)
 
-    actual_response = lambda_handler(sample_sqs_event, context)
-
-    assert actual_response == expected_response
     mock_review_service.process_review_message.assert_called_once()
 
 
@@ -140,15 +148,8 @@ def test_lambda_handler_processes_multiple_messages_successfully(
     mock_review_service,
 ):
     """Test handler successfully processes multiple SQS messages."""
-    expected_response = ApiGatewayResponse(
-        status_code=200,
-        body="Processed 3 messages",
-        methods="GET",
-    ).create_api_gateway_response()
+    lambda_handler(sample_sqs_event_multiple_messages, context)
 
-    actual_response = lambda_handler(sample_sqs_event_multiple_messages, context)
-
-    assert actual_response == expected_response
     assert mock_review_service.process_review_message.call_count == 3
 
 
@@ -166,19 +167,18 @@ def test_lambda_handler_calls_service_with_correct_message(
     call_args = mock_review_service.process_review_message.call_args[0][0]
     
     assert type(call_args).__name__ == "ReviewMessageBody"
-    assert call_args.file_name == "test_document.pdf"
+    assert len(call_args.files) == 1
+    assert call_args.files[0].file_name == "test_document.pdf"
     assert call_args.nhs_number == "9000000009"
-    assert call_args.file_path == "staging/9000000009/test_document.pdf"
+    assert call_args.files[0].file_path == "staging/9000000009/test_document.pdf"
 
 
 def test_lambda_handler_handles_empty_records_list(
     set_review_env, context, empty_sqs_event, mock_review_service
 ):
-    """Test handler handles empty records list via @validate_sqs_event decorator."""
-    actual_response = lambda_handler(empty_sqs_event, context)
+    """Test handler handles empty records list gracefully."""
+    lambda_handler(empty_sqs_event, context)
 
-    assert actual_response["statusCode"] == 400
-    assert "SQS_4001" in actual_response["body"]
     mock_review_service.process_review_message.assert_not_called()
 
 
@@ -188,15 +188,15 @@ def test_lambda_handler_handles_service_error(
     sample_sqs_event,
     mock_review_service,
 ):
-    """Test handler catches exception when service fails (via @handle_lambda_exceptions decorator)."""
+    """Test handler logs error but doesn't raise when service fails."""
     mock_review_service.process_review_message.side_effect = Exception(
         "Service processing failed"
     )
 
-    response = lambda_handler(sample_sqs_event, context)
+    result = lambda_handler(sample_sqs_event, context)
     
-    assert response["statusCode"] == 500
-    assert "UE_500" in response["body"]
+    assert result is None
+    mock_review_service.process_review_message.assert_called_once()
 
 
 def test_lambda_handler_handles_invalid_message_format(
@@ -208,7 +208,7 @@ def test_lambda_handler_handles_invalid_message_format(
             {
                 "body": json.dumps(
                     {
-                        "file_name": "test.pdf",
+                        "files": [{"file_name": "test.pdf"}],
                     }
                 ),
                 "eventSource": "aws:sqs",
@@ -216,10 +216,10 @@ def test_lambda_handler_handles_invalid_message_format(
         ]
     }
 
-    response = lambda_handler(invalid_event, context)
+    lambda_handler(invalid_event, context)
     
-    assert response["statusCode"] == 500
-    assert "UE_500" in response["body"]
+    # Service should not be called if message validation fails
+    mock_review_service.process_review_message.assert_not_called()
 
 
 def test_lambda_handler_handles_partial_failure(
@@ -228,16 +228,16 @@ def test_lambda_handler_handles_partial_failure(
     sample_sqs_event_multiple_messages,
     mock_review_service,
 ):
-    """Test handler processes messages and handles first failure."""
+    """Test handler processes all messages even when one fails."""
     mock_review_service.process_review_message.side_effect = [
         None,
         Exception("Processing failed on second message"),
+        None,
     ]
 
-    response = lambda_handler(sample_sqs_event_multiple_messages, context)
-
-    assert response["statusCode"] == 500
-    assert mock_review_service.process_review_message.call_count == 2
+    lambda_handler(sample_sqs_event_multiple_messages, context)
+    
+    assert mock_review_service.process_review_message.call_count == 3
 
 
 def test_lambda_handler_parses_json_body_correctly(
@@ -251,8 +251,12 @@ def test_lambda_handler_parses_json_body_correctly(
             {
                 "body": json.dumps(
                     {
-                        "file_name": "test.pdf",
-                        "file_path": "staging/test.pdf",
+                        "files": [
+                            {
+                                "file_name": "test.pdf",
+                                "file_path": "staging/test.pdf"
+                            }
+                        ],
                         "nhs_number": "9000000009",
                         "failure_reason": "Test failure",
                         "upload_date": "2024-01-15T10:30:00Z",
@@ -270,7 +274,8 @@ def test_lambda_handler_parses_json_body_correctly(
     mock_review_service.process_review_message.assert_called_once()
     call_args = mock_review_service.process_review_message.call_args[0][0]
     assert type(call_args).__name__ == "ReviewMessageBody"
-    assert call_args.file_name == "test.pdf"
+    assert len(call_args.files) == 1
+    assert call_args.files[0].file_name == "test.pdf"
 
 
 def test_lambda_handler_logs_correct_counts(
@@ -278,13 +283,16 @@ def test_lambda_handler_logs_correct_counts(
     context,
     sample_sqs_event_multiple_messages,
     mock_review_service,
+    mocker,
 ):
-    """Test handler response contains correct processed count."""
-    response = lambda_handler(sample_sqs_event_multiple_messages, context)
+    """Test handler logs correct processed count."""
+    mock_logger = mocker.patch("handlers.review_processor_handler.logger")
+    
+    lambda_handler(sample_sqs_event_multiple_messages, context)
 
-    response_body = response["body"]
-
-    assert "Processed 3 messages" in response_body
+    mock_logger.info.assert_any_call(
+        "Review processor completed: 3 processed, 0 failed"
+    )
 
 
 def test_lambda_handler_tracks_failed_count(
@@ -292,11 +300,16 @@ def test_lambda_handler_tracks_failed_count(
     context,
     sample_sqs_event,
     mock_review_service,
+    mocker,
 ):
-    """Test handler tracks failed message count."""
+    """Test handler tracks failed message count in logs."""
     mock_review_service.process_review_message.side_effect = Exception("Test error")
+    mock_logger = mocker.patch("handlers.review_processor_handler.logger")
 
-    response = lambda_handler(sample_sqs_event, context)
+    lambda_handler(sample_sqs_event, context)
     
-    assert response["statusCode"] == 500
     mock_review_service.process_review_message.assert_called_once()
+    mock_logger.error.assert_called()
+    mock_logger.info.assert_any_call(
+        "Review processor completed: 0 processed, 1 failed"
+    )

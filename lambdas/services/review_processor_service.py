@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timezone
+import uuid
 
 from enums.review_status import ReviewStatus
 from models.document_review import DocumentReviewFileDetails, DocumentsUploadReview
@@ -43,13 +44,17 @@ class ReviewProcessorService:
 
         request_context.patient_nhs_no = review_message.nhs_number
 
-        logger.info(f"Processing review for NHS: {review_message.nhs_number}, File: {review_message.file_name}")
+        logger.info(f"Processing review for NHS: {review_message.nhs_number} with {len(review_message.files)} files")
 
-        self._verify_file_exists_in_staging(review_message.file_path)
-        document_upload_review = self._create_review_record(review_message)
+        for file in review_message.files:
+           logger.info(f"Processing review file: {file.file_name}")
+           self._verify_file_exists_in_staging(file.file_path)
 
-        new_file_key = self._move_file_to_review_bucket(review_message, document_upload_review.id)
-        self._update_review_record_with_file_location(document_upload_review.id, new_file_key)
+        review_id = uuid.uuid4().hex
+        files = self._move_files_to_review_bucket(review_message, review_id)
+        document_upload_review = self._build_review_record(review_message, review_id, files)
+
+        self._create_review_record(document_upload_review)
 
         logger.info(
             f"Successfully processed review for {review_message.nhs_number}",
@@ -80,88 +85,63 @@ class ReviewProcessorService:
             logger.error(f"Error checking file in staging bucket: {str(e)}")
             raise
 
-    def _create_review_record(self, message_data: ReviewMessageBody) -> DocumentsUploadReview:
-        """
-        Create a new review record in DynamoDB.
+    def _build_review_record(
+            self, message_data: ReviewMessageBody, review_id: str, files: list[DocumentReviewFileDetails]
+    ) -> DocumentsUploadReview:
+        return DocumentsUploadReview(
+            id=review_id,
+            nhs_number=message_data.nhs_number,
+            review_status=ReviewStatus.PENDING_REVIEW,
+            review_reason=message_data.failure_reason,
+            author=message_data.uploader_ods,
+            custodian=message_data.current_gp,
+            files=files,
+            upload_date=int(datetime.now(tz=timezone.utc).timestamp())
+        )
 
-        Args:
-            message_data: Validated review queue message data
-
-        Returns:
-            Created DocumentsUploadReview object
-
-        Raises:
-            ClientError: If DynamoDB create operation fails
-        """
-        try:
-            files = [DocumentReviewFileDetails(
-                file_name=message_data.file_name,
-                file_location=message_data.file_path
-            )]
-
-            document_review = DocumentsUploadReview(
-                nhs_number=message_data.nhs_number,
-                upload_date=int(datetime.fromisoformat(message_data.upload_date).replace(tzinfo=timezone.utc).timestamp()),
-                review_status=ReviewStatus.PENDING_REVIEW,
-                review_reason=message_data.failure_reason,
-                author=message_data.uploader_ods,
-                custodian=message_data.current_gp,
-                files=files,
-            )
-
-            self.dynamo_service.create_item(
-                table_name=self.review_table_name,
-                item=document_review.model_dump(by_alias=True, exclude_none=True),
-            )
-
-            logger.info(
-                f"Created review record in DynamoDB with ID: {document_review.id}",
-                {"Result": "DynamoDB record created"},
-            )
-
-            return document_review
-
-        except Exception as e:
-            logger.error(f"Failed to create DynamoDB record: {str(e)}")
-            raise
-
-    def _move_file_to_review_bucket(self, message_data: ReviewMessageBody, review_record_id: str) -> str:
+    def _move_files_to_review_bucket(
+        self, message_data: ReviewMessageBody, review_record_id: str
+    ) -> list[DocumentReviewFileDetails]:
         """
         Move file from staging to review bucket.
 
         Args:
             message_data: Review queue message data
-            review_record_id: ID of the review record (used in destination path)
+            review_record_id: ID of the review record being created
 
         Returns:
-            New file key in review bucket
-
-        Raises:
-            ClientError: If S3 copy or delete operations fail
+            List of DocumentReviewFileDetails objects for the moved files
         """
+        moved_files = []
         try:
-            new_file_key = f"{message_data.nhs_number}/{review_record_id}/{message_data.file_name}"
+            for file in message_data.files:
+                new_file_key = f"{message_data.nhs_number}/{review_record_id}/{file.file_name}"
 
-            logger.info(f"Copying file from ({message_data.file_path}) in staging to review bucket: {new_file_key}")
+                logger.info(f"Copying file from ({file.file_path}) in staging to review bucket: {new_file_key}")
 
-            self.s3_service.copy_across_bucket(
-                source_bucket=self.staging_bucket_name,
-                source_file_key=message_data.file_path,
-                dest_bucket=self.review_bucket_name,
-                dest_file_key=new_file_key,
-            )
+                self.s3_service.copy_across_bucket(
+                    source_bucket=self.staging_bucket_name,
+                    source_file_key=file.file_path,
+                    dest_bucket=self.review_bucket_name,
+                    dest_file_key=new_file_key,
+                )
 
-            logger.info("File successfully copied to review bucket")
-            logger.info(f"Deleting file from staging bucket: {message_data.file_path}")
+                logger.info("File successfully copied to review bucket")
+                logger.info(f"Deleting file from staging bucket: {file.file_path}")
 
-            self._delete_from_staging(message_data.file_path)
-            logger.info(f"Successfully moved file to: {new_file_key}")
+                self._delete_from_staging(file.file_path)
+                logger.info(f"Successfully moved file to: {new_file_key}")
 
-            return new_file_key
+                moved_files.append(DocumentReviewFileDetails(
+                    file_name=file.file_name,
+                    file_location=new_file_key
+                ))
 
         except Exception as e:
             logger.error(f"Failed to move file: {str(e)}")
             raise
+
+        return moved_files
 
     def _delete_from_staging(self, file_key: str) -> None:
         try:
@@ -173,17 +153,15 @@ class ReviewProcessorService:
             logger.error(f"Error deleting file from staging: {str(e)}")
             raise
 
-    def _update_review_record_with_file_location(self, review_record_id: str, review_bucket_path: str) -> None:
+    def _create_review_record(self, review_record: DocumentsUploadReview) -> None:
         try:
-            self.dynamo_service.update_item(
+            self.dynamo_service.create_item(
                 table_name=self.review_table_name,
-                key_pair={"ID": review_record_id},
-                updated_fields={"ReviewBucketPath": review_bucket_path},
+                item=review_record
             )
 
-            logger.info(f"Updated review record {review_record_id} with file location: {review_bucket_path}")
+            logger.info(f"Created review record {review_record.id}")
 
         except Exception as e:
-            logger.error(f"Failed to update review record with file location: {str(e)}")
-            logger.warning("Review record created but file location not updated in DynamoDB")
+            logger.error(f"Failed to create review record with id: {review_record.id} -- {str(e)}")
             raise
