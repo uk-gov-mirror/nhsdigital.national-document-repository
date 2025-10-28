@@ -60,3 +60,4 @@ def get_formatter_service(raw_pre_format_type):
             f"Invalid preFormatType: '{raw_pre_format_type}', defaulting to {LloydGeorgePreProcessFormat.GENERAL}."
         )
         return MetadataGeneralPreprocessor
+

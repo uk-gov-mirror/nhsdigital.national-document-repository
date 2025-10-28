@@ -1,8 +1,7 @@
 import pytest
+
 from handlers.bulk_upload_metadata_processor_handler import lambda_handler
-from services.bulk_upload_metadata_processor_service import (
-    BulkUploadMetadataProcessorService,
-)
+from services.bulk_upload_metadata_processor_service import BulkUploadMetadataProcessorService
 
 
 @pytest.fixture
