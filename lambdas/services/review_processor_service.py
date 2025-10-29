@@ -50,7 +50,7 @@ class ReviewProcessorService:
            logger.info(f"Processing review file: {file.file_name}")
            self._verify_file_exists_in_staging(file.file_path)
 
-        review_id = uuid.uuid4().hex
+        review_id = str(uuid.uuid4)
         files = self._move_files_to_review_bucket(review_message, review_id)
         document_upload_review = self._build_review_record(review_message, review_id, files)
 
