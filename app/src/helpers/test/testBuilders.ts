@@ -112,7 +112,7 @@ const buildSearchResult = (searchResultOverride?: Partial<SearchResult>) => {
         virusScannerResult: 'Clean',
         id: '1234qwer-241ewewr',
         fileSize: 224,
-        version: "1",
+        version: '1',
         ...searchResultOverride,
     };
     return result;

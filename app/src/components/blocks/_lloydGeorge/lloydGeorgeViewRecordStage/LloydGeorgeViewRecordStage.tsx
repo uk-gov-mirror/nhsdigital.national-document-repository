@@ -22,6 +22,9 @@ import LloydGeorgeRecordError from '../lloydGeorgeRecordError/LloydGeorgeRecordE
 import getDocumentSearchResults from '../../../../helpers/requests/getDocumentSearchResults';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
+import { AxiosError } from 'axios';
+import { SearchResult } from '../../../../types/generic/searchResult';
+import { isMock } from '../../../../helpers/utils/isLocal';
 
 export type Props = {
     downloadStage: DOWNLOAD_STAGE;
@@ -103,30 +106,55 @@ function LloydGeorgeViewRecordStage({
             return;
         }
 
-        const searchResults = await getDocumentSearchResults({
-            nhsNumber: patientDetails?.nhsNumber,
-            baseUrl: baseUrl,
-            baseHeaders: baseHeaders,
-        });
+        const handleSuccess = async (searchResults: SearchResult[]): Promise<void> => {
+            const fileName = searchResults[0].fileName;
+            const documentId = searchResults[0].id;
+            const versionId = searchResults[0].version;
 
-        const fileName = searchResults[0].fileName;
-        const documentId = searchResults[0].id;
-        const versionId = searchResults[0].version;
+            const response = await fetch(pdfObjectUrl);
+            const blob = await response.blob();
 
-        const response = await fetch(pdfObjectUrl);
-        const blob = await response.blob();
-
-        const to: To = {
-            pathname: routes.DOCUMENT_UPLOAD,
-            search: createSearchParams({ journey: 'update' }).toString(),
+            const to: To = {
+                pathname: routes.DOCUMENT_UPLOAD,
+                search: createSearchParams({ journey: 'update' }).toString(),
+            };
+            const options: NavigateOptions = {
+                state: {
+                    journey: 'update',
+                    existingDocuments: [{ fileName, blob, documentId, versionId }],
+                },
+            };
+            navigate(to, options);
         };
-        const options: NavigateOptions = {
-            state: {
-                journey: 'update',
-                existingDocuments: [{ fileName, blob, documentId, versionId }],
-            },
-        };
-        navigate(to, options);
+
+        try {
+            const searchResults = await getDocumentSearchResults({
+                nhsNumber: patientDetails?.nhsNumber,
+                baseUrl: baseUrl,
+                baseHeaders: baseHeaders,
+            });
+
+            handleSuccess(searchResults);
+        } catch (e) {
+            const error = e as AxiosError;
+
+            if (isMock(error)) {
+                handleSuccess([
+                    {
+                        id: 'mock-document-id',
+                        fileName: generateFileName(patientDetails),
+                        version: 'mock-version-id',
+                        created: new Date().toISOString(),
+                        fileSize: 12345,
+                        virusScannerResult: 'clean',
+                    },
+                ]);
+            } else if (error.response?.status === 403) {
+                navigate(routes.SESSION_EXPIRED);
+            } else {
+                navigate(routes.SERVER_ERROR + `?message=${encodeURIComponent(error.message)}`);
+            }
+        }
     };
 
     return (
