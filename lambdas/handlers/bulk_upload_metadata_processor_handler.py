@@ -1,3 +1,5 @@
+import os
+
 from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
 from services.bulk_upload.metadata_general_preprocessor import (
     MetadataGeneralPreprocessor,
@@ -41,8 +43,15 @@ def lambda_handler(event, _context):
         f"Starting metadata processing for practice directory: {practice_directory}"
     )
 
+    configs_bucket_name = os.getenv("CONFIGS_BUCKET_NAME")
+    alias_prefix = f"metadata_aliases/{raw_pre_format_type.lower()}/"
+
     metadata_formatter_service = formatter_service_class(practice_directory)
-    metadata_service = BulkUploadMetadataProcessorService(metadata_formatter_service)
+    metadata_service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service,
+        alias_bucket=configs_bucket_name,
+        alias_prefix=alias_prefix,
+    )
     metadata_service.process_metadata()
 
 
@@ -60,4 +69,3 @@ def get_formatter_service(raw_pre_format_type):
             f"Invalid preFormatType: '{raw_pre_format_type}', defaulting to {LloydGeorgePreProcessFormat.GENERAL}."
         )
         return MetadataGeneralPreprocessor
-

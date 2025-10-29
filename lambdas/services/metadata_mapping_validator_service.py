@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from typing import Type
 
@@ -20,8 +19,8 @@ class MetadataMappingValidationService:
         alias_prefix: str = None,
     ):
         self.alias_folder = alias_folder  # fallback in case of not finding json in S3
-        self.alias_bucket = alias_bucket or os.getenv("CONFIGS_BUCKET_NAME")
-        self.alias_prefix = (alias_prefix or "metadata_aliases/").rstrip("/") + "/"
+        self.alias_bucket = alias_bucket
+        self.alias_prefix = alias_prefix
         self.s3_service = S3Service()
         self.logger = LoggingService(__name__)
 
@@ -94,6 +93,11 @@ class MetadataMappingValidationService:
         with open(alias_path, "r", encoding="utf-8") as f:
             alias_map = json.load(f)
 
+        # Log owner if present
+        owner = alias_map.get("owner")
+        if owner:
+            self.logger.info(f"Alias '{alias_filename}' owned by: {owner}")
+
         if not alias_map:
             raise BulkUploadMetadataException(
                 f"Alias file '{alias_filename}' is empty or invalid."
@@ -103,7 +107,8 @@ class MetadataMappingValidationService:
 
     def validate_alias_map(self, alias_map: dict, source_name: str) -> None:
         """Ensure alias mapping covers all required MetadataFile fields."""
-        missing_keys = set(MetadataFile.model_fields.keys()) - set(alias_map.keys())
+        alias_field_keys = {k for k in alias_map.keys() if k in MetadataFile.model_fields}
+        missing_keys = set(MetadataFile.model_fields.keys()) - alias_field_keys
         if missing_keys:
             raise BulkUploadMetadataException(
                 f"Alias config '{source_name}' is missing mappings for: {', '.join(sorted(missing_keys))}"
