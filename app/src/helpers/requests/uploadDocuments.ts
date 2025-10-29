@@ -10,7 +10,7 @@ import {
     UploadSession,
 } from '../../types/generic/uploadResult';
 import { Dispatch, SetStateAction } from 'react';
-import { setSingleDocument } from '../utils/uploadDocumentHelpers';
+import { extractUploadSession, setSingleDocument } from '../utils/uploadDocumentHelpers';
 import { PatientDetails } from '../../types/generic/patientDetails';
 import { formatDateWithDashes } from '../utils/formatDate';
 
@@ -118,7 +118,7 @@ const uploadDocuments = async ({
 
     try {
         const axiosMethod = documentReferenceId ? axios.put : axios.post;
-        const { data } = await axiosMethod<UploadSession>(gatewayUrl, JSON.stringify(requestBody), {
+        const { data } = await axiosMethod(gatewayUrl, JSON.stringify(requestBody), {
             headers: {
                 ...baseHeaders,
             },
@@ -127,7 +127,7 @@ const uploadDocuments = async ({
             },
         });
 
-        return data;
+        return extractUploadSession(data);
     } catch (e) {
         const error = e as AxiosError;
         throw error;
