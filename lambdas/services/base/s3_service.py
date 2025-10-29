@@ -125,6 +125,9 @@ class S3Service:
         )
 
     def delete_object(self, s3_bucket_name: str, file_key: str, version_id: str | None = None):
+        if version_id is None:
+            return self.client.delete_object(Bucket=s3_bucket_name, Key=file_key)
+        
         return self.client.delete_object(Bucket=s3_bucket_name, Key=file_key, VersionId=version_id)
 
     def create_object_tag(
