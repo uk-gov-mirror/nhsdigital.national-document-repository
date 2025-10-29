@@ -2,7 +2,7 @@ import json
 
 from pydantic import ValidationError
 from models.sqs.review_message_body import ReviewMessageBody
-from services.review_processor_service import ReviewProcessorService
+from services.document_review_processor_service import ReviewProcessorService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.override_error_check import override_error_check

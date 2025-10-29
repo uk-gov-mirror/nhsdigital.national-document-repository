@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 from enums.review_status import ReviewStatus
 from models.document_review import DocumentsUploadReview
 from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
-from services.review_processor_service import ReviewProcessMovingException, ReviewProcessVerifyingException, ReviewProcessorService
+from services.document_review_processor_service import ReviewProcessMovingException, ReviewProcessVerifyingException, ReviewProcessorService
 from utils.exceptions import ReviewProcessDeleteException, S3FileNotFoundException
 
 

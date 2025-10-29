@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from handlers.review_processor_handler import lambda_handler
+from handlers.document_review_processor_handler import lambda_handler
 from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
 
 
