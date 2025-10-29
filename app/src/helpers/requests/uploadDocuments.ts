@@ -40,7 +40,7 @@ export const uploadDocumentToS3 = async ({
         formData.append(key, value);
     });
     formData.append('file', document.file);
-    const s3url = documentMetadata.url;
+    const s3url = documentMetadata.url ?? documentMetadata;
     try {
         return await axios.post(s3url, formData, {
             onUploadProgress: (progress) => {
