@@ -296,8 +296,12 @@ class UploadDocumentReferenceService:
                 f"Cancelling preliminary document {new_document.id} due to transaction conflict"
             )
             new_document.doc_status = "cancelled"
+            new_document.uploaded = False
+            new_document.uploading = False
+            new_document.file_location = ""
+            new_document.file_size = None
             self._update_dynamo_table(new_document)
-            self.delete_file_from_bucket(new_document.file_location)
+            self.delete_file_from_bucket(new_document.file_location, new_document.s3_version_id)
             raise
         except Exception as e:
             logger.error(
@@ -350,7 +354,7 @@ class UploadDocumentReferenceService:
 
             dest_file_key = document_reference.s3_file_key
 
-            self.s3_service.copy_across_bucket(
+            copy_result = self.s3_service.copy_across_bucket(
                 source_bucket=self.staging_s3_bucket_name,
                 source_file_key=source_file_key,
                 dest_bucket=self.destination_bucket_name,
@@ -361,6 +365,9 @@ class UploadDocumentReferenceService:
             document_reference.file_location = document_reference._build_s3_location(
                 self.destination_bucket_name, dest_file_key
             )
+            document_reference.s3_version_id = copy_result.get("VersionId")
+
+            return copy_result
 
         except ClientError as e:
             logger.error(f"Error copying files from staging bucket: {str(e)}")
@@ -377,7 +384,7 @@ class UploadDocumentReferenceService:
         except ClientError as e:
             logger.error(f"Error deleting file from staging bucket: {str(e)}")
 
-    def delete_file_from_bucket(self, file_location: str):
+    def delete_file_from_bucket(self, file_location: str, version_id: str):
         """Delete file from bucket"""
         try:
             s3_bucket_name, source_file_key = DocumentReference._parse_s3_location(file_location)
@@ -385,7 +392,7 @@ class UploadDocumentReferenceService:
                 f"Deleting file from bucket: {s3_bucket_name}/{source_file_key}"
             )
 
-            self.s3_service.delete_object(s3_bucket_name, source_file_key)
+            self.s3_service.delete_object(s3_bucket_name, source_file_key, version_id)
 
         except ClientError as e:
             logger.error(f"Error deleting file from bucket: {str(e)}")
