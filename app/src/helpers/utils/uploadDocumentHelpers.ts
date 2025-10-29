@@ -39,12 +39,16 @@ export const markDocumentsAsUploading = (
 ): UploadDocument[] => {
     return documents.map((doc) => {
         const documentMetadata = uploadSession[doc.id];
-        const documentReference = documentMetadata.fields.key;
+        let documentReference = documentMetadata.fields?.key;
+        if (!documentReference) {
+            documentReference = URL.parse(documentMetadata.url)!.pathname.substring(1);
+        }
+
         return {
             ...doc,
             state: DOCUMENT_UPLOAD_STATE.UPLOADING,
-            key: documentReference,
-            ref: getLastURLPath(documentReference),
+            key: documentReference ?? undefined,
+            ref: documentReference ? getLastURLPath(documentReference) : undefined,
         };
     });
 };
