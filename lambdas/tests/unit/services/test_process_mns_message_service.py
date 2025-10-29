@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from freezegun import freeze_time
 from models.document_reference import DocumentReference
-from models.document_review import DocumentUploadReview
+from models.document_review import DocumentUploadReviewReference
 from models.sqs.mns_sqs_message import MNSSQSMessage
 from services.process_mns_message_service import MNSNotificationService
 from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_NHS_NUMBER
@@ -62,7 +62,7 @@ def mock_document_review_references(mocker):
     # Create a list of mock document review references
     reviews = []
     for i in range(2):
-        review = MagicMock(spec=DocumentUploadReview)
+        review = MagicMock(spec=DocumentUploadReviewReference)
         review.id = f"review-id-{i}"
         review.nhs_number = TEST_NHS_NUMBER
         review.custodian = TEST_CURRENT_GP_ODS
@@ -251,62 +251,22 @@ def test_handle_death_notification_formal_no_documents(mns_service, mocker):
 
 
 @freeze_time(MOCK_UPDATE_TIME)
-def test_update_patient_ods_code_with_documents(mns_service, mock_document_references):
-    updated_ods_code = NEW_ODS_CODE
-
-    mns_service.update_patient_ods_code(
-        mock_document_references, updated_ods_code
-    )
+@pytest.mark.parametrize(
+    "updated_ods_code",
+    [
+        NEW_ODS_CODE,
+        PatientOdsInactiveStatus.DECEASED,
+        PatientOdsInactiveStatus.SUSPENDED,
+    ],
+)
+def test_update_patient_ods_code_with_documents(
+    mns_service, mock_document_references, updated_ods_code
+):
+    mns_service.update_patient_ods_code(mock_document_references, updated_ods_code)
 
     for doc in mock_document_references:
         assert doc.current_gp_ods == updated_ods_code
         assert doc.custodian == updated_ods_code
-        assert doc.last_updated == int(
-            datetime.fromisoformat(MOCK_UPDATE_TIME).timestamp()
-        )
-
-        mns_service.document_service.update_document.assert_any_call(
-            mns_service.lg_table,
-            doc,
-            mns_service.DOCUMENT_UPDATE_FIELDS,
-        )
-
-
-@freeze_time(MOCK_UPDATE_TIME)
-def test_update_patient_ods_code_with_deceased_status(
-    mns_service, mock_document_references
-):
-    mns_service.update_patient_ods_code(
-        mock_document_references,
-        PatientOdsInactiveStatus.DECEASED,
-    )
-
-    for doc in mock_document_references:
-        assert doc.current_gp_ods == PatientOdsInactiveStatus.DECEASED
-        assert doc.custodian == mns_service.PCSE_ODS
-        assert doc.last_updated == int(
-            datetime.fromisoformat(MOCK_UPDATE_TIME).timestamp()
-        )
-
-        mns_service.document_service.update_document.assert_any_call(
-            mns_service.lg_table,
-            doc,
-            mns_service.DOCUMENT_UPDATE_FIELDS,
-        )
-
-
-@freeze_time(MOCK_UPDATE_TIME)
-def test_update_patient_ods_code_with_suspended_status(
-    mns_service, mock_document_references
-):
-    mns_service.update_patient_ods_code(
-        mock_document_references,
-        PatientOdsInactiveStatus.SUSPENDED
-    )
-
-    for doc in mock_document_references:
-        assert doc.current_gp_ods == PatientOdsInactiveStatus.SUSPENDED
-        assert doc.custodian == mns_service.PCSE_ODS
         assert doc.last_updated == int(
             datetime.fromisoformat(MOCK_UPDATE_TIME).timestamp()
         )
@@ -332,9 +292,7 @@ def test_update_patient_ods_code_no_changes_needed(
         doc.current_gp_ods = NEW_ODS_CODE
         doc.custodian = NEW_ODS_CODE
 
-    mns_service.update_patient_ods_code(
-        mock_document_references, NEW_ODS_CODE
-    )
+    mns_service.update_patient_ods_code(mock_document_references, NEW_ODS_CODE)
 
     mns_service.document_service.update_document.assert_not_called()
 
@@ -388,7 +346,7 @@ def test_pds_is_called_death_notification_removed(
 
 def test_get_all_patient_documents(mns_service, mocker):
     expected_lg_docs = [MagicMock(spec=DocumentReference)]
-    expected_review_docs = [MagicMock(spec=DocumentUploadReview)]
+    expected_review_docs = [MagicMock(spec=DocumentUploadReviewReference)]
 
     mocker.patch.object(mns_service, "get_patient_documents")
     mns_service.get_patient_documents.side_effect = [
@@ -405,7 +363,9 @@ def test_get_all_patient_documents(mns_service, mocker):
         TEST_NHS_NUMBER, mns_service.lg_table, DocumentReference
     )
     mns_service.get_patient_documents.assert_any_call(
-        TEST_NHS_NUMBER, mns_service.document_review_table, DocumentUploadReview
+        TEST_NHS_NUMBER,
+        mns_service.document_review_table,
+        DocumentUploadReviewReference,
     )
 
 
@@ -458,53 +418,23 @@ def test_update_all_patient_documents_with_only_review_documents(
 
 
 @freeze_time(MOCK_UPDATE_TIME)
+@pytest.mark.parametrize(
+    "updated_ods_code",
+    [
+        NEW_ODS_CODE,
+        PatientOdsInactiveStatus.DECEASED,
+        PatientOdsInactiveStatus.SUSPENDED,
+    ],
+)
 def test_update_document_review_custodian_with_documents(
-    mns_service, mock_document_review_references
+    mns_service, mock_document_review_references, updated_ods_code
 ):
-    updated_ods_code = NEW_ODS_CODE
-
     mns_service.update_document_review_custodian(
         mock_document_review_references, updated_ods_code
     )
 
     for review in mock_document_review_references:
         assert review.custodian == updated_ods_code
-
-        mns_service.document_service.update_document.assert_any_call(
-            mns_service.document_review_table,
-            review,
-            mns_service.DOCUMENT_REVIEW_UPDATE_FIELDS,
-        )
-
-
-@freeze_time(MOCK_UPDATE_TIME)
-def test_update_document_review_custodian_with_deceased_status(
-    mns_service, mock_document_review_references
-):
-    mns_service.update_document_review_custodian(
-        mock_document_review_references, PatientOdsInactiveStatus.DECEASED
-    )
-
-    for review in mock_document_review_references:
-        assert review.custodian == mns_service.PCSE_ODS
-
-        mns_service.document_service.update_document.assert_any_call(
-            mns_service.document_review_table,
-            review,
-            mns_service.DOCUMENT_REVIEW_UPDATE_FIELDS,
-        )
-
-
-@freeze_time(MOCK_UPDATE_TIME)
-def test_update_document_review_custodian_with_suspended_status(
-    mns_service, mock_document_review_references
-):
-    mns_service.update_document_review_custodian(
-        mock_document_review_references, PatientOdsInactiveStatus.SUSPENDED
-    )
-
-    for review in mock_document_review_references:
-        assert review.custodian == mns_service.PCSE_ODS
 
         mns_service.document_service.update_document.assert_any_call(
             mns_service.document_review_table,
@@ -542,9 +472,7 @@ def test_update_patient_ods_code_updates_only_custodian_when_current_gp_matches(
         doc.current_gp_ods = NEW_ODS_CODE
         doc.custodian = TEST_CURRENT_GP_ODS  # Different from current_gp_ods
 
-    mns_service.update_patient_ods_code(
-        mock_document_references, NEW_ODS_CODE
-    )
+    mns_service.update_patient_ods_code(mock_document_references, NEW_ODS_CODE)
 
     for doc in mock_document_references:
         assert doc.current_gp_ods == NEW_ODS_CODE
@@ -567,9 +495,7 @@ def test_update_patient_ods_code_updates_only_current_gp_when_custodian_matches(
         doc.current_gp_ods = TEST_CURRENT_GP_ODS  # Different from new code
         doc.custodian = NEW_ODS_CODE
 
-    mns_service.update_patient_ods_code(
-        mock_document_references, NEW_ODS_CODE
-    )
+    mns_service.update_patient_ods_code(mock_document_references, NEW_ODS_CODE)
 
     for doc in mock_document_references:
         assert doc.current_gp_ods == NEW_ODS_CODE

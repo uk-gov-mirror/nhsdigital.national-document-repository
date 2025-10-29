@@ -19,17 +19,22 @@ class DocumentReviewFileDetails(BaseModel):
     file_location: str
 
 
-class DocumentUploadReview(BaseModel):
+class DocumentUploadReviewReference(BaseModel):
     model_config = ConfigDict(
         validate_by_alias=True,
         validate_by_name=True,
         alias_generator=to_pascal,
         use_enum_values=True,
     )
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), alias=str(DocumentReferenceMetadataFields.ID.value))
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        alias=str(DocumentReferenceMetadataFields.ID.value),
+    )
     author: str
     custodian: str
-    review_status: DocumentReviewStatus = Field(default=DocumentReviewStatus.PENDING_REVIEW)
+    review_status: DocumentReviewStatus = Field(
+        default=DocumentReviewStatus.PENDING_REVIEW
+    )
     review_reason: str
     review_date: int = Field(default=None)
     reviewer: str = Field(default=None)

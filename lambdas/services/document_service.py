@@ -5,7 +5,7 @@ from boto3.dynamodb.conditions import Attr, ConditionBase
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.supported_document_types import SupportedDocumentTypes
 from models.document_reference import DocumentReference
-from models.document_review import DocumentUploadReview
+from models.document_review import DocumentUploadReviewReference
 from pydantic import ValidationError
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
@@ -44,7 +44,7 @@ class DocumentService:
         table: str,
         query_filter: Attr | ConditionBase = None,
         model_class=DocumentReference,
-    ) -> list[DocumentReference] | list[DocumentUploadReview]:
+    ) -> list[DocumentReference] | list[DocumentUploadReviewReference]:
         documents = self.fetch_documents_from_table(
             table=table,
             index_name="NhsNumberIndex",
@@ -64,7 +64,7 @@ class DocumentService:
         index_name: str = None,
         query_filter: Attr | ConditionBase = None,
         model_class=DocumentReference,
-    ) -> list[DocumentReference] | list[DocumentUploadReview]:
+    ) -> list[DocumentReference] | list[DocumentUploadReviewReference]:
         documents = []
 
         response = self.dynamo_service.query_table(
@@ -147,13 +147,13 @@ class DocumentService:
     def update_document(
         self,
         table_name: str,
-        document_reference: DocumentReference | DocumentUploadReview,
+        document: DocumentReference | DocumentUploadReviewReference,
         update_fields_name: set[str] = None,
     ):
         self.dynamo_service.update_item(
             table_name=table_name,
-            key_pair={DocumentReferenceMetadataFields.ID.value: document_reference.id},
-            updated_fields=document_reference.model_dump(
+            key_pair={DocumentReferenceMetadataFields.ID.value: document.id},
+            updated_fields=document.model_dump(
                 exclude_none=True, by_alias=True, include=update_fields_name
             ),
         )

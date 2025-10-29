@@ -228,7 +228,7 @@ class UploadDocumentReferenceService:
 
             self.document_service.update_document(
                 table_name=self.table_name,
-                document_reference=document,
+                document=document,
                 update_fields_name=update_fields,
             )
 

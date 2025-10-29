@@ -381,7 +381,7 @@ def test_update_dynamo_table_clean_scan_result(service, mock_document_reference)
     assert mock_document_reference.doc_status == "final"
     service.document_service.update_document.assert_called_once_with(
         table_name=MOCK_LG_TABLE_NAME,
-        document_reference=mock_document_reference,
+        document=mock_document_reference,
         update_fields_name={
             "virus_scanner_result",
             "doc_status",
