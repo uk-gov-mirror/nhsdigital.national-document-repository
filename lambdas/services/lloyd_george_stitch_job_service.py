@@ -10,7 +10,7 @@ from models.stitch_trace import DocumentStitchJob, StitchTrace
 from pydantic import ValidationError
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
-from services.document_service import DocumentService
+from services.document_reference_service import DocumentReferenceService
 from utils.audit_logging_setup import LoggingService
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.exceptions import FileUploadInProgress, NoAvailableDocument
@@ -28,7 +28,7 @@ class LloydGeorgeStitchJobService:
             custom_aws_role=get_document_presign_url_aws_role_arn
         )
         self.dynamo_service = DynamoDBService()
-        self.document_service = DocumentService()
+        self.document_service = DocumentReferenceService()
         self.stitch_trace_table = os.environ.get("STITCH_METADATA_DYNAMODB_NAME")
         self.lloyd_george_table_name = os.environ.get("LLOYD_GEORGE_DYNAMODB_NAME")
         self.cloudfront_table_name = os.environ.get("EDGE_REFERENCE_TABLE")

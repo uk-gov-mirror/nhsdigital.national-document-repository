@@ -340,12 +340,12 @@ def test_get_nhs_numbers_based_on_ods_code(mock_service, mocker):
         return_value=mock_documents,
     )
 
-    result = mock_service.get_nhs_numbers_based_on_ods_code(ods_code)
+    result = mock_service.get_nhs_numbers_based_on_ods_code(ods_code,"test_lg_dynamoDB_table")
 
     assert result == [expected_nhs_number]
 
     mock_fetch.assert_called_once_with(
-        table="test_lg_dynamoDB_table",
+        table_name="test_lg_dynamoDB_table",
         index_name="OdsCodeIndex",
         search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
         search_condition=ods_code,

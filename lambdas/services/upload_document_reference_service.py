@@ -81,7 +81,7 @@ class UploadDocumentReferenceService:
         try:
 
             documents = self.document_service.fetch_documents_from_table(
-                table=self.table_name,
+                table_name=self.table_name,
                 search_condition=document_key,
                 search_key="ID",
                 query_filter=PreliminaryStatus,

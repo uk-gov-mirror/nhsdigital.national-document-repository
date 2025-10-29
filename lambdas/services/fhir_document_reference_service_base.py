@@ -119,7 +119,7 @@ class FhirDocumentReferenceServiceBase:
     
     def _get_document_reference(self, document_id: str, table) -> DocumentReference:
         documents = self.document_service.fetch_documents_from_table(
-            table=table,
+            table_name=table,
             search_condition=document_id,
             search_key="ID",
             query_filter=CurrentStatusFile,

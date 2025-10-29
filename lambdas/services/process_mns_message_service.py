@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 from botocore.exceptions import ClientError
 from enums.death_notification_status import DeathNotificationStatus
@@ -9,7 +8,8 @@ from models.document_reference import DocumentReference
 from models.document_review import DocumentUploadReviewReference
 from models.sqs.mns_sqs_message import MNSSQSMessage
 from services.base.sqs_service import SQSService
-from services.document_service import DocumentService
+from services.document_reference_service import DocumentReferenceService
+from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import PdsErrorException
 from utils.utilities import get_pds_service
@@ -19,14 +19,11 @@ logger = LoggingService(__name__)
 
 class MNSNotificationService:
     def __init__(self):
-        self.document_service = DocumentService()
-        self.lg_table = os.getenv("LLOYD_GEORGE_DYNAMODB_NAME")
-        self.document_review_table = os.getenv("DOCUMENT_REVIEW_DYNAMODB_NAME")
+        self.document_review_service = DocumentUploadReviewService()
+        self.lg_document_service = DocumentReferenceService()
         self.pds_service = get_pds_service()
         self.sqs_service = SQSService()
         self.queue = os.getenv("MNS_NOTIFICATION_QUEUE_URL")
-        self.DOCUMENT_UPDATE_FIELDS = {"current_gp_ods", "custodian", "last_updated"}
-        self.DOCUMENT_REVIEW_UPDATE_FIELDS = {"custodian"}
 
     def handle_mns_notification(self, message: MNSSQSMessage):
         try:
@@ -104,72 +101,23 @@ class MNSNotificationService:
                         f"Update complete, patient marked {PatientOdsInactiveStatus.DECEASED}."
                     )
 
-    def update_patient_ods_code(
-        self,
-        patient_documents: list[DocumentReference],
-        updated_ods_code: str,
-    ) -> None:
-        if not patient_documents:
-            return
-
-        for reference in patient_documents:
-            logger.info("Updating patient document reference...")
-
-            if (
-                reference.current_gp_ods != updated_ods_code
-                or reference.custodian != updated_ods_code
-            ):
-                reference.current_gp_ods = updated_ods_code
-                reference.custodian = updated_ods_code
-                reference.last_updated = int(datetime.now().timestamp())
-
-                self.document_service.update_document(
-                    self.lg_table,
-                    reference,
-                    self.DOCUMENT_UPDATE_FIELDS,
-                )
-
-    def update_document_review_custodian(
-        self,
-        patient_documents: list[DocumentUploadReviewReference],
-        updated_ods_code: str,
-    ) -> None:
-        if not patient_documents:
-            return
-
-        for review in patient_documents:
-            logger.info("Updating document review custodian...")
-
-            if review.custodian != updated_ods_code:
-                review.custodian = updated_ods_code
-
-                self.document_service.update_document(
-                    self.document_review_table,
-                    review,
-                    self.DOCUMENT_REVIEW_UPDATE_FIELDS,
-                )
-
     def get_updated_gp_ods(self, nhs_number: str) -> str:
         patient_details = self.pds_service.fetch_patient_details(nhs_number)
         return patient_details.general_practice_ods
-
-    def get_patient_documents(
-        self, nhs_number: str, table: str, model_class: type
-    ) -> list[DocumentReference] | list[DocumentUploadReviewReference]:
-        """Fetch patient documents and return them if they exist."""
-        return self.document_service.fetch_documents_from_table_with_nhs_number(
-            nhs_number, table, model_class=model_class
-        )
 
     def get_all_patient_documents(
         self, nhs_number: str
     ) -> tuple[list[DocumentReference], list[DocumentUploadReviewReference]]:
         """Fetch patient documents from both LG and document review tables."""
-        lg_documents = self.get_patient_documents(
-            nhs_number, self.lg_table, DocumentReference
+        lg_documents = (
+            self.lg_document_service.fetch_documents_from_table_with_nhs_number(
+                nhs_number
+            )
         )
-        review_documents = self.get_patient_documents(
-            nhs_number, self.document_review_table, DocumentUploadReviewReference
+        review_documents = (
+            self.document_review_service.fetch_documents_from_table_with_nhs_number(
+                nhs_number
+            )
         )
         return lg_documents, review_documents
 
@@ -181,6 +129,10 @@ class MNSNotificationService:
     ) -> None:
         """Update documents in both tables if they exist."""
         if lg_documents:
-            self.update_patient_ods_code(lg_documents, updated_ods_code)
+            self.lg_document_service.update_patient_ods_code(
+                lg_documents, updated_ods_code
+            )
         if review_documents:
-            self.update_document_review_custodian(review_documents, updated_ods_code)
+            self.document_review_service.update_document_review_custodian(
+                review_documents, updated_ods_code
+            )
