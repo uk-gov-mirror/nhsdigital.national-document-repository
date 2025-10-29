@@ -243,7 +243,7 @@ class UploadDocumentReferenceService:
                                 },
                                 condition_fields={
                                     "DocStatus": "preliminary",
-                                    "Version": str(int(new_document.version) - 1),
+                                    "Version": new_document.version,
                                 },
                             )
                         )
