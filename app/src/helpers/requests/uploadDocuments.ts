@@ -35,14 +35,15 @@ export const uploadDocumentToS3 = async ({
 }: UploadDocumentsToS3Args) => {
     const documentMetadata: S3Upload = uploadSession[document.id];
     const formData = new FormData();
-    const docFields: S3UploadFields = documentMetadata.fields;
+    const docFields: S3UploadFields = documentMetadata.fields ?? [];
     Object.entries(docFields).forEach(([key, value]) => {
         formData.append(key, value);
     });
     formData.append('file', document.file);
-    const s3url = documentMetadata.url ?? documentMetadata;
+    const s3url = documentMetadata.url;
+    const axiosMethod = Object.keys(documentMetadata).includes('fields') ? axios.post : axios.put;
     try {
-        return await axios.post(s3url, formData, {
+        return await axiosMethod(s3url, formData, {
             onUploadProgress: (progress) => {
                 const { loaded, total } = progress;
                 if (total) {
