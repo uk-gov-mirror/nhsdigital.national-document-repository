@@ -1,24 +1,35 @@
-import argparse
-from typing import Iterable, Callable
+from typing import Callable, Iterable
 
 from enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
+from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 from utils.audit_logging_setup import LoggingService
 
 
-class VersionMigration:
+class VersionMigration(MigrationBase):
+    """
+    Migration that ensures the following fields are correctly set:
+    - Custodian matches CurrentGpOds
+    - Status is 'current'
+    - DocumentSnomedCodeType is the expected Lloyd George SNOMED code
+    - DocStatus inferred from the document reference
+    - Version set to '1'
+    """
+
+    name = "VersionMigration"
+    description = (
+        "Ensures Custodian, Status, DocumentSnomedCodeType, DocStatus, and Version fields "
+        "are correctly populated."
+    )
+
     def __init__(self, environment: str, table_name: str, run_migration: bool = False):
-        self.environment = environment
-        self.table_name = table_name
-        self.run_migration = run_migration
-        self.logger = LoggingService("CustodianMigration")
+        super().__init__(environment, table_name, run_migration)
+        self.logger = LoggingService(self.name)
         self.dynamo_service = DynamoDBService()
 
-        self.target_table = f"{self.environment}_{self.table_name}"
-
     def main(
-            self, entries: Iterable[dict]
+        self, entries: Iterable[dict]
     ) -> list[tuple[str, Callable[[dict], dict | None]]]:
         """
         Main entry point for the migration.
@@ -33,52 +44,7 @@ class VersionMigration:
             self.logger.error("No entries provided after scanning entire table.")
             raise ValueError("Entries must be provided to main().")
 
-        return [
-            ("LGTableValues", self.get_updated_items)
-        ]
-
-    def process_entries(
-            self,
-            label: str,
-            entries: Iterable[dict],
-            update_fn: Callable[[dict], dict | None],
-    ):
-        """
-        Processes a list of entries, applying the update function to each.
-        Logs progress and handles dry-run mode.
-        """
-        self.logger.info(f"Running {label} migration")
-
-        for index, entry in enumerate(entries, start=1):
-            item_id = entry.get("ID")
-            self.logger.info(
-                f"[{label}] Processing item {index} (ID: {item_id})"
-            )
-
-            updated_fields = update_fn(entry)
-            if not updated_fields:
-                self.logger.debug(
-                    f"[{label}] Item {item_id} does not require update, skipping."
-                )
-                continue
-
-            if self.run_migration:
-                self.logger.info(f"Updating item {item_id} with {updated_fields}")
-                try:
-                    self.dynamo_service.update_item(
-                        table_name=self.target_table,
-                        key_pair={"ID": item_id},
-                        updated_fields=updated_fields,
-                    )
-                except Exception as e:
-                    self.logger.error(f"Failed to update item {item_id}: {str(e)}")
-                    continue
-            else:
-                self.logger.info(
-                    f"[Dry Run] Would update item {item_id} with {updated_fields}"
-                )
-
-        self.logger.info(f"{label} migration completed.")  # Moved outside the loop
+        return [("LGTableValues", self.get_updated_items)]
 
     def get_updated_items(self, entry: dict) -> dict | None:
         """
@@ -93,7 +59,9 @@ class VersionMigration:
         if status_update_items := self.get_update_status_items(entry):
             update_items.update(status_update_items)
 
-        if snomed_code_update_items := self.get_update_document_snomed_code_type_items(entry):
+        if snomed_code_update_items := self.get_update_document_snomed_code_type_items(
+            entry
+        ):
             update_items.update(snomed_code_update_items)
 
         if doc_status_update_items := self.get_update_doc_status_items(entry):
@@ -113,7 +81,9 @@ class VersionMigration:
         custodian = entry.get("Custodian")
 
         if current_gp_ods is None:
-            self.logger.warning(f"[Custodian] CurrentGpOds is missing for item {entry.get('ID')}")
+            self.logger.warning(
+                f"[Custodian] CurrentGpOds is missing for item {entry.get('ID')}"
+            )
             return None
         if current_gp_ods is None or current_gp_ods != custodian:
             return {"Custodian": current_gp_ods}
@@ -161,13 +131,17 @@ class VersionMigration:
         try:
             document = DocumentReference(**entry)
         except Exception as e:
-            self.logger.warning(f"[DocStatus] Skipping invalid item {entry.get('ID')}: {e}")
+            self.logger.warning(
+                f"[DocStatus] Skipping invalid item {entry.get('ID')}: {e}"
+            )
             return None
 
         inferred_status = document.infer_doc_status()
 
         if entry.get("uploaded") and entry.get("uploading"):
-            self.logger.warning(f"{entry.get('ID')}: Document has a status of uploading and uploaded.")
+            self.logger.warning(
+                f"{entry.get('ID')}: Document has a status of uploading and uploaded."
+            )
 
         if entry.get("DocStatus", "") == inferred_status:
             return None
@@ -177,34 +151,7 @@ class VersionMigration:
         if inferred_status:
             return {"DocStatus": inferred_status}
 
-        self.logger.warning(f"[DocStatus] Cannot determine status for item {entry.get('ID')}")
+        self.logger.warning(
+            f"[DocStatus] Cannot determine status for item {entry.get('ID')}"
+        )
         return None
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="dynamodb_migration.py",
-        description="Migrate DynamoDB table columns",
-    )
-    parser.add_argument("environment", help="Environment prefix for DynamoDB table")
-    parser.add_argument("table_name", help="DynamoDB table name to migrate")
-    parser.add_argument(
-        "--run-migration",
-        action="store_true",
-        help="Running migration, fields will be updated.",
-    )
-    args = parser.parse_args()
-
-    migration = VersionMigration(
-        environment=args.environment,
-        table_name=args.table_name,
-        run_migration=args.run_migration,
-    )
-
-    entries_to_process = list(
-        migration.dynamo_service.stream_whole_table(migration.target_table)
-    )
-
-    update_functions = migration.main(entries=entries_to_process)
-
-    for label, fn in update_functions:
-        migration.process_entries(label=label, entries=entries_to_process, update_fn=fn)

@@ -1,10 +1,15 @@
 import io
-import logging
 import uuid
 
 import pytest
+import requests
 
-from lambdas.tests.e2e.api.fhir.conftest import MTLS_ENDPOINT, create_mtls_session
+from lambdas.tests.e2e.api.fhir.conftest import (
+    MTLS_ENDPOINT,
+    PDM_SNOMED,
+    create_mtls_session,
+)
+from lambdas.tests.e2e.conftest import APIM_ENDPOINT
 from lambdas.tests.e2e.helpers.pdm_data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
@@ -46,33 +51,76 @@ def create_and_store_record(test_data, nhs_number="9912003071", doc_status=None)
 
 
 def test_search_patient_details(test_data):
-    """Search for a patient with one record."""
     create_and_store_record(test_data)
+
     response = search_document_reference("9912003071")
     assert response.status_code == 200
+
     bundle = response.json()
-    logging.info(bundle)
-    assert "entry" in bundle  # Basic validation
+    assert "entry" in bundle
+
+    attachment_url = bundle["entry"][0]["resource"]["content"][0]["attachment"]["url"]
+    assert (
+        f"https://{APIM_ENDPOINT}/national-document-repository/DocumentReference/{PDM_SNOMED}~"
+        in attachment_url
+    )
 
 
 def test_multiple_cancelled_search_patient_details(test_data):
-    """Search for a patient with multiple cancelled records."""
     create_and_store_record(test_data, doc_status="cancelled")
     create_and_store_record(test_data, doc_status="cancelled")
+
     response = search_document_reference("9912003071")
     assert response.status_code == 200
+
     bundle = response.json()
-    assert len(bundle.get("entry", [])) >= 2
+    entries = bundle.get("entry", [])
+    assert len(entries) >= 2
+
+    # Assert that all entries have status "cancelled"
+    for entry in entries:
+        resource = entry.get("resource", {})
+        assert resource.get("docStatus") == "cancelled"
 
 
 @pytest.mark.parametrize(
-    "nhs_number,expected_status",
+    "nhs_number,expected_status,expected_code,expected_diagnostics",
     [
-        ("9912003071", 404),  # No records
-        ("9999999993", 400),  # Invalid patient
+        ("9912003071", 404, "RESOURCE_NOT_FOUND", "Document reference not found"),
+        ("9999999993", 400, "INVALID_SEARCH_DATA", "Invalid patient number 9999999993"),
+        ("123", 400, "INVALID_SEARCH_DATA", "Invalid patient number 123"),
     ],
 )
-def test_search_edge_cases(nhs_number, expected_status):
-    """Test search for no records and invalid patient."""
+def test_search_edge_cases(
+    nhs_number, expected_status, expected_code, expected_diagnostics
+):
     response = search_document_reference(nhs_number)
     assert response.status_code == expected_status
+
+    body = response.json()
+    issue = body["issue"][0]
+    details = issue.get("details", {})
+    coding = details.get("coding", [{}])[0]
+    assert coding.get("code") == expected_code
+    assert issue.get("diagnostics") == expected_diagnostics
+
+
+def test_search_patient_unauthorized_mtls(test_data, temp_cert_and_key):
+    """Search should return 403 when mTLS certificate is invalid or missing."""
+    create_and_store_record(test_data)
+    url = (
+        f"https://{MTLS_ENDPOINT}/DocumentReference?"
+        f"subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071"
+    )
+    headers = {
+        "Authorization": "Bearer 123",
+        "X-Correlation-Id": "unauthorized-test",
+    }
+
+    # Use an invalid cert that is trusted by TLS but fails truststore validation
+    cert_path, key_path = temp_cert_and_key
+
+    response = requests.get(url, headers=headers, cert=(cert_path, key_path))
+    body = response.json()
+    assert response.status_code == 403
+    assert body["message"] == "Forbidden"
