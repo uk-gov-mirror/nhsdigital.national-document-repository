@@ -234,6 +234,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
                     progress: 0,
                     docType: DOCUMENT_TYPE.LLOYD_GEORGE,
                     attempts: 0,
+                    versionId: existingId ? existingDocuments[0]?.versionId : '1',
                 });
             }
 
