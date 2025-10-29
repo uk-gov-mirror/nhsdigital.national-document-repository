@@ -172,6 +172,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
                 setDocuments,
             });
         } catch (e) {
+            console.error('Error uploading document to S3:', e);
             window.clearInterval(intervalTimer);
             markDocumentAsFailed(document);
 
@@ -194,6 +195,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
     ): void => {
         uploadDocuments.forEach((document) => {
             if (document.docType === DOCUMENT_TYPE.LLOYD_GEORGE) {
+                console.log('Uploading Lloyd George document:', document);
                 void uploadSingleLloydGeorgeDocument(document, uploadSession);
             }
         });
@@ -248,11 +250,17 @@ const DocumentUploadPage = (): React.JSX.Element => {
                       documentReferenceId: existingId,
                   });
 
+            console.log('Upload Session:', uploadSession);
+
             setUploadSession(uploadSession);
+            console.log('Upload Session set in state.');
             const uploadingDocuments = markDocumentsAsUploading(reducedDocuments, uploadSession);
+            console.log('Uploading Documents:', uploadingDocuments);
             setDocuments(uploadingDocuments);
+            console.log('Documents state updated to uploading.');
 
             if (!isLocal) {
+                console.log('Starting upload of all documents to S3...');
                 uploadAllDocuments(uploadingDocuments, uploadSession);
             }
 
