@@ -74,14 +74,8 @@ export const allDocsHaveState = (
 export const extractUploadSession = (data: any): UploadSession => {
     Object.keys(data).forEach((key) => {
         if (typeof data[key] !== 'object') {
-            const fullUrl = URL.parse(data[key]);
-            
             data[key] = { 
-                url: `${fullUrl?.origin}/`,
-                fields: {
-                    key: fullUrl?.pathname.substring(1),
-                    ...fullUrl?.searchParams.entries().reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {} as Record<string, string>)
-                }
+                url: data[key],
             };
         }
     });
