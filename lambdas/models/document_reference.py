@@ -100,7 +100,7 @@ class DocumentReference(BaseModel):
     )
     file_location: str = ""
     file_name: str
-    file_size: int = Field(default=None)
+    file_size: int | None = Field(default=None)
     last_updated: int = Field(
         default_factory=lambda: int(datetime.now(timezone.utc).timestamp()),
     )
@@ -109,6 +109,7 @@ class DocumentReference(BaseModel):
     s3_bucket_name: str = Field(exclude=True, default=None)
     s3_file_key: str = Field(default=None)
     s3_upload_key: str = Field(default=None, exclude=True)
+    s3_version_id: Optional[str] = Field(default=None, exclude=True)
     status: Literal["current", "superseded", "entered-in-error"] = Field(
         default="current"
     )
