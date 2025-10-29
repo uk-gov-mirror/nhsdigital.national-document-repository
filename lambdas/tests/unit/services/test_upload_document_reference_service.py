@@ -597,6 +597,7 @@ def test_finalize_and_supersede_with_transaction_handles_transaction_cancelled(
     new_doc.nhs_number = "9000000001"
     new_doc.doc_status = "final"
     new_doc.file_location = "s3://test-bucket/test-key"
+    new_doc.s3_version_id = "dma29o8jdo89a2m9dfpo2a899n2amc2anmc92aq"
 
     service.document_service.fetch_documents_from_table.return_value = []
 

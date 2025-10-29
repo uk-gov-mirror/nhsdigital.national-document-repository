@@ -298,7 +298,6 @@ class UploadDocumentReferenceService:
             new_document.doc_status = "cancelled"
             new_document.uploaded = False
             new_document.uploading = False
-            new_document.file_location = ""
             new_document.file_size = None
             self._update_dynamo_table(new_document)
             self.delete_file_from_bucket(new_document.file_location, new_document.s3_version_id)
