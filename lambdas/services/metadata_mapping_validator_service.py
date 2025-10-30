@@ -28,32 +28,49 @@ class MetadataMappingValidationService:
         header_set = {h.strip().lower() for h in csv_headers if h}
         best_match = None
         best_score = 0.0
+        alias_maps = {}
 
-        for path in Path(self.alias_folder).glob("*.json"):
-            source_name = path.stem
+        # --- Try loading alias configs from S3 first ---
+        if self.alias_bucket:
             try:
-                with open(path, "r", encoding="utf-8") as f:
-                    alias_map = json.load(f)
-            except json.JSONDecodeError as e:
-                self.logger.warning(f"Skipping invalid JSON '{path.name}': {e}")
-                continue
+                self.logger.info(f"Listing alias configs from S3 prefix: {self.alias_prefix}")
+                s3_objects = self.s3_service.list_all_objects(self.alias_bucket)
+                for obj in s3_objects:
+                    key = obj["Key"]
+                    # Skip unrelated or non-json files
+                    if not key.startswith(self.alias_prefix) or not key.endswith(".json"):
+                        continue
 
+                    # Read the JSON from S3
+                    s3_buffer = self.s3_service.stream_s3_object_to_memory(self.alias_bucket, key)
+                    alias_map = json.load(s3_buffer)
+                    source_name = Path(key).stem
+                    alias_maps[source_name] = alias_map
+            except Exception as e:
+                self.logger.warning(f"Failed to load alias configs from S3: {e}")
+
+        # --- Fallback to local configs ---
+        if not alias_maps:
+            for path in Path(self.alias_folder).glob("*.json"):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        alias_maps[path.stem] = json.load(f)
+                except json.JSONDecodeError as e:
+                    self.logger.warning(f"Skipping invalid JSON '{path.name}': {e}")
+
+        # --- Pick best match ---
+        for source_name, alias_map in alias_maps.items():
             alias_fields = {str(v).strip().lower() for v in alias_map.values() if v}
             matches = len(alias_fields & header_set)
             score = matches / len(alias_fields)
-
             if score > best_score:
                 best_score = score
                 best_match = source_name
 
         if not best_match:
-            raise BulkUploadMetadataException(
-                "No alias configuration matches the CSV headers."
-            )
+            raise BulkUploadMetadataException("No alias configuration matches the CSV headers.")
 
-        self.logger.info(
-            f"Detected alias config '{best_match}' with score {best_score:.0%}"
-        )
+        self.logger.info(f"Detected alias config '{best_match}' with score {best_score:.0%}")
         return best_match
 
     def build_model_for_alias(self, source_name: str) -> Type[BaseModel]:
