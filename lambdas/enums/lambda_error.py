@@ -61,6 +61,15 @@ class LambdaError(Enum):
     }
 
     """
+        Errors for GetDocumentRefException
+    """
+    NHSNumberMismatch = {
+        "err_code": "GDR_4001",
+        "message": "NHS number did not match",
+        "fhir_coding": FhirIssueCoding.INVARIANT
+    }
+
+    """
        Errors for CreateDocumentRefException
     """
     CreateDocNoBody = {"err_code": "CDR_4001", "message": "Missing event body"}

@@ -21,6 +21,10 @@ class CreateDocumentRefException(LambdaException):
     pass
 
 
+class GetDocumentRefException(LambdaException):
+    pass
+
+
 class SearchPatientException(LambdaException):
     pass
 

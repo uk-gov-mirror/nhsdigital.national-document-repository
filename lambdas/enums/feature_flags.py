@@ -9,3 +9,6 @@ class FeatureFlags(StrEnum):
     LLOYD_GEORGE_VALIDATION_STRICT_MODE_ENABLED = (
         "lloydGeorgeValidationStrictModeEnabled"
     )
+    UPLOAD_DOCUMENT_ITERATION_3_ENABLED = (
+        "uploadDocumentIteration3Enabled"
+    )
