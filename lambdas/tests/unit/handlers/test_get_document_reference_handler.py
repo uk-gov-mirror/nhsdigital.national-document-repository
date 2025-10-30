@@ -15,7 +15,6 @@ from utils.error_response import ErrorResponse
 def mocked_env_vars():
     env_vars = {
         "LLOYD_GEORGE_DYNAMODB_NAME": "mock_dynamodb_name",
-        "PDM_DYNAMODB_NAME": "mock_dynamodb_name",
         "PRESIGNED_ASSUME_ROLE": "mock_presigned_role",
         "APPCONFIG_APPLICATION": "mock_value",
         "APPCONFIG_ENVIRONMENT": "mock_value",
@@ -51,7 +50,6 @@ def mock_interaction_id():
 def mocked_bad_env_vars():
     env_vars = {
         #"LLOYD_GEORGE_DYNAMODB_NAME": "mock_dynamodb_name",
-        "PDM_DYNAMODB_NAME": "mock_dynamodb_name",
         "PRESIGNED_ASSUME_ROLE": "mock_presigned_role",
         "APPCONFIG_APPLICATION": "mock_value",
         "APPCONFIG_ENVIRONMENT": "mock_value",

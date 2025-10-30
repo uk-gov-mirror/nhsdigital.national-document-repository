@@ -22,7 +22,6 @@ logger = LoggingService(__name__)
 @ensure_environment_variables(
     names=[
         "LLOYD_GEORGE_DYNAMODB_NAME",
-        "PDM_DYNAMODB_NAME",
         "PRESIGNED_ASSUME_ROLE",
         "APPCONFIG_APPLICATION",
         "APPCONFIG_ENVIRONMENT",
