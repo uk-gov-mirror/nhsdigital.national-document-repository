@@ -6,7 +6,6 @@ import os
 from botocore.exceptions import ClientError
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
-from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference
 from models.fhir.R4.fhir_document_reference import SNOMED_URL, Attachment
@@ -28,7 +27,6 @@ from utils.exceptions import (
 )
 from utils.lambda_exceptions import CreateDocumentRefException
 from utils.lambda_header_utils import validate_common_name_in_mtls
-from utils.ods_utils import PCSE_ODS_CODE
 from utils.utilities import create_reference_id, get_pds_service, validate_nhs_number
 
 logger = LoggingService(__name__)
@@ -82,6 +80,7 @@ class PostFhirDocumentReferenceService:
                 doc_type,
                 validated_fhir_doc,
                 patient_details.general_practice_ods,
+                fhir_document,
             )
 
             presigned_url = None
@@ -157,6 +156,7 @@ class PostFhirDocumentReferenceService:
         doc_type: SnomedCode,
         fhir_doc: FhirDocumentReference,
         current_gp_ods: str,
+        raw_fhir_doc: str,
     ) -> DocumentReference:
         """Create a document reference model"""
         document_id = create_reference_id()
@@ -165,10 +165,10 @@ class PostFhirDocumentReferenceService:
         if not custodian:
             custodian = current_gp_ods
 
-        sub_folder = (
-            "user_upload"
+        sub_folder, raw_request = (
+            ("user_upload", None)
             if doc_type != SnomedCodes.PATIENT_DATA.value
-            else f"fhir_upload/{doc_type.code}"
+            else (f"fhir_upload/{doc_type.code}", raw_fhir_doc)
         )
 
         document_reference = DocumentReference(
@@ -185,6 +185,7 @@ class PostFhirDocumentReferenceService:
             status="current",
             sub_folder=sub_folder,
             document_scan_creation=fhir_doc.content[0].attachment.creation,
+            raw_request=raw_request,
         )
 
         return document_reference

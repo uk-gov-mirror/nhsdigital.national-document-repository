@@ -18,6 +18,7 @@ from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_SEARCH_RESPONSE
 from utils.common_query_filters import NotDeleted, UploadCompleted
 from utils.exceptions import DynamoServiceException
 from utils.lambda_exceptions import DocumentRefSearchException
+from utils.lambda_header_utils import validate_common_name_in_mtls
 
 MOCK_DOCUMENT_REFERENCE = [
     DocumentReference.model_validate(MOCK_SEARCH_RESPONSE["Items"][0])
@@ -60,7 +61,7 @@ def test_get_document_references_raise_json_error_when_no_table_list(
 ):
     monkeypatch.setenv("DYNAMODB_TABLE_LIST", "")
     with pytest.raises(JSONDecodeError):
-        mock_document_service._get_table_names()
+        mock_document_service._get_table_names(None)
 
 
 def test_search_tables_for_documents_raise_validation_error(
@@ -131,6 +132,40 @@ def test_get_document_references_dynamo_return_successful_response_single_table(
     )
 
     assert actual == expected_results
+
+
+@pytest.mark.parametrize(
+    "common_name, expected",
+    [
+        (
+            {
+                "accountId": "123456789012",
+                "apiId": "abc123",
+                "domainName": "api.example.com",
+                "identity": {
+                    "sourceIp": "1.2.3.4",
+                    "userAgent": "curl/7.64.1",
+                    "clientCert": {
+                        "clientCertPem": "-----BEGIN CERTIFICATE-----...",
+                        "subjectDN": "CN=ndrclient.main.int.pdm.national.nhs.uk,O=NHS,C=UK",
+                        "issuerDN": "CN=NHS Root CA,O=NHS,C=UK",
+                        "serialNumber": "12:34:56",
+                        "validity": {
+                            "notBefore": "May 10 00:00:00 2024 GMT",
+                            "notAfter": "May 10 00:00:00 2025 GMT",
+                        },
+                    },
+                },
+            },
+            ["test_pdm_dynamoDB_table"],
+        ),
+        ({}, ["test_pdm_dynamoDB_table", "test_lg_dynamoDB_table"]),
+    ],
+)
+def test_get_pdm_table(set_env, mock_document_service, common_name, expected):
+    cn = validate_common_name_in_mtls(common_name)
+    tables = mock_document_service._get_table_names(cn)
+    assert tables == expected
 
 
 def test_build_document_model_response(mock_document_service, monkeypatch):
@@ -302,6 +337,7 @@ def test_create_document_reference_fhir_response(mock_document_service, mocker):
     mock_document_reference.document_scan_creation = "2023-05-01"
     mock_document_reference.id = "Y05868-1634567890"
     mock_document_reference.current_gp_ods = "Y12345"
+    mock_document_reference.document_snomed_code_type = "717391000000106"
 
     mock_attachment = mocker.patch(
         "services.document_reference_search_service.Attachment"
@@ -321,7 +357,7 @@ def test_create_document_reference_fhir_response(mock_document_service, mocker):
     )
 
     expected_fhir_response = {
-        "id": "16521000000101~Y05868-1634567890",
+        "id": "717391000000106~Y05868-1634567890",
         "resourceType": "DocumentReference",
         "status": "current",
         "docStatus": "final",
@@ -366,14 +402,14 @@ def test_create_document_reference_fhir_response(mock_document_service, mocker):
     mock_attachment.assert_called_once_with(
         title=mock_document_reference.file_name,
         creation=mock_document_reference.document_scan_creation,
-        url=f"{APIM_API_URL}/DocumentReference/{SnomedCodes.LLOYD_GEORGE.value.code}~{mock_document_reference.id}",
+        url=f"{APIM_API_URL}/DocumentReference/{SnomedCodes.PATIENT_DATA.value.code}~{mock_document_reference.id}",
     )
 
     mock_doc_ref_info.assert_called_once_with(
         nhs_number=mock_document_reference.nhs_number,
         attachment=mock_attachment_instance,
         custodian=mock_document_reference.current_gp_ods,
-        snomed_code_doc_type=None,
+        snomed_code_doc_type=SnomedCodes.PATIENT_DATA.value,
     )
 
     mock_doc_ref_info_instance.create_fhir_document_reference_object.assert_called_once()
@@ -396,10 +432,10 @@ def test_create_document_reference_fhir_response_integration(
     mock_document_reference.author = "Y12345"
     mock_document_reference.doc_status = "final"
     mock_document_reference.custodian = "Y12345"
-    mock_document_reference.document_snomed_code_type = "16521000000101"
+    mock_document_reference.document_snomed_code_type = "717391000000106"
 
     expected_fhir_response = {
-        "id": "16521000000101~Y05868-1634567890",
+        "id": "717391000000106~Y05868-1634567890",
         "resourceType": "DocumentReference",
         "status": "current",
         "docStatus": "final",
@@ -417,7 +453,7 @@ def test_create_document_reference_fhir_response_integration(
                     "language": "en-GB",
                     "title": "test_document.pdf",
                     "creation": "2023-05-01",
-                    "url": f"{APIM_API_URL}/DocumentReference/16521000000101~Y05868-1634567890",
+                    "url": f"{APIM_API_URL}/DocumentReference/717391000000106~Y05868-1634567890",
                 }
             }
         ],
@@ -439,8 +475,8 @@ def test_create_document_reference_fhir_response_integration(
             "coding": [
                 {
                     "system": "http://snomed.info/sct",
-                    "code": "16521000000101",
-                    "display": "Lloyd George record folder",
+                    "code": "717391000000106",
+                    "display": "Confidential patient data",
                 }
             ]
         },
