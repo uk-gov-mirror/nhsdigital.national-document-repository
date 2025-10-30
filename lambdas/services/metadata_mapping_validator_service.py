@@ -72,7 +72,11 @@ class MetadataMappingValidationService:
         results = {}
 
         for source_name, alias_map in alias_maps.items():
-            alias_fields = {str(v).strip().lower() for v in alias_map.values() if v}
+            alias_fields = {
+                str(v).strip().lower()
+                for k, v in alias_map.items()
+                if k != "owner" and v
+            }
             matched_fields = alias_fields & header_set
             missing_fields = alias_fields - header_set
             total_fields = len(alias_fields)
