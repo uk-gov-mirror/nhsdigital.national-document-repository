@@ -1,3 +1,4 @@
+import os
 from services.get_fhir_document_reference_service import (
     GetFhirDocumentReferenceService,
     GetFhirDocumentReferenceException
@@ -13,22 +14,16 @@ logger = LoggingService(__name__)
 class GetDocumentReferenceService:
     def __init__(self):
         self.fhir_doc_service = GetFhirDocumentReferenceService()
-        self.s3_service = S3Service()
+        get_document_presign_url_aws_role_arn = os.getenv("PRESIGNED_ASSUME_ROLE")
+        self.s3_service = S3Service(get_document_presign_url_aws_role_arn)
 
     def get_document_url_by_id(self, document_id: str, snomed_code: str, nhs_number: str):
-        #check document ID is valid
-        #check NHS number matches
-        #fetch document reference using fhir doc service
-        #return presigned download url
-        try:
-            document_reference = self.fhir_doc_service.handle_get_document_reference_request(
-                snomed_code,
-                document_id)
-        except GetFhirDocumentReferenceException as e:
-            raise GetDocumentRefException(e.err_code, e.error)
+        document_reference = self.fhir_doc_service.handle_get_document_reference_request(
+            snomed_code,
+            document_id)
         
         if document_reference.nhs_number != nhs_number:
-            raise GetDocumentRefException(404, LambdaError.NHSNumberMismatch)
+            raise GetDocumentRefException(404, LambdaError.NHSNumberMismatch) #is 404 correct?
         
         presigned_s3_url = self.s3_service.create_download_presigned_url(
             document_reference.s3_bucket_name,
