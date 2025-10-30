@@ -168,7 +168,7 @@ class ReviewProcessorService:
         try:
             self.dynamo_service.create_item(
                 table_name=self.review_table_name,
-                item=review_record
+                item=review_record.model_dump(by_alias=True, exclude_none=True)
             )
 
             logger.info(f"Created review record {review_record.id}")
