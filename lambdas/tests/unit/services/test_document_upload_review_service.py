@@ -3,19 +3,15 @@ from unittest.mock import MagicMock
 import pytest
 from models.document_review import DocumentUploadReviewReference
 from services.document_upload_review_service import DocumentUploadReviewService
-from tests.unit.conftest import TEST_NHS_NUMBER
+from tests.unit.conftest import TEST_NHS_NUMBER, MOCK_DOCUMENT_REVIEW_TABLE, MOCK_DOCUMENT_REVIEW_BUCKET
 
-MOCK_DOCUMENT_REVIEW_TABLE = "test_document_review"
-MOCK_DOCUMENT_REVIEW_BUCKET = "test_document_review_bucket"
 TEST_ODS_CODE = "Y12345"
 NEW_ODS_CODE = "Z98765"
 
 
 @pytest.fixture
-def mock_service(set_env, mocker, monkeypatch):
+def mock_service(set_env, mocker):
     """Fixture to create a DocumentUploadReviewService with mocked dependencies."""
-    monkeypatch.setenv("DOCUMENT_REVIEW_DYNAMODB_NAME", MOCK_DOCUMENT_REVIEW_TABLE)
-    monkeypatch.setenv("DOCUMENT_REVIEW_S3_BUCKET_NAME", MOCK_DOCUMENT_REVIEW_BUCKET)
 
     mocker.patch(
         "services.document_upload_review_service.DocumentService.__init__",
@@ -40,21 +36,19 @@ def mock_document_review_references():
     return reviews
 
 
-def test_table_name(mock_service, monkeypatch):
+def test_table_name(mock_service):
     """Test that table_name property returns correct environment variable."""
-    monkeypatch.setenv("DOCUMENT_REVIEW_DYNAMODB_NAME", MOCK_DOCUMENT_REVIEW_TABLE)
 
     assert mock_service.table_name == MOCK_DOCUMENT_REVIEW_TABLE
 
 
 def test_model_class(mock_service):
-    """Test that model_class property returns DocumentUploadReviewReference."""
+    """Test that the model_class property returns DocumentUploadReviewReference."""
     assert mock_service.model_class == DocumentUploadReviewReference
 
 
 def test_s3_bucket(mock_service, monkeypatch):
-    """Test that s3_bucket property returns correct environment variable."""
-    monkeypatch.setenv("DOCUMENT_REVIEW_S3_BUCKET_NAME", MOCK_DOCUMENT_REVIEW_BUCKET)
+    """Test that s3_bucket property returns the correct environment variable."""
 
     assert mock_service.s3_bucket == MOCK_DOCUMENT_REVIEW_BUCKET
 
@@ -84,7 +78,7 @@ def test_update_document_review_custodian_updates_all_documents(
 
 
 def test_update_document_review_custodian_empty_list(mock_service, mocker):
-    """Test that update_document_review_custodian handles empty list gracefully."""
+    """Test that update_document_review_custodian handles an empty list gracefully."""
     mock_update_document = mocker.patch.object(mock_service, "update_document")
 
     mock_service.update_document_review_custodian([], NEW_ODS_CODE)
@@ -96,7 +90,7 @@ def test_update_document_review_custodian_empty_list(mock_service, mocker):
 def test_update_document_review_custodian_no_changes_needed(
     mock_service, mock_document_review_references, mocker
 ):
-    """Test that update_document_review_custodian skips documents that already have correct custodian."""
+    """Test that update_document_review_custodian skips documents that already have the correct custodian."""
     mock_update_document = mocker.patch.object(mock_service, "update_document")
 
     # Set all reviews to already have the target custodian
@@ -117,7 +111,7 @@ def test_update_document_review_custodian_mixed_custodians(
     """Test that update_document_review_custodian only updates documents that need updating."""
     mock_update_document = mocker.patch.object(mock_service, "update_document")
 
-    # Set first review to already have the new custodian
+    # Set the first review to already have the new custodian
     mock_document_review_references[0].custodian = NEW_ODS_CODE
     # Keep the other two with the old custodian
 
