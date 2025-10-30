@@ -1,10 +1,8 @@
-from datetime import datetime
 from unittest.mock import MagicMock
 
 import pytest
 from botocore.exceptions import ClientError
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
-from freezegun import freeze_time
 from models.document_reference import DocumentReference
 from models.document_review import DocumentUploadReviewReference
 from models.sqs.mns_sqs_message import MNSSQSMessage
@@ -24,7 +22,8 @@ def mns_service(mocker, set_env, monkeypatch):
     monkeypatch.setenv("PDS_FHIR_IS_STUBBED", "False")
     service = MNSNotificationService()
     mocker.patch.object(service, "pds_service")
-    mocker.patch.object(service, "document_service")
+    mocker.patch.object(service, "document_review_service")
+    mocker.patch.object(service, "lg_document_service")
     mocker.patch.object(service, "sqs_service")
     yield service
 
@@ -250,68 +249,6 @@ def test_handle_death_notification_formal_no_documents(mns_service, mocker):
     mns_service.update_all_patient_documents.assert_not_called()
 
 
-@freeze_time(MOCK_UPDATE_TIME)
-@pytest.mark.parametrize(
-    "updated_ods_code",
-    [
-        NEW_ODS_CODE,
-        PatientOdsInactiveStatus.DECEASED,
-        PatientOdsInactiveStatus.SUSPENDED,
-    ],
-)
-def test_update_patient_ods_code_with_documents(
-    mns_service, mock_document_references, updated_ods_code
-):
-    mns_service.update_patient_ods_code(mock_document_references, updated_ods_code)
-
-    for doc in mock_document_references:
-        assert doc.current_gp_ods == updated_ods_code
-        assert doc.custodian == updated_ods_code
-        assert doc.last_updated == int(
-            datetime.fromisoformat(MOCK_UPDATE_TIME).timestamp()
-        )
-
-        mns_service.document_service.update_document.assert_any_call(
-            mns_service.lg_table,
-            doc,
-            mns_service.DOCUMENT_UPDATE_FIELDS,
-        )
-
-
-def test_update_patient_ods_code_no_documents(mns_service):
-    mns_service.update_patient_ods_code([], NEW_ODS_CODE)
-
-    mns_service.document_service.update_document.assert_not_called()
-
-
-@freeze_time(MOCK_UPDATE_TIME)
-def test_update_patient_ods_code_no_changes_needed(
-    mns_service, mock_document_references
-):
-    for doc in mock_document_references:
-        doc.current_gp_ods = NEW_ODS_CODE
-        doc.custodian = NEW_ODS_CODE
-
-    mns_service.update_patient_ods_code(mock_document_references, NEW_ODS_CODE)
-
-    mns_service.document_service.update_document.assert_not_called()
-
-
-def test_get_patient_documents(mns_service):
-    expected_documents = [MagicMock(spec=DocumentReference)]
-    mns_service.document_service.fetch_documents_from_table_with_nhs_number.return_value = (
-        expected_documents
-    )
-
-    result = mns_service.get_patient_documents(
-        TEST_NHS_NUMBER, mns_service.lg_table, DocumentReference
-    )
-
-    assert result == expected_documents
-    mns_service.document_service.fetch_documents_from_table_with_nhs_number.assert_called_once_with(
-        TEST_NHS_NUMBER, mns_service.lg_table, model_class=DocumentReference
-    )
-
 
 def test_get_updated_gp_ods(mns_service):
     expected_ods = NEW_ODS_CODE
@@ -348,41 +285,36 @@ def test_get_all_patient_documents(mns_service, mocker):
     expected_lg_docs = [MagicMock(spec=DocumentReference)]
     expected_review_docs = [MagicMock(spec=DocumentUploadReviewReference)]
 
-    mocker.patch.object(mns_service, "get_patient_documents")
-    mns_service.get_patient_documents.side_effect = [
-        expected_lg_docs,
-        expected_review_docs,
-    ]
+    mns_service.lg_document_service.fetch_documents_from_table_with_nhs_number.return_value = (
+        expected_lg_docs
+    )
+    mns_service.document_review_service.fetch_documents_from_table_with_nhs_number.return_value = (
+        expected_review_docs
+    )
 
     lg_docs, review_docs = mns_service.get_all_patient_documents(TEST_NHS_NUMBER)
 
     assert lg_docs == expected_lg_docs
     assert review_docs == expected_review_docs
-    assert mns_service.get_patient_documents.call_count == 2
-    mns_service.get_patient_documents.assert_any_call(
-        TEST_NHS_NUMBER, mns_service.lg_table, DocumentReference
+    mns_service.lg_document_service.fetch_documents_from_table_with_nhs_number.assert_called_once_with(
+        TEST_NHS_NUMBER
     )
-    mns_service.get_patient_documents.assert_any_call(
-        TEST_NHS_NUMBER,
-        mns_service.document_review_table,
-        DocumentUploadReviewReference,
+    mns_service.document_review_service.fetch_documents_from_table_with_nhs_number.assert_called_once_with(
+        TEST_NHS_NUMBER
     )
 
 
 def test_update_all_patient_documents_with_both_types(
     mns_service, mock_document_references, mock_document_review_references, mocker
 ):
-    mocker.patch.object(mns_service, "update_patient_ods_code")
-    mocker.patch.object(mns_service, "update_document_review_custodian")
-
     mns_service.update_all_patient_documents(
         mock_document_references, mock_document_review_references, NEW_ODS_CODE
     )
 
-    mns_service.update_patient_ods_code.assert_called_once_with(
+    mns_service.lg_document_service.update_patient_ods_code.assert_called_once_with(
         mock_document_references, NEW_ODS_CODE
     )
-    mns_service.update_document_review_custodian.assert_called_once_with(
+    mns_service.document_review_service.update_document_review_custodian.assert_called_once_with(
         mock_document_review_references, NEW_ODS_CODE
     )
 
@@ -390,123 +322,26 @@ def test_update_all_patient_documents_with_both_types(
 def test_update_all_patient_documents_with_only_lg_documents(
     mns_service, mock_document_references, mocker
 ):
-    mocker.patch.object(mns_service, "update_patient_ods_code")
-    mocker.patch.object(mns_service, "update_document_review_custodian")
-
     mns_service.update_all_patient_documents(mock_document_references, [], NEW_ODS_CODE)
 
-    mns_service.update_patient_ods_code.assert_called_once_with(
+    mns_service.lg_document_service.update_patient_ods_code.assert_called_once_with(
         mock_document_references, NEW_ODS_CODE
     )
-    mns_service.update_document_review_custodian.assert_not_called()
+    mns_service.document_review_service.update_document_review_custodian.assert_not_called()
 
 
 def test_update_all_patient_documents_with_only_review_documents(
     mns_service, mock_document_review_references, mocker
 ):
-    mocker.patch.object(mns_service, "update_patient_ods_code")
-    mocker.patch.object(mns_service, "update_document_review_custodian")
-
     mns_service.update_all_patient_documents(
         [], mock_document_review_references, NEW_ODS_CODE
     )
 
-    mns_service.update_patient_ods_code.assert_not_called()
-    mns_service.update_document_review_custodian.assert_called_once_with(
+    mns_service.lg_document_service.update_patient_ods_code.assert_not_called()
+    mns_service.document_review_service.update_document_review_custodian.assert_called_once_with(
         mock_document_review_references, NEW_ODS_CODE
     )
 
-
-@freeze_time(MOCK_UPDATE_TIME)
-@pytest.mark.parametrize(
-    "updated_ods_code",
-    [
-        NEW_ODS_CODE,
-        PatientOdsInactiveStatus.DECEASED,
-        PatientOdsInactiveStatus.SUSPENDED,
-    ],
-)
-def test_update_document_review_custodian_with_documents(
-    mns_service, mock_document_review_references, updated_ods_code
-):
-    mns_service.update_document_review_custodian(
-        mock_document_review_references, updated_ods_code
-    )
-
-    for review in mock_document_review_references:
-        assert review.custodian == updated_ods_code
-
-        mns_service.document_service.update_document.assert_any_call(
-            mns_service.document_review_table,
-            review,
-            mns_service.DOCUMENT_REVIEW_UPDATE_FIELDS,
-        )
-
-
-def test_update_document_review_custodian_no_documents(mns_service):
-    mns_service.update_document_review_custodian([], NEW_ODS_CODE)
-
-    mns_service.document_service.update_document.assert_not_called()
-
-
-@freeze_time(MOCK_UPDATE_TIME)
-def test_update_document_review_custodian_no_changes_needed(
-    mns_service, mock_document_review_references
-):
-    for review in mock_document_review_references:
-        review.custodian = NEW_ODS_CODE
-
-    mns_service.update_document_review_custodian(
-        mock_document_review_references, NEW_ODS_CODE
-    )
-
-    mns_service.document_service.update_document.assert_not_called()
-
-
-@freeze_time(MOCK_UPDATE_TIME)
-def test_update_patient_ods_code_updates_only_custodian_when_current_gp_matches(
-    mns_service, mock_document_references
-):
-    """Test that documents are updated when only custodian differs"""
-    for doc in mock_document_references:
-        doc.current_gp_ods = NEW_ODS_CODE
-        doc.custodian = TEST_CURRENT_GP_ODS  # Different from current_gp_ods
-
-    mns_service.update_patient_ods_code(mock_document_references, NEW_ODS_CODE)
-
-    for doc in mock_document_references:
-        assert doc.current_gp_ods == NEW_ODS_CODE
-        assert doc.custodian == NEW_ODS_CODE
-        assert doc.last_updated == int(
-            datetime.fromisoformat(MOCK_UPDATE_TIME).timestamp()
-        )
-
-    assert mns_service.document_service.update_document.call_count == len(
-        mock_document_references
-    )
-
-
-@freeze_time(MOCK_UPDATE_TIME)
-def test_update_patient_ods_code_updates_only_current_gp_when_custodian_matches(
-    mns_service, mock_document_references
-):
-    """Test that documents are updated when only current_gp_ods differs"""
-    for doc in mock_document_references:
-        doc.current_gp_ods = TEST_CURRENT_GP_ODS  # Different from new code
-        doc.custodian = NEW_ODS_CODE
-
-    mns_service.update_patient_ods_code(mock_document_references, NEW_ODS_CODE)
-
-    for doc in mock_document_references:
-        assert doc.current_gp_ods == NEW_ODS_CODE
-        assert doc.custodian == NEW_ODS_CODE
-        assert doc.last_updated == int(
-            datetime.fromisoformat(MOCK_UPDATE_TIME).timestamp()
-        )
-
-    assert mns_service.document_service.update_document.call_count == len(
-        mock_document_references
-    )
 
 
 def test_handle_gp_change_notification_with_only_lg_documents(
