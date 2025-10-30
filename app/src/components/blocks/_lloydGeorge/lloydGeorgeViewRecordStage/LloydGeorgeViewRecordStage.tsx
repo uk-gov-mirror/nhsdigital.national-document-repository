@@ -220,7 +220,7 @@ function LloydGeorgeViewRecordStage({
 
                     {!session.isFullscreen &&
                         hasRecordInStorage &&
-                        config.featureFlags.uploadLloydGeorgeWorkflowEnabled && (
+                        config.featureFlags.uploadDocumentIteration2Enabled && (
                             <>
                                 <h2 className="title">Add Files</h2>
                                 <p>You can add more files to this patient's record.</p>

@@ -183,9 +183,9 @@ describe('<LloydGeorgeViewRecordStage />', () => {
             },
         );
 
-        it('renders Add Files button when upload is enabled and patient already has a record', () => {
+        it('renders Add Files button when upload 2 is enabled and patient already has a record', () => {
             mockUseConfig.mockReturnValueOnce(
-                buildConfig({}, { uploadLloydGeorgeWorkflowEnabled: true }),
+                buildConfig({}, { uploadDocumentIteration2Enabled: true }),
             );
 
             renderComponent({ downloadStage: DOWNLOAD_STAGE.SUCCEEDED });
@@ -288,7 +288,7 @@ describe('<LloydGeorgeViewRecordStage />', () => {
     describe('Add Files functionality', () => {
         beforeEach(() => {
             mockUseConfig.mockReturnValue(
-                buildConfig({}, { uploadLloydGeorgeWorkflowEnabled: true }),
+                buildConfig({}, { uploadDocumentIteration2Enabled: true }),
             );
             mockGetDocumentSearchResults.mockResolvedValue([
                 {
