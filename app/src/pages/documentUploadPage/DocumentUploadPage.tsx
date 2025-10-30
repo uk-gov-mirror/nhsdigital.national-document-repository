@@ -87,11 +87,6 @@ const DocumentUploadPage = (): React.JSX.Element => {
     const UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS = 5000;
     const MAX_POLLING_TIME = 120000;
 
-    if (!config.featureFlags.uploadDocumentIteration2Enabled) {
-        navigate(routes.HOME);
-        return <></>;
-    }
-
     useEffect(() => {
         const journeyParam = getJourney();
         if (journeyParam === 'update' && !location.state?.existingDocuments?.[0]?.blob) {
@@ -362,7 +357,8 @@ const DocumentUploadPage = (): React.JSX.Element => {
 
     if (
         !config.featureFlags.uploadLambdaEnabled ||
-        !config.featureFlags.uploadLloydGeorgeWorkflowEnabled
+        !config.featureFlags.uploadLloydGeorgeWorkflowEnabled ||
+        (!config.featureFlags.uploadDocumentIteration2Enabled && journey === 'update')
     ) {
         navigate(routes.HOME);
         return <></>;
