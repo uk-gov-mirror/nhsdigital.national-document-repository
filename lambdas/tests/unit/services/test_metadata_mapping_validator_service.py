@@ -1,3 +1,4 @@
+import io
 import json
 
 import pytest
@@ -6,12 +7,15 @@ from utils.exceptions import BulkUploadMetadataException
 
 
 @pytest.fixture
-def alias_dir(tmp_path):
-    """Creates a temporary alias folder with fake JSON mappings."""
-    config_dir = tmp_path / "aliases"
-    config_dir.mkdir()
+def mock_s3_service(mocker):
+    """Create a fake S3 service with configurable return values."""
+    mock_s3 = mocker.MagicMock()
+    mock_s3.list_all_objects.return_value = [
+        {"Key": "metadata_aliases/general/general_aliases_v2.json"},
+        {"Key": "metadata_aliases/general/extra_alias.json"},
+    ]
 
-    valid_alias = {
+    json_content = {
         "file_path": "FILE",
         "gp_practice_code": "ODS",
         "nhs_number": "NHS",
@@ -22,189 +26,133 @@ def alias_dir(tmp_path):
         "scan_id": "SCAN_ID",
         "user_id": "USER_ID",
         "upload": "UPLOADED",
+        "owner": "Test Owner",
     }
 
-    invalid_json_path = config_dir / "invalid.json"
-    invalid_json_path.write_text("{bad json")
+    mock_s3.stream_s3_object_to_memory.side_effect = lambda bucket, key: io.StringIO(
+        json.dumps(json_content)
+    )
 
-    valid_json_path = config_dir / "general.json"
-    valid_json_path.write_text(json.dumps(valid_alias))
-
-    return config_dir
+    return mock_s3
 
 
 @pytest.fixture
-def service(alias_dir):
-    return MetadataMappingValidationService(alias_folder=str(alias_dir))
+def service(mock_s3_service, mocker):
+    """Create service with injected mocked S3."""
+    service = MetadataMappingValidationService(
+        alias_bucket="fake-bucket", alias_prefix="metadata_aliases/general/"
+    )
+    service.s3_service = mock_s3_service
+    return service
 
 
-def test_detect_best_alias_config_selects_best_match(service):
-    headers = ["FILE", "ODS", "NHS"]
-    best = service.detect_best_alias_config(headers)
-    assert best == "general"
+def test_list_alias_configs_from_s3_reads_valid_json(service):
+    alias_maps = service.list_alias_configs_from_s3()
+    assert "general_aliases_v2" in alias_maps
+    assert alias_maps["general_aliases_v2"]["file_path"] == "FILE"
 
 
-def test_detect_best_alias_config_skips_invalid_json(service, caplog):
-    headers = ["FILE", "ODS", "NHS"]
-    _ = service.detect_best_alias_config(headers)
-    assert any("Skipping invalid JSON" in rec.message for rec in caplog.records)
+def test_list_alias_configs_from_s3_raises_on_failure(mocker):
+    service = MetadataMappingValidationService(
+        alias_bucket="fake-bucket", alias_prefix="metadata_aliases/general/"
+    )
+    mocker.patch.object(
+        service.s3_service, "list_all_objects", side_effect=Exception("S3 broken")
+    )
+
+    with pytest.raises(
+        BulkUploadMetadataException, match="Failed to load alias configs from S3"
+    ):
+        service.list_alias_configs_from_s3()
 
 
-def test_detect_best_alias_config_raises_when_no_match(tmp_path):
-    empty_dir = tmp_path / "empty"
-    empty_dir.mkdir()
+def test_evaluate_alias_matches_computes_correct_score(service):
+    alias_maps = {
+        "test_alias": {
+            "file_path": "FILE",
+            "gp_practice_code": "ODS",
+            "nhs_number": "NHS",
+        }
+    }
+    header_set = {"file", "ods", "nhs", "extra_header"}
+    results = service.evaluate_alias_matches(alias_maps, header_set)
 
-    service = MetadataMappingValidationService(alias_folder=str(empty_dir))
+    assert "test_alias" in results
+    assert results["test_alias"]["match_count"] == 3
+    assert results["test_alias"]["total_fields"] == 3
+    assert results["test_alias"]["score"] == 1.0
+
+
+def test_evaluate_alias_matches_handles_partial_match(service):
+    alias_maps = {
+        "partial_alias": {
+            "file_path": "FILE",
+            "gp_practice_code": "ODS",
+            "nhs_number": "NHS",
+        }
+    }
+    header_set = {"file", "ods"}  # missing one
+    results = service.evaluate_alias_matches(alias_maps, header_set)
+
+    info = results["partial_alias"]
+    assert info["match_count"] == 2
+    assert info["total_fields"] == 3
+    assert info["score"] == pytest.approx(2 / 3, 0.001)
+
+
+def test_select_best_match_returns_highest_score(service):
+    match_results = {
+        "alias_a": {"score": 0.7},
+        "alias_b": {"score": 0.9},
+        "alias_c": {"score": 0.5},
+    }
+    best_match, best_info = service.select_best_match(match_results)
+    assert best_match == "alias_b"
+    assert best_info["score"] == 0.9
+
+
+def test_select_best_match_returns_none_for_empty(service):
+    best_match, best_info = service.select_best_match({})
+    assert best_match is None
+    assert best_info is None
+
+
+def test_log_best_match_includes_owner(service, caplog):
+    alias_maps = {"alias_a": {"owner": "Test Owner"}}
+    info = {
+        "match_count": 5,
+        "total_fields": 6,
+        "matched_fields": ["file_path", "nhs_number"],
+        "missing_fields": ["upload"],
+    }
+
+    service.log_best_match("alias_a", info, alias_maps)
+
+    logs = [r.message for r in caplog.records]
+    assert any("Alias file 'alias_a' owned by 'Test Owner'" in msg for msg in logs)
+    assert any("matched 5 of 6 fields" in msg for msg in logs)
+
+
+def test_detect_best_alias_config_success(service):
+    headers = ["FILE", "ODS", "NHS", "PAGE_COUNT", "UPLOAD"]
+    best_match = service.detect_best_alias_config(headers)
+    assert best_match == "general_aliases_v2"
+
+
+def test_detect_best_alias_config_raises_when_no_aliases(mocker):
+    service = MetadataMappingValidationService(
+        alias_bucket="fake-bucket", alias_prefix="metadata_aliases/general/"
+    )
+    mocker.patch.object(service, "list_alias_configs_from_s3", return_value={})
+    with pytest.raises(
+        BulkUploadMetadataException, match="No alias configurations found in S3"
+    ):
+        service.detect_best_alias_config(["FILE"])
+
+
+def test_detect_best_alias_config_raises_when_no_match(service, mocker):
+    mocker.patch.object(service, "evaluate_alias_matches", return_value={})
     with pytest.raises(
         BulkUploadMetadataException, match="No alias configuration matches"
     ):
-        service.detect_best_alias_config(["random", "headers"])
-
-
-def test_build_model_for_alias_creates_dynamic_model(service):
-    model_class = service.build_model_for_alias("general")
-
-    instance = model_class(
-        file_path="/some/file.pdf",
-        gp_practice_code="Y12345",
-        nhs_number="1234567890",
-        page_count="1",
-        section="LG",
-        sub_section="",
-        scan_date="01/01/2023",
-        scan_id="SID",
-        user_id="UID",
-        upload="01/01/2023",
-    )
-
-    assert instance.file_path == "/some/file.pdf"
-    assert instance.gp_practice_code == "Y12345"
-    assert instance.nhs_number == "1234567890"
-    assert isinstance(instance, model_class)
-
-
-def test_build_model_for_alias_raises_if_file_not_found(service):
-    with pytest.raises(FileNotFoundError):
-        service.build_model_for_alias("does_not_exist")
-
-
-def test_validate_and_normalize_metadata_rejects_empty_required_fields(service):
-    records = [
-        {"FILEPATH": "", "GP-PRACTICE-CODE": "Y123", "NHS-NO": ""},
-    ]
-
-    validated, rejected, reasons = service.validate_and_normalize_metadata(
-        records, "general"
-    )
-
-    assert len(validated) == 0
-    assert len(rejected) == 1
-    reason_text = reasons[0]["REASON"]
-    assert (
-        "Missing or empty required fields" in reason_text
-        or "Field required" in reason_text
-    )
-
-
-def test_validate_and_normalize_metadata_with_invalid_record(service):
-    records = [
-        {
-            "FILE": "/file1.pdf",
-            "ODS": "Y123",
-            "SCAN_DATE": "01/01/2023",
-            "UPLOADED": "01/01/2023",
-            "PAGE_COUNT": "1",
-            "SECTION": "LG",
-            "SUB_SECTION": "",
-            "SCAN_ID": "SID1",
-            "USER_ID": "UID1",
-        },
-        {
-            "FILE": "/file2.pdf",
-            "ODS": "Y123",
-            "NHS": "1234567890",
-            "SCAN_DATE": "01/01/2023",
-            "UPLOADED": "01/01/2023",
-            "PAGE_COUNT": "1",
-            "SECTION": "LG",
-            "SUB_SECTION": "",
-            "SCAN_ID": "SID2",
-            "USER_ID": "UID2",
-        },
-    ]
-
-    validated, rejected, reasons = service.validate_and_normalize_metadata(
-        records, "general"
-    )
-
-    assert len(validated) == 1
-    assert len(rejected) == 1
-    reason = reasons[0]["REASON"]
-    assert "NHS" in reason or "field required" in reason
-
-
-def test_validate_and_normalize_metadata_calls_build_model(mocker, service):
-    mock_model = mocker.MagicMock()
-    mock_build = mocker.patch.object(
-        service, "build_model_for_alias", return_value=mock_model
-    )
-
-    service.validate_and_normalize_metadata([{"x": "y"}], "mock")
-
-    mock_build.assert_called_once_with("mock")
-
-
-def test_load_alias_map_prefers_s3_over_local(mocker, alias_dir):
-    service = MetadataMappingValidationService(
-        alias_folder=str(alias_dir),
-        alias_bucket="fake-bucket",
-    )
-
-    mock_s3 = mocker.patch.object(service.s3_service, "stream_s3_object_to_memory")
-    mock_s3.return_value = mocker.Mock()
-    mocker.patch("json.load", return_value={"file_path": "FILE"})
-
-    result = service.load_alias_map("general")
-
-    assert result == {"file_path": "FILE"}
-    mock_s3.assert_called_once()
-
-
-def test_load_alias_map_falls_back_to_local(mocker, service, alias_dir):
-    mocker.patch.object(
-        service.s3_service,
-        "stream_s3_object_to_memory",
-        side_effect=Exception("S3 error"),
-    )
-
-    result = service.load_alias_map("general")
-
-    assert "file_path" in result
-
-
-def test_validate_alias_map_raises_on_missing_keys(service):
-    alias_map = {"file_path": "FILE"}
-    with pytest.raises(BulkUploadMetadataException, match="missing mappings"):
-        service.validate_alias_map(alias_map, "general")
-
-
-def test_create_dynamic_model_creates_correct_field_aliases(service):
-    alias_map = {
-        "file_path": "FILE",
-        "gp_practice_code": "ODS",
-        "nhs_number": "NHS",
-        "page_count": "PAGE_COUNT",
-        "section": "SECTION",
-        "sub_section": "SUB_SECTION",
-        "scan_date": "SCAN_DATE",
-        "scan_id": "SCAN_ID",
-        "user_id": "USER_ID",
-        "upload": "UPLOADED",
-    }
-
-    model = service.create_dynamic_model(alias_map, "general")
-
-    assert "file_path" in model.model_fields
-
-    field = model.model_fields["file_path"]
-    assert field.alias == "FILE"
+        service.detect_best_alias_config(["random_header"])

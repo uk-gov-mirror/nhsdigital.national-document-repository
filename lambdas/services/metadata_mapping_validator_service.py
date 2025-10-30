@@ -8,123 +8,152 @@ from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import BulkUploadMetadataException
 
-logger = LoggingService(__name__)
-
 
 class MetadataMappingValidationService:
-    def __init__(
-        self,
-        alias_folder: str = "configs/metadata_aliases",
-        alias_bucket: str = None,
-        alias_prefix: str = None,
-    ):
-        self.alias_folder = alias_folder  # fallback in case of not finding json in S3
+    def __init__(self, alias_bucket: str, alias_prefix: str):
         self.alias_bucket = alias_bucket
-        self.alias_prefix = alias_prefix
+        self.alias_prefix = alias_prefix.rstrip("/") + "/"
         self.s3_service = S3Service()
         self.logger = LoggingService(__name__)
 
     def detect_best_alias_config(self, csv_headers: list[str]) -> str:
         header_set = {h.strip().lower() for h in csv_headers if h}
-        best_match = None
-        best_score = 0.0
-        alias_maps = {}
 
-        # --- Try loading alias configs from S3 first ---
-        if self.alias_bucket:
-            try:
-                self.logger.info(f"Listing alias configs from S3 prefix: {self.alias_prefix}")
-                s3_objects = self.s3_service.list_all_objects(self.alias_bucket)
-                for obj in s3_objects:
-                    key = obj["Key"]
-                    # Skip unrelated or non-json files
-                    if not key.startswith(self.alias_prefix) or not key.endswith(".json"):
-                        continue
-
-                    # Read the JSON from S3
-                    s3_buffer = self.s3_service.stream_s3_object_to_memory(self.alias_bucket, key)
-                    alias_map = json.load(s3_buffer)
-                    source_name = Path(key).stem
-                    alias_maps[source_name] = alias_map
-            except Exception as e:
-                self.logger.warning(f"Failed to load alias configs from S3: {e}")
-
-        # --- Fallback to local configs ---
+        alias_maps = self.list_alias_configs_from_s3()
         if not alias_maps:
-            for path in Path(self.alias_folder).glob("*.json"):
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        alias_maps[path.stem] = json.load(f)
-                except json.JSONDecodeError as e:
-                    self.logger.warning(f"Skipping invalid JSON '{path.name}': {e}")
+            raise BulkUploadMetadataException("No alias configurations found in S3.")
 
-        # --- Pick best match ---
-        for source_name, alias_map in alias_maps.items():
-            alias_fields = {str(v).strip().lower() for v in alias_map.values() if v}
-            matches = len(alias_fields & header_set)
-            score = matches / len(alias_fields)
-            if score > best_score:
-                best_score = score
-                best_match = source_name
+        match_results = self.evaluate_alias_matches(alias_maps, header_set)
+        best_match, best_info = self.select_best_match(match_results)
 
         if not best_match:
-            raise BulkUploadMetadataException("No alias configuration matches the CSV headers.")
+            raise BulkUploadMetadataException(
+                "No alias configuration matches the CSV headers."
+            )
 
-        self.logger.info(f"Detected alias config '{best_match}' with score {best_score:.0%}")
+        self.log_best_match(best_match, best_info, alias_maps)
         return best_match
 
+    def list_alias_configs_from_s3(self) -> dict[str, dict]:
+        if not self.alias_bucket:
+            raise BulkUploadMetadataException(
+                "Alias bucket not configured for validator."
+            )
+
+        alias_maps = {}
+        try:
+            self.logger.info(
+                f"Listing alias configs from S3 prefix: {self.alias_prefix}"
+            )
+            s3_objects = self.s3_service.list_all_objects(self.alias_bucket)
+
+            for obj in s3_objects:
+                key = obj["Key"]
+                if not key.startswith(self.alias_prefix) or not key.endswith(".json"):
+                    continue
+
+                s3_buffer = self.s3_service.stream_s3_object_to_memory(
+                    self.alias_bucket, key
+                )
+                alias_map = json.load(s3_buffer)
+                source_name = Path(key).stem
+                alias_maps[source_name] = alias_map
+
+        except Exception as e:
+            raise BulkUploadMetadataException(
+                f"Failed to load alias configs from S3: {e}"
+            )
+
+        return alias_maps
+
+    def evaluate_alias_matches(
+        self, alias_maps: dict[str, dict], header_set: set[str]
+    ) -> dict[str, dict]:
+        results = {}
+
+        for source_name, alias_map in alias_maps.items():
+            alias_fields = {str(v).strip().lower() for v in alias_map.values() if v}
+            matched_fields = alias_fields & header_set
+            missing_fields = alias_fields - header_set
+            total_fields = len(alias_fields)
+            match_count = len(matched_fields)
+
+            if total_fields == 0:
+                continue
+
+            score = match_count / total_fields
+            results[source_name] = {
+                "score": score,
+                "match_count": match_count,
+                "total_fields": total_fields,
+                "matched_fields": sorted(matched_fields),
+                "missing_fields": sorted(missing_fields),
+            }
+
+        return results
+
+    def select_best_match(
+        self, match_results: dict[str, dict]
+    ) -> tuple[str | None, dict | None]:
+        if not match_results:
+            return None, None
+
+        best_match = max(match_results, key=lambda k: match_results[k]["score"])
+        best_info = match_results[best_match]
+        return best_match, best_info
+
+    def log_best_match(
+        self, best_match: str, best_info: dict, alias_maps: dict[str, dict]
+    ):
+        info = best_info
+        self.logger.info(
+            f"Detected alias config '{best_match}': "
+            f"matched {info['match_count']} of {info['total_fields']} fields."
+        )
+        self.logger.info(
+            f"Matched fields: {', '.join(info['matched_fields']) or 'None'}"
+        )
+        self.logger.info(
+            f"Missing fields: {', '.join(info['missing_fields']) or 'None'}"
+        )
+
+        owner = alias_maps[best_match].get("owner")
+        if owner:
+            self.logger.info(f"Alias file '{best_match}' owned by '{owner}'")
+
     def build_model_for_alias(self, source_name: str) -> Type[BaseModel]:
-        """Builds a dynamic Pydantic model based on an alias mapping (S3 or local)."""
         alias_map = self.load_alias_map(source_name)
         self.validate_alias_map(alias_map, source_name)
         return self.create_dynamic_model(alias_map, source_name)
 
     def load_alias_map(self, source_name: str) -> dict:
         alias_filename = f"{source_name}.json"
+        s3_key = f"{self.alias_prefix}{alias_filename}"
 
-        # Try to get the jsons from S3
-        if self.alias_bucket:
-            s3_key = f"{self.alias_prefix}{alias_filename}"
-            try:
-                self.logger.info(
-                    f"Trying to load alias config from S3: s3://{self.alias_bucket}/{s3_key}"
-                )
-                s3_buffer = self.s3_service.stream_s3_object_to_memory(
-                    self.alias_bucket, s3_key
-                )
-                alias_map = json.load(s3_buffer)
-                self.logger.info(f"Loaded alias config from S3: {alias_filename}")
-                if alias_map:
-                    return alias_map
-            except Exception as e:
-                self.logger.warning(
-                    f"Could not load alias from S3 ({e}), falling back to local files"
-                )
-
-        # Uses local files as fallback
-        alias_path = Path(self.alias_folder) / alias_filename
-        if not alias_path.exists():
-            raise FileNotFoundError(f"No alias config found for source: {source_name}")
-
-        self.logger.info(f"Loading alias config locally: {alias_path}")
-        with open(alias_path, "r", encoding="utf-8") as f:
-            alias_map = json.load(f)
-
-        # Log owner if present
-        owner = alias_map.get("owner")
-        if owner:
-            self.logger.info(f"Alias '{alias_filename}' owned by: {owner}")
+        try:
+            self.logger.info(
+                f"Loading alias config from S3: s3://{self.alias_bucket}/{s3_key}"
+            )
+            s3_buffer = self.s3_service.stream_s3_object_to_memory(
+                self.alias_bucket, s3_key
+            )
+            alias_map = json.load(s3_buffer)
+            self.logger.info(f"Loaded alias config from S3: {alias_filename}")
+        except Exception as e:
+            raise BulkUploadMetadataException(
+                f"Could not load alias file '{alias_filename}' from S3: {e}"
+            )
 
         if not alias_map:
             raise BulkUploadMetadataException(
                 f"Alias file '{alias_filename}' is empty or invalid."
             )
-
         return alias_map
 
     def validate_alias_map(self, alias_map: dict, source_name: str) -> None:
-        """Ensure alias mapping covers all required MetadataFile fields."""
-        alias_field_keys = {k for k in alias_map.keys() if k in MetadataFile.model_fields}
+        alias_field_keys = {
+            k for k in alias_map.keys() if k in MetadataFile.model_fields
+        }
         missing_keys = set(MetadataFile.model_fields.keys()) - alias_field_keys
         if missing_keys:
             raise BulkUploadMetadataException(
@@ -134,7 +163,6 @@ class MetadataMappingValidationService:
     def create_dynamic_model(
         self, alias_map: dict, source_name: str
     ) -> Type[BaseModel]:
-        """Create a Pydantic model using alias mapping."""
         new_fields = {
             name: (field.annotation, Field(alias=alias_map.get(name)))
             for name, field in MetadataFile.model_fields.items()
@@ -143,7 +171,6 @@ class MetadataMappingValidationService:
         model_config = ConfigDict(
             populate_by_name=True, from_attributes=True, extra="allow"
         )
-
         dynamic_model = create_model(
             f"Metadata_{source_name.title()}",
             __config__=model_config,
@@ -167,24 +194,20 @@ class MetadataMappingValidationService:
             try:
                 instance = model.model_validate(row)
                 data = instance.model_dump(by_alias=False)
-
                 empty_required_fields = self.get_empty_required_fields(
                     data, required_fields
                 )
+
                 if empty_required_fields:
                     raise ValueError(
                         f"Missing or empty required fields: {', '.join(empty_required_fields)}"
                     )
 
                 validated_rows.append(data)
-
             except (ValidationError, ValueError) as e:
                 rejected_rows.append(row)
                 rejected_reasons.append(
-                    {
-                        "FILEPATH": row.get("FILEPATH", "N/A"),
-                        "REASON": str(e),
-                    }
+                    {"FILEPATH": row.get("FILEPATH", "N/A"), "REASON": str(e)}
                 )
 
         return validated_rows, rejected_rows, rejected_reasons
@@ -192,7 +215,6 @@ class MetadataMappingValidationService:
     def get_empty_required_fields(
         self, data: dict, required_fields: list[str]
     ) -> list[str]:
-        """Return a list of required fields that are missing or empty."""
         return [
             field
             for field in required_fields

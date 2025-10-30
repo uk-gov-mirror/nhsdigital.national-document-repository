@@ -1,5 +1,4 @@
 import csv
-import os
 import shutil
 import tempfile
 import uuid
@@ -40,15 +39,19 @@ class BulkUploadMetadataProcessorService:
     def __init__(
         self,
         metadata_formatter_service: MetadataPreprocessorService,
-        alias_bucket: str | None = None,
-        alias_prefix: str = "metadata_aliases/general/",
+        staging_bucket_name: str,
+        metadata_queue_url: str,
+        alias_bucket: str,
+        alias_prefix: str,
     ):
         self.s3_service = S3Service()
         self.sqs_service = SQSService()
         self.dynamo_repository = BulkUploadDynamoRepository()
 
-        self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
-        self.metadata_queue_url = os.getenv("METADATA_SQS_QUEUE_URL")
+        self.staging_bucket_name = staging_bucket_name
+        self.metadata_queue_url = metadata_queue_url
+        self.alias_bucket = alias_bucket
+        self.alias_prefix = alias_prefix.rstrip("/") + "/"
 
         self.temp_download_dir = tempfile.mkdtemp()
         self.practice_directory = metadata_formatter_service.practice_directory
@@ -57,10 +60,12 @@ class BulkUploadMetadataProcessorService:
             if metadata_formatter_service.practice_directory
             else METADATA_FILENAME
         )
+
         self.metadata_mapping_validator_service = MetadataMappingValidationService(
-            alias_bucket=alias_bucket,
-            alias_prefix=alias_prefix,
+            alias_bucket=self.alias_bucket,
+            alias_prefix=self.alias_prefix,
         )
+
         self.metadata_formatter_service = metadata_formatter_service
 
     def process_metadata(self):
@@ -96,9 +101,11 @@ class BulkUploadMetadataProcessorService:
             raise BulkUploadMetadataException(failure_msg)
 
     def download_metadata_from_s3(self) -> str:
-        logger.info(f"Fetching {METADATA_FILENAME} from bucket")
+        logger.info(
+            f"Fetching {METADATA_FILENAME} from bucket {self.staging_bucket_name}"
+        )
 
-        local_file_path = os.path.join(self.temp_download_dir, METADATA_FILENAME)
+        local_file_path = f"{self.temp_download_dir}/{METADATA_FILENAME}"
         self.s3_service.download_file(
             s3_bucket_name=self.staging_bucket_name,
             file_key=self.file_key,
@@ -112,11 +119,10 @@ class BulkUploadMetadataProcessorService:
             defaultdict(list)
         )
 
-        # Step 1: Read CSV headers and rows
         with open(
             csv_file_path, mode="r", encoding="utf-8-sig", errors="replace"
         ) as csv_file:
-            csv_reader: csv.DictReader = csv.DictReader(csv_file)
+            csv_reader = csv.DictReader(csv_file)
             headers = csv_reader.fieldnames or []
             records = list(csv_reader)
 
@@ -125,13 +131,11 @@ class BulkUploadMetadataProcessorService:
                 "Metadata CSV has no headers or is empty."
             )
 
-        # Step 2: Detect which alias config fits the headers
         source_name = self.metadata_mapping_validator_service.detect_best_alias_config(
             headers
         )
         logger.info(f"Using alias mapping template: {source_name}")
 
-        # Step 3: Validate + normalize using that config
         validated_rows, rejected_rows, rejected_reasons = (
             self.metadata_mapping_validator_service.validate_and_normalize_metadata(
                 records, source_name
@@ -147,11 +151,9 @@ class BulkUploadMetadataProcessorService:
                 f"No valid metadata rows found after alias validation ({source_name})."
             )
 
-        # Step 4: Continue with existing metadata processing
         for row in validated_rows:
             self.process_metadata_row(row, patients)
 
-        # Step 5: Return grouped patient metadata
         return [
             StagingSqsMetadata(nhs_number=nhs_number, files=files)
             for (nhs_number, _), files in patients.items()
@@ -191,12 +193,11 @@ class BulkUploadMetadataProcessorService:
         """Validate and normalize file name."""
         try:
             validate_file_name(file_metadata.file_path.split("/")[-1])
-            valid_filepath = file_metadata.file_path
+            return file_metadata.file_path
         except LGInvalidFilesException:
-            valid_filepath = self.metadata_formatter_service.validate_record_filename(
+            return self.metadata_formatter_service.validate_record_filename(
                 file_metadata.file_path
             )
-        return valid_filepath
 
     def handle_invalid_filename(
         self,
@@ -225,7 +226,6 @@ class BulkUploadMetadataProcessorService:
         for staging_sqs_metadata in staging_sqs_metadata_list:
             nhs_number = staging_sqs_metadata.nhs_number
             logger.info(f"Sending metadata for patientId: {nhs_number}")
-
             self.sqs_service.send_message_with_nhs_number_attr_fifo(
                 queue_url=self.metadata_queue_url,
                 message_body=staging_sqs_metadata.model_dump_json(by_alias=True),
@@ -237,7 +237,6 @@ class BulkUploadMetadataProcessorService:
         """Copy processed metadata CSV into a dated archive folder in S3."""
         logger.info("Copying metadata CSV to dated folder")
         current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M")
-
         self.s3_service.copy_across_bucket(
             self.staging_bucket_name,
             self.file_key,

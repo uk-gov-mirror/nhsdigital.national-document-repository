@@ -61,9 +61,17 @@ def test_service(mocker, set_env, mock_tempfile):
     mocker.patch(
         "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
     )
+
     service = BulkUploadMetadataProcessorService(
-        MockMetadataPreprocessorService(practice_directory="test_practice_directory")
+        metadata_formatter_service=MockMetadataPreprocessorService(
+            practice_directory="test_practice_directory"
+        ),
+        staging_bucket_name="mock-staging-bucket",
+        metadata_queue_url="test_bulk_upload_metadata_queue",
+        alias_bucket="mock-alias-bucket",
+        alias_prefix="metadata_aliases/general/",
     )
+
     mocker.patch.object(service, "s3_service")
     return service
 
@@ -111,7 +119,6 @@ def base_metadata_file():
         "USER-ID": "UID456",
         "UPLOAD": "02/01/2023",
     }
-
     return MetadataFile.model_validate(row)
 
 
@@ -129,7 +136,6 @@ def test_process_metadata_send_metadata_to_sqs_queue(
         test_service.s3_service, "copy_across_bucket", return_value=None
     )
     mocker.patch.object(test_service.s3_service, "delete_object", return_value=None)
-
     mocker.patch("uuid.uuid4", return_value=fake_uuid)
 
     fake_metadata = [
@@ -161,8 +167,7 @@ def test_process_metadata_catch_and_log_error_when_fail_to_get_metadata_csv_from
     test_service,
 ):
     mock_s3_service.download_file.side_effect = ClientError(
-        {"Error": {"Code": "403", "Message": "Forbidden"}},
-        "S3:HeadObject",
+        {"Error": {"Code": "403", "Message": "Forbidden"}}, "S3:HeadObject"
     )
     expected_err_msg = 'No metadata file could be found with the name "metadata.csv"'
 
@@ -183,7 +188,6 @@ def test_process_metadata_raise_validation_error_when_metadata_csv_is_invalid(
     mocker,
 ):
     mock_download_metadata_from_s3.return_value = "fake/path.csv"
-
     mocker.patch.object(
         test_service,
         "csv_to_sqs_metadata",
@@ -221,26 +225,20 @@ def test_process_metadata_raise_validation_error_when_gp_practice_code_is_missin
         test_service.process_metadata()
 
     assert expected_error_log in str(e.value)
-
     mock_sqs_service.send_message_with_nhs_number_attr_fifo.assert_not_called()
 
 
 def test_process_metadata_raise_client_error_when_failed_to_send_message_to_sqs(
-    test_service,
-    mocker,
+    test_service, mocker
 ):
     mocker.patch.object(
-        test_service,
-        "download_metadata_from_s3",
-        return_value="fake/path.csv",
+        test_service, "download_metadata_from_s3", return_value="fake/path.csv"
     )
 
     dummy_staging_metadata = mocker.Mock()
     dummy_staging_metadata.nhs_number = "1234567890"
     mocker.patch.object(
-        test_service,
-        "csv_to_sqs_metadata",
-        return_value=[dummy_staging_metadata],
+        test_service, "csv_to_sqs_metadata", return_value=[dummy_staging_metadata]
     )
 
     mock_client_error = ClientError(
@@ -294,7 +292,6 @@ def test_download_metadata_from_s3_raise_error_when_failed_to_download(
         {"Error": {"Code": "500", "Message": "file not exist in bucket"}},
         "s3_get_object",
     )
-
     with pytest.raises(ClientError):
         test_service.download_metadata_from_s3()
 
@@ -307,7 +304,13 @@ class TestMetadataPreprocessorService(MetadataPreprocessorService):
 @pytest.fixture
 def bulk_upload_service():
     return BulkUploadMetadataProcessorService(
-        TestMetadataPreprocessorService(practice_directory="test_practice_directory")
+        metadata_formatter_service=TestMetadataPreprocessorService(
+            practice_directory="test_practice_directory"
+        ),
+        staging_bucket_name="mock-staging-bucket",
+        metadata_queue_url="mock-queue-url",
+        alias_bucket="mock-alias-bucket",
+        alias_prefix="metadata_aliases/general/",
     )
 
 
@@ -505,7 +508,11 @@ def test_process_metadata_row_adds_to_existing_entry(mocker):
     preprocessor.validate_record_filename.return_value = "/some/path/file2.pdf"
 
     service = BulkUploadMetadataProcessorService(
-        metadata_formatter_service=preprocessor
+        metadata_formatter_service=preprocessor,
+        staging_bucket_name="mock-staging-bucket",
+        metadata_queue_url="test_bulk_upload_metadata_queue",
+        alias_bucket="mock-alias-bucket",
+        alias_prefix="metadata_aliases/general/",
     )
 
     service.process_metadata_row(row, patients)

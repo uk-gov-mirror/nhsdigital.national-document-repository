@@ -48,7 +48,9 @@ def lambda_handler(event, _context):
 
     metadata_formatter_service = formatter_service_class(practice_directory)
     metadata_service = BulkUploadMetadataProcessorService(
-        metadata_formatter_service,
+        metadata_formatter_service=metadata_formatter_service,
+        staging_bucket_name=os.getenv("STAGING_STORE_BUCKET_NAME"),
+        metadata_queue_url=os.getenv("METADATA_SQS_QUEUE_URL"),
         alias_bucket=configs_bucket_name,
         alias_prefix=alias_prefix,
     )
