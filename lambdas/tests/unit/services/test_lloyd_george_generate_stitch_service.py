@@ -91,7 +91,9 @@ def patched_stitch_service(set_env, mocker):
         "get_lloyd_george_record_for_patient",
         return_value=MOCK_LLOYD_GEORGE_DOCUMENT_REFS,
     )
-    mocker.patch("services.lloyd_george_generate_stitch_service.DocumentReferenceService")
+    mocker.patch(
+        "services.lloyd_george_generate_stitch_service.DocumentReferenceService"
+    )
     mocker.patch("services.lloyd_george_generate_stitch_service.S3Service")
     mocker.patch.object(
         LloydGeorgeStitchService,

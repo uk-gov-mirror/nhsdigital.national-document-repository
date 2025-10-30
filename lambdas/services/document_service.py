@@ -184,7 +184,9 @@ class DocumentService:
             ),
         )
 
-    def hard_delete_metadata_records(self, table_name: str, document_references: list[BaseModel]):
+    def hard_delete_metadata_records(
+        self, table_name: str, document_references: list[BaseModel]
+    ):
         """Permanently delete metadata from specified or configured table."""
         table_to_use = table_name or self.table_name
 

@@ -1,7 +1,6 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-
 from models.document_review import DocumentUploadReviewReference
 from services.document_upload_review_service import DocumentUploadReviewService
 from tests.unit.conftest import TEST_NHS_NUMBER
@@ -18,7 +17,10 @@ def mock_service(set_env, mocker, monkeypatch):
     monkeypatch.setenv("DOCUMENT_REVIEW_DYNAMODB_NAME", MOCK_DOCUMENT_REVIEW_TABLE)
     monkeypatch.setenv("DOCUMENT_REVIEW_S3_BUCKET_NAME", MOCK_DOCUMENT_REVIEW_BUCKET)
 
-    mocker.patch("services.document_upload_review_service.DocumentService.__init__", return_value=None)
+    mocker.patch(
+        "services.document_upload_review_service.DocumentService.__init__",
+        return_value=None,
+    )
     service = DocumentUploadReviewService()
     service.s3_service = MagicMock()
     service.dynamo_service = MagicMock()
@@ -77,8 +79,7 @@ def test_update_document_review_custodian_updates_all_documents(
     # Verify update_document was called with the correct parameters
     for review in mock_document_review_references:
         mock_update_document.assert_any_call(
-            document=review,
-            update_fields_name={"custodian"}
+            document=review, update_fields_name={"custodian"}
         )
 
 
@@ -132,7 +133,9 @@ def test_update_document_review_custodian_mixed_custodians(
         assert review.custodian == NEW_ODS_CODE
 
 
-def test_update_document_review_custodian_logging(mock_service, mock_document_review_references, mocker):
+def test_update_document_review_custodian_logging(
+    mock_service, mock_document_review_references, mocker
+):
     """Test that update_document_review_custodian logs appropriately."""
     mocker.patch.object(mock_service, "update_document")
     mock_logger = mocker.patch("services.document_upload_review_service.logger")
@@ -158,6 +161,5 @@ def test_update_document_review_custodian_single_document(mock_service, mocker):
 
     assert single_review.custodian == NEW_ODS_CODE
     mock_update_document.assert_called_once_with(
-        document=single_review,
-        update_fields_name={"custodian"}
+        document=single_review, update_fields_name={"custodian"}
     )
