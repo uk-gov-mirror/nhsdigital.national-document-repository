@@ -134,7 +134,7 @@ def test_update_document_review_custodian_mixed_custodians(
 
 def test_update_document_review_custodian_logging(mock_service, mock_document_review_references, mocker):
     """Test that update_document_review_custodian logs appropriately."""
-    mock_update_document = mocker.patch.object(mock_service, "update_document")
+    mocker.patch.object(mock_service, "update_document")
     mock_logger = mocker.patch("services.document_upload_review_service.logger")
 
     mock_service.update_document_review_custodian(
