@@ -9,7 +9,7 @@ from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
 def mock_review_service(mocker):
     """Mock the ReviewProcessorService."""
     mocked_class = mocker.patch(
-        "handlers.review_processor_handler.ReviewProcessorService"
+        "handlers.document_review_processor_handler.ReviewProcessorService"
     )
     mocked_instance = mocked_class.return_value
     return mocked_instance

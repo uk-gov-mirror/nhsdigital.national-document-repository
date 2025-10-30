@@ -3,32 +3,28 @@ from botocore.exceptions import ClientError
 from enums.review_status import ReviewStatus
 from models.document_review import DocumentsUploadReview
 from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
-from services.document_review_processor_service import ReviewProcessMovingException, ReviewProcessVerifyingException, ReviewProcessorService
+from services.document_review_processor_service import (
+    ReviewProcessMovingException,
+    ReviewProcessVerifyingException,
+    ReviewProcessorService,
+)
 from utils.exceptions import ReviewProcessDeleteException, S3FileNotFoundException
 
 
 @pytest.fixture
 def mock_dynamo_service(mocker):
     """Mock the DynamoDBService."""
-    return mocker.patch("services.review_processor_service.DynamoDBService")
+    return mocker.patch("services.document_review_processor_service.DynamoDBService")
 
 
 @pytest.fixture
 def mock_s3_service(mocker):
     """Mock the S3Service."""
-    return mocker.patch("services.review_processor_service.S3Service")
+    return mocker.patch("services.document_review_processor_service.S3Service")
 
 
 @pytest.fixture
-def set_review_env(monkeypatch):
-    """Set up environment variables required for the service."""
-    monkeypatch.setenv("DOCUMENT_REVIEW_DYNAMODB_NAME", "test_review_table")
-    monkeypatch.setenv("STAGING_STORE_BUCKET_NAME", "test_staging_bucket")
-    monkeypatch.setenv("PENDING_REVIEW_BUCKET_NAME", "test_review_bucket")
-
-
-@pytest.fixture
-def service_under_test(set_review_env, mock_dynamo_service, mock_s3_service):
+def service_under_test(set_env, mock_dynamo_service, mock_s3_service):
     """Create a ReviewProcessorService instance with mocked dependencies."""
     service = ReviewProcessorService()
     return service
@@ -56,13 +52,13 @@ def sample_review_message():
 
 
 def test_service_initializes_with_correct_environment_variables(
-    set_review_env, mock_dynamo_service, mock_s3_service
+    set_env, mock_dynamo_service, mock_s3_service
 ):
     """Test service initializes correctly with environment variables."""
     service = ReviewProcessorService()
 
     assert service.review_table_name == "test_review_table"
-    assert service.staging_bucket_name == "test_staging_bucket"
+    assert service.staging_bucket_name == "test_staging_bulk_store"
     assert service.review_bucket_name == "test_review_bucket"
     mock_dynamo_service.assert_called_once()
     mock_s3_service.assert_called_once()
@@ -199,7 +195,7 @@ def test_verify_file_exists_success(service_under_test):
     service_under_test._verify_file_exists_in_staging("staging/test.pdf")
 
     service_under_test.s3_service.file_exist_on_s3.assert_called_once_with(
-        s3_bucket_name="test_staging_bucket", file_key="staging/test.pdf"
+        s3_bucket_name="test_staging_bulk_store", file_key="staging/test.pdf"
     )
 
 
@@ -343,7 +339,7 @@ def test_move_files_success(service_under_test, sample_review_message, mocker):
     assert files[0].file_location == expected_key
 
     service_under_test.s3_service.copy_across_bucket.assert_called_once_with(
-        source_bucket="test_staging_bucket",
+        source_bucket="test_staging_bulk_store",
         source_file_key="staging/9000000009/test_document.pdf",
         dest_bucket="test_review_bucket",
         dest_file_key=expected_key,
@@ -427,7 +423,7 @@ def test_delete_from_staging_success(service_under_test):
     service_under_test._delete_from_staging("staging/test.pdf")
 
     service_under_test.s3_service.delete_object.assert_called_once_with(
-        s3_bucket_name="test_staging_bucket", file_key="staging/test.pdf"
+        s3_bucket_name="test_staging_bulk_store", file_key="staging/test.pdf"
     )
 
 
