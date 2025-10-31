@@ -10,8 +10,8 @@ from utils.exceptions import BulkUploadMetadataException
 
 
 class MetadataMappingValidationService:
-    def __init__(self, alias_bucket: str, alias_prefix: str):
-        self.alias_bucket = alias_bucket
+    def __init__(self, config_bucket: str, alias_prefix: str):
+        self.config_bucket = config_bucket
         self.alias_prefix = alias_prefix.rstrip("/") + "/"
         self.s3_service = S3Service()
         self.logger = LoggingService(__name__)
@@ -35,9 +35,9 @@ class MetadataMappingValidationService:
         return best_match
 
     def list_alias_configs_from_s3(self) -> dict[str, dict]:
-        if not self.alias_bucket:
+        if not self.config_bucket:
             raise BulkUploadMetadataException(
-                "Alias bucket not configured for validator."
+                "Alias config bucket not configured for validator."
             )
 
         alias_maps = {}
@@ -45,7 +45,7 @@ class MetadataMappingValidationService:
             self.logger.info(
                 f"Listing alias configs from S3 prefix: {self.alias_prefix}"
             )
-            s3_objects = self.s3_service.list_all_objects(self.alias_bucket)
+            s3_objects = self.s3_service.list_all_objects(self.config_bucket)
 
             for obj in s3_objects:
                 key = obj["Key"]
@@ -53,7 +53,7 @@ class MetadataMappingValidationService:
                     continue
 
                 s3_buffer = self.s3_service.stream_s3_object_to_memory(
-                    self.alias_bucket, key
+                    self.config_bucket, key
                 )
                 alias_map = json.load(s3_buffer)
                 source_name = Path(key).stem
@@ -136,10 +136,10 @@ class MetadataMappingValidationService:
 
         try:
             self.logger.info(
-                f"Loading alias config from S3: s3://{self.alias_bucket}/{s3_key}"
+                f"Loading alias config from S3: s3://{self.config_bucket}/{s3_key}"
             )
             s3_buffer = self.s3_service.stream_s3_object_to_memory(
-                self.alias_bucket, s3_key
+                self.config_bucket, s3_key
             )
             alias_map = json.load(s3_buffer)
             self.logger.info(f"Loaded alias config from S3: {alias_filename}")

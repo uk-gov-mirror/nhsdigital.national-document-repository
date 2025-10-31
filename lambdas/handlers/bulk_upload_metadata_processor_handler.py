@@ -43,7 +43,6 @@ def lambda_handler(event, _context):
         f"Starting metadata processing for practice directory: {practice_directory}"
     )
 
-    configs_bucket_name = os.getenv("CONFIGS_BUCKET_NAME")
     alias_prefix = f"metadata_aliases/{raw_pre_format_type.lower()}/"
 
     metadata_formatter_service = formatter_service_class(practice_directory)
@@ -51,7 +50,7 @@ def lambda_handler(event, _context):
         metadata_formatter_service=metadata_formatter_service,
         staging_bucket_name=os.getenv("STAGING_STORE_BUCKET_NAME"),
         metadata_queue_url=os.getenv("METADATA_SQS_QUEUE_URL"),
-        alias_bucket=configs_bucket_name,
+        config_bucket=os.getenv("CONFIGS_BUCKET_NAME"),
         alias_prefix=alias_prefix,
     )
     metadata_service.process_metadata()

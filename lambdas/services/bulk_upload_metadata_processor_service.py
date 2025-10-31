@@ -41,7 +41,7 @@ class BulkUploadMetadataProcessorService:
         metadata_formatter_service: MetadataPreprocessorService,
         staging_bucket_name: str,
         metadata_queue_url: str,
-        alias_bucket: str,
+        config_bucket: str,
         alias_prefix: str,
     ):
         self.s3_service = S3Service()
@@ -50,7 +50,7 @@ class BulkUploadMetadataProcessorService:
 
         self.staging_bucket_name = staging_bucket_name
         self.metadata_queue_url = metadata_queue_url
-        self.alias_bucket = alias_bucket
+        self.config_bucket = config_bucket
         self.alias_prefix = alias_prefix.rstrip("/") + "/"
 
         self.temp_download_dir = tempfile.mkdtemp()
@@ -62,7 +62,7 @@ class BulkUploadMetadataProcessorService:
         )
 
         self.metadata_mapping_validator_service = MetadataMappingValidationService(
-            alias_bucket=self.alias_bucket,
+            config_bucket=self.config_bucket,
             alias_prefix=self.alias_prefix,
         )
 
