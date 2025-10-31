@@ -1,7 +1,7 @@
 from typing import Optional
 
 from enums.lambda_error import LambdaError
-from services.document_service import DocumentService
+from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import DynamoServiceException
 from utils.lambda_exceptions import GetDocumentReviewException
@@ -9,10 +9,13 @@ from utils.lambda_exceptions import GetDocumentReviewException
 logger = LoggingService(__name__)
 
 
-class GetDocumentReviewService(DocumentService):
+class GetDocumentReviewService:
     """
     Service for retrieving document reviews.
     """
+
+    def __init__(self):
+        self.document_review_service = DocumentUploadReviewService()
 
     def get_document_review(
         self, patient_id: str, document_id: str
@@ -29,24 +32,27 @@ class GetDocumentReviewService(DocumentService):
                 f"Fetching document review for patient_id: {patient_id}, document_id: {document_id}"
             )
 
-            # TODO: Implement the actual logic to retrieve document review
-            # This is a placeholder implementation
-            # You should replace this with actual database queries or business logic
+            # Query DynamoDB directly by document ID using the service method
+            document_review_item = self.document_review_service.get_item(document_id)
 
-            # Example: Query DynamoDB or other data source
-            # document_review = self.document_repository.get_document_review(
-            #     patient_id=patient_id,
-            #     document_id=document_id
-            # )
+            # Check if item exists
+            if not document_review_item:
+                logger.info(
+                    f"No document review found for document_id: {document_id}"
+                )
+                return None
 
-            # Placeholder return - replace with actual implementation
-            document_review = {
-                "patient_id": patient_id,
-                "document_id": document_id,
-                "review_status": "pending",
-                "created_at": "2025-10-31T00:00:00Z",
-                "updated_at": "2025-10-31T00:00:00Z",
-            }
+            # Filter by NHS number to ensure patient owns this document
+            if document_review_item.nhs_number != patient_id:
+                logger.warning(
+                    f"Document {document_id} does not belong to patient {patient_id}"
+                )
+                return None
+
+            # Convert the model to a dictionary for the response
+            document_review = document_review_item.model_dump(
+                by_alias=True, exclude_none=True
+            )
 
             logger.info(
                 f"Successfully retrieved document review for document_id: {document_id}"
