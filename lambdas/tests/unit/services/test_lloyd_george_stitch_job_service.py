@@ -20,7 +20,7 @@ MOCK_STITCH_TRACE_OBJECT = StitchTrace(
 @pytest.fixture
 def stitch_service(set_env, mocker):
     mocker.patch("services.lloyd_george_stitch_job_service.S3Service")
-    mocker.patch("services.lloyd_george_stitch_job_service.DocumentService")
+    mocker.patch("services.lloyd_george_stitch_job_service.DocumentReferenceService")
     mocker.patch("services.lloyd_george_stitch_job_service.DynamoDBService")
 
     yield LloydGeorgeStitchJobService()

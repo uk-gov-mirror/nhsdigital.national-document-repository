@@ -158,7 +158,7 @@ def test_fetch_document_reference_success(service, mock_document_reference):
 
     assert result == mock_document_reference
     service.document_service.fetch_documents_from_table.assert_called_once_with(
-        table=MOCK_LG_TABLE_NAME,
+        table_name=MOCK_LG_TABLE_NAME,
         search_condition=document_key,
         search_key="ID",
         query_filter=PreliminaryStatus,
@@ -381,7 +381,7 @@ def test_update_dynamo_table_clean_scan_result(service, mock_document_reference)
     assert mock_document_reference.doc_status == "final"
     service.document_service.update_document.assert_called_once_with(
         table_name=MOCK_LG_TABLE_NAME,
-        document_reference=mock_document_reference,
+        document=mock_document_reference,
         update_fields_name={
             "virus_scanner_result",
             "doc_status",
@@ -480,7 +480,7 @@ def test_document_type_extraction_from_object_key(
     service.handle_upload_document_reference_request(object_key)
 
     service.document_service.fetch_documents_from_table.assert_called_with(
-        table=expected_table,
+        table_name=expected_table,
         search_condition=expected_document_key,
         search_key="ID",
         query_filter=PreliminaryStatus,

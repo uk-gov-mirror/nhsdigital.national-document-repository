@@ -12,7 +12,7 @@ from models.stitch_trace import StitchTrace
 from pikepdf import Pdf
 from pypdf.errors import PyPdfError
 from services.base.s3_service import S3Service
-from services.document_service import DocumentService
+from services.document_reference_service import DocumentReferenceService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import NoAvailableDocument
 from utils.filename_utils import extract_page_number
@@ -25,14 +25,13 @@ logger = LoggingService(__name__)
 
 class LloydGeorgeStitchService:
     def __init__(self, stitch_trace: StitchTrace):
-        self.lloyd_george_table_name = os.environ.get("LLOYD_GEORGE_DYNAMODB_NAME")
         self.lloyd_george_bucket_name = os.environ.get("LLOYD_GEORGE_BUCKET_NAME")
         self.lifecycle_policy_tag = os.environ.get(
             "STITCHED_FILE_LIFECYCLE_POLICY_TAG", "autodelete"
         )
 
         self.s3_service = S3Service()
-        self.document_service = DocumentService()
+        self.document_service = DocumentReferenceService()
         self.stitch_trace_object = stitch_trace
         self.stitch_trace_table = os.environ.get("STITCH_METADATA_DYNAMODB_NAME")
         self.stitch_file_name = f"patient-record-{str(uuid.uuid4())}"
