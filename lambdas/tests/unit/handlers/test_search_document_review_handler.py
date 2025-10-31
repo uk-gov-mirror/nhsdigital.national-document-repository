@@ -1,10 +1,12 @@
 import pytest
 
-from tests.unit.conftest import TEST_CURRENT_GP_ODS, MOCK_DOCUMENT_REVIEW_TABLE
+from tests.unit.conftest import TEST_CURRENT_GP_ODS
 from utils.exceptions import OdsErrorException
 from utils.request_context import request_context
-from handlers.search_document_review_handler import get_ods_code_from_request, lambda_handler
+from handlers.search_document_review_handler import get_ods_code_from_request, lambda_handler, get_query_limit
 
+
+TEST_QUERY_LIMIT = 20
 
 @pytest.fixture
 def mock_service(mocker):
@@ -29,17 +31,37 @@ def test_get_ods_code_from_request_throws_exception_no_ods():
     with pytest.raises(OdsErrorException):
         get_ods_code_from_request()
 
+def test_get_query_limit_from_querystring_params():
+        event = {
+            "httpMethod": "GET",
+            "queryStringParameters": {
+                "limit": TEST_QUERY_LIMIT,
+            },
+        }
+        assert get_query_limit(event) == TEST_QUERY_LIMIT
 
-def test_dynamo_queried_with_ods_code(mock_service, context):
+def test_get_query_limit_returns_none_no_querystring_params():
+        event = {
+            "httpMethod": "GET",
+        }
+        assert get_query_limit(event) is None
+
+
+def test_dynamo_queried_with_ods_code(mock_service, context, set_env):
+    event = {
+        "httpMethod": "GET",
+        "queryStringParameters": {
+            "limit": TEST_QUERY_LIMIT,
+        },
+    }
+
     request_context.authorization = {
         "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS}
     }
 
-    event = {"httpMethod": "GET"}
-
     lambda_handler(event, context)
 
-    mock_service.get_review_document_references.assert_called()
+    mock_service.get_review_document_references.assert_called_with(ods_code=TEST_CURRENT_GP_ODS, limit=TEST_QUERY_LIMIT)
 
 # def test_dynamo_query_called_with_limit_from_query_string_params(context):
 #     event = {
