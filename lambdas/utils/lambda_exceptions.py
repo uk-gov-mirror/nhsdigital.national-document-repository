@@ -98,3 +98,8 @@ class PdfStitchingException(LambdaException):
 
 class UpdateFhirDocumentReferenceException(LambdaException):
     pass
+
+
+class GetDocumentReviewException(LambdaException):
+    pass
+
