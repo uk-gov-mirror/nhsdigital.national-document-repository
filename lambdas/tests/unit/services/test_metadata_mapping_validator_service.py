@@ -2,6 +2,9 @@ import io
 import json
 
 import pytest
+from pydantic import BaseModel
+
+from models.staging_metadata import MetadataFile
 from services.metadata_mapping_validator_service import MetadataMappingValidationService
 from utils.exceptions import BulkUploadMetadataException
 
@@ -156,3 +159,106 @@ def test_detect_best_alias_config_raises_when_no_match(service, mocker):
         BulkUploadMetadataException, match="No alias configuration matches"
     ):
         service.detect_best_alias_config(["random_header"])
+
+def test_list_alias_configs_from_s3_raises_if_no_bucket():
+    service = MetadataMappingValidationService(alias_bucket=None, alias_prefix="metadata_aliases/general/")  # type: ignore[arg-type]
+    with pytest.raises(BulkUploadMetadataException, match="Alias bucket not configured"):
+        service.list_alias_configs_from_s3()
+
+
+
+def test_list_alias_configs_from_s3_skips_non_json_and_irrelevant_keys(service, mock_s3_service):
+    mock_s3_service.list_all_objects.return_value = [
+        {"Key": "metadata_aliases/general/general_aliases_v2.txt"},
+        {"Key": "other_prefix/general_aliases_v2.json"},
+        {"Key": "metadata_aliases/general/valid.json"},
+    ]
+
+    valid_alias = {"file_path": "FILE"}
+    mock_s3_service.stream_s3_object_to_memory.side_effect = lambda b, k: io.StringIO(json.dumps(valid_alias))
+
+    alias_maps = service.list_alias_configs_from_s3()
+    assert "valid" in alias_maps
+    assert "general_aliases_v2" not in alias_maps
+
+
+def test_evaluate_alias_matches_skips_empty_alias(service):
+    alias_maps = {"empty_alias": {}}
+    results = service.evaluate_alias_matches(alias_maps, {"file", "ods"})
+    assert results == {}
+
+
+def test_build_model_for_alias_calls_expected_methods(mocker, service):
+    mock_load = mocker.patch.object(service, "load_alias_map", return_value={"file_path": "FILE"})
+    mock_validate = mocker.patch.object(service, "validate_alias_map")
+    mock_create = mocker.patch.object(service, "create_dynamic_model", return_value=BaseModel)
+
+    result = service.build_model_for_alias("general")
+    assert result == BaseModel
+    mock_load.assert_called_once_with("general")
+    mock_validate.assert_called_once()
+    mock_create.assert_called_once()
+
+
+def test_load_alias_map_reads_json_successfully(service, mock_s3_service):
+    mock_s3_service.stream_s3_object_to_memory.side_effect = lambda b, k: io.StringIO(json.dumps({"file_path": "FILE"}))
+    alias_map = service.load_alias_map("general")
+    assert alias_map["file_path"] == "FILE"
+
+
+def test_load_alias_map_raises_on_s3_error(service, mock_s3_service):
+    mock_s3_service.stream_s3_object_to_memory.side_effect = Exception("S3 failure")
+    with pytest.raises(BulkUploadMetadataException, match="Could not load alias file"):
+        service.load_alias_map("general")
+
+
+def test_load_alias_map_raises_on_empty_map(service, mock_s3_service):
+    mock_s3_service.stream_s3_object_to_memory.side_effect = lambda b, k: io.StringIO("{}")
+    with pytest.raises(BulkUploadMetadataException, match="is empty or invalid"):
+        service.load_alias_map("general")
+
+
+def test_validate_alias_map_raises_when_keys_missing(service):
+    alias_map = {"file_path": "FILE"}
+    with pytest.raises(BulkUploadMetadataException, match="missing mappings"):
+        service.validate_alias_map(alias_map, "general")
+
+
+def test_create_dynamic_model_builds_pydantic_model(service):
+    alias_map = {k: k.upper() for k in MetadataFile.model_fields.keys()}
+    model = service.create_dynamic_model(alias_map, "general")
+    assert issubclass(model, BaseModel)
+    assert "file_path" in model.model_fields
+
+
+def test_validate_and_normalize_metadata_mixed_results(mocker, service):
+    class FakeModel(BaseModel):
+        file_path: str
+
+    mocker.patch.object(service, "build_model_for_alias", return_value=FakeModel)
+
+    # Patch required fields list to only include 'file_path'
+    mocker.patch.object(
+        service,
+        "get_empty_required_fields",
+        wraps=lambda data, req: [k for k, v in data.items() if not v]
+    )
+
+    records = [
+        {"file_path": "valid.pdf"},
+        {"file_path": ""},
+    ]
+
+    validated, rejected, reasons = service.validate_and_normalize_metadata(records, "general")
+
+    assert len(validated) == 1
+    assert len(rejected) == 1
+    assert "Missing or empty required fields" in reasons[0]["REASON"]
+
+
+
+def test_get_empty_required_fields_detects(service):
+    data = {"file_path": "", "gp_practice_code": None, "nhs_number": "123"}
+    required = ["file_path", "gp_practice_code", "nhs_number"]
+    result = service.get_empty_required_fields(data, required)
+    assert set(result) == {"file_path", "gp_practice_code"}
