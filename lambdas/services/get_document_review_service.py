@@ -122,7 +122,7 @@ class GetDocumentReviewService:
         self.document_review_service.dynamo_service.create_item(
             self.cloudfront_table_name,
             {
-                "ID": presigned_id,
+                "ID": f'review/{presigned_id}',
                 "presignedUrl": presign_url_response,
                 "TTL": dynamo_item_ttl,
             },
