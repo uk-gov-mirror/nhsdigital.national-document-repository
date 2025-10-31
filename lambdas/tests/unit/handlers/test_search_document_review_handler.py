@@ -30,18 +30,16 @@ def test_get_ods_code_from_request_throws_exception_no_ods():
         get_ods_code_from_request()
 
 
-def test_dynamo_queried_with_ods_code(mock_service):
+def test_dynamo_queried_with_ods_code(mock_service, context):
     request_context.authorization = {
         "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS}
     }
 
     event = {"httpMethod": "GET"}
 
-    mock_service.dynamo_service.query_table.assert_called_with(
-        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
-        seach_key="custodian",
-        search_condition=TEST_CURRENT_GP_ODS,
-    )
+    lambda_handler(event, context)
+
+    mock_service.get_review_document_references.assert_called()
 
 # def test_dynamo_query_called_with_limit_from_query_string_params(context):
 #     event = {

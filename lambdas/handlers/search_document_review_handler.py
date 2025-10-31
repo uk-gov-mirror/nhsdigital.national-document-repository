@@ -13,6 +13,7 @@ def get_ods_code_from_request():
     return ods_code
 
 def lambda_handler(event, context):
-
-    service = SearchDocumentReviewService()
+    osd_code = get_ods_code_from_request()
+    service = SearchDocumentReviewService(osd_code)
+    service.get_review_document_references()
     pass
