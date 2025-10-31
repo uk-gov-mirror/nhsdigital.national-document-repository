@@ -673,7 +673,7 @@ def test_csv_to_sqs_metadata_raises_BulkUploadMetadataException_if_all_rows_reje
     mocker.patch.object(
         bulk_upload_service.metadata_mapping_validator_service,
         "validate_and_normalize_metadata",
-        return_value=([], [{"bad": "row"}], [{"reason": "invalid"}]),
+        return_value=([], [{"bad": "row"}], [{"FILEPATH": "fake.pdf", "REASON": "invalid"}]),
     )
 
     with pytest.raises(

@@ -10,8 +10,8 @@ from utils.exceptions import BulkUploadMetadataException
 
 
 class MetadataMappingValidatorService:
-    def __init__(self, config_bucket: str, alias_prefix: str):
-        self.config_bucket = config_bucket
+    def __init__(self, configs_bucket_name: str, alias_prefix: str):
+        self.configs_bucket_name = configs_bucket_name
         self.alias_prefix = alias_prefix.rstrip("/") + "/"
         self.s3_service = S3Service()
         self.logger = LoggingService(__name__)
@@ -35,7 +35,7 @@ class MetadataMappingValidatorService:
         return best_match
 
     def list_alias_configs_from_s3(self) -> dict[str, dict]:
-        if not self.config_bucket:
+        if not self.configs_bucket_name:
             raise BulkUploadMetadataException(
                 "Alias config bucket not configured for validator."
             )
@@ -45,7 +45,7 @@ class MetadataMappingValidatorService:
             self.logger.info(
                 f"Listing alias configs from S3 prefix: {self.alias_prefix}"
             )
-            s3_objects = self.s3_service.list_all_objects(self.config_bucket)
+            s3_objects = self.s3_service.list_all_objects(self.configs_bucket_name)
 
             for obj in s3_objects:
                 key = obj["Key"]
@@ -53,7 +53,7 @@ class MetadataMappingValidatorService:
                     continue
 
                 s3_buffer = self.s3_service.stream_s3_object_to_memory(
-                    self.config_bucket, key
+                    self.configs_bucket_name, key
                 )
                 alias_map = json.load(s3_buffer)
                 source_name = Path(key).stem
@@ -136,10 +136,10 @@ class MetadataMappingValidatorService:
 
         try:
             self.logger.info(
-                f"Loading alias config from S3: s3://{self.config_bucket}/{s3_key}"
+                f"Loading alias config from S3: s3://{self.configs_bucket_name}/{s3_key}"
             )
             s3_buffer = self.s3_service.stream_s3_object_to_memory(
-                self.config_bucket, s3_key
+                self.configs_bucket_name, s3_key
             )
             alias_map = json.load(s3_buffer)
             self.logger.info(f"Loaded alias config from S3: {alias_filename}")
@@ -208,7 +208,7 @@ class MetadataMappingValidatorService:
                     )
 
                 validated_rows.append(data)
-            except (ValidationError, ValueError) as e:
+            except ValueError as e:
                 rejected_rows.append(row)
                 rejected_reasons.append(
                     {"FILEPATH": row.get("FILEPATH", "N/A"), "REASON": str(e)}

@@ -42,7 +42,7 @@ def mock_s3_service(mocker):
 def service(mock_s3_service, mocker):
     """Create service with injected mocked S3."""
     service = MetadataMappingValidatorService(
-        config_bucket="fake-bucket", alias_prefix="metadata_aliases/general/"
+        configs_bucket_name="fake-bucket", alias_prefix="metadata_aliases/general/"
     )
     service.s3_service = mock_s3_service
     return service
@@ -56,7 +56,7 @@ def test_list_alias_configs_from_s3_reads_valid_json(service):
 
 def test_list_alias_configs_from_s3_raises_on_failure(mocker):
     service = MetadataMappingValidatorService(
-        config_bucket="fake-bucket", alias_prefix="metadata_aliases/general/"
+        configs_bucket_name="fake-bucket", alias_prefix="metadata_aliases/general/"
     )
     mocker.patch.object(
         service.s3_service, "list_all_objects", side_effect=Exception("S3 broken")
@@ -143,7 +143,7 @@ def test_detect_best_alias_config_success(service):
 
 def test_detect_best_alias_config_raises_when_no_aliases(mocker):
     service = MetadataMappingValidatorService(
-        config_bucket="fake-bucket", alias_prefix="metadata_aliases/general/"
+        configs_bucket_name="fake-bucket", alias_prefix="metadata_aliases/general/"
     )
     mocker.patch.object(service, "list_alias_configs_from_s3", return_value={})
     with pytest.raises(
@@ -161,7 +161,7 @@ def test_detect_best_alias_config_raises_when_no_match(service, mocker):
 
 
 def test_list_alias_configs_from_s3_raises_if_no_bucket():
-    service = MetadataMappingValidatorService(config_bucket=None, alias_prefix="metadata_aliases/general/")  # type: ignore[arg-type]
+    service = MetadataMappingValidatorService(configs_bucket_name=None, alias_prefix="metadata_aliases/general/")  # type: ignore[arg-type]
     with pytest.raises(
         BulkUploadMetadataException,
         match="Alias config bucket not configured for validator.",

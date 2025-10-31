@@ -50,7 +50,7 @@ class BulkUploadMetadataProcessorService:
 
         self.staging_bucket_name = staging_bucket_name
         self.metadata_queue_url = metadata_queue_url
-        self.config_bucket = configs_bucket_name
+        self.configs_bucket_name = configs_bucket_name
         self.alias_prefix = alias_prefix.rstrip("/") + "/"
 
         self.temp_download_dir = tempfile.mkdtemp()
@@ -62,7 +62,7 @@ class BulkUploadMetadataProcessorService:
         )
 
         self.metadata_mapping_validator_service = MetadataMappingValidatorService(
-            config_bucket=self.config_bucket,
+            configs_bucket_name=self.configs_bucket_name,
             alias_prefix=self.alias_prefix,
         )
 
@@ -141,6 +141,11 @@ class BulkUploadMetadataProcessorService:
                 records, source_name
             )
         )
+        if rejected_reasons:
+            for reason in rejected_reasons:
+                logger.warning(
+                    f"Rejected file '{reason['FILEPATH']}' due to: {reason['REASON']}"
+                )
 
         logger.info(
             f"Alias '{source_name}': {len(validated_rows)} valid rows, {len(rejected_rows)} rejected"
