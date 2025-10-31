@@ -20,10 +20,7 @@ logger = LoggingService(__name__)
 @validate_patient_id
 @ensure_environment_variables(
     names=[
-        "DOCUMENT_STORE_DYNAMODB_NAME",
-        "LLOYD_GEORGE_DYNAMODB_NAME",
-        "DOCUMENT_REVIEW_DYNAMODB_NAME",
-        "DOCUMENT_REVIEW_S3_BUCKET_NAME",
+        "DOCUMENT_REVIEW_DYNAMO_NAME",
         "PRESIGNED_ASSUME_ROLE",
         "EDGE_REFERENCE_TABLE",
         "CLOUDFRONT_URL",
@@ -38,7 +35,7 @@ def lambda_handler(event, context):
 
     # Extract patient_id from query string parameters
     query_params = event.get("queryStringParameters", {})
-    patient_id = query_params.get("patient_id")
+    patient_id = query_params.get("patientId", "")
 
     if not patient_id:
         logger.error("Missing patient_id in query string parameters")

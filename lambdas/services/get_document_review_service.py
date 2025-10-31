@@ -20,12 +20,11 @@ class GetDocumentReviewService:
     """
 
     def __init__(self):
-        self.document_review_service = DocumentUploadReviewService()
         presigned_assume_role = os.getenv("PRESIGNED_ASSUME_ROLE")
         self.s3_service = S3Service(custom_aws_role=presigned_assume_role)
+        self.document_review_service = DocumentUploadReviewService()
         self.cloudfront_table_name = os.environ.get("EDGE_REFERENCE_TABLE")
         self.cloudfront_url = os.environ.get("CLOUDFRONT_URL")
-        self.document_review_bucket = os.environ.get("DOCUMENT_REVIEW_S3_BUCKET_NAME")
 
     def get_document_review(
         self, patient_id: str, document_id: str
@@ -52,7 +51,7 @@ class GetDocumentReviewService:
                 )
                 return None
 
-            # Filter by NHS number to ensure patient owns this document
+            # Filter by NHS number to ensure the patient owns this document
             if document_review_item.nhs_number != patient_id:
                 logger.warning(
                     f"Document {document_id} does not belong to patient {patient_id}"
@@ -105,13 +104,14 @@ class GetDocumentReviewService:
         :return: CloudFront URL that obfuscates the actual pre-signed URL.
         """
         # Generate S3 pre-signed URL
+        s3_bucket_name, file_key = file_location.removeprefix("s3://").split("/", 1)
         presign_url_response = self.s3_service.create_download_presigned_url(
-            s3_bucket_name=self.document_review_bucket,
-            file_key=file_location,
+            s3_bucket_name=s3_bucket_name,
+            file_key=file_key,
         )
 
         # Create unique ID for CloudFront mapping
-        presigned_id = str(uuid.uuid4())
+        presigned_id = 'review/' + str(uuid.uuid4())
 
         # Calculate TTL (same expiry as the pre-signed URL)
         deletion_date = datetime.now(timezone.utc)
@@ -122,7 +122,7 @@ class GetDocumentReviewService:
         self.document_review_service.dynamo_service.create_item(
             self.cloudfront_table_name,
             {
-                "ID": f'review/{presigned_id}',
+                "ID": f'{presigned_id}',
                 "presignedUrl": presign_url_response,
                 "TTL": dynamo_item_ttl,
             },
