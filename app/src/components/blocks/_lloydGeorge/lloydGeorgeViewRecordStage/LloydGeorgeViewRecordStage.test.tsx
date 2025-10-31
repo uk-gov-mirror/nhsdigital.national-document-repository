@@ -1,5 +1,5 @@
 // Imports
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryHistory } from 'history';
 import * as ReactRouter from 'react-router-dom';
@@ -65,6 +65,20 @@ const TestApp = (props: Omit<Props, 'setStage' | 'stage'>) => {
     );
 };
 
+const simulateFullscreenChange = (isFullscreen: boolean) => {
+    act(() => {
+        // Update the fullscreenElement property to simulate browser state
+        Object.defineProperty(document, 'fullscreenElement', {
+            writable: true,
+            configurable: true,
+            value: isFullscreen ? document.documentElement : null,
+        });
+        
+        // Dispatch the fullscreenchange event
+        document.dispatchEvent(new Event('fullscreenchange'));
+    });
+};
+
 const renderComponent = (propsOverride?: Partial<Props>) => {
     const props: Omit<Props, 'setStage' | 'stage'> = {
         downloadStage: DOWNLOAD_STAGE.SUCCEEDED,
@@ -89,10 +103,23 @@ describe('<LloydGeorgeViewRecordStage />', () => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockedUsePatient.mockReturnValue(mockPatientDetails);
         mockUseConfig.mockReturnValue(buildConfig());
-    });
-
-    afterEach(() => {
-        vi.clearAllMocks();
+        
+        // Mock fullscreen API
+        Object.defineProperty(document, 'fullscreenEnabled', {
+            writable: true,
+            configurable: true,
+            value: true,
+        });
+        
+        Object.defineProperty(document, 'fullscreenElement', {
+            writable: true,
+            configurable: true,
+            value: null,
+        });
+        
+        // Mock fullscreen methods
+        (document as any).exitFullscreen = vi.fn();
+        (document.documentElement as any).requestFullscreen = vi.fn();
     });
 
     describe('Rendering', () => {
@@ -135,11 +162,14 @@ describe('<LloydGeorgeViewRecordStage />', () => {
 
             await screen.findByTitle(EMBEDDED_PDF_VIEWER_TITLE);
             await userEvent.click(screen.getByText('View in full screen'));
+            
+            // Simulate the browser entering fullscreen
+            simulateFullscreenChange(true);
 
             await screen.findByText('Exit full screen');
 
             expect(screen.getByText(patientName)).toBeInTheDocument();
-            expect(screen.getByText(dob)).toBeInTheDocument();
+            expect(screen.getByText(new RegExp(dob))).toBeInTheDocument();
             expect(screen.getByText(/NHS number/)).toBeInTheDocument();
         });
 
@@ -154,7 +184,12 @@ describe('<LloydGeorgeViewRecordStage />', () => {
             renderComponent();
 
             await userEvent.click(await screen.findByText('View in full screen'));
+            // Simulate entering fullscreen
+            simulateFullscreenChange(true);
+            
             await userEvent.click(await screen.findByText('Exit full screen'));
+            // Simulate exiting fullscreen
+            simulateFullscreenChange(false);
 
             expect(screen.getByText('View in full screen')).toBeInTheDocument();
         });
@@ -223,6 +258,9 @@ describe('<LloydGeorgeViewRecordStage />', () => {
             await userEvent.click(
                 await screen.findByRole('button', { name: 'View in full screen' }),
             );
+            
+            // Simulate entering fullscreen
+            simulateFullscreenChange(true);
 
             await screen.findByText('Exit full screen');
 
