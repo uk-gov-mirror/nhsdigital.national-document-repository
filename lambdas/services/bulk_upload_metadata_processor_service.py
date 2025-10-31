@@ -22,7 +22,7 @@ from services.base.sqs_service import SQSService
 from services.bulk_upload_metadata_preprocessor_service import (
     MetadataPreprocessorService,
 )
-from services.metadata_mapping_validator_service import MetadataMappingValidationService
+from services.metadata_mapping_validator_service import MetadataMappingValidatorService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import (
     BulkUploadMetadataException,
@@ -41,7 +41,7 @@ class BulkUploadMetadataProcessorService:
         metadata_formatter_service: MetadataPreprocessorService,
         staging_bucket_name: str,
         metadata_queue_url: str,
-        config_bucket: str,
+        configs_bucket_name: str,
         alias_prefix: str,
     ):
         self.s3_service = S3Service()
@@ -50,7 +50,7 @@ class BulkUploadMetadataProcessorService:
 
         self.staging_bucket_name = staging_bucket_name
         self.metadata_queue_url = metadata_queue_url
-        self.config_bucket = config_bucket
+        self.config_bucket = configs_bucket_name
         self.alias_prefix = alias_prefix.rstrip("/") + "/"
 
         self.temp_download_dir = tempfile.mkdtemp()
@@ -61,7 +61,7 @@ class BulkUploadMetadataProcessorService:
             else METADATA_FILENAME
         )
 
-        self.metadata_mapping_validator_service = MetadataMappingValidationService(
+        self.metadata_mapping_validator_service = MetadataMappingValidatorService(
             config_bucket=self.config_bucket,
             alias_prefix=self.alias_prefix,
         )
@@ -128,7 +128,7 @@ class BulkUploadMetadataProcessorService:
 
         if not headers:
             raise BulkUploadMetadataException(
-                "Metadata CSV has no headers or is empty."
+                f"{METADATA_FILENAME} has no headers or is empty."
             )
 
         source_name = self.metadata_mapping_validator_service.detect_best_alias_config(

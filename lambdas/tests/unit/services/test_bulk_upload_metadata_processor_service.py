@@ -68,7 +68,7 @@ def test_service(mocker, set_env, mock_tempfile):
         ),
         staging_bucket_name="mock-staging-bucket",
         metadata_queue_url="test_bulk_upload_metadata_queue",
-        config_bucket="mock-alias-bucket",
+        configs_bucket_name="mock-alias-bucket",
         alias_prefix="metadata_aliases/general/",
     )
 
@@ -309,7 +309,7 @@ def bulk_upload_service():
         ),
         staging_bucket_name="mock-staging-bucket",
         metadata_queue_url="mock-queue-url",
-        config_bucket="mock-alias-bucket",
+        configs_bucket_name="mock-alias-bucket",
         alias_prefix="metadata_aliases/general/",
     )
 
@@ -511,7 +511,7 @@ def test_process_metadata_row_adds_to_existing_entry(mocker):
         metadata_formatter_service=preprocessor,
         staging_bucket_name="mock-staging-bucket",
         metadata_queue_url="test_bulk_upload_metadata_queue",
-        config_bucket="mock-alias-bucket",
+        configs_bucket_name="mock-alias-bucket",
         alias_prefix="metadata_aliases/general/",
     )
 

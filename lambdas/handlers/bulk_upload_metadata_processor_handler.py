@@ -50,7 +50,7 @@ def lambda_handler(event, _context):
         metadata_formatter_service=metadata_formatter_service,
         staging_bucket_name=os.getenv("STAGING_STORE_BUCKET_NAME"),
         metadata_queue_url=os.getenv("METADATA_SQS_QUEUE_URL"),
-        config_bucket=os.getenv("CONFIGS_BUCKET_NAME"),
+        configs_bucket_name=os.getenv("CONFIGS_BUCKET_NAME"),
         alias_prefix=alias_prefix,
     )
     metadata_service.process_metadata()

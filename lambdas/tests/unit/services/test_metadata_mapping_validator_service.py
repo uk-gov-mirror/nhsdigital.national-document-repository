@@ -4,7 +4,7 @@ import json
 import pytest
 from models.staging_metadata import MetadataFile
 from pydantic import BaseModel
-from services.metadata_mapping_validator_service import MetadataMappingValidationService
+from services.metadata_mapping_validator_service import MetadataMappingValidatorService
 from utils.exceptions import BulkUploadMetadataException
 
 
@@ -41,7 +41,7 @@ def mock_s3_service(mocker):
 @pytest.fixture
 def service(mock_s3_service, mocker):
     """Create service with injected mocked S3."""
-    service = MetadataMappingValidationService(
+    service = MetadataMappingValidatorService(
         config_bucket="fake-bucket", alias_prefix="metadata_aliases/general/"
     )
     service.s3_service = mock_s3_service
@@ -55,7 +55,7 @@ def test_list_alias_configs_from_s3_reads_valid_json(service):
 
 
 def test_list_alias_configs_from_s3_raises_on_failure(mocker):
-    service = MetadataMappingValidationService(
+    service = MetadataMappingValidatorService(
         config_bucket="fake-bucket", alias_prefix="metadata_aliases/general/"
     )
     mocker.patch.object(
@@ -142,7 +142,7 @@ def test_detect_best_alias_config_success(service):
 
 
 def test_detect_best_alias_config_raises_when_no_aliases(mocker):
-    service = MetadataMappingValidationService(
+    service = MetadataMappingValidatorService(
         config_bucket="fake-bucket", alias_prefix="metadata_aliases/general/"
     )
     mocker.patch.object(service, "list_alias_configs_from_s3", return_value={})
@@ -161,7 +161,7 @@ def test_detect_best_alias_config_raises_when_no_match(service, mocker):
 
 
 def test_list_alias_configs_from_s3_raises_if_no_bucket():
-    service = MetadataMappingValidationService(config_bucket=None, alias_prefix="metadata_aliases/general/")  # type: ignore[arg-type]
+    service = MetadataMappingValidatorService(config_bucket=None, alias_prefix="metadata_aliases/general/")  # type: ignore[arg-type]
     with pytest.raises(
         BulkUploadMetadataException,
         match="Alias config bucket not configured for validator.",

@@ -9,7 +9,7 @@ from utils.audit_logging_setup import LoggingService
 from utils.exceptions import BulkUploadMetadataException
 
 
-class MetadataMappingValidationService:
+class MetadataMappingValidatorService:
     def __init__(self, config_bucket: str, alias_prefix: str):
         self.config_bucket = config_bucket
         self.alias_prefix = alias_prefix.rstrip("/") + "/"
