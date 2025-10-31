@@ -22,6 +22,11 @@ logger = LoggingService(__name__)
     names=[
         "DOCUMENT_STORE_DYNAMODB_NAME",
         "LLOYD_GEORGE_DYNAMODB_NAME",
+        "DOCUMENT_REVIEW_DYNAMODB_NAME",
+        "DOCUMENT_REVIEW_S3_BUCKET_NAME",
+        "PRESIGNED_ASSUME_ROLE",
+        "EDGE_REFERENCE_TABLE",
+        "CLOUDFRONT_URL",
     ]
 )
 @override_error_check

@@ -1,10 +1,15 @@
+import os
+import uuid
+from datetime import datetime, timezone
 from typing import Optional
 
 from enums.lambda_error import LambdaError
+from services.base.s3_service import S3Service
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import DynamoServiceException
 from utils.lambda_exceptions import GetDocumentReviewException
+from utils.utilities import format_cloudfront_url
 
 logger = LoggingService(__name__)
 
@@ -16,6 +21,11 @@ class GetDocumentReviewService:
 
     def __init__(self):
         self.document_review_service = DocumentUploadReviewService()
+        presigned_assume_role = os.getenv("PRESIGNED_ASSUME_ROLE")
+        self.s3_service = S3Service(custom_aws_role=presigned_assume_role)
+        self.cloudfront_table_name = os.environ.get("EDGE_REFERENCE_TABLE")
+        self.cloudfront_url = os.environ.get("CLOUDFRONT_URL")
+        self.document_review_bucket = os.environ.get("DOCUMENT_REVIEW_S3_BUCKET_NAME")
 
     def get_document_review(
         self, patient_id: str, document_id: str
@@ -49,9 +59,23 @@ class GetDocumentReviewService:
                 )
                 return None
 
-            # Convert the model to a dictionary for the response
+            # Generate pre-signed URLs for each file in the review
+            if document_review_item.files:
+                for file_detail in document_review_item.files:
+                    presigned_url = self.create_cloudfront_presigned_url(
+                        file_detail.file_location
+                    )
+                    file_detail.presigned_url = presigned_url
+
+            # Use Pydantic's model_dump to serialize with only required fields
             document_review = document_review_item.model_dump(
-                by_alias=True, exclude_none=True
+                by_alias=True,
+                include={
+                    "id": True,
+                    "upload_date": True,
+                    "files": {"__all__": {"file_name": True, "presigned_url": True}},
+                    "document_snomed_code_type": True,
+                },
             )
 
             logger.info(
@@ -72,4 +96,38 @@ class GetDocumentReviewService:
                 {"Result": "Failed to retrieve document review"},
             )
             raise GetDocumentReviewException(500, LambdaError.DocRefClient)
+
+    def create_cloudfront_presigned_url(self, file_location: str) -> str:
+        """
+        Create a CloudFront obfuscated pre-signed URL for a file.
+
+        :param file_location: The S3 file key/location.
+        :return: CloudFront URL that obfuscates the actual pre-signed URL.
+        """
+        # Generate S3 pre-signed URL
+        presign_url_response = self.s3_service.create_download_presigned_url(
+            s3_bucket_name=self.document_review_bucket,
+            file_key=file_location,
+        )
+
+        # Create unique ID for CloudFront mapping
+        presigned_id = str(uuid.uuid4())
+
+        # Calculate TTL (same expiry as the pre-signed URL)
+        deletion_date = datetime.now(timezone.utc)
+        ttl_half_an_hour_in_seconds = self.s3_service.presigned_url_expiry
+        dynamo_item_ttl = int(deletion_date.timestamp() + ttl_half_an_hour_in_seconds)
+
+        # Store mapping in DynamoDB for CloudFront edge function to resolve
+        self.document_review_service.dynamo_service.create_item(
+            self.cloudfront_table_name,
+            {
+                "ID": presigned_id,
+                "presignedUrl": presign_url_response,
+                "TTL": dynamo_item_ttl,
+            },
+        )
+
+        # Return obfuscated CloudFront URL
+        return format_cloudfront_url(presigned_id, self.cloudfront_url)
 

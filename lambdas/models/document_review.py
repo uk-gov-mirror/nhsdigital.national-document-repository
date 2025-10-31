@@ -17,6 +17,7 @@ class DocumentReviewFileDetails(BaseModel):
 
     file_name: str
     file_location: str
+    presigned_url: Optional[str] = None
 
 
 class DocumentUploadReviewReference(BaseModel):
