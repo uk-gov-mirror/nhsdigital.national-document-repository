@@ -123,7 +123,12 @@ class BulkUploadMetadataProcessorService:
             csv_file_path, mode="r", encoding="utf-8-sig", errors="replace"
         ) as csv_file:
             csv_reader = csv.DictReader(csv_file)
-            headers = csv_reader.fieldnames or []
+            if csv_reader.fieldnames is None:
+                raise BulkUploadMetadataException(
+                    f"{METADATA_FILENAME} is empty or missing headers."
+                )
+
+            headers = [h.strip() for h in csv_reader.fieldnames]
             records = list(csv_reader)
 
         if not headers:

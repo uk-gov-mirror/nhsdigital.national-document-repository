@@ -3,10 +3,12 @@ from pathlib import Path
 from typing import Type
 
 from models.staging_metadata import MetadataFile
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model
+from pydantic import BaseModel, ConfigDict, Field, create_model
 from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import BulkUploadMetadataException
+
+logger = LoggingService(__name__)
 
 
 class MetadataMappingValidatorService:
@@ -14,7 +16,6 @@ class MetadataMappingValidatorService:
         self.configs_bucket_name = configs_bucket_name
         self.alias_prefix = alias_prefix.rstrip("/") + "/"
         self.s3_service = S3Service()
-        self.logger = LoggingService(__name__)
 
     def detect_best_alias_config(self, csv_headers: list[str]) -> str:
         header_set = {h.strip().lower() for h in csv_headers if h}
@@ -42,9 +43,7 @@ class MetadataMappingValidatorService:
 
         alias_maps = {}
         try:
-            self.logger.info(
-                f"Listing alias configs from S3 prefix: {self.alias_prefix}"
-            )
+            logger.info(f"Listing alias configs from S3 prefix: {self.alias_prefix}")
             s3_objects = self.s3_service.list_all_objects(self.configs_bucket_name)
 
             for obj in s3_objects:
@@ -110,20 +109,16 @@ class MetadataMappingValidatorService:
         self, best_match: str, best_info: dict, alias_maps: dict[str, dict]
     ):
         info = best_info
-        self.logger.info(
+        logger.info(
             f"Detected alias config '{best_match}': "
             f"matched {info['match_count']} of {info['total_fields']} fields."
         )
-        self.logger.info(
-            f"Matched fields: {', '.join(info['matched_fields']) or 'None'}"
-        )
-        self.logger.info(
-            f"Missing fields: {', '.join(info['missing_fields']) or 'None'}"
-        )
+        logger.info(f"Matched fields: {', '.join(info['matched_fields']) or 'None'}")
+        logger.info(f"Missing fields: {', '.join(info['missing_fields']) or 'None'}")
 
         owner = alias_maps[best_match].get("owner")
         if owner:
-            self.logger.info(f"Alias file '{best_match}' owned by '{owner}'")
+            logger.info(f"Alias file '{best_match}' owned by '{owner}'")
 
     def build_model_for_alias(self, source_name: str) -> Type[BaseModel]:
         alias_map = self.load_alias_map(source_name)
@@ -135,14 +130,14 @@ class MetadataMappingValidatorService:
         s3_key = f"{self.alias_prefix}{alias_filename}"
 
         try:
-            self.logger.info(
+            logger.info(
                 f"Loading alias config from S3: s3://{self.configs_bucket_name}/{s3_key}"
             )
             s3_buffer = self.s3_service.stream_s3_object_to_memory(
                 self.configs_bucket_name, s3_key
             )
             alias_map = json.load(s3_buffer)
-            self.logger.info(f"Loaded alias config from S3: {alias_filename}")
+            logger.info(f"Loaded alias config from S3: {alias_filename}")
         except Exception as e:
             raise BulkUploadMetadataException(
                 f"Could not load alias file '{alias_filename}' from S3: {e}"
@@ -181,7 +176,7 @@ class MetadataMappingValidatorService:
             **new_fields,
         )
 
-        self.logger.info(f"Dynamic model created for source '{source_name}'")
+        logger.info(f"Dynamic model created for source '{source_name}'")
         return dynamic_model
 
     def validate_and_normalize_metadata(self, records: list[dict], source_name: str):

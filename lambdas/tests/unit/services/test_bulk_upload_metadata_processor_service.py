@@ -656,7 +656,8 @@ def test_csv_to_sqs_metadata_raises_BulkUploadMetadataException_if_no_headers(
 ):
     mocker.patch("builtins.open", mocker.mock_open(read_data=""))
 
-    with pytest.raises(BulkUploadMetadataException, match="no headers or is empty"):
+    with pytest.raises(BulkUploadMetadataException, match="empty or missing headers"):
+
         bulk_upload_service.csv_to_sqs_metadata("fake/path.csv")
 
 
@@ -673,7 +674,11 @@ def test_csv_to_sqs_metadata_raises_BulkUploadMetadataException_if_all_rows_reje
     mocker.patch.object(
         bulk_upload_service.metadata_mapping_validator_service,
         "validate_and_normalize_metadata",
-        return_value=([], [{"bad": "row"}], [{"FILEPATH": "fake.pdf", "REASON": "invalid"}]),
+        return_value=(
+            [],
+            [{"bad": "row"}],
+            [{"FILEPATH": "fake.pdf", "REASON": "invalid"}],
+        ),
     )
 
     with pytest.raises(
