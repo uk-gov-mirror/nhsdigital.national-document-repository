@@ -5,25 +5,37 @@ from boto3.dynamodb.conditions import Attr, ConditionBase
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.supported_document_types import SupportedDocumentTypes
 from models.document_reference import DocumentReference
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
 from utils.common_query_filters import NotDeleted
-from utils.dynamo_utils import filter_uploaded_docs_and_recently_uploading_docs
-from utils.exceptions import (
-    DocumentServiceException,
-    FileUploadInProgress,
-    NoAvailableDocument,
-)
+from utils.exceptions import DocumentServiceException
 
 logger = LoggingService(__name__)
 
 
 class DocumentService:
+    """Service for document operations."""
+
     def __init__(self):
         self.s3_service = S3Service()
         self.dynamo_service = DynamoDBService()
+
+    @property
+    def table_name(self) -> str:
+        """DynamoDB table name. Can be overridden by child classes."""
+        return os.getenv("LLOYD_GEORGE_DYNAMODB_NAME")
+
+    @property
+    def s3_bucket(self) -> str:
+        """S3 bucket name. Can be overridden by child classes."""
+        return os.getenv("LLOYD_GEORGE_BUCKET_NAME")
+
+    @property
+    def model_class(self) -> type[BaseModel]:
+        """Pydantic model class. Can be overridden by child classes."""
+        return DocumentReference
 
     def fetch_available_document_references_by_type(
         self,
@@ -34,34 +46,47 @@ class DocumentService:
         table_name = doc_type.get_dynamodb_table_name()
 
         return self.fetch_documents_from_table_with_nhs_number(
-            nhs_number, table_name, query_filter=query_filter
+            nhs_number,
+            table_name,
+            query_filter=query_filter,
         )
 
     def fetch_documents_from_table_with_nhs_number(
-        self, nhs_number: str, table: str, query_filter: Attr | ConditionBase = None
-    ) -> list[DocumentReference]:
+        self,
+        nhs_number: str,
+        table: str = None,
+        query_filter: Attr | ConditionBase = None,
+        model_class: type[BaseModel] = None,
+    ) -> list:
+        """Fetch documents by NHS number from specified or configured table."""
+        table_to_use = table or self.table_name
+
         documents = self.fetch_documents_from_table(
-            table=table,
             index_name="NhsNumberIndex",
             search_key="NhsNumber",
             search_condition=nhs_number,
             query_filter=query_filter,
+            table_name=table_to_use,
+            model_class=model_class,
         )
-
         return documents
 
     def fetch_documents_from_table(
         self,
-        table: str,
         search_condition: str,
         search_key: str,
         index_name: str = None,
         query_filter: Attr | ConditionBase = None,
-    ) -> list[DocumentReference]:
+        table_name: str = None,
+        model_class: type[BaseModel] = None,
+    ) -> list:
+        """Fetch documents from specified or configured table using model_class."""
         documents = []
+        table_to_use = table_name or self.table_name
+        model_to_use = model_class or self.model_class
 
         response = self.dynamo_service.query_table(
-            table_name=table,
+            table_name=table_to_use,
             index_name=index_name,
             search_key=search_key,
             search_condition=search_condition,
@@ -69,7 +94,7 @@ class DocumentService:
         )
         for item in response:
             try:
-                document = DocumentReference.model_validate(item)
+                document = model_to_use.model_validate(item)
                 documents.append(document)
             except ValidationError as e:
                 logger.error(f"Validation error on document: {item}")
@@ -77,13 +102,18 @@ class DocumentService:
                 continue
         return documents
 
-    def get_nhs_numbers_based_on_ods_code(self, ods_code: str) -> list[str]:
+    def get_nhs_numbers_based_on_ods_code(
+        self, ods_code: str, table_name: str = None
+    ) -> list[str]:
+        """Get unique NHS numbers for patients with given ODS code."""
+        table_to_use = table_name or self.table_name
+
         documents = self.fetch_documents_from_table(
-            table=os.environ["LLOYD_GEORGE_DYNAMODB_NAME"],
             index_name="OdsCodeIndex",
             search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
             search_condition=ods_code,
             query_filter=NotDeleted,
+            table_name=table_to_use,
         )
         nhs_numbers = list({document.nhs_number for document in documents})
         return nhs_numbers
@@ -139,30 +169,37 @@ class DocumentService:
 
     def update_document(
         self,
-        table_name: str,
-        document_reference: DocumentReference,
+        table_name: str = None,
+        document: BaseModel = None,
         update_fields_name: set[str] = None,
     ):
+        """Update document in specified or configured table."""
+        table_to_use = table_name or self.table_name
+
         self.dynamo_service.update_item(
-            table_name=table_name,
-            key_pair={DocumentReferenceMetadataFields.ID.value: document_reference.id},
-            updated_fields=document_reference.model_dump(
+            table_name=table_to_use,
+            key_pair={DocumentReferenceMetadataFields.ID.value: document.id},
+            updated_fields=document.model_dump(
                 exclude_none=True, by_alias=True, include=update_fields_name
             ),
         )
 
     def hard_delete_metadata_records(
-        self, table_name: str, document_references: list[DocumentReference]
+        self, table_name: str, document_references: list[BaseModel]
     ):
-        logger.info(f"Deleting items in table: {table_name} (HARD DELETE)")
+        """Permanently delete metadata from specified or configured table."""
+        table_to_use = table_name or self.table_name
+
+        logger.info(f"Deleting items in table: {table_to_use} (HARD DELETE)")
         primary_key_name = DocumentReferenceMetadataFields.ID.value
         for reference in document_references:
             primary_key_value = reference.id
             deletion_key = {primary_key_name: primary_key_value}
-            self.dynamo_service.delete_item(table_name, deletion_key)
+            self.dynamo_service.delete_item(table_to_use, deletion_key)
 
     @staticmethod
-    def is_upload_in_process(record: DocumentReference):
+    def is_upload_in_process(record: DocumentReference) -> bool:
+        """Check if a document upload is currently in progress."""
         return (
             not record.uploaded
             and record.uploading
@@ -170,33 +207,17 @@ class DocumentService:
             and record.doc_status != "final"
         )
 
-    def get_available_lloyd_george_record_for_patient(
-        self, nhs_number
-    ) -> list[DocumentReference]:
-        filter_expression = filter_uploaded_docs_and_recently_uploading_docs()
-        available_docs = self.fetch_available_document_references_by_type(
-            nhs_number,
-            SupportedDocumentTypes.LG,
-            query_filter=filter_expression,
-        )
-
-        file_in_progress_message = (
-            "The patients Lloyd George record is in the process of being uploaded"
-        )
-        if not available_docs:
-            raise NoAvailableDocument()
-        for document in available_docs:
-            if document.uploading and not document.uploaded:
-                raise FileUploadInProgress(file_in_progress_message)
-        return available_docs
-
     def get_batch_document_references_by_id(
         self, document_ids: list[str], doc_type: SupportedDocumentTypes
-    ) -> list[DocumentReference]:
+    ) -> list:
         table_name = doc_type.get_dynamodb_table_name()
+
+        table_to_use = table_name or self.table_name
+        model_to_use = self.model_class
+
         response = self.dynamo_service.batch_get_items(
-            table_name=table_name, key_list=document_ids
+            table_name=table_to_use, key_list=document_ids
         )
 
-        found_docs = [DocumentReference.model_validate(item) for item in response]
+        found_docs = [model_to_use.model_validate(item) for item in response]
         return found_docs
