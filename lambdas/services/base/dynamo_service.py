@@ -44,6 +44,7 @@ class DynamoDBService:
         index_name: str = None,
         requested_fields: list[str] = None,
         query_filter: Attr | ConditionBase = None,
+        limit: int = None,
     ) -> list[dict]:
         try:
             table = self.get_table(table_name)
@@ -61,8 +62,17 @@ class DynamoDBService:
 
             if query_filter:
                 query_params["FilterExpression"] = query_filter
+
+            if limit:
+                query_params["Limit"] = limit
+
+                results = table.query(**query_params)
+
+                return results
+
             items = []
             while True:
+
                 results = table.query(**query_params)
 
                 if results is None or "Items" not in results:

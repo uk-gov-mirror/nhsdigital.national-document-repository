@@ -14,7 +14,7 @@ from tests.unit.helpers.data.dynamo.dynamo_scan_response import (
     MOCK_PAGINATED_RESPONSE_1,
     MOCK_PAGINATED_RESPONSE_2,
     MOCK_PAGINATED_RESPONSE_3,
-    MOCK_RESPONSE,
+    MOCK_RESPONSE, MOCK_RESPONSE_WITH_LAST_KEY,
 )
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.exceptions import DynamoServiceException
@@ -44,6 +44,13 @@ def mock_scan_method(mock_table):
     table_instance = mock_table.return_value
     scan_method = table_instance.scan
     yield scan_method
+
+
+@pytest.fixture
+def mock_query_method(mock_table):
+    table_instance = mock_table.return_value
+    query_method = table_instance.query
+    yield query_method
 
 
 @pytest.fixture
@@ -164,6 +171,23 @@ def test_query_by_index_handles_pagination(
     assert expected_result == actual
     mock_table.assert_called_with(MOCK_TABLE_NAME)
     mock_table.return_value.query.assert_has_calls(expected_calls)
+
+def test_query_by_index_handles_limits(
+    mock_service, mock_filter_expression, mock_query_method
+):
+
+    mock_query_method.side_effect = [MOCK_PAGINATED_RESPONSE_1]
+
+    expected_result = MOCK_PAGINATED_RESPONSE_1
+
+    actual = mock_service.query_table(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        index_name="NhsNumberIndex",
+        search_condition=TEST_NHS_NUMBER,
+        limit=4
+    )
+    assert expected_result == actual
 
 
 def test_query_with_requested_fields_raises_exception_when_results_are_empty(
