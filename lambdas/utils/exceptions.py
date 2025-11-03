@@ -159,8 +159,10 @@ class InvalidFileNameException(Exception):
 class MetadataPreprocessingException(Exception):
     pass
 
+
 class FhirDocumentReferenceException(Exception):
     pass
+
 
 class SearchDocumentReviewReferenceException(Exception):
     pass

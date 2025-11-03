@@ -1,10 +1,12 @@
 import pytest
 from botocore.exceptions import ClientError
-
 from models.document_review import DocumentUploadReviewReference
 from services.search_document_review_service import SearchDocumentReviewService
 from tests.unit.conftest import MOCK_DOCUMENT_REVIEW_TABLE, TEST_CURRENT_GP_ODS
-from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_EMPTY_RESPONSE, MOCK_SEARCH_RESPONSE
+from tests.unit.helpers.data.dynamo.dynamo_responses import (
+    MOCK_EMPTY_RESPONSE,
+    MOCK_SEARCH_RESPONSE,
+)
 from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
@@ -49,13 +51,19 @@ def test_get_review_document_references_returns_document_references(
     )
 
     expected = (
-        [DocumentUploadReviewReference.model_validate(item) for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]],
+        [
+            DocumentUploadReviewReference.model_validate(item)
+            for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
+        ],
         MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["LastEvaluatedKey"],
     )
 
     assert actual == expected
 
-def test_get_review_document_references_handles_empty_result(search_document_review_service):
+
+def test_get_review_document_references_handles_empty_result(
+    search_document_review_service,
+):
     search_document_review_service.dynamo_service.query_table.return_value = (
         MOCK_EMPTY_RESPONSE
     )
@@ -66,17 +74,35 @@ def test_get_review_document_references_handles_empty_result(search_document_rev
 
     assert actual == ([], None)
 
-def test_get_review_document_references_handles_no_limit_passed(search_document_review_service):
-    search_document_review_service.dynamo_service.query_table.return_value = MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
 
-    expected = ([DocumentUploadReviewReference.model_validate(item) for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]], None)
+def test_get_review_document_references_handles_no_limit_passed(
+    search_document_review_service,
+):
+    search_document_review_service.dynamo_service.query_table.return_value = (
+        MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
+    )
 
-    actual = search_document_review_service.get_review_document_references(TEST_CURRENT_GP_ODS)
+    expected = (
+        [
+            DocumentUploadReviewReference.model_validate(item)
+            for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
+        ],
+        None,
+    )
+
+    actual = search_document_review_service.get_review_document_references(
+        TEST_CURRENT_GP_ODS
+    )
 
     assert actual == expected
 
-def test_get_review_document_references_throws_exception_client_error(search_document_review_service):
-    search_document_review_service.dynamo_service.query_table.side_effect = ClientError({"error": "test error message"}, "test")
+
+def test_get_review_document_references_throws_exception_client_error(
+    search_document_review_service,
+):
+    search_document_review_service.dynamo_service.query_table.side_effect = ClientError(
+        {"error": "test error message"}, "test"
+    )
 
     with pytest.raises(SearchDocumentReviewReferenceException):
         search_document_review_service.get_review_document_references(
@@ -84,20 +110,32 @@ def test_get_review_document_references_throws_exception_client_error(search_doc
         )
 
 
-def test_validate_search_response_items_returns_document_upload_review_references(search_document_review_service):
+def test_validate_search_response_items_returns_document_upload_review_references(
+    search_document_review_service,
+):
     search_document_review_service.dynamo_service.query_table.return_value = (
         MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE
     )
 
-    expected = [DocumentUploadReviewReference.model_validate(item) for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]]
-    actual = search_document_review_service.validate_search_response_items(MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"])
+    expected = [
+        DocumentUploadReviewReference.model_validate(item)
+        for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
+    ]
+    actual = search_document_review_service.validate_search_response_items(
+        MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
+    )
 
     assert actual == expected
 
-def test_get_review_document_references_throws_exception_on_validation_error(search_document_review_service):
+
+def test_get_review_document_references_throws_exception_on_validation_error(
+    search_document_review_service,
+):
     search_document_review_service.dynamo_service.query_table.return_value = (
         MOCK_SEARCH_RESPONSE
     )
 
     with pytest.raises(SearchDocumentReviewReferenceException):
-        search_document_review_service.validate_search_response_items(MOCK_SEARCH_RESPONSE)
+        search_document_review_service.validate_search_response_items(
+            MOCK_SEARCH_RESPONSE
+        )
