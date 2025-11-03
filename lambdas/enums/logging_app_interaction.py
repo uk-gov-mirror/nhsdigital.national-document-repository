@@ -19,3 +19,4 @@ class LoggingAppInteraction(Enum):
     UPLOAD_CONFIRMATION = "Upload confirmation"
     UPDATE_UPLOAD_STATE = "Update upload state"
     UPDATE_REVIEW = "Update review"
+    GET_REVIEW_DOCUMENTS = "Get review documents"

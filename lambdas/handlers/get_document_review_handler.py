@@ -20,20 +20,22 @@ logger = LoggingService(__name__)
 @validate_patient_id
 @ensure_environment_variables(
     names=[
-        "DOCUMENT_STORE_DYNAMODB_NAME",
-        "LLOYD_GEORGE_DYNAMODB_NAME",
+        "DOCUMENT_REVIEW_DYNAMODB_NAME",
+        "PRESIGNED_ASSUME_ROLE",
+        "EDGE_REFERENCE_TABLE",
+        "CLOUDFRONT_URL",
     ]
 )
 @override_error_check
 @handle_lambda_exceptions
 def lambda_handler(event, context):
-    request_context.app_interaction = LoggingAppInteraction.VIEW_PATIENT.value
+    request_context.app_interaction = LoggingAppInteraction.GET_REVIEW_DOCUMENTS.value
 
     logger.info("Get Document Review handler has been triggered")
 
     # Extract patient_id from query string parameters
     query_params = event.get("queryStringParameters", {})
-    patient_id = query_params.get("patient_id")
+    patient_id = query_params.get("patientId", "")
 
     if not patient_id:
         logger.error("Missing patient_id in query string parameters")
@@ -81,4 +83,3 @@ def lambda_handler(event, context):
             LambdaError.DocumentReferenceNotFound.create_error_body(),
             "GET",
         ).create_api_gateway_response()
-

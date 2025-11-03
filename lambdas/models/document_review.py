@@ -17,6 +17,7 @@ class DocumentReviewFileDetails(BaseModel):
 
     file_name: str
     file_location: str
+    presigned_url: Optional[str] = None
 
 
 class DocumentUploadReviewReference(BaseModel):
@@ -39,7 +40,7 @@ class DocumentUploadReviewReference(BaseModel):
     review_date: int = Field(default=None)
     reviewer: str = Field(default=None)
     upload_date: int
-    files: list[DocumentReviewFileDetails]
+    files: list[DocumentReviewFileDetails] = Field(min_length=1)
     nhs_number: str
     ttl: Optional[int] = Field(
         alias=str(DocumentReferenceMetadataFields.TTL.value), default=None

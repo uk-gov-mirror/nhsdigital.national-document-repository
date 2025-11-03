@@ -138,6 +138,7 @@ MOCK_SLACK_BOT_TOKEN = f"xoxb-{TEST_UUID}"
 MOCK_ALERTING_SLACK_CHANNEL_ID = "slack_channel_id"
 MOCK_DOCUMENT_REVIEW_TABLE = "test_document_review"
 MOCK_DOCUMENT_REVIEW_BUCKET = "test_document_review_bucket"
+MOCK_EDGE_TABLE = "test_edge_reference_table"
 
 @pytest.fixture
 def set_env(monkeypatch):
@@ -228,7 +229,7 @@ def set_env(monkeypatch):
     monkeypatch.setenv("ITOC_TESTING_ODS_CODES", MOCK_ITOC_ODS_CODES)
     monkeypatch.setenv("DOCUMENT_REVIEW_DYNAMODB_NAME", MOCK_DOCUMENT_REVIEW_TABLE)
     monkeypatch.setenv("DOCUMENT_REVIEW_S3_BUCKET_NAME", MOCK_DOCUMENT_REVIEW_BUCKET)
-
+    monkeypatch.setenv("EDGE_REFERENCE_TABLE", MOCK_EDGE_TABLE)
 
 EXPECTED_PARSED_PATIENT_BASE_CASE = PatientDetails(
     givenName=["Jane"],
