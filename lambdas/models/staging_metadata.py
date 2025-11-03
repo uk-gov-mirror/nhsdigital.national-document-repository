@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Optional
 
 METADATA_FILENAME = "metadata.csv"
 NHS_NUMBER_FIELD_NAME = "NHS-NO"
@@ -26,17 +27,17 @@ class BulkUploadQueueMetadata(MetadataBase):
 
 
 class MetadataFile(MetadataBase):
-    model_config = ConfigDict(
+    model_config: ConfigDict = ConfigDict(
         alias_generator=to_upper_case_with_hyphen,
     )
     nhs_number: str = Field(alias=NHS_NUMBER_FIELD_NAME)
     file_path: str = Field(alias="FILEPATH")
-    page_count: str = Field(default=None, alias="PAGE COUNT")
-    section: str = None
-    sub_section: str = None
-    scan_id: str = None
-    user_id: str = None
-    upload: str = None
+    page_count: Optional[str] = Field(default=None, alias="PAGE COUNT")
+    section: Optional[str] = None
+    sub_section: Optional[str] = None
+    scan_id: Optional[str] = None
+    user_id: Optional[str] = None
+    upload: Optional[str] = None
 
 
 class StagingSqsMetadata(BaseModel):
