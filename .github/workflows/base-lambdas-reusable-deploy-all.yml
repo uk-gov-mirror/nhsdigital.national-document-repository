@@ -654,3 +654,17 @@ jobs:
       lambda_layer_names: "core_lambda_layer"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  deploy_search_document_review_lambda:
+    name: Deploy Search Document Review
+    uses: ./.github/workflows/base-lambdas-reusable-deploy.yml
+    with:
+      environment: ${{ inputs.environment }}
+      python_version: ${{ inputs.python_version }}
+      build_branch: ${{ inputs.build_branch }}
+      sandbox: ${{ inputs.sandbox }}
+      lambda_handler_name: search_document_review_handler
+      lambda_aws_name: SearchDocumentReview
+      lambda_layer_names: "core_lambda_layer"
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
