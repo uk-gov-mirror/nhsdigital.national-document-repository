@@ -36,8 +36,8 @@ class DocumentUploadReviewReference(BaseModel):
         default=DocumentReviewStatus.PENDING_REVIEW
     )
     review_reason: str
-    review_date: int = Field(default=None)
-    reviewer: str = Field(default=None)
+    review_date: Optional[int] = Field(default=None)
+    reviewer: Optional[str] = Field(default=None)
     upload_date: int
     files: list[DocumentReviewFileDetails]
     nhs_number: str

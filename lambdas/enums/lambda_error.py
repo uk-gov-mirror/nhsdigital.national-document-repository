@@ -672,3 +672,12 @@ class LambdaError(Enum):
         "message": "An internal server error occurred",
         "fhir_coding": FhirIssueCoding.EXCEPTION,
     }
+
+    """
+        Errors for SearchDocumentReviewReference exceptions
+    """
+    SearchDocumentReviewDB = {
+        "err_code": "SDR_5001",
+        "message": RETRIEVE_DOCUMENTS,
+    }
+

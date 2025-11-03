@@ -161,3 +161,6 @@ class MetadataPreprocessingException(Exception):
 
 class FhirDocumentReferenceException(Exception):
     pass
+
+class SearchDocumentReviewReferenceException(Exception):
+    pass

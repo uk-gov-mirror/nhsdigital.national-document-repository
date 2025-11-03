@@ -26,9 +26,7 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "Author": MOCK_PREVIOUS_ODS_CODE,
             "Custodian": TEST_CURRENT_GP_ODS,
             "UploadDate": 1704110400,
-            "Reviewer": None,
             "NhsNumber": TEST_NHS_NUMBER,
-            "ReviewDate": None,
             "ReviewReason": "Failure",
             "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
@@ -50,9 +48,7 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "Author": MOCK_PREVIOUS_ODS_CODE,
             "Custodian": TEST_CURRENT_GP_ODS,
             "UploadDate": 1704110400,
-            "Reviewer": None,
             "NhsNumber": TEST_NHS_NUMBER,
-            "ReviewDate": None,
             "ReviewReason": "Failure",
             "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
