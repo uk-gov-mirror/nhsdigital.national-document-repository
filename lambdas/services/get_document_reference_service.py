@@ -68,15 +68,15 @@ class GetDocumentReferenceService:
         filter_builder.add_condition("DocStatus", AttributeOperator.EQUAL, "final")
         filter_builder.add_condition("NhsNumber", AttributeOperator.EQUAL, nhs_number)
 
-        filter = filter_builder.build()
+        table_filter = filter_builder.build()
 
-        filter = filter & NotDeleted
+        table_filter = table_filter & NotDeleted
 
         documents = self.document_service.fetch_documents_from_table(
             table=self.lg_table,
             search_condition=document_id,
             search_key="ID",
-            query_filter=filter,
+            query_filter=table_filter,
         )
         if len(documents) > 0:
             logger.info("Document found for given id")
