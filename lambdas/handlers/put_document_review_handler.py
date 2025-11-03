@@ -54,9 +54,24 @@ def lambda_handler(event, context):
 
     review_request = PutDocumentReviewRequest.model_validate_json(body)
 
+    reviewer_ods_code = None
+    if isinstance(request_context.authorization, dict):
+        reviewer_ods_code = request_context.authorization.get(
+            "selected_organisation", {}
+        ).get("org_ods_code")
+
+    if not reviewer_ods_code:
+        logger.error("Missing ODS code in authorization token")
+        raise PutDocumentReviewException(
+            401, LambdaError.DocumentReferenceUnauthorised
+        )
+
     document_review_service = PutDocumentReviewService()
-    updated_review = document_review_service.update_document_review(
-        patient_id=patient_id, document_id=document_id, update_data=review_request
+    document_review_service.update_document_review(
+        patient_id=patient_id,
+        document_id=document_id,
+        update_data=review_request,
+        reviewer_ods_code=reviewer_ods_code,
     )
 
     logger.info(
@@ -64,6 +79,6 @@ def lambda_handler(event, context):
         {"Result": "Successful document review update"},
     )
     return ApiGatewayResponse(
-        200, json.dumps(updated_review), "PUT"
+        200, "", "PUT"
     ).create_api_gateway_response()
 

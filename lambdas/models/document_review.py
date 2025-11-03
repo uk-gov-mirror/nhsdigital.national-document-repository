@@ -50,8 +50,8 @@ class DocumentUploadReviewReference(BaseModel):
 
 
 class PutDocumentReviewRequest(BaseModel):
-    """
-    Model for validating PUT document review request body.
+    """Model for validating PUT document review request body.
+
     Contains the review outcome and optional document reference ID.
     """
 
@@ -70,7 +70,7 @@ class PutDocumentReviewRequest(BaseModel):
         description="Document reference ID (required when status is APPROVED)",
     )
 
-    @field_validator("document_reference_id")
+    @field_validator("document_reference_id", mode="before")
     @classmethod
     def validate_document_reference_id(cls, v, info):
         """Ensure document_reference_id is provided when review_status is APPROVED."""

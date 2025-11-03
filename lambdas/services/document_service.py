@@ -209,17 +209,49 @@ class DocumentService:
         table_name: str = None,
         document: BaseModel = None,
         update_fields_name: set[str] = None,
+        condition_expression: str | Attr | ConditionBase = None,
+        expression_attribute_values: dict = None,
     ):
-        """Update document in specified or configured table."""
+        """Update document in specified or configured table.
+
+        By default, this method ensures the document exists before updating (prevents creating new items).
+        If you need different behaviour, provide your own condition_expression.
+
+        Args:
+            table_name: Optional table name, defaults to self.table_name.
+            document: The document model to update.
+            update_fields_name: Set of field names to include in the update.
+            condition_expression: Optional DynamoDB condition expression (string or Attr/ConditionBase).
+                                 If None, defaults to checking that the ID exists.
+            expression_attribute_values: Optional expression attribute values for the condition.
+
+        Returns:
+            DynamoDB update response.
+
+        Raises:
+            ClientError: If the condition check fails (e.g. a document doesn't exist).
+        """
         table_to_use = table_name or self.table_name
 
-        self.dynamo_service.update_item(
-            table_name=table_to_use,
-            key_pair={DocumentReferenceMetadataFields.ID.value: document.id},
-            updated_fields=document.model_dump(
+        update_kwargs = {
+            "table_name": table_to_use,
+            "key_pair": {DocumentReferenceMetadataFields.ID.value: document.id},
+            "updated_fields": document.model_dump(
                 exclude_none=True, by_alias=True, include=update_fields_name
             ),
-        )
+        }
+
+        # If no condition provided, default to ensuring the document exists
+        # This prevents accidentally creating new items when updating
+        if condition_expression is None:
+            condition_expression = Attr(DocumentReferenceMetadataFields.ID.value).exists()
+
+        update_kwargs["condition_expression"] = condition_expression
+
+        if expression_attribute_values:
+            update_kwargs["expression_attribute_values"] = expression_attribute_values
+
+        return self.dynamo_service.update_item(**update_kwargs)
 
     def hard_delete_metadata_records(
         self, table_name: str, document_references: list[BaseModel]
@@ -258,3 +290,4 @@ class DocumentService:
 
         found_docs = [model_to_use.model_validate(item) for item in response]
         return found_docs
+
