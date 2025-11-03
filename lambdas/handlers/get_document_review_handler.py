@@ -20,7 +20,7 @@ logger = LoggingService(__name__)
 @validate_patient_id
 @ensure_environment_variables(
     names=[
-        "DOCUMENT_REVIEW_DYNAMO_NAME",
+        "DOCUMENT_REVIEW_DYNAMODB_NAME",
         "PRESIGNED_ASSUME_ROLE",
         "EDGE_REFERENCE_TABLE",
         "CLOUDFRONT_URL",
