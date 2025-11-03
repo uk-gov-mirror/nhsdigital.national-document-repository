@@ -6,7 +6,6 @@ from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
 from services.document_review_processor_service import (
     ReviewProcessorService,
 )
-from utils.exceptions import S3FileNotFoundException
 from models.document_review import DocumentReviewFileDetails
 
 
