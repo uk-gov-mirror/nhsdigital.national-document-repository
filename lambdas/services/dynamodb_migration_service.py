@@ -92,6 +92,7 @@ class DynamoDBMigrationService:
                     label=label,
                     entries=items,
                     update_fn=update_fn,
+                    segment=self.segment
                 )
                 self.updated_count += len(items)
             except Exception as step_error:
