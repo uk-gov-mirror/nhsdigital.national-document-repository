@@ -5,6 +5,7 @@ from models.document_reference import DocumentReference
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 from utils.audit_logging_setup import LoggingService
+from lambdas.utils.exceptions import MigrationUnrecoverableException, MigrationRetryableException
 
 
 class VersionMigration(MigrationBase):
@@ -42,7 +43,9 @@ class VersionMigration(MigrationBase):
 
         if entries is None:
             self.logger.error("No entries provided after scanning entire table.")
-            raise ValueError("Entries must be provided to main().")
+            raise MigrationRetryableException(
+                message="Entries missing for segment worker", segment_id=None
+            )
 
         return [("LGTableValues", self.get_updated_items)]
 
@@ -84,7 +87,9 @@ class VersionMigration(MigrationBase):
             self.logger.warning(
                 f"[Custodian] CurrentGpOds is missing for item {entry.get('ID')}"
             )
-            return None
+            raise MigrationUnrecoverableException(
+                message="CurrentGpOds is missing", item_id=entry.get("ID")
+            )
         if current_gp_ods is None or current_gp_ods != custodian:
             return {"Custodian": current_gp_ods}
 
@@ -142,11 +147,12 @@ class VersionMigration(MigrationBase):
             self.logger.warning(
                 f"{entry.get('ID')}: Document has a status of uploading and uploaded."
             )
+            raise MigrationUnrecoverableException(
+                message="Document has a status of uploading and uploaded", item_id=entry.get("ID")
+            )
 
         if entry.get("DocStatus", "") == inferred_status:
             return None
-
-        self.logger.warning(f"{entry.get('ID')}: {inferred_status}")
 
         if inferred_status:
             return {"DocStatus": inferred_status}
@@ -154,4 +160,6 @@ class VersionMigration(MigrationBase):
         self.logger.warning(
             f"[DocStatus] Cannot determine status for item {entry.get('ID')}"
         )
-        return None
+        raise MigrationUnrecoverableException(
+            message="Cannot determine document status", item_id=entry.get("ID")
+        )
