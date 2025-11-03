@@ -114,22 +114,22 @@ class LambdaError(Enum):
         "err_code": "UDR_4001",
         "message": "Missing event body",
         "fhir_coding": FhirIssueCoding.REQUIRED,
-        }
+    }
     UpdateDocPayload = {
         "err_code": "UDR_4002",
         "message": "Invalid json in body",
         "fhir_coding": FhirIssueCoding.INVALID,
-        }
+    }
     UpdateDocProps = {
         "err_code": "UDR_4003",
         "message": "Request body missing some properties",
-        "fhircoding": FhirIssueCoding.REQUIRED
+        "fhircoding": FhirIssueCoding.REQUIRED,
     }
     UpdateDocFiles = {
         "err_code": "UDR_4004",
         "message": "Invalid files or id",
-        "fhir_coding": FhirIssueCoding.INVALID
-        }
+        "fhir_coding": FhirIssueCoding.INVALID,
+    }
     UpdateDocNoParse = {
         "err_code": "UDR_4005",
         "message": "Failed to parse document upload request data",
@@ -163,7 +163,7 @@ class LambdaError(Enum):
     UpdateDocUploadInternalError = {
         "err_code": "UDR_5002",
         "message": "An error occurred when creating pre-signed url for document reference",
-        "fhir_coding": FhirIssueCoding.EXCEPTION
+        "fhir_coding": FhirIssueCoding.EXCEPTION,
     }
     UpdatePatientSearchInvalid = {
         "err_code": "UDR_5003",
@@ -178,12 +178,12 @@ class LambdaError(Enum):
     UpdateDocNHSNumberMismatch = {
         "err_code": "UDR_5005",
         "message": "NHS number did not match",
-        "fhir_coding": FhirIssueCoding.INVARIANT
+        "fhir_coding": FhirIssueCoding.INVARIANT,
     }
     UpdateDocNotLatestVersion = {
         "err_code": "UDR_5006",
         "message": "Document is not the latest version",
-        "fhir_coding": FhirIssueCoding.INVARIANT
+        "fhir_coding": FhirIssueCoding.INVARIANT,
     }
 
     """

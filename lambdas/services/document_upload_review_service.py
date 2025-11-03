@@ -69,12 +69,13 @@ class DocumentUploadReviewService(DocumentService):
         Raises:
             DynamoServiceException: If the condition check fails (document not found or NHS number mismatch).
         """
-        condition_expression = (
-            Attr(DocumentReferenceMetadataFields.ID.value).exists()
-            & Attr("NhsNumber").eq(patient_nhs_number)
-        )
+        condition_expression = Attr(
+            DocumentReferenceMetadataFields.ID.value
+        ).exists() & Attr("NhsNumber").eq(patient_nhs_number)
 
-        field_names = set(review_update_fields.model_dump(by_alias=False, exclude_none=True).keys())
+        field_names = set(
+            review_update_fields.model_dump(by_alias=False, exclude_none=True).keys()
+        )
 
         review_update_fields.id = document_review_id
 
@@ -101,4 +102,3 @@ class DocumentUploadReviewService(DocumentService):
                 {"Result": "Failed to update document review"},
             )
             raise DynamoServiceException(f"Failed to update document review: {str(e)}")
-

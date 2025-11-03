@@ -1,5 +1,5 @@
 import time
-from typing import Iterator, Optional
+from typing import Optional
 
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
@@ -92,12 +92,12 @@ class DynamoDBService:
             raise e
 
     def update_item(
-            self,
-            table_name: str,
-            key_pair: dict[str, str],
-            updated_fields: dict,
-            condition_expression: str = None,
-            expression_attribute_values: dict = None,
+        self,
+        table_name: str,
+        key_pair: dict[str, str],
+        updated_fields: dict,
+        condition_expression: str = None,
+        expression_attribute_values: dict = None,
     ):
         table = self.get_table(table_name)
         updated_field_names = list(updated_fields.keys())
@@ -136,10 +136,10 @@ class DynamoDBService:
             raise e
 
     def scan_table(
-            self,
-            table_name: str,
-            exclusive_start_key: dict = None,
-            filter_expression: str = None,
+        self,
+        table_name: str,
+        exclusive_start_key: dict = None,
+        filter_expression: str = None,
     ):
         try:
             table = self.get_table(table_name)
@@ -158,10 +158,10 @@ class DynamoDBService:
             raise e
 
     def scan_whole_table(
-            self,
-            table_name: str,
-            project_expression: Optional[str] = None,
-            filter_expression: Optional[str] = None,
+        self,
+        table_name: str,
+        project_expression: Optional[str] = None,
+        filter_expression: Optional[str] = None,
     ) -> list[dict]:
         try:
             table = self.get_table(table_name)
@@ -224,7 +224,7 @@ class DynamoDBService:
                     )
                     request_items = unprocessed_keys
                     retries += 1
-                    time.sleep((2 ** retries) * 0.1)
+                    time.sleep((2**retries) * 0.1)
                 else:
                     break
 

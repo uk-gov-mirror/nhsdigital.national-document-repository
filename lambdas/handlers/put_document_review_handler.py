@@ -1,10 +1,7 @@
-import json
-from datetime import datetime, timezone
 
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from models.document_review import PutDocumentReviewRequest
-from pydantic import ValidationError
 from services.put_document_review_service import PutDocumentReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -62,9 +59,7 @@ def lambda_handler(event, context):
 
     if not reviewer_ods_code:
         logger.error("Missing ODS code in authorization token")
-        raise PutDocumentReviewException(
-            401, LambdaError.DocumentReferenceUnauthorised
-        )
+        raise PutDocumentReviewException(401, LambdaError.DocumentReferenceUnauthorised)
 
     document_review_service = PutDocumentReviewService()
     document_review_service.update_document_review(
@@ -78,7 +73,4 @@ def lambda_handler(event, context):
         "Document review updated successfully",
         {"Result": "Successful document review update"},
     )
-    return ApiGatewayResponse(
-        200, "", "PUT"
-    ).create_api_gateway_response()
-
+    return ApiGatewayResponse(200, "", "PUT").create_api_gateway_response()

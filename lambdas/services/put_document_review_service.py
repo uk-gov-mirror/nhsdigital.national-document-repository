@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
 
 from enums.lambda_error import LambdaError
-from models.document_review import DocumentUploadReviewReference, PutDocumentReviewRequest
+from models.document_review import (
+    DocumentUploadReviewReference,
+    PutDocumentReviewRequest,
+)
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import DynamoServiceException
@@ -22,7 +25,7 @@ class PutDocumentReviewService:
         document_id: str,
         update_data: PutDocumentReviewRequest,
         reviewer_ods_code: str,
-    ) :
+    ):
         """Update a document review with the provided review status and document reference ID.
 
         Only updates if the document_id and nhs_number match the existing record in DynamoDB.
@@ -60,7 +63,6 @@ class PutDocumentReviewService:
                 f"Successfully updated document review for document_id: {document_id}"
             )
 
-
         except DynamoServiceException as e:
             logger.error(
                 f"DynamoDB service error: {str(e)}",
@@ -77,4 +79,3 @@ class PutDocumentReviewService:
             raise PutDocumentReviewException(
                 500, LambdaError.DocumentReferenceGeneralError
             )
-

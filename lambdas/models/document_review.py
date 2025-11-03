@@ -80,5 +80,3 @@ class PutDocumentReviewRequest(BaseModel):
                 "document_reference_id is required when review_status is APPROVED"
             )
         return v
-
-

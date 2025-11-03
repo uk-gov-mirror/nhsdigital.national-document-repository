@@ -140,6 +140,7 @@ MOCK_DOCUMENT_REVIEW_TABLE = "test_document_review"
 MOCK_DOCUMENT_REVIEW_BUCKET = "test_document_review_bucket"
 MOCK_EDGE_TABLE = "test_edge_reference_table"
 
+
 @pytest.fixture
 def set_env(monkeypatch):
     monkeypatch.setenv("AWS_DEFAULT_REGION", REGION_NAME)
@@ -230,6 +231,7 @@ def set_env(monkeypatch):
     monkeypatch.setenv("DOCUMENT_REVIEW_DYNAMODB_NAME", MOCK_DOCUMENT_REVIEW_TABLE)
     monkeypatch.setenv("DOCUMENT_REVIEW_S3_BUCKET_NAME", MOCK_DOCUMENT_REVIEW_BUCKET)
     monkeypatch.setenv("EDGE_REFERENCE_TABLE", MOCK_EDGE_TABLE)
+
 
 EXPECTED_PARSED_PATIENT_BASE_CASE = PatientDetails(
     givenName=["Jane"],
