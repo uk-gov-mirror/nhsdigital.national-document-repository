@@ -10,10 +10,12 @@ class SearchDocumentReviewService:
 
     def get_review_document_references(self, ods_code, limit):
 
-        self.dynamo_service.query_table(
+        response = self.dynamo_service.query_table(
             table_name=os.environ["DOCUMENT_REVIEW_DYNAMODB_NAME"],
             search_key="Custodian",
             search_condition=ods_code,
             index_name="CustodianIndex",
             limit=limit,
         )
+
+        return response["Items"], response["LastEvaluatedKey"]
