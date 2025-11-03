@@ -175,4 +175,10 @@ class MigrationUnrecoverableException(Exception):
         return {"itemId": self.item_id, "message": self.message}  
 
 class MigrationRetryableException(Exception):
-    pass
+    def __inti__(self, message: str, segment_id: str):
+        super().__init__(message)
+        self.message = message
+        self.segment_id = segment_id
+
+    def to_dict(self):
+        return {"segmentId": self.segment_id, "message": self.message}

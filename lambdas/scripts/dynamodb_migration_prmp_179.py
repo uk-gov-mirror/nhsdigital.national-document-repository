@@ -1,6 +1,7 @@
 from typing import Callable, Iterable
 
 from lambdas.utils.exceptions import MigrationUnrecoverableException
+from lambdas.utils.exceptions import MigrationRetryableException
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
@@ -43,7 +44,9 @@ class S3MetadataMigration(MigrationBase):
 
         if entries is None:
             self.logger.error("No entry provided.")
-            raise ValueError("Entries must be provided to main().")
+            raise MigrationRetryableException(
+                message="Entries missing for segment worker", segment_id=None
+            )
 
         return [("S3Metadata", self.get_updated_items)]
 
