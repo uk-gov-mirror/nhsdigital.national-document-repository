@@ -1,12 +1,10 @@
 from unittest.mock import MagicMock
 
 import pytest
-from freezegun import freeze_time
-from pydantic import ValidationError
-
 from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
+from freezegun import freeze_time
 from models.document_review import (
     DocumentReviewFileDetails,
     DocumentUploadReviewReference,
@@ -14,7 +12,8 @@ from models.document_review import (
 from services.get_document_review_service import GetDocumentReviewService
 from tests.unit.conftest import (
     MOCK_DOCUMENT_REVIEW_BUCKET,
-    TEST_NHS_NUMBER, MOCK_EDGE_TABLE,
+    MOCK_EDGE_TABLE,
+    TEST_NHS_NUMBER,
 )
 from utils.exceptions import DynamoServiceException
 from utils.lambda_exceptions import GetDocumentReviewException
@@ -107,7 +106,9 @@ def test_get_document_review_success(mock_service, mock_document_review, mocker)
     assert result["Files"][1]["FileName"] == "file2.pdf"
     assert result["Files"][1]["PresignedUrl"].startswith(TEST_CLOUDFRONT_URL)
 
-    mock_service.document_review_service.get_item.assert_called_once_with(TEST_DOCUMENT_ID)
+    mock_service.document_review_service.get_item.assert_called_once_with(
+        TEST_DOCUMENT_ID
+    )
 
     assert mock_service.s3_service.create_download_presigned_url.call_count == 2
     mock_service.s3_service.create_download_presigned_url.assert_any_call(
@@ -119,7 +120,9 @@ def test_get_document_review_success(mock_service, mock_document_review, mocker)
         file_key="file2.pdf",
     )
 
-    assert mock_service.document_review_service.dynamo_service.create_item.call_count == 2
+    assert (
+        mock_service.document_review_service.dynamo_service.create_item.call_count == 2
+    )
 
 
 def test_get_document_review_not_found(mock_service):
@@ -194,7 +197,6 @@ def test_create_cloudfront_presigned_url(mock_service, mock_uuid, mocker):
         return_value=f"{TEST_CLOUDFRONT_URL}/review/{mock_uuid}",
     )
 
-
     result = mock_service.create_cloudfront_presigned_url(TEST_FILE_LOCATION_1)
 
     assert result == f"{TEST_CLOUDFRONT_URL}/review/{mock_uuid}"
@@ -217,10 +219,14 @@ def test_create_cloudfront_presigned_url(mock_service, mock_uuid, mocker):
 
 
 @freeze_time("2023-11-03T12:00:00Z")
-def test_create_cloudfront_presigned_url_with_nested_path(mock_service, mock_uuid, mocker):
+def test_create_cloudfront_presigned_url_with_nested_path(
+    mock_service, mock_uuid, mocker
+):
     """Test creating a CloudFront presigned URL with a nested S3 path."""
     file_location = f"s3://{MOCK_DOCUMENT_REVIEW_BUCKET}/nested/path/to/file.pdf"
-    mock_service.s3_service.create_download_presigned_url.return_value = TEST_PRESIGNED_URL_1
+    mock_service.s3_service.create_download_presigned_url.return_value = (
+        TEST_PRESIGNED_URL_1
+    )
 
     mocker.patch(
         "services.get_document_review_service.format_cloudfront_url",
@@ -238,13 +244,17 @@ def test_create_cloudfront_presigned_url_with_nested_path(mock_service, mock_uui
 
 
 @freeze_time("2023-11-03T12:00:00Z")
-def test_create_cloudfront_presigned_url_calculates_correct_ttl(mock_service, mock_uuid, mocker):
+def test_create_cloudfront_presigned_url_calculates_correct_ttl(
+    mock_service, mock_uuid, mocker
+):
     """Test that TTL is calculated correctly based on presigned URL expiry."""
     mock_service.s3_service.create_download_presigned_url.return_value = (
         TEST_PRESIGNED_URL_1
     )
     mock_service.s3_service.presigned_url_expiry = 3600  # 1 hour
-    mocker.patch("services.get_document_review_service.uuid.uuid4", return_value=mock_uuid)
+    mocker.patch(
+        "services.get_document_review_service.uuid.uuid4", return_value=mock_uuid
+    )
 
     mocker.patch(
         "services.get_document_review_service.format_cloudfront_url",
@@ -258,4 +268,3 @@ def test_create_cloudfront_presigned_url_calculates_correct_ttl(mock_service, mo
     )
     expected_ttl = 1699012800 + 3600  # frozen time timestamp + 1 hour
     assert call_args[0][1]["TTL"] == expected_ttl
-

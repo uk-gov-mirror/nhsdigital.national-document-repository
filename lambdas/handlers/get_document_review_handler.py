@@ -83,4 +83,3 @@ def lambda_handler(event, context):
             LambdaError.DocumentReferenceNotFound.create_error_body(),
             "GET",
         ).create_api_gateway_response()
-

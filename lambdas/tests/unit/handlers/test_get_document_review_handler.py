@@ -1,13 +1,10 @@
 import json
 
 import pytest
-
 from enums.lambda_error import LambdaError
 from handlers.get_document_review_handler import lambda_handler
-from unit.conftest import MockError
 from utils.lambda_exceptions import GetDocumentReviewException
 from utils.lambda_response import ApiGatewayResponse
-
 
 MOCK_DOCUMENT_REVIEW_RESPONSE = {
     "ID": "test-document-id",
@@ -104,7 +101,9 @@ def test_lambda_handler_returns_404_when_document_review_not_found(
             "interaction_id": "88888888-4444-4444-4444-121212121212",
         }
     )
-    expected = ApiGatewayResponse(404, expected_body, "GET").create_api_gateway_response()
+    expected = ApiGatewayResponse(
+        404, expected_body, "GET"
+    ).create_api_gateway_response()
 
     actual = lambda_handler(valid_get_document_review_event, context)
 
@@ -144,7 +143,6 @@ def test_lambda_handler_when_patient_id_not_valid_returns_400(
     assert expected == actual
 
 
-
 def test_lambda_handler_when_document_id_not_supplied_returns_400(
     set_env, missing_document_id_event, context
 ):
@@ -173,4 +171,3 @@ def test_lambda_handler_missing_environment_variables_returns_500(
     ).create_api_gateway_response()
     actual = lambda_handler(valid_get_document_review_event, context)
     assert expected == actual
-

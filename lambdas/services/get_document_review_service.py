@@ -26,9 +26,7 @@ class GetDocumentReviewService:
         self.cloudfront_table_name = os.environ.get("EDGE_REFERENCE_TABLE")
         self.cloudfront_url = os.environ.get("CLOUDFRONT_URL")
 
-    def get_document_review(
-        self, patient_id: str, document_id: str
-    ) -> Optional[dict]:
+    def get_document_review(self, patient_id: str, document_id: str) -> Optional[dict]:
         """
         Retrieve a document review for a given patient and document.
 
@@ -44,9 +42,7 @@ class GetDocumentReviewService:
             document_review_item = self.document_review_service.get_item(document_id)
 
             if not document_review_item:
-                logger.info(
-                    f"No document review found for document_id: {document_id}"
-                )
+                logger.info(f"No document review found for document_id: {document_id}")
                 return None
 
             if document_review_item.nhs_number != patient_id:
@@ -104,7 +100,7 @@ class GetDocumentReviewService:
             file_key=file_key,
         )
 
-        presigned_id = 'review/' + str(uuid.uuid4())
+        presigned_id = "review/" + str(uuid.uuid4())
 
         deletion_date = datetime.now(timezone.utc)
         ttl_half_an_hour_in_seconds = self.s3_service.presigned_url_expiry
@@ -113,11 +109,10 @@ class GetDocumentReviewService:
         self.document_review_service.dynamo_service.create_item(
             self.cloudfront_table_name,
             {
-                "ID": f'{presigned_id}',
+                "ID": f"{presigned_id}",
                 "presignedUrl": presign_url_response,
                 "TTL": dynamo_item_ttl,
             },
         )
 
         return format_cloudfront_url(presigned_id, self.cloudfront_url)
-

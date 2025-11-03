@@ -122,8 +122,7 @@ class DocumentService:
 
         try:
             response = self.dynamo_service.get_item(
-                table_name=table_to_use,
-                key={"ID": document_id}
+                table_name=table_to_use, key={"ID": document_id}
             )
 
             if "Item" not in response:
@@ -137,7 +136,6 @@ class DocumentService:
             logger.error(f"Validation error on document: {response.get('Item')}")
             logger.error(f"{e}")
             return None
-
 
     def get_nhs_numbers_based_on_ods_code(
         self, ods_code: str, table_name: str = None
