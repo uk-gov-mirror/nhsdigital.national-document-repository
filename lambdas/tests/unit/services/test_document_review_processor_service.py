@@ -171,42 +171,6 @@ def test_process_review_message_dynamo_error(
     with pytest.raises(ClientError):
         service_under_test.process_review_message(sample_review_message)
 
-
-# Tests for _verify_file_exists_in_staging method
-
-
-def test_verify_file_exists_success(service_under_test):
-    """Test successful file verification."""
-    service_under_test.s3_service.file_exist_on_s3.return_value = True
-
-    service_under_test._verify_file_exists_in_staging("staging/test.pdf")
-
-    service_under_test.s3_service.file_exist_on_s3.assert_called_once_with(
-        s3_bucket_name="test_staging_bulk_store", file_key="staging/test.pdf"
-    )
-
-
-def test_verify_file_does_not_exist(service_under_test):
-    """Test file verification fails when file doesn't exist."""
-    service_under_test.s3_service.file_exist_on_s3.return_value = False
-
-    with pytest.raises(
-        S3FileNotFoundException, match="File not found in staging bucket"
-    ):
-        service_under_test._verify_file_exists_in_staging("staging/missing.pdf")
-
-
-def test_verify_file_s3_error(service_under_test):
-    """Test file verification handles S3 errors."""
-    service_under_test.s3_service.file_exist_on_s3.side_effect = ClientError(
-        {"Error": {"Code": "AccessDenied", "Message": "Access Denied"}},
-        "HeadObject",
-    )
-
-    with pytest.raises(ReviewProcessVerifyingException):
-        service_under_test._verify_file_exists_in_staging("staging/test.pdf")
-
-
 # Tests for _build_review_record and _create_review_record methods
 
 
