@@ -99,13 +99,25 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
-  run_e2e_tests:
-    name: Run e2e tests
-    uses: ./.github/workflows/ndr-e2e-test-sandbox.yml
+  run_lg_e2etest:
+    uses: ./.github/workflows/base-e2e-backendtest.yml
     needs: ["deploy_all_lambdas"]
     with:
       build_branch: ${{ inputs.build_branch }}
+      environment: development
       sandbox: ${{ inputs.sandbox }}
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  run_pdm_e2etest:
+    uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
+    needs: ["deploy_all_lambdas"]
+    with:
+      build_branch: ${{ inputs.build_branch }}
+      environment: development
+      sandbox: ${{ inputs.sandbox }}
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
   deploy_ui:
     name: Deploy UI
