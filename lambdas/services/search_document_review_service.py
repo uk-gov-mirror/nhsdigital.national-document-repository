@@ -18,4 +18,7 @@ class SearchDocumentReviewService:
             limit=limit,
         )
 
-        return response["Items"], response["LastEvaluatedKey"]
+        references = response["Items"]
+        last_evaluated_key = response.get("LastEvaluatedKey", None)
+
+        return references, last_evaluated_key

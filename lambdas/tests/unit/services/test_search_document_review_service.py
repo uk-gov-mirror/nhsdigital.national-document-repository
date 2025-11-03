@@ -1,6 +1,7 @@
 import pytest
 from services.search_document_review_service import SearchDocumentReviewService
 from tests.unit.conftest import MOCK_DOCUMENT_REVIEW_TABLE, TEST_CURRENT_GP_ODS
+from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_EMPTY_RESPONSE
 from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
@@ -49,3 +50,17 @@ def test_get_review_document_references_returns_document_references(
     )
 
     assert actual == expected
+
+def test_get_review_document_references_handles_empty_result(search_document_review_service):
+    search_document_review_service.dynamo_service.query_table.return_value = (
+        MOCK_EMPTY_RESPONSE
+    )
+
+    actual = search_document_review_service.get_review_document_references(
+        TEST_CURRENT_GP_ODS, TEST_QUERY_LIMIT
+    )
+
+    assert actual == ([], None)
+
+def test_get_review_document_references_throws_exception_client_error():
+    pass
