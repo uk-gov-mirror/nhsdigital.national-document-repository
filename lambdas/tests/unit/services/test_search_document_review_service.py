@@ -66,6 +66,15 @@ def test_get_review_document_references_handles_empty_result(search_document_rev
 
     assert actual == ([], None)
 
+def test_get_review_document_references_handles_no_limit_passed(search_document_review_service):
+    search_document_review_service.dynamo_service.query_table.return_value = MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
+
+    expected = ([DocumentUploadReviewReference.model_validate(item) for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]], None)
+
+    actual = search_document_review_service.get_review_document_references(TEST_CURRENT_GP_ODS)
+
+    assert actual == expected
+
 def test_get_review_document_references_throws_exception_client_error(search_document_review_service):
     search_document_review_service.dynamo_service.query_table.side_effect = ClientError({"error": "test error message"}, "test")
 

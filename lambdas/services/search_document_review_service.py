@@ -15,7 +15,7 @@ class SearchDocumentReviewService:
     def __init__(self):
         self.dynamo_service = DynamoDBService()
 
-    def get_review_document_references(self, ods_code, limit):
+    def get_review_document_references(self, ods_code: str, limit:int|None=None) -> tuple[list[DocumentUploadReviewReference], str|None]:
         logger.info(f"Getting review document references for {ods_code}")
 
         try:
@@ -27,8 +27,8 @@ class SearchDocumentReviewService:
                 limit=limit,
             )
 
-            references = self.validate_search_response_items(response["Items"])
-            last_evaluated_key = response.get("LastEvaluatedKey", None)
+            references = self.validate_search_response_items(response["Items"]) if limit else self.validate_search_response_items(response)
+            last_evaluated_key = response.get("LastEvaluatedKey", None) if limit else None
 
             return references, last_evaluated_key
 
@@ -36,8 +36,9 @@ class SearchDocumentReviewService:
             logger.error(e)
             raise SearchDocumentReviewReferenceException()
 
-    def validate_search_response_items(self, items):
+    def validate_search_response_items(self, items: list[dict]) -> list[DocumentUploadReviewReference]:
         try:
+            logger.info(f"Validating document review search response")
             review_references = [DocumentUploadReviewReference.model_validate(item) for item in items]
             return review_references
         except ValidationError as e:
