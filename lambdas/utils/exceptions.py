@@ -164,3 +164,15 @@ class FhirDocumentReferenceException(Exception):
 
 class TransactionConflictException(Exception):
     pass
+
+class MigrationUnrecoverableException(Exception):
+    def __inti__(self, message: str, item_id: str):
+        super().__init__(message)
+        self.message = message
+        self.item_id = item_id
+
+    def to_dict(self):
+        return {"itemId": self.item_id, "message": self.message}  
+
+class MigrationRetryableException(Exception):
+    pass
