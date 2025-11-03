@@ -35,50 +35,53 @@ def event_with_limit():
         "queryStringParameters": {
             "limit": TEST_QUERY_LIMIT,
         },
+        "headers": {"Authorization": "Bearer test_token"},
     }
 
 
-@pytest.fixture
-def event_without_limit():
-    return {
-        "httpMethod": "GET",
+@pytest.fixture()
+def mocked_request_context_with_ods(mocker):
+    mocked_context = mocker.MagicMock()
+    mocked_context.authorization = {
+        "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS},
     }
+    yield mocker.patch(
+        "handlers.search_document_review_handler.request_context", mocked_context
+    )
 
 
-@pytest.fixture
-def request_context_with_ods():
-    request_context.authorization = {
-        "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS}
+@pytest.fixture()
+def mocked_request_context_without_ods(mocker):
+    mocked_context = mocker.MagicMock()
+    mocked_context.authorization = {
+        "selected_organisation": {"org_ods_code": ""},
     }
-    return request_context
+    yield mocker.patch(
+        "handlers.search_document_review_handler.request_context", mocked_context
+    )
 
 
-@pytest.fixture
-def request_context_no_ods():
-    request_context.authorization = {"selected_organisation": {"org_ods_code": ""}}
-    return request_context
 
-
-def test_get_ods_code_from_request(request_context_with_ods):
+def test_get_ods_code_from_request(mocked_request_context_with_ods):
 
     assert get_ods_code_from_request_context() == TEST_CURRENT_GP_ODS
 
 
-def test_get_ods_code_from_request_throws_exception_no_ods(request_context_no_ods):
+def test_get_ods_code_from_request_throws_exception_no_ods(mocked_request_context_without_ods):
 
     with pytest.raises(OdsErrorException):
         get_ods_code_from_request_context()
 
 
 def test_handler_returns_400_response_no_ods_code_in_request_context(
-    set_env, context, event_without_limit, request_context_no_ods
+    set_env, context, event, mock_service, mocked_request_context_without_ods
 ):
 
     expected = ApiGatewayResponse(
         status_code=400, body="No ODS code provided.", methods="GET"
     ).create_api_gateway_response()
 
-    actual = lambda_handler(event_without_limit, context)
+    actual = lambda_handler(event, context)
 
     assert actual == expected
 
@@ -96,7 +99,7 @@ def test_get_query_limit_returns_none_no_querystring_params():
 
 
 def test_get_document_review_document_references_called_with_correct_arguments(
-    mock_service, context, set_env, request_context_with_ods, event_with_limit
+    mock_service, context, set_env, event_with_limit, mocked_request_context_with_ods
 ):
 
     lambda_handler(event_with_limit, context)
@@ -107,7 +110,7 @@ def test_get_document_review_document_references_called_with_correct_arguments(
 
 
 def test_handler_returns_empty_list_of_references_no_dynamo_results_no_limit_in_query_params(
-    mock_service, context, set_env, request_context_with_ods, event_without_limit
+    mock_service, context, set_env, mocked_request_context_with_ods, event
 ):
 
     mock_service.get_review_document_references.return_value = ([], None)
@@ -123,13 +126,13 @@ def test_handler_returns_empty_list_of_references_no_dynamo_results_no_limit_in_
         methods="GET",
     ).create_api_gateway_response()
 
-    actual = lambda_handler(event_without_limit, context)
+    actual = lambda_handler(event, context)
 
     assert actual == expected
 
 
 def test_handler_returns_list_of_references_last_evaluated_key_more_results_available(
-    mock_service, context, set_env, request_context_with_ods, event_with_limit
+    mock_service, context, set_env, mocked_request_context_with_ods, event_with_limit
 ):
 
     references = [
@@ -163,7 +166,7 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
 
 
 def test_handler_returns_list_of_references_no_limit_passed(
-    mock_service, context, set_env, request_context_with_ods, event_without_limit
+    mock_service, context, set_env, mocked_request_context_with_ods, event
 ):
     references = [
         DocumentUploadReviewReference.model_validate(item)
@@ -185,13 +188,13 @@ def test_handler_returns_list_of_references_no_limit_passed(
         methods="GET",
     ).create_api_gateway_response()
 
-    actual = lambda_handler(event_without_limit, context)
+    actual = lambda_handler(event, context)
 
     assert actual == expected
 
 
 def test_handler_returns_500_response_error_raised(
-    mock_service, context, set_env, request_context_with_ods, event_with_limit
+    mock_service, context, set_env, mocked_request_context_with_ods, event_with_limit
 ):
 
     mock_service.get_review_document_references.side_effect = (
