@@ -3,7 +3,11 @@ from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.exceptions import OdsErrorException
+from utils.lambda_response import ApiGatewayResponse
 from utils.request_context import request_context
+from utils.audit_logging_setup import LoggingService
+
+logger = LoggingService(__name__)
 
 
 @ensure_environment_variables(names=["DOCUMENT_REVIEW_DYNAMODB_NAME"])
@@ -12,12 +16,24 @@ from utils.request_context import request_context
 # @set_request_context_for_logging
 def lambda_handler(event, context):
 
-    ods_code = get_ods_code_from_request()
-    limit = get_query_limit(event)
+    try:
+        ods_code = get_ods_code_from_request()
 
-    service = SearchDocumentReviewService()
+        limit = get_query_limit(event)
 
-    service.get_review_document_references(ods_code=ods_code, limit=limit)
+        service = SearchDocumentReviewService()
+
+        service.get_review_document_references(ods_code=ods_code, limit=limit)
+
+    except OdsErrorException as e:
+        logger.error(e)
+        return ApiGatewayResponse(
+            status_code=400,
+            body="No ODS code provided.",
+            methods="GET"
+        ).create_api_gateway_response()
+
+
 
 
 def get_ods_code_from_request():

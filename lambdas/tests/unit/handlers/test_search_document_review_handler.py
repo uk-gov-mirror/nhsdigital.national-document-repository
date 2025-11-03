@@ -6,6 +6,7 @@ from handlers.search_document_review_handler import (
 )
 from tests.unit.conftest import TEST_CURRENT_GP_ODS
 from utils.exceptions import OdsErrorException
+from utils.lambda_response import ApiGatewayResponse
 from utils.request_context import request_context
 
 TEST_QUERY_LIMIT = 20
@@ -34,6 +35,22 @@ def test_get_ods_code_from_request_throws_exception_no_ods():
 
     with pytest.raises(OdsErrorException):
         get_ods_code_from_request()
+
+def test_handler_returns_400_response_no_ods_code_in_request_context(set_env, context):
+    request_context.authorization = {"selected_organisation": {"org_ods_code": ""}}
+
+    event = {
+        "httpMethod": "GET",
+    }
+
+    expected = ApiGatewayResponse(
+        status_code=400,
+        body="No ODS code provided.",
+        methods="GET").create_api_gateway_response()
+
+    actual = lambda_handler(event, context)
+
+    assert actual == expected
 
 
 def test_get_query_limit_from_querystring_params():
@@ -88,3 +105,17 @@ def test_dynamo_query_called_with_limit_from_query_string_params(
     lambda_handler(event, context)
 
     mock_service.dynamo_service.query_table.assert_called_with()
+
+
+
+def test_handler_returns_empty_list_of_references_no_dynamo_results():
+    pass
+
+def test_handler_returns_500_response_error_raised():
+    pass
+
+def test_handler_returns_list_of_references_last_evaluated_key_more_results_available():
+    pass
+
+def test_handler_returns_list_of_references_last_results_fetched():
+    pass
