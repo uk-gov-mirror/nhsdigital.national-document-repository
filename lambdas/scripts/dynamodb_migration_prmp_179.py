@@ -1,7 +1,6 @@
 from typing import Callable, Iterable
 
-from lambdas.utils.exceptions import MigrationUnrecoverableException
-from lambdas.utils.exceptions import MigrationRetryableException
+from lambdas.utils.exceptions import MigrationUnrecoverableException, MigrationRetryableException
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
