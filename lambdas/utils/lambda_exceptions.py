@@ -103,3 +103,8 @@ class UpdateFhirDocumentReferenceException(LambdaException):
 class GetDocumentReviewException(LambdaException):
     pass
 
+
+class PutDocumentReviewException(LambdaException):
+    pass
+
+
