@@ -1,6 +1,3 @@
-import io
-import json
-
 import pytest
 from models.staging_metadata import MetadataFile
 from pydantic import BaseModel
@@ -17,7 +14,9 @@ def service():
 
 def test_build_model_for_alias_calls_expected_methods(mocker, service):
     mock_validate = mocker.patch.object(service, "validate_alias_map")
-    mock_create = mocker.patch.object(service, "create_dynamic_model", return_value=BaseModel)
+    mock_create = mocker.patch.object(
+        service, "create_dynamic_model", return_value=BaseModel
+    )
 
     result = service.build_model_for_alias("general")
     assert result == BaseModel
@@ -56,7 +55,9 @@ def test_validate_and_normalize_metadata_mixed_results(mocker, service):
         {"file_path": ""},
     ]
 
-    validated, rejected, reasons = service.validate_and_normalize_metadata(records, "general")
+    validated, rejected, reasons = service.validate_and_normalize_metadata(
+        records, "general"
+    )
 
     assert len(validated) == 1
     assert len(rejected) == 1
