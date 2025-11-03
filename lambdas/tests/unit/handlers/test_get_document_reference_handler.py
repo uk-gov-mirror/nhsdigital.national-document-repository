@@ -71,8 +71,7 @@ def test_handler_valid_request_returns_200(
         feature_flag
         ):
     mock_document_id = "1"
-    mock_snomed_code = "LG"
-    valid_id_event_with_auth_header["pathParameters"] = {"id": mock_document_id + "~" + mock_snomed_code}
+    valid_id_event_with_auth_header["pathParameters"] = {"id": mock_document_id}
     valid_id_event_with_auth_header["queryStringParameters"]["patientId"] = mock_valid_nhs_number
     mock_presigned_s3_url = "https://mock.url/"
 
@@ -90,7 +89,6 @@ def test_handler_valid_request_returns_200(
 
     mock_feature_flag_service.get_feature_flags_by_flag.assert_called_once()
     mock_get_document_service.get_document_url_by_id.assert_called_once_with(
-        mock_snomed_code,
         mock_document_id,
         mock_valid_nhs_number)
 
@@ -129,9 +127,7 @@ def test_missing_nhs_number_errors(
         mocked_env_vars,
         feature_flag,
     ):
-    mock_document_id = "1"
-    mock_snomed_code = "LG"
-    valid_id_event_with_auth_header["pathParameters"] = {"id": mock_document_id + "~" + mock_snomed_code}
+    valid_id_event_with_auth_header["pathParameters"] = {"id": "1"}
     valid_id_event_with_auth_header["queryStringParameters"].pop("patientId")
 
     expected_result = ApiGatewayResponse(
@@ -175,37 +171,6 @@ def test_missing_document_id_errors(
     result = lambda_handler(valid_id_event_with_auth_header, context)
 
     assert result == expected_result
-
-def test_incorrect_document_id_format_errors(
-        valid_id_event_with_auth_header,
-        mock_feature_flag_service,
-        mock_valid_nhs_number,
-        context,
-        mocked_env_vars,
-        feature_flag,
-        mock_interaction_id
-    ):
-    valid_id_event_with_auth_header["pathParameters"] = {"id": "1"}
-    valid_id_event_with_auth_header["queryStringParameters"]["patientId"] = mock_valid_nhs_number
-
-    expected_error = GetDocumentRefException(400, LambdaError.DocumentReferenceMissingParameters)
-
-    expected_result = ApiGatewayResponse(
-        status_code=400,
-        body=ErrorResponse(
-            err_code=expected_error.err_code,
-            message=expected_error.message,
-            interaction_id=mock_interaction_id
-        ).create(),
-        methods="GET"
-    ).create_api_gateway_response()
-
-    mock_feature_flag_service.get_feature_flags_by_flag.return_value = {feature_flag: True}
-
-    result = lambda_handler(valid_id_event_with_auth_header, context)
-
-    assert result == expected_result
-    pass
 
 def test_env_vars_not_set_errors(
         valid_id_event_with_auth_header,

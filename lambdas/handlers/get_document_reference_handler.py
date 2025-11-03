@@ -44,25 +44,16 @@ def lambda_handler(event: dict[str, any], context):
     
     logger.info("Starting document fetch by ID process")
 
-    path_params = event.get("pathParameters", {}).get("id", None)
-    document_id, snomed_code = get_id_and_snomed_from_path_parameters(path_params)
+    document_id = event.get("pathParameters", {}).get("id", None)
     nhs_number = event.get("queryStringParameters", {}).get("patientId", None)
 
-    if not document_id or not snomed_code or not nhs_number:
+    if not document_id or not nhs_number:
         raise GetDocumentRefException(400, LambdaError.DocumentReferenceMissingParameters)
     
     service = GetDocumentReferenceService()
 
-    presigned_s3_url = service.get_document_url_by_id(document_id, snomed_code, nhs_number)
+    presigned_document_url = service.get_document_url_by_id(document_id, nhs_number)
 
     return ApiGatewayResponse(
-        status_code=200, body=presigned_s3_url, methods="GET"
+        status_code=200, body=presigned_document_url, methods="GET"
     ).create_api_gateway_response()
-
-def get_id_and_snomed_from_path_parameters(path_parameters):
-    """Extract document ID and SNOMED code from path parameters"""
-    if path_parameters:
-        params = path_parameters.split("~")
-        if len(params) == 2:
-            return params[1], params[0]
-    return None, None
