@@ -30,7 +30,7 @@ on:
         default: true
 
 permissions:
-  actions: read   # Required for anchore/sbom-action
+  actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   pull-requests: write
   id-token: write # This is required for requesting the JWT
@@ -98,6 +98,14 @@ jobs:
       mock_login_enabled: ${{ inputs.mock_login_enabled }}
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  run_e2e_tests:
+    name: Run e2e tests
+    uses: ./.github/workflows/ndr-e2e-test-sandbox.yml
+    needs: ["deploy_all_lambdas"]
+    with:
+      build_branch: ${{ inputs.build_branch }}
+      sandbox: ${{ inputs.sandbox }}
 
   deploy_ui:
     name: Deploy UI
