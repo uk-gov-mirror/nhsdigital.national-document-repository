@@ -28,7 +28,7 @@ def lambda_handler(event, context):
 
     Args:
         event: Lambda event containing SQS Event
-        _context: Lambda context
+        context: Lambda context
 
     Returns:
         None
@@ -39,12 +39,16 @@ def lambda_handler(event, context):
     review_service = ReviewProcessorService()
 
     for sqs_message in sqs_messages:
+        message: ReviewMessageBody | None = None
         try:
             sqs_message_body = json.loads(sqs_message["body"])
-            message: ReviewMessageBody = ReviewMessageBody.model_validate(sqs_message_body)
+            message = ReviewMessageBody.model_validate(sqs_message_body)
 
-            review_service.process_review_message(message)
-            
+            if isinstance(message, ReviewMessageBody):
+                review_service.process_review_message(message)
+            else:
+                raise ValidationError("Invalid review message format")
+        
         except ValidationError as error:
             logger.error("Malformed review message")
             logger.error(error)

@@ -5,6 +5,7 @@ from typing import Any, Mapping
 
 import boto3
 from botocore.client import Config as BotoConfig
+from types_boto3_s3 import S3Client
 from botocore.exceptions import ClientError
 from services.base.iam_service import IAMService
 from utils.audit_logging_setup import LoggingService
@@ -32,7 +33,7 @@ class S3Service:
                 max_pool_connections=20,
             )
             self.presigned_url_expiry = 1800
-            self.client = boto3.client("s3", config=self.config)
+            self.client: S3Client = boto3.client("s3", config=self.config)
             self.initialised = True
             self.custom_client = None
             self.custom_aws_role = custom_aws_role
@@ -129,6 +130,22 @@ class S3Service:
             return self.client.delete_object(Bucket=s3_bucket_name, Key=file_key)
         
         return self.client.delete_object(Bucket=s3_bucket_name, Key=file_key, VersionId=version_id)
+
+    def copy_across_bucket_if_none_match(
+        self,
+        source_bucket: str,
+        source_file_key: str,
+        dest_bucket: str,
+        dest_file_key: str,
+        if_none_match: str,
+    ):
+        return self.client.copy_object(
+            Bucket=dest_bucket,
+            Key=dest_file_key,
+            CopySource={"Bucket": source_bucket, "Key": source_file_key},
+            IfNoneMatch=if_none_match,
+            StorageClass="INTELLIGENT_TIERING",
+        )
 
     def create_object_tag(
         self, s3_bucket_name: str, file_key: str, tag_key: str, tag_value: str

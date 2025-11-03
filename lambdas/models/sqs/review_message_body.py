@@ -10,7 +10,7 @@ class ReviewMessageFile(BaseModel):
 
 class ReviewMessageBody(BaseModel):
     """Model for SQS message body from the document review queue."""
-
+    upload_id: str
     files: list[ReviewMessageFile]
     nhs_number: str
     failure_reason: str

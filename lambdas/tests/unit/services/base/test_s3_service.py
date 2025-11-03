@@ -139,6 +139,25 @@ def test_copy_across_bucket(mock_service, mock_client):
     )
 
 
+def test_copy_across_bucket_if_none_match(mock_service, mock_client):
+    test_etag = '"abc123def456"'
+    
+    mock_service.copy_across_bucket_if_none_match(
+        source_bucket="bucket_to_copy_from",
+        source_file_key=TEST_FILE_KEY,
+        dest_bucket="bucket_to_copy_to",
+        dest_file_key=f"{TEST_NHS_NUMBER}/{TEST_UUID}",
+        if_none_match=test_etag,
+    )
+
+    mock_client.copy_object.assert_called_once_with(
+        Bucket="bucket_to_copy_to",
+        Key=f"{TEST_NHS_NUMBER}/{TEST_UUID}",
+        CopySource={"Bucket": "bucket_to_copy_from", "Key": TEST_FILE_KEY},
+        IfNoneMatch=test_etag,
+        StorageClass="INTELLIGENT_TIERING",
+    )
+
 def test_delete_object(mock_service, mock_client):
     mock_service.delete_object(s3_bucket_name=MOCK_BUCKET, file_key=TEST_FILE_NAME)
 

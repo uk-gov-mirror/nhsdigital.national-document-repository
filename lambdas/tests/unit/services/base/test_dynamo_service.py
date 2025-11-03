@@ -292,6 +292,86 @@ def test_create_item_raise_client_error(mock_service, mock_table):
     assert MOCK_CLIENT_ERROR == actual_response.value
 
 
+def test_put_item_with_check_exists_true(mock_service, mock_table):
+    item = {"NhsNumber": TEST_NHS_NUMBER, "Name": "Test Patient"}
+    key_name = "NhsNumber"
+    
+    mock_service.put_item(MOCK_TABLE_NAME, item, key_name, check_exists=True)
+
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.put_item.assert_called_once_with(
+        Item=item,
+        Expected={
+            key_name: {
+                'Exists': True
+            }
+        }
+    )
+
+
+def test_put_item_with_check_exists_false(mock_service, mock_table):
+    item = {"NhsNumber": TEST_NHS_NUMBER, "Name": "Test Patient"}
+    key_name = "NhsNumber"
+    
+    mock_service.put_item(MOCK_TABLE_NAME, item, key_name, check_exists=False)
+
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.put_item.assert_called_once_with(
+        Item=item,
+        Expected={
+            key_name: {
+                'Exists': False
+            }
+        }
+    )
+
+
+def test_put_item_default_check_exists(mock_service, mock_table):
+    item = {"NhsNumber": TEST_NHS_NUMBER, "Name": "Test Patient"}
+    key_name = "NhsNumber"
+    
+    # Test that default value is True
+    mock_service.put_item(MOCK_TABLE_NAME, item, key_name)
+
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.put_item.assert_called_once_with(
+        Item=item,
+        Expected={
+            key_name: {
+                'Exists': True
+            }
+        }
+    )
+
+
+def test_put_item_returns_response(mock_service, mock_table):
+    item = {"NhsNumber": TEST_NHS_NUMBER, "Name": "Test Patient"}
+    key_name = "NhsNumber"
+    expected_response = {
+        'ResponseMetadata': {
+            'HTTPStatusCode': 200
+        }
+    }
+    
+    mock_table.return_value.put_item.return_value = expected_response
+    
+    actual_response = mock_service.put_item(MOCK_TABLE_NAME, item, key_name)
+
+    assert actual_response == expected_response
+
+
+def test_put_item_raises_client_error(mock_service, mock_table):
+    item = {"NhsNumber": TEST_NHS_NUMBER, "Name": "Test Patient"}
+    key_name = "NhsNumber"
+    
+    mock_table.return_value.put_item.side_effect = MOCK_CLIENT_ERROR
+
+    with pytest.raises(ClientError) as actual_response:
+        mock_service.put_item(MOCK_TABLE_NAME, item, key_name)
+
+    assert MOCK_CLIENT_ERROR == actual_response.value
+
+
 def test_delete_item_is_called_with_correct_parameters(mock_service, mock_table):
     mock_service.delete_item(MOCK_TABLE_NAME, {"NhsNumber": TEST_NHS_NUMBER})
 

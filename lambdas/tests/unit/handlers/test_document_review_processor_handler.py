@@ -19,6 +19,7 @@ def mock_review_service(mocker):
 def sample_review_message_body():
     """Create a sample review message body."""
     return ReviewMessageBody(
+        upload_id="test-upload-id-123",
         files=[
             ReviewMessageFile(
                 file_name="test_document.pdf",
@@ -53,6 +54,7 @@ def sample_sqs_event(sample_sqs_message):
 def sample_sqs_event_multiple_messages(sample_review_message_body):
     """Create a sample SQS event with multiple messages."""
     message_1 = ReviewMessageBody(
+        upload_id="test-upload-id-123",
         files=[
             ReviewMessageFile(
                 file_name="document_1.pdf",
@@ -67,6 +69,7 @@ def sample_sqs_event_multiple_messages(sample_review_message_body):
     )
 
     message_2 = ReviewMessageBody(
+        upload_id="test-upload-id-456",
         files=[
             ReviewMessageFile(
                 file_name="document_2.pdf",
@@ -81,6 +84,7 @@ def sample_sqs_event_multiple_messages(sample_review_message_body):
     )
 
     message_3 = ReviewMessageBody(
+        upload_id="test-upload-id-789",
         files=[
             ReviewMessageFile(
                 file_name="document_3.pdf",
@@ -121,16 +125,9 @@ def empty_sqs_event():
     return {"Records": []}
 
 
-@pytest.fixture
-def set_review_env(monkeypatch):
-    """Set up environment variables required for the handler."""
-    monkeypatch.setenv("DOCUMENT_REVIEW_DYNAMODB_NAME", "test_review_table")
-    monkeypatch.setenv("STAGING_STORE_BUCKET_NAME", "test_staging_bucket")
-    monkeypatch.setenv("PENDING_REVIEW_BUCKET_NAME", "test_review_bucket")
-
 
 def test_lambda_handler_processes_single_message_successfully(
-    set_review_env,
+    set_env,
     context,
     sample_sqs_event,
     mock_review_service,
@@ -142,7 +139,7 @@ def test_lambda_handler_processes_single_message_successfully(
 
 
 def test_lambda_handler_processes_multiple_messages_successfully(
-    set_review_env,
+    set_env,
     context,
     sample_sqs_event_multiple_messages,
     mock_review_service,
@@ -154,7 +151,7 @@ def test_lambda_handler_processes_multiple_messages_successfully(
 
 
 def test_lambda_handler_calls_service_with_correct_message(
-    set_review_env,
+    set_env,
     context,
     sample_sqs_event,
     mock_review_service,
@@ -174,7 +171,7 @@ def test_lambda_handler_calls_service_with_correct_message(
 
 
 def test_lambda_handler_handles_empty_records_list(
-    set_review_env, context, empty_sqs_event, mock_review_service
+    set_env, context, empty_sqs_event, mock_review_service
 ):
     """Test handler handles empty records list gracefully."""
     lambda_handler(empty_sqs_event, context)
@@ -183,7 +180,7 @@ def test_lambda_handler_handles_empty_records_list(
 
 
 def test_lambda_handler_parses_json_body_correctly(
-    set_review_env,
+    set_env,
     context,
     mock_review_service,
 ):
@@ -193,6 +190,7 @@ def test_lambda_handler_parses_json_body_correctly(
             {
                 "body": json.dumps(
                     {
+                        "upload_id": "test-upload-id-123",
                         "files": [
                             {
                                 "file_name": "test.pdf",
@@ -218,4 +216,23 @@ def test_lambda_handler_parses_json_body_correctly(
     assert type(call_args).__name__ == "ReviewMessageBody"
     assert len(call_args.files) == 1
     assert call_args.files[0].file_name == "test.pdf"
+
+
+def test_lambda_handler_calls_process_review_message_on_service(
+    set_env,
+    context,
+    sample_sqs_event,
+    sample_review_message_body,
+    mock_review_service,
+):
+    """Test that handler calls process_review_message method on ReviewProcessorService."""
+    lambda_handler(sample_sqs_event, context)
+
+    mock_review_service.process_review_message.assert_called_once()
+    called_message = mock_review_service.process_review_message.call_args[0][0]
+    
+    assert isinstance(called_message, ReviewMessageBody)
+    assert called_message.upload_id == sample_review_message_body.upload_id
+    assert called_message.nhs_number == sample_review_message_body.nhs_number
+    assert called_message.failure_reason == sample_review_message_body.failure_reason
 
