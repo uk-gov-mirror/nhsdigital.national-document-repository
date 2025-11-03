@@ -27,12 +27,14 @@ class GetDocumentReviewService:
         self.cloudfront_url = os.environ.get("CLOUDFRONT_URL")
 
     def get_document_review(self, patient_id: str, document_id: str) -> Optional[dict]:
-        """
-        Retrieve a document review for a given patient and document.
+        """Retrieve a document review for a given patient and document.
 
-        :param patient_id: The patient ID (NHS number).
-        :param document_id: The document ID to retrieve.
-        :return: Dictionary containing the document review details, or None if not found.
+        Args:
+            patient_id: The patient ID (NHS number).
+            document_id: The document ID to retrieve.
+
+        Returns:
+            Dictionary containing the document review details, or None if not found.
         """
         try:
             logger.info(

@@ -29,7 +29,7 @@ logger = LoggingService(__name__)
 @override_error_check
 @handle_lambda_exceptions
 def lambda_handler(event, context):
-    request_context.app_interaction = LoggingAppInteraction.VIEW_PATIENT.value
+    request_context.app_interaction = LoggingAppInteraction.GET_REVIEW_DOCUMENTS.value
 
     logger.info("Get Document Review handler has been triggered")
 

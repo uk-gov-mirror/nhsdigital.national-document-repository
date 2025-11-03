@@ -109,13 +109,15 @@ class DocumentService:
         table_name: str = None,
         model_class: type[BaseModel] = None,
     ) -> Optional[BaseModel]:
-        """
-        Fetch a single document by ID from specified or configured table.
+        """Fetch a single document by ID from specified or configured table.
 
-        :param document_id: The document ID to retrieve.
-        :param table_name: Optional table name, defaults to self.table_name.
-        :param model_class: Optional model class, defaults to self.model_class.
-        :return: Document object if found, None otherwise.
+        Args:
+            document_id: The document ID to retrieve.
+            table_name: Optional table name, defaults to self.table_name.
+            model_class: Optional model class, defaults to self.model_class.
+
+        Returns:
+            Document object if found, None otherwise.
         """
         table_to_use = table_name or self.table_name
         model_to_use = model_class or self.model_class

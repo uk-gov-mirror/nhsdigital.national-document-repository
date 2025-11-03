@@ -18,3 +18,4 @@ class LoggingAppInteraction(Enum):
     VIRUS_SCAN = "Virus Scan"
     UPLOAD_CONFIRMATION = "Upload confirmation"
     UPDATE_UPLOAD_STATE = "Update upload state"
+    GET_REVIEW_DOCUMENTS = "Get review documents"
