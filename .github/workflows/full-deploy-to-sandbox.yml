@@ -106,7 +106,7 @@ jobs:
 
   disable_fhir_stub:
     name: "Disable PDS stub"
-    if: ${{ inputs.disable_pds }}
+    if: ${{ inputs.disable_pds || inputs.bulk_upload }}
     uses: "./.github/workflows/base-run-disable-pds-stub.yml"
     needs: ["deploy_all_lambdas"]
     with:

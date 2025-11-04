@@ -14,7 +14,7 @@ on:
         type: "string"
         default: "ndr"
       base_branch:
-        description: "Which Feature Branch for the Bulk Upload Script"
+        description: "Which Feature Branch for the PDS Disable Script"
         required: false
         type: "string"
         default: "main"
@@ -28,7 +28,7 @@ on:
         required: true
 
 jobs:
-  perform-bulk-upload:
+  disable-fhir-stub:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
@@ -47,12 +47,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install boto3
-        working-directory: ./tests/bulk-upload/scripts
 
       - name: Disable FHIR Stub
         run: |
