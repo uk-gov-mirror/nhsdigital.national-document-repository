@@ -84,7 +84,7 @@ class MigrationBase(ABC):
                 raise
 
         if failed_items:
-            self.logger.error(f"'{label}' migration step completed with {len(failed_items)} errors.")
+            self.logger.error(f"'{label}' migration segment: {segment} completed with {len(failed_items)} errors.")
             error_report_key = f"migration_errors/{label}_errors.json"
             self.s3_client.put_object(
                 Bucket=self.failed_items_bucket,
