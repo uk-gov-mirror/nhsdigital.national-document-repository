@@ -1,4 +1,5 @@
 import pytest
+from enums.feature_flags import FeatureFlags
 from services.feature_flags_service import FeatureFlagService
 
 
@@ -120,3 +121,13 @@ def mock_validation_strict_disabled(mocker):
         "lloydGeorgeValidationStrictModeEnabled": False
     }
     yield mock_upload_lambda_feature_flag
+
+
+@pytest.fixture
+def mock_upload_document_iteration_3_enabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_feature_flag = mock_function.return_value = {
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: True
+    }
+    yield mock_feature_flag
+

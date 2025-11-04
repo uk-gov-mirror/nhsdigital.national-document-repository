@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from handlers.get_document_review_handler import lambda_handler
 from utils.lambda_exceptions import GetDocumentReviewException
@@ -63,6 +64,7 @@ def invalid_patient_id_event():
     return api_gateway_proxy_event
 
 
+
 @pytest.fixture
 def mocked_service(set_env, mocker):
     mocked_class = mocker.patch(
@@ -73,7 +75,7 @@ def mocked_service(set_env, mocker):
 
 
 def test_lambda_handler_returns_200_with_document_review(
-    mocked_service, valid_get_document_review_event, context, set_env
+    mocked_service, valid_get_document_review_event, context, set_env, mock_upload_document_iteration_3_enabled
 ):
     mocked_service.get_document_review.return_value = MOCK_DOCUMENT_REVIEW_RESPONSE
 
@@ -90,7 +92,7 @@ def test_lambda_handler_returns_200_with_document_review(
 
 
 def test_lambda_handler_returns_404_when_document_review_not_found(
-    mocked_service, valid_get_document_review_event, context
+    mocked_service, valid_get_document_review_event, context, mock_upload_document_iteration_3_enabled
 ):
     mocked_service.get_document_review.return_value = None
 
@@ -111,7 +113,7 @@ def test_lambda_handler_returns_404_when_document_review_not_found(
 
 
 def test_lambda_handler_raises_exception_returns_500(
-    mocked_service, valid_get_document_review_event, context
+    mocked_service, valid_get_document_review_event, context, mock_upload_document_iteration_3_enabled
 ):
     mocked_service.get_document_review.side_effect = GetDocumentReviewException(
         500, LambdaError.MockError
@@ -127,7 +129,7 @@ def test_lambda_handler_raises_exception_returns_500(
 
 
 def test_lambda_handler_when_patient_id_not_valid_returns_400(
-    set_env, invalid_patient_id_event, context
+    set_env, invalid_patient_id_event, context, mock_upload_document_iteration_3_enabled
 ):
     expected_body = json.dumps(
         {
@@ -144,7 +146,7 @@ def test_lambda_handler_when_patient_id_not_valid_returns_400(
 
 
 def test_lambda_handler_when_document_id_not_supplied_returns_400(
-    set_env, missing_document_id_event, context
+    set_env, missing_document_id_event, context, mock_upload_document_iteration_3_enabled
 ):
     actual = lambda_handler(missing_document_id_event, context)
 
@@ -155,7 +157,7 @@ def test_lambda_handler_when_document_id_not_supplied_returns_400(
 
 
 def test_lambda_handler_missing_environment_variables_returns_500(
-    set_env, monkeypatch, valid_get_document_review_event, context
+    set_env, monkeypatch, valid_get_document_review_event, context, mock_upload_document_iteration_3_enabled
 ):
     monkeypatch.delenv("DOCUMENT_REVIEW_DYNAMODB_NAME")
 
