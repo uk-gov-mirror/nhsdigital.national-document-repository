@@ -44,7 +44,8 @@ class DynamoDBService:
         index_name: str = None,
         requested_fields: list[str] = None,
         query_filter: Attr | ConditionBase = None,
-        limit: int = None,
+        limit: int|None = None,
+        start_key: str|None = None,
     ) -> list[dict]:
         try:
             table = self.get_table(table_name)
@@ -62,6 +63,9 @@ class DynamoDBService:
 
             if query_filter:
                 query_params["FilterExpression"] = query_filter
+
+            if start_key:
+                query_params["ExclusiveStartKey"] = start_key
 
             if limit:
                 query_params["Limit"] = limit

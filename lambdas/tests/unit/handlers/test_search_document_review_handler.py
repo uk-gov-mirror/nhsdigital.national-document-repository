@@ -1,19 +1,20 @@
+import base64
 import json
 
 import pytest
 from handlers.search_document_review_handler import (
     get_ods_code_from_request_context,
-    get_query_limit,
     lambda_handler,
+    parse_querystring_parameters
 )
 from models.document_review import DocumentUploadReviewReference
-from tests.unit.conftest import TEST_CURRENT_GP_ODS
+from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_UUID
 from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
 from utils.exceptions import OdsErrorException, SearchDocumentReviewReferenceException
 from utils.lambda_response import ApiGatewayResponse
-from utils.request_context import request_context
+
 
 TEST_QUERY_LIMIT = 20
 
@@ -34,6 +35,28 @@ def event_with_limit():
         "httpMethod": "GET",
         "queryStringParameters": {
             "limit": TEST_QUERY_LIMIT,
+        },
+        "headers": {"Authorization": "Bearer test_token"},
+    }
+
+@pytest.fixture
+def event_with_limit_and_start_key():
+    return {
+        "httpMethod": "GET",
+        "queryStringParameters": {
+            "limit": TEST_QUERY_LIMIT,
+            "startKey": base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8"),
+        },
+        "headers": {"Authorization": "Bearer test_token"},
+    }
+
+
+@pytest.fixture
+def event_with_start_key_no_limit():
+    return {
+        "httpMethod": "GET",
+        "queryStringParameters": {
+            "startKey": base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8"),
         },
         "headers": {"Authorization": "Bearer test_token"},
     }
@@ -86,16 +109,12 @@ def test_handler_returns_400_response_no_ods_code_in_request_context(
     assert actual == expected
 
 
-def test_get_query_limit_from_querystring_params(event_with_limit):
+def test_parse_querystring_parameters(event_with_limit_and_start_key, event, event_with_limit, event_with_start_key_no_limit):
 
-    assert get_query_limit(event_with_limit) == TEST_QUERY_LIMIT
-
-
-def test_get_query_limit_returns_none_no_querystring_params():
-    event = {
-        "httpMethod": "GET",
-    }
-    assert get_query_limit(event) is None
+    assert parse_querystring_parameters(event_with_limit_and_start_key) == (TEST_QUERY_LIMIT, TEST_UUID)
+    assert parse_querystring_parameters(event) == (None, None)
+    assert parse_querystring_parameters(event_with_limit) == (TEST_QUERY_LIMIT, None)
+    assert parse_querystring_parameters(event_with_start_key_no_limit) == (None, TEST_UUID)
 
 
 def test_get_document_review_document_references_called_with_correct_arguments(
@@ -153,9 +172,9 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
                 "documentReviewReferences": [
                     reference.model_dump_json(exclude_none=True, include={"id", "nhs_number", "review_reason"}) for reference in references
                 ],
-                "lastEvaluatedKey": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
+                "lastEvaluatedKey": base64.b64encode(MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
                     "LastEvaluatedKey"
-                ],
+                ].encode("ascii")).decode("utf-8"),
                 "count": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Count"]
             }
         ),

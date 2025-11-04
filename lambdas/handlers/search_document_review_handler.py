@@ -1,3 +1,4 @@
+import base64
 import json
 
 from services.search_document_review_service import SearchDocumentReviewService
@@ -21,7 +22,7 @@ def lambda_handler(event, context):
     try:
         ods_code = get_ods_code_from_request_context()
 
-        limit = get_query_limit(event)
+        limit, start_key = parse_querystring_parameters(event)
 
         service = SearchDocumentReviewService()
 
@@ -36,7 +37,7 @@ def lambda_handler(event, context):
                     "documentReviewReferences": [
                         reference.model_dump_json(exclude_none=True, include={"id", "nhs_number", "review_reason"}) for reference in references
                     ],
-                    "lastEvaluatedKey": last_evaluated_key,
+                    "lastEvaluatedKey": base64.b64encode(last_evaluated_key.encode("ascii")).decode("utf-8") if last_evaluated_key else None,
                     "count": len(references),
                 }
             ),
@@ -69,6 +70,14 @@ def get_ods_code_from_request_context():
     return ods_code
 
 
-def get_query_limit(event):
-    logger.info("Getting query limit from query string parameters.")
-    return event.get("queryStringParameters", {}).get("limit", None)
+def parse_querystring_parameters(event):
+    logger.info("Parsing query string parameters.")
+    params = event.get("queryStringParameters", {})
+    if not params:
+        return None, None
+
+    limit = params.get("limit", None)
+    encoded_start_key = params.get("startKey", None)
+    start_key = base64.b64decode(encoded_start_key.encode("ascii")).decode("utf-8") if encoded_start_key else None
+
+    return limit, start_key

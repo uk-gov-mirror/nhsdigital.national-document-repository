@@ -16,8 +16,8 @@ class SearchDocumentReviewService:
         self.dynamo_service = DynamoDBService()
 
     def get_review_document_references(
-        self, ods_code: str, limit: int | None = None
-    ) -> tuple[list[DocumentUploadReviewReference], str | None]:
+        self, ods_code: str, limit: int|None = None, start_key: str|None = None
+    ) -> tuple[list[DocumentUploadReviewReference], str|None]:
         logger.info(f"Getting review document references for {ods_code}")
 
         try:
@@ -27,6 +27,7 @@ class SearchDocumentReviewService:
                 search_condition=ods_code,
                 index_name="CustodianIndex",
                 limit=limit,
+                start_key=start_key,
             )
 
             references = (

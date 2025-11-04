@@ -2,7 +2,7 @@ import pytest
 from botocore.exceptions import ClientError
 from models.document_review import DocumentUploadReviewReference
 from services.search_document_review_service import SearchDocumentReviewService
-from tests.unit.conftest import MOCK_DOCUMENT_REVIEW_TABLE, TEST_CURRENT_GP_ODS
+from tests.unit.conftest import MOCK_DOCUMENT_REVIEW_TABLE, TEST_CURRENT_GP_ODS, TEST_UUID
 from tests.unit.helpers.data.dynamo.dynamo_responses import (
     MOCK_EMPTY_RESPONSE,
     MOCK_SEARCH_RESPONSE,
@@ -27,7 +27,7 @@ def test_service_queries_document_review_table_with_correct_args(
 ):
 
     search_document_review_service.get_review_document_references(
-        TEST_CURRENT_GP_ODS, TEST_QUERY_LIMIT
+        TEST_CURRENT_GP_ODS, TEST_QUERY_LIMIT, TEST_UUID
     )
 
     search_document_review_service.dynamo_service.query_table.assert_called_with(
@@ -36,6 +36,7 @@ def test_service_queries_document_review_table_with_correct_args(
         search_condition=TEST_CURRENT_GP_ODS,
         index_name="CustodianIndex",
         limit=TEST_QUERY_LIMIT,
+        start_key=TEST_UUID
     )
 
 
