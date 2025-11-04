@@ -64,7 +64,7 @@ def test_s3_event_with_non_expedite_key_is_rejected(
     lambda_handler(event, context)
 
     assert any(
-        "Unrecognized S3 listener event, cancelling." in r.message
+        "Failed due to unrecognized S3 listener event key" in r.message
         for r in caplog.records
     )
     mock_metadata_service.process_metadata.assert_not_called()
