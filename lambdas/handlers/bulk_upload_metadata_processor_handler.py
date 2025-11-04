@@ -27,7 +27,6 @@ logger = LoggingService(__name__)
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
     practice_directory = event.get("practiceDirectory", "")
-
     raw_pre_format_type = event.get(
         "preFormatType", LloydGeorgePreProcessFormat.GENERAL
     )
@@ -43,7 +42,7 @@ def lambda_handler(event, _context):
     )
 
     # Read the "remap" key and convert to a dictionary
-    remappings = event.get("remappings", {})
+    remappings = event.get("metadataFieldRemappings", {})
 
     metadata_formatter_service = formatter_service_class(practice_directory)
     metadata_service = BulkUploadMetadataProcessorService(
