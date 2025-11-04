@@ -37,6 +37,7 @@ def lambda_handler(event, context):
                         reference.model_dump_json(exclude_none=True, include={"id", "nhs_number", "review_reason"}) for reference in references
                     ],
                     "lastEvaluatedKey": last_evaluated_key,
+                    "count": len(references),
                 }
             ),
             methods="GET",

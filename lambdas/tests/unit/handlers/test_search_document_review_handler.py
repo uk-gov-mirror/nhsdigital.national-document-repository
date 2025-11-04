@@ -121,6 +121,7 @@ def test_handler_returns_empty_list_of_references_no_dynamo_results_no_limit_in_
             {
                 "documentReviewReferences": [],
                 "lastEvaluatedKey": None,
+                "count": 0,
             }
         ),
         methods="GET",
@@ -155,6 +156,7 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
                 "lastEvaluatedKey": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
                     "LastEvaluatedKey"
                 ],
+                "count": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Count"]
             }
         ),
         methods="GET",
@@ -183,6 +185,7 @@ def test_handler_returns_list_of_references_no_limit_passed(
                     reference.model_dump_json(exclude_none=True, include={"id", "nhs_number", "review_reason"}) for reference in references
                 ],
                 "lastEvaluatedKey": None,
+                "count": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Count"]
             }
         ),
         methods="GET",
