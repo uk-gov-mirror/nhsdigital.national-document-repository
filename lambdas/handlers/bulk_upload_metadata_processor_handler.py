@@ -26,14 +26,16 @@ logger = LoggingService(__name__)
 )
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
-    if 'Records' in event and \
-            event['Records'][0].get('eventSource') == 's3.amazonaws.com':
+    if (
+        "Records" in event
+        and event["Records"][0].get("eventSource") == "s3.amazonaws.com"
+    ):
         logger.info("Triggered by S3 listener...")
-        key_string = event['Records'][0]['s3']['object']['key']
-        key = urllib.parse.unquote_plus(key_string, encoding='utf-8')
+        key_string = event["Records"][0]["s3"]["object"]["key"]
+        key = urllib.parse.unquote_plus(key_string, encoding="utf-8")
         if key.startswith("expedite/"):
             logger.info("Processing file from expedite folder")
-            return # To be added upon by ticket PRMP-540
+            return  # To be added upon by ticket PRMP-540
         else:
             logger.error("Unrecognized S3 listener event, cancelling.")
             return
