@@ -18,7 +18,7 @@ def s3_event_with_key(key: str):
     return {
         "Records": [
             {
-                "eventSource": "s3.amazonaws.com",
+                "eventSource": "aws:s3",
                 "s3": {"object": {"key": key}},
             }
         ]
