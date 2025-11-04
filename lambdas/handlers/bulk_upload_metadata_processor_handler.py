@@ -28,7 +28,7 @@ logger = LoggingService(__name__)
 def lambda_handler(event, _context):
     if (
         "Records" in event
-        and event["Records"][0].get("eventSource") == "s3.amazonaws.com"
+        and event["Records"][0].get("eventSource") == "aws:s3"
     ):
         logger.info("Triggered by S3 listener...")
         key_string = event["Records"][0]["s3"]["object"]["key"]
