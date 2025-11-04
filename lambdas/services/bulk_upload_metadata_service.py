@@ -8,12 +8,12 @@ from typing import Iterable
 
 import pydantic
 from botocore.exceptions import ClientError
-
 from models.staging_metadata import (
     NHS_NUMBER_FIELD_NAME,
     ODS_CODE,
+    BulkUploadQueueMetadata,
     MetadataFile,
-    StagingSqsMetadata, BulkUploadQueueMetadata,
+    StagingSqsMetadata,
 )
 from services.base.s3_service import S3Service
 from services.base.sqs_service import SQSService
@@ -114,7 +114,8 @@ class BulkUploadMetadataService:
                 nhs_number=nhs_number,
                 files=[
                     BulkUploadQueueMetadata(
-                        **metadata_file.model_dump(), stored_file_name=metadata_file.file_path
+                        **metadata_file.model_dump(),
+                        stored_file_name=metadata_file.file_path,
                     )
                     for metadata_file in patients[nhs_number, ods_code]
                 ],
