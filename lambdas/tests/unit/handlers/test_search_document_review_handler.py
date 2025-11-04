@@ -150,7 +150,7 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
         body=json.dumps(
             {
                 "documentReviewReferences": [
-                    reference.model_dump_json() for reference in references
+                    reference.model_dump_json(exclude_none=True, include={"id", "nhs_number", "review_reason"}) for reference in references
                 ],
                 "lastEvaluatedKey": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
                     "LastEvaluatedKey"
@@ -180,7 +180,7 @@ def test_handler_returns_list_of_references_no_limit_passed(
         body=json.dumps(
             {
                 "documentReviewReferences": [
-                    reference.model_dump_json() for reference in references
+                    reference.model_dump_json(exclude_none=True, include={"id", "nhs_number", "review_reason"}) for reference in references
                 ],
                 "lastEvaluatedKey": None,
             }

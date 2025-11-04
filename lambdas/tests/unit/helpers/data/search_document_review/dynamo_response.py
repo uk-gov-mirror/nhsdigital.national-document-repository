@@ -31,7 +31,6 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
             "DocumentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,
-            "DocumentReferenceId": TEST_UUID,
         },
         {
             "ID": "4d8683b9-1665-40d2-8499-6e8302d507ff",
@@ -53,7 +52,6 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
             "DocumentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,
-            "DocumentReferenceId": TEST_UUID,
         },
         {
             "ID": "5d8683b9-1665-40d2-8499-6e8302d507ff",
@@ -77,7 +75,6 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
             "DocumentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,
-            "DocumentReferenceId": TEST_UUID,
         },
     ],
     "Count": 3,

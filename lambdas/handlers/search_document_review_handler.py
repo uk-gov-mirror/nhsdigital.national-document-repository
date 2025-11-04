@@ -34,7 +34,7 @@ def lambda_handler(event, context):
             body=json.dumps(
                 {
                     "documentReviewReferences": [
-                        reference.model_dump_json() for reference in references
+                        reference.model_dump_json(exclude_none=True, include={"id", "nhs_number", "review_reason"}) for reference in references
                     ],
                     "lastEvaluatedKey": last_evaluated_key,
                 }
