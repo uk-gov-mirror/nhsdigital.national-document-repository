@@ -95,7 +95,7 @@ jobs:
         run: |
           python disable_fhir_stub.py \
             --environment "${{ inputs.sandbox }}"
-        working-directory: ./tests/scripts
+        working-directory: ../../tests/scripts
 
   run_lg_e2etest:
     uses: ./.github/workflows/base-e2e-backendtest.yml
