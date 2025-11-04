@@ -19,10 +19,15 @@ on:
         type: "string"
         default: "development"
       bulk_upload:
-        description: "Do you want to disable the PDS stub and run a Bulk Upload on this sandbox?"
+        description: "Do you want to run a Bulk Upload on this sandbox?"
         required: true
         type: boolean
         default: false
+      disable_pds:
+        description: "Do you want to disable the PDS stub?"
+        required: true
+        type: boolean
+        default: true
       mock_login_enabled:
         description: "Do you want to deploy with mock login enabled?"
         required: true
@@ -99,9 +104,20 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
+  disable_fhir_stub:
+    if: ${{ inputs.disable_pds }}
+    runs-on: ubuntu-latest
+    needs: ["deploy_all_lambdas"]
+    steps:
+      - name: Disable FHIR Stub
+        run: |
+          python disable_fhir_stub.py \
+            --environment "${{ inputs.sandbox }}"
+        working-directory: ./tests/scripts
+
   run_lg_e2etest:
     uses: ./.github/workflows/base-e2e-backendtest.yml
-    needs: ["deploy_all_lambdas"]
+    needs: ["deploy_all_lambdas", "disable_fhir_stub"]
     with:
       build_branch: ${{ inputs.build_branch }}
       environment: development
@@ -111,7 +127,7 @@ jobs:
 
   run_pdm_e2etest:
     uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
-    needs: ["deploy_all_lambdas"]
+    needs: ["deploy_all_lambdas", "disable_fhir_stub"]
     with:
       build_branch: ${{ inputs.build_branch }}
       environment: development

@@ -87,9 +87,19 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
+  disable_fhir_stub:
+    runs-on: ubuntu-latest
+    needs: ["deploy_all_lambdas"]
+    steps:
+      - name: Disable FHIR Stub
+        run: |
+          python disable_fhir_stub.py \
+            --environment "${{ inputs.sandbox }}"
+        working-directory: ./tests/scripts
+
   run_lg_e2etest:
     uses: ./.github/workflows/base-e2e-backendtest.yml
-    needs: ["deploy_all_lambdas"]
+    needs: ["deploy_all_lambdas", "disable_fhir_stub"]
     with:
       build_branch: ${{ inputs.build_branch }}
       environment: development
@@ -99,7 +109,7 @@ jobs:
 
   run_pdm_e2etest:
     uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
-    needs: ["deploy_all_lambdas"]
+    needs: ["deploy_all_lambdas", "disable_fhir_stub"]
     with:
       build_branch: ${{ inputs.build_branch }}
       environment: development
