@@ -33,14 +33,7 @@ def lambda_handler(event: dict[str, any], context):
     request_context.app_interaction = LoggingAppInteraction.VIEW_LG_RECORD.value
 
     feature_flag_service = FeatureFlagService()
-    feature_flag = FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
-    upload_document_iteration_3_feature_flag = feature_flag_service.get_feature_flags_by_flag(
-        feature_flag
-    )
-
-    if not upload_document_iteration_3_feature_flag[feature_flag]:
-        logger.error("Upload document iteration 3 feature flag disabled")
-        raise FeatureFlagsException(404, LambdaError.FeatureFlagDisabled)
+    feature_flag_service.validate_feature_flag(FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED)
     
     logger.info("Starting document fetch by ID process")
 

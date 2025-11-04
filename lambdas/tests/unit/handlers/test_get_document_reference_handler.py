@@ -79,7 +79,6 @@ def test_handler_valid_request_returns_200(
         status_code=200, body=mock_presigned_s3_url, methods="GET"
     ).create_api_gateway_response()
 
-    mock_feature_flag_service.get_feature_flags_by_flag.return_value = {feature_flag: True}
     mock_get_document_service.get_document_url_by_id.return_value = mock_presigned_s3_url
 
     result = lambda_handler(valid_id_event_with_auth_header, context)
@@ -87,38 +86,12 @@ def test_handler_valid_request_returns_200(
     assert result == expected_result
     assert result["body"] == mock_presigned_s3_url
 
-    mock_feature_flag_service.get_feature_flags_by_flag.assert_called_once()
+    mock_feature_flag_service.validate_feature_flag.assert_called_once_with(
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+        )
     mock_get_document_service.get_document_url_by_id.assert_called_once_with(
         mock_document_id,
         mock_valid_nhs_number)
-
-def test_feature_flag_disabled_raises_error(
-        valid_id_event_with_auth_header,
-        mock_feature_flag_service,
-        context,
-        mocked_env_vars,
-        feature_flag,
-        mock_valid_nhs_number,
-        mock_interaction_id
-    ):
-    valid_id_event_with_auth_header["queryStringParameters"]["patientId"] = mock_valid_nhs_number
-
-    mock_feature_flag_service.get_feature_flags_by_flag.return_value = {feature_flag: False}
-
-    expected_error = FeatureFlagsException(404, LambdaError.FeatureFlagDisabled)
-    expected_response = ApiGatewayResponse(
-        status_code=404,
-        body=ErrorResponse(
-            expected_error.err_code,
-            expected_error.message,
-            mock_interaction_id
-            ).create(),
-        methods="GET"
-    ).create_api_gateway_response()
-
-    response = lambda_handler(valid_id_event_with_auth_header, context)
-
-    assert response == expected_response
 
 def test_missing_nhs_number_errors(
         valid_id_event_with_auth_header,
@@ -135,8 +108,6 @@ def test_missing_nhs_number_errors(
         body=LambdaError.PatientIdNoKey.create_error_body(),
         methods="GET",
     ).create_api_gateway_response()
-
-    mock_feature_flag_service.get_feature_flags_by_flag.return_value = {feature_flag: True}
 
     result = lambda_handler(valid_id_event_with_auth_header, context)
 

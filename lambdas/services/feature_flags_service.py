@@ -147,3 +147,10 @@ class FeatureFlagService:
         pilot_ods_codes = self.get_allowed_list_of_ods_codes_for_upload_pilot()
 
         return ods_code in pilot_ods_codes
+    
+    def validate_feature_flag(self, flag_name: str):
+        flag_object = self.get_feature_flags_by_flag(flag_name)
+
+        if not flag_object.get(flag_name, False):
+            logger.info(f"Feature flag '{flag_name}' not enabled, event will not be processed")
+            raise FeatureFlagsException(404, LambdaError.FeatureFlagDisabled)
