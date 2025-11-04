@@ -15,6 +15,7 @@ from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
+from utils.exceptions import BulkUploadMetadataException
 
 logger = LoggingService(__name__)
 
@@ -31,14 +32,20 @@ def lambda_handler(event, _context):
         and event["Records"][0].get("eventSource") == "aws:s3"
     ):
         logger.info("Triggered by S3 listener...")
-        key_string = event["Records"][0]["s3"]["object"]["key"]
-        key = urllib.parse.unquote_plus(key_string, encoding="utf-8")
-        if key.startswith("expedite/"):
-            logger.info("Processing file from expedite folder")
-            return  # To be added upon by ticket PRMP-540
-        else:
-            logger.error("Unrecognized S3 listener event, cancelling.")
-            return
+        try:
+            key_string = event["Records"][0]["s3"]["object"]["key"]
+            key = urllib.parse.unquote_plus(key_string, encoding="utf-8")
+            if key.startswith("expedite/"):
+                logger.info("Processing file from expedite folder")
+                return  # To be added upon by ticket PRMP-540
+            else:
+                failure_msg = "Unrecognized S3 listener event, cancelling."
+                logger.error(failure_msg)
+                raise BulkUploadMetadataException(failure_msg)
+        except KeyError as e:
+            failure_msg = f"Failed due to missing key: {str(e)}"
+            logger.error(failure_msg)
+            raise BulkUploadMetadataException(failure_msg)
 
     practice_directory = event.get("practiceDirectory", "")
 
