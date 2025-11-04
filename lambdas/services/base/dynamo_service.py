@@ -65,7 +65,6 @@ class DynamoDBService:
 
             if limit:
                 query_params["Limit"] = limit
-
                 results = table.query(**query_params)
 
                 return results

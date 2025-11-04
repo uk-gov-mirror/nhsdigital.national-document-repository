@@ -36,13 +36,13 @@ class DocumentUploadReviewReference(BaseModel):
         default=DocumentReviewStatus.PENDING_REVIEW
     )
     review_reason: str
-    review_date: Optional[int] = Field(default=None)
-    reviewer: Optional[str] = Field(default=None)
+    review_date: int | None = Field(default=None)
+    reviewer: str | None = Field(default=None)
     upload_date: int
     files: list[DocumentReviewFileDetails]
     nhs_number: str
-    ttl: Optional[int] = Field(
+    ttl: int | None = Field(
         alias=str(DocumentReferenceMetadataFields.TTL.value), default=None
     )
-    document_reference_id: str = Field(default=None)
+    document_reference_id: str | None = Field(default=None)
     document_snomed_code_type: str = Field(default=SnomedCodes.LLOYD_GEORGE.value.code)
