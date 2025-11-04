@@ -28,7 +28,7 @@ def lambda_handler(event, context):
         service = SearchDocumentReviewService()
 
         references, last_evaluated_key = service.get_review_document_references(
-            ods_code=ods_code, limit=limit
+            ods_code=ods_code, limit=limit, start_key=start_key
         )
 
         return ApiGatewayResponse(

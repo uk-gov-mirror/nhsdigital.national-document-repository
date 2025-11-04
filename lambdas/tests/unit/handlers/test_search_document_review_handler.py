@@ -136,7 +136,7 @@ def test_get_document_review_document_references_called_with_correct_arguments(
     lambda_handler(event_with_limit, context)
 
     mock_service.get_review_document_references.assert_called_with(
-        ods_code=TEST_CURRENT_GP_ODS, limit=TEST_QUERY_LIMIT
+        ods_code=TEST_CURRENT_GP_ODS, limit=TEST_QUERY_LIMIT, start_key=None
     )
 
 
