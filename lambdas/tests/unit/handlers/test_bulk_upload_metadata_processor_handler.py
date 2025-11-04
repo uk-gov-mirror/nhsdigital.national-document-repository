@@ -14,6 +14,17 @@ def mock_metadata_service(mocker):
     return mocked_instance
 
 
+def s3_event_with_key(key: str):
+    return {
+        "Records": [
+            {
+                "eventSource": "s3.amazonaws.com",
+                "s3": {"object": {"key": key}},
+            }
+        ]
+    }
+
+
 def test_metadata_processor_lambda_handler_valid_event(
     set_env, context, mock_metadata_service
 ):
@@ -28,3 +39,24 @@ def test_metadata_processor_lambda_handler_empty_event(
     lambda_handler({}, context)
 
     mock_metadata_service.process_metadata.assert_not_called()
+
+
+def test_s3_event_with_expedite_key_processes(
+    set_env, context, mock_metadata_service, caplog
+):
+    event = s3_event_with_key("expedite%2F1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf")
+    lambda_handler(event, context)
+
+    assert any("Triggered by S3 listener" in r.message for r in caplog.records)
+    assert any("Processing file from expedite folder" in r.message for r in caplog.records)
+
+
+def test_s3_event_with_non_expedite_key_is_rejected(
+    set_env, context, mock_metadata_service, caplog
+):
+    event = s3_event_with_key("uploads/1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf")
+    lambda_handler(event, context)
+
+    assert any("Unrecognized S3 listener event, cancelling." in r.message for r in caplog.records)
+    mock_metadata_service.process_metadata.assert_not_called()
+

@@ -1,3 +1,5 @@
+import urllib.parse
+
 from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
 from services.bulk_upload.metadata_general_preprocessor import (
     MetadataGeneralPreprocessor,
@@ -24,6 +26,18 @@ logger = LoggingService(__name__)
 )
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
+    if 'Records' in event and \
+            event['Records'][0].get('eventSource') == 's3.amazonaws.com':
+        logger.info("Triggered by S3 listener...")
+        key_string = event['Records'][0]['s3']['object']['key']
+        key = urllib.parse.unquote_plus(key_string, encoding='utf-8')
+        if key.startswith("expedite/"):
+            logger.info("Processing file from expedite folder")
+            return # To be added upon by ticket PRMP-540
+        else:
+            logger.error("Unrecognized S3 listener event, cancelling.")
+            return
+
     practice_directory = event.get("practiceDirectory", "")
 
     raw_pre_format_type = event.get(
