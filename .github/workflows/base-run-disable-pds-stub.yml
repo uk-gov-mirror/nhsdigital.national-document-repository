@@ -1,0 +1,61 @@
+name: "Base PDS - Disable PDS Stub"
+
+permissions:
+  pull-requests: write
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
+on:
+  workflow_call:
+    inputs:
+      sandbox:
+        description: "Which Sandbox to push to."
+        required: true
+        type: "string"
+        default: "ndr"
+      base_branch:
+        description: "Which Feature Branch for the Bulk Upload Script"
+        required: false
+        type: "string"
+        default: "main"
+      environment:
+        description: "Which Environment settings to use."
+        required: true
+        type: "string"
+        default: "development"
+    secrets:
+      AWS_ASSUME_ROLE:
+        required: true
+
+jobs:
+  perform-bulk-upload:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Configure AWS Credentials for ${{ vars.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
+          role-skip-session-tagging: true
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install boto3
+        working-directory: ./tests/bulk-upload/scripts
+
+      - name: Disable FHIR Stub
+        run: |
+          python disable_fhir_stub.py \
+            --environment "${{ inputs.sandbox }}"
+        working-directory: ./tests/scripts

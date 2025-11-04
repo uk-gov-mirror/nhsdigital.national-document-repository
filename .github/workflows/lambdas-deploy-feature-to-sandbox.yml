@@ -88,14 +88,15 @@ jobs:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
   disable_fhir_stub:
-    runs-on: ubuntu-latest
+    name: "Disable PDS stub"
+    uses: "./.github/workflows/base-run-disable-pds-stub.yml"
     needs: ["deploy_all_lambdas"]
-    steps:
-      - name: Disable FHIR Stub
-        run: |
-          python disable_fhir_stub.py \
-            --environment "${{ inputs.sandbox }}"
-        working-directory: ../../tests/scripts
+    with:
+      environment: ${{ inputs.environment }}
+      sandbox: ${{ inputs.sandbox }}
+      base_branch: ${{ inputs.build_branch }}
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
   run_lg_e2etest:
     uses: ./.github/workflows/base-e2e-backendtest.yml
