@@ -13,6 +13,7 @@ from utils.request_context import request_context
 
 logger = LoggingService(__name__)
 
+
 @set_request_context_for_logging
 @ensure_environment_variables(names=["DOCUMENT_REVIEW_DYNAMODB_NAME"])
 @override_error_check
@@ -35,9 +36,19 @@ def lambda_handler(event, context):
             body=json.dumps(
                 {
                     "documentReviewReferences": [
-                        reference.model_dump_json(exclude_none=True, include={"id", "nhs_number", "review_reason"}) for reference in references
+                        reference.model_dump_json(
+                            exclude_none=True,
+                            include={"id", "nhs_number", "review_reason"},
+                        )
+                        for reference in references
                     ],
-                    "lastEvaluatedKey": base64.b64encode(last_evaluated_key.encode("ascii")).decode("utf-8") if last_evaluated_key else None,
+                    "lastEvaluatedKey": (
+                        base64.b64encode(last_evaluated_key.encode("ascii")).decode(
+                            "utf-8"
+                        )
+                        if last_evaluated_key
+                        else None
+                    ),
                     "count": len(references),
                 }
             ),
@@ -78,6 +89,10 @@ def parse_querystring_parameters(event):
 
     limit = params.get("limit", None)
     encoded_start_key = params.get("startKey", None)
-    start_key = base64.b64decode(encoded_start_key.encode("ascii")).decode("utf-8") if encoded_start_key else None
+    start_key = (
+        base64.b64decode(encoded_start_key.encode("ascii")).decode("utf-8")
+        if encoded_start_key
+        else None
+    )
 
     return limit, start_key

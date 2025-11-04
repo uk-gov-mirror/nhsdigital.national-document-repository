@@ -139,6 +139,7 @@ MOCK_ALERTING_SLACK_CHANNEL_ID = "slack_channel_id"
 MOCK_DOCUMENT_REVIEW_TABLE = "test_document_review"
 MOCK_DOCUMENT_REVIEW_BUCKET = "test_document_review_bucket"
 
+
 @pytest.fixture
 def set_env(monkeypatch):
     monkeypatch.setenv("AWS_DEFAULT_REGION", REGION_NAME)

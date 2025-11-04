@@ -5,7 +5,7 @@ import pytest
 from handlers.search_document_review_handler import (
     get_ods_code_from_request_context,
     lambda_handler,
-    parse_querystring_parameters
+    parse_querystring_parameters,
 )
 from models.document_review import DocumentUploadReviewReference
 from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_UUID
@@ -14,7 +14,6 @@ from tests.unit.helpers.data.search_document_review.dynamo_response import (
 )
 from utils.exceptions import OdsErrorException, SearchDocumentReviewReferenceException
 from utils.lambda_response import ApiGatewayResponse
-
 
 TEST_QUERY_LIMIT = 20
 
@@ -38,6 +37,7 @@ def event_with_limit():
         },
         "headers": {"Authorization": "Bearer test_token"},
     }
+
 
 @pytest.fixture
 def event_with_limit_and_start_key():
@@ -84,13 +84,14 @@ def mocked_request_context_without_ods(mocker):
     )
 
 
-
 def test_get_ods_code_from_request(mocked_request_context_with_ods):
 
     assert get_ods_code_from_request_context() == TEST_CURRENT_GP_ODS
 
 
-def test_get_ods_code_from_request_throws_exception_no_ods(mocked_request_context_without_ods):
+def test_get_ods_code_from_request_throws_exception_no_ods(
+    mocked_request_context_without_ods,
+):
 
     with pytest.raises(OdsErrorException):
         get_ods_code_from_request_context()
@@ -109,12 +110,23 @@ def test_handler_returns_400_response_no_ods_code_in_request_context(
     assert actual == expected
 
 
-def test_parse_querystring_parameters(event_with_limit_and_start_key, event, event_with_limit, event_with_start_key_no_limit):
+def test_parse_querystring_parameters(
+    event_with_limit_and_start_key,
+    event,
+    event_with_limit,
+    event_with_start_key_no_limit,
+):
 
-    assert parse_querystring_parameters(event_with_limit_and_start_key) == (TEST_QUERY_LIMIT, TEST_UUID)
+    assert parse_querystring_parameters(event_with_limit_and_start_key) == (
+        TEST_QUERY_LIMIT,
+        TEST_UUID,
+    )
     assert parse_querystring_parameters(event) == (None, None)
     assert parse_querystring_parameters(event_with_limit) == (TEST_QUERY_LIMIT, None)
-    assert parse_querystring_parameters(event_with_start_key_no_limit) == (None, TEST_UUID)
+    assert parse_querystring_parameters(event_with_start_key_no_limit) == (
+        None,
+        TEST_UUID,
+    )
 
 
 def test_get_document_review_document_references_called_with_correct_arguments(
@@ -170,12 +182,17 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
         body=json.dumps(
             {
                 "documentReviewReferences": [
-                    reference.model_dump_json(exclude_none=True, include={"id", "nhs_number", "review_reason"}) for reference in references
+                    reference.model_dump_json(
+                        exclude_none=True, include={"id", "nhs_number", "review_reason"}
+                    )
+                    for reference in references
                 ],
-                "lastEvaluatedKey": base64.b64encode(MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
-                    "LastEvaluatedKey"
-                ].encode("ascii")).decode("utf-8"),
-                "count": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Count"]
+                "lastEvaluatedKey": base64.b64encode(
+                    MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["LastEvaluatedKey"].encode(
+                        "ascii"
+                    )
+                ).decode("utf-8"),
+                "count": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Count"],
             }
         ),
         methods="GET",
@@ -201,10 +218,13 @@ def test_handler_returns_list_of_references_no_limit_passed(
         body=json.dumps(
             {
                 "documentReviewReferences": [
-                    reference.model_dump_json(exclude_none=True, include={"id", "nhs_number", "review_reason"}) for reference in references
+                    reference.model_dump_json(
+                        exclude_none=True, include={"id", "nhs_number", "review_reason"}
+                    )
+                    for reference in references
                 ],
                 "lastEvaluatedKey": None,
-                "count": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Count"]
+                "count": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Count"],
             }
         ),
         methods="GET",

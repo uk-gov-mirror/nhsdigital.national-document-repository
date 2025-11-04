@@ -1,5 +1,4 @@
 import uuid
-from typing import Optional
 
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
