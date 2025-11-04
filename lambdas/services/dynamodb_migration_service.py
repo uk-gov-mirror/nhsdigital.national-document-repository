@@ -78,13 +78,8 @@ class DynamoDBMigrationService:
 
     def process_items(self, migration_instance, items):
         if not items:
-            logger.info(f"No items found for segment {self.segment}")
-            return None  # Return None if no items
-
-        update_definitions = migration_instance.main(entries=items)
-
-        for label, update_fn in update_definitions:
-            logger.info(f"Executing migration step '{label}'")
+            return
+        for label, update_fn in migration_instance.main(entries=items):
             try:
                 segment_run_output = migration_instance.process_entries(
                     label=label,
@@ -92,23 +87,10 @@ class DynamoDBMigrationService:
                     update_fn=update_fn,
                     segment=self.segment
                 )
-
-                if not isinstance(segment_run_output, dict):
-                    logger.error(f"process_entries did not return a dict for step '{label}'")
-                    continue 
-
-                required_keys = ["successful_item_run", "failed_items_count"]
-                missing_keys = [key for key in required_keys if key not in segment_run_output]
-                if missing_keys:
-                    logger.error(f"process_entries output missing keys {missing_keys} for step '{label}'")
-                    continue
-
                 self.processed_count += segment_run_output.get("successful_item_run", 0)
                 self.error_count += segment_run_output.get("failed_items_count", 0)
-            except Exception as step_error:
-                logger.error(f"Error in step '{label}' for segment {self.segment}: {step_error}", exc_info=True)
-                # Raise the exception so the Step Function can catch it
-                raise
+            except Exception:
+                self.error_count += 1
 
     def iterate_segment_items(self,migration_instance):
        last_evaluated_key = None
