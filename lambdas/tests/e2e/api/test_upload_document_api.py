@@ -13,7 +13,7 @@ from tests.e2e.conftest import (
     LLOYD_GEORGE_SNOMED,
     fetch_with_retry,
 )
-from tests.e2e.helpers.lloyd_george_data_helper import LloydGeorgeDataHelper
+from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
 
@@ -97,7 +97,7 @@ def test_create_document_base64(test_data, snapshot_json):
 
     attachment_url = upload_response["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/DocumentReference/{LLOYD_GEORGE_SNOMED}~"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{LLOYD_GEORGE_SNOMED}~"
         in attachment_url
     )
 
@@ -194,3 +194,25 @@ def test_create_document_virus(test_data, snapshot_json):
 
     assert upload_response == snapshot_json(exclude=paths("id", "date"))
     assert retrieve_response == snapshot_json(exclude=paths("id", "date"))
+
+
+def test_create_document_does_not_save_raw(test_data):
+    lloyd_george_record = {}
+    lloyd_george_record["ods"] = "H81109"
+    lloyd_george_record["nhs_number"] = "9449303304"
+
+    sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
+    with open(sample_pdf_path, "rb") as f:
+        lloyd_george_record["data"] = base64.b64encode(f.read()).decode("utf-8")
+    payload = create_upload_payload(lloyd_george_record)
+
+    url = f"https://{API_ENDPOINT}/FhirDocumentReference"
+    headers = {"Authorization": "Bearer 123", "X-Api-Key": API_KEY}
+
+    retrieve_response = requests.post(url, headers=headers, data=payload)
+    json_response = retrieve_response.json()
+
+    lloyd_george_record["id"] = json_response.get("id")
+    doc_ref = data_helper.retrieve_document_reference(record=lloyd_george_record)
+    assert "Item" in doc_ref
+    assert "RawRequest" not in doc_ref["Item"]

@@ -5,7 +5,7 @@ import uuid
 import requests
 from syrupy.filters import paths
 from tests.e2e.conftest import API_ENDPOINT, API_KEY, APIM_ENDPOINT, LLOYD_GEORGE_SNOMED
-from tests.e2e.helpers.lloyd_george_data_helper import LloydGeorgeDataHelper
+from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
 
@@ -33,7 +33,7 @@ def test_search_patient_details(test_data, snapshot_json):
 
     attachment_url = bundle["entry"][0]["resource"]["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/DocumentReference/{LLOYD_GEORGE_SNOMED}~"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{LLOYD_GEORGE_SNOMED}~"
         in attachment_url
     )
 
