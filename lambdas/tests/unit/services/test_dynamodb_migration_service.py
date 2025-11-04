@@ -86,7 +86,7 @@ def test_process_items_executes_update_functions(service_under_test, mocker):
     migration_instance = mocker.Mock()
     migration_instance.main.return_value = [("VeryImportantMigration", dummy_update_fn)]
     migration_instance.process_entries.return_value = {
-        "successful_item_runs": 1,
+        "successful_item_run": 1,  # <-- match implementation key
         "failed_items_count": 0
     }
 

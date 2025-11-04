@@ -79,7 +79,7 @@ class DynamoDBMigrationService:
     def process_items(self, migration_instance, items):
         if not items:
             logger.info(f"No items found for segment {self.segment}")
-            return
+            return None  # Return None if no items
 
         update_definitions = migration_instance.main(entries=items)
 
@@ -103,12 +103,12 @@ class DynamoDBMigrationService:
                     logger.error(f"process_entries output missing keys {missing_keys} for step '{label}'")
                     continue
 
-                self.processed_count += segment_run_output.get("successful_item_runs", 0)
+                self.processed_count += segment_run_output.get("successful_item_run", 0)
                 self.error_count += segment_run_output.get("failed_items_count", 0)
             except Exception as step_error:
-                self.error_count += 1
                 logger.error(f"Error in step '{label}' for segment {self.segment}: {step_error}", exc_info=True)
-
+                # Raise the exception so the Step Function can catch it
+                raise
 
     def iterate_segment_items(self,migration_instance):
        last_evaluated_key = None
