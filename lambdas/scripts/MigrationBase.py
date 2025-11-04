@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Iterable, Callable
 import boto3
 import json
+import os
 
 from services.base.dynamo_service import DynamoDBService
 from utils.audit_logging_setup import LoggingService
@@ -45,7 +46,8 @@ class MigrationBase(ABC):
         :param update_fn: Function that returns a dict of updated fields or None
         """
         self.logger.info(f"Running '{label}' migration step on {len(entries := list(entries))} items")
-        errors = []
+        successful_item_run = 0
+        failed_items = []
 
         for index, entry in enumerate(entries, start=1):
             item_id = entry.get("ID")
@@ -65,29 +67,35 @@ class MigrationBase(ABC):
                             updated_fields=updated_fields,
                         )
                         self.logger.info(f"[{label}] Updated item {item_id}: {updated_fields}")
+                        successful_item_run += 1
                     except Exception as e:
                         self.logger.error(f"[{label}] Failed to update item {item_id}: {str(e)}")
                 else:
                     self.logger.info(f"[Dry Run] Would update item {item_id} with {updated_fields}")
+                    successful_item_run += 1
 
             except MigrationUnrecoverableException as e:
-                self.logger.error(f"[{label}] Unrecoverable error for item {item_id} - segment {self.segment}: {e.message}")
-                errors.append({"item_id": item_id, "error": e.message})
+                self.logger.error(f"[{label}] Unrecoverable error for item {item_id} - segment {segment}: {e.message}")
+                failed_items.append({"item_id": item_id, "error": e.message})
                 continue
 
             except Exception as e:
                 self.logger.error(f"[{label}] Error processing item {item_id}: {str(e)}")
                 raise
 
-        if errors:
-            self.logger.error(f"'{label}' migration step completed with {len(errors)} errors.")
+        if failed_items:
+            self.logger.error(f"'{label}' migration step completed with {len(failed_items)} errors.")
             error_report_key = f"migration_errors/{label}_errors.json"
             self.s3_client.put_object(
                 Bucket=self.failed_items_bucket,
                 Key=error_report_key,
-                Body=json.dumps(errors),
+                Body=json.dumps(failed_items).encode("utf-8"),
                 ContentType='application/json'
             )
-            self.logger.error(f"Error report saved to s3://{self.failed_items_bucket}/{error_report_key}")        
+            self.logger.error(f"Error report saved to s3://{self.failed_items_bucket}/{error_report_key}")      
 
         self.logger.info(f"'{label}' migration step completed.\n")
+        return {
+            "successful_item_run": successful_item_run,
+            "failed_items_count": len(failed_items)
+        }

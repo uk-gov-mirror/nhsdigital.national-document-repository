@@ -32,8 +32,6 @@ class DynamoDBMigrationService:
         self.dynamo_service = DynamoDBService()
 
         self.scanned_count = 0
-        self.updated_count = 0
-        self.skipped_count = 0
         self.error_count = 0
 
         logger.info(
@@ -88,13 +86,25 @@ class DynamoDBMigrationService:
         for label, update_fn in update_definitions:
             logger.info(f"Executing migration step '{label}'")
             try:
-                migration_instance.process_entries(
+                segment_run_output = migration_instance.process_entries(
                     label=label,
                     entries=items,
                     update_fn=update_fn,
                     segment=self.segment
                 )
-                self.updated_count += len(items)
+
+                if not isinstance(segment_run_output, dict):
+                    logger.error(f"process_entries did not return a dict for step '{label}'")
+                    continue 
+
+                required_keys = ["successful_item_run", "failed_items_count"]
+                missing_keys = [key for key in required_keys if key not in segment_run_output]
+                if missing_keys:
+                    logger.error(f"process_entries output missing keys {missing_keys} for step '{label}'")
+                    continue
+
+                self.scanned_count += segment_run_output.get("successful_item_run", 0)
+                self.error_count += segment_run_output.get("failed_items_count", 0)
             except Exception as step_error:
                 self.error_count += 1
                 logger.error(f"Error in step '{label}' for segment {self.segment}: {step_error}", exc_info=True)
@@ -121,8 +131,6 @@ class DynamoDBMigrationService:
             "segmentId": self.segment,
             "totalSegments": self.total_segments,
             "scannedCount": self.scanned_count,
-            "updatedCount": self.updated_count,
-            "skippedCount": self.skipped_count,
             "errorCount": self.error_count,
             "status": status,
         }
