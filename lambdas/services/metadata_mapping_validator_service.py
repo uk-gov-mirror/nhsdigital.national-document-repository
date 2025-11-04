@@ -14,19 +14,24 @@ class MetadataMappingValidatorService:
         return self.create_dynamic_model(alias_map)
 
     def validate_alias_map(self, alias_map: dict) -> None:
-        alias_field_keys = set(alias_map.values()).intersection(
-            MetadataFile.model_fields
-        )
-        missing_keys = set(MetadataFile.model_fields.keys()) - alias_field_keys
+        model_aliases = {f.alias for f in MetadataFile.model_fields.values() if f.alias}
+        alias_field_keys = set(alias_map.keys()).intersection(model_aliases)
+
+        # Temporary - There are no indicators to these fields that they are required direclty on the model,
+        # I want to avoid changes to the model to avoid regression.
+
+        missing_keys = model_aliases - alias_field_keys
+        missing_keys = missing_keys - set(["PAGE COUNT", "SECTION", "SUB-SECTION"])
         if missing_keys:
             raise BulkUploadMetadataException(
                 f"Alias config is missing mappings for: {', '.join(sorted(missing_keys))}"
             )
 
     def create_dynamic_model(self, alias_map: dict) -> Type[BaseModel]:
+
         new_fields = {
-            name: (field.annotation, Field(alias=alias_map.get(name)))
-            for name, field in MetadataFile.model_fields.items()
+            alias: (field.annotation, Field(alias=alias_map.get(field.alias)))
+            for alias, field in MetadataFile.model_fields.items()
         }
 
         model_config = ConfigDict(

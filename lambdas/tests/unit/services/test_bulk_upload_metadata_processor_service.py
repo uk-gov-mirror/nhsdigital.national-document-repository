@@ -52,27 +52,26 @@ class MockMetadataPreprocessorService(MetadataPreprocessorService):
     def validate_record_filename(self, original_filename: str, *args, **kwargs) -> str:
         return original_filename
 
+    @pytest.fixture(autouse=True)
+    @freeze_time("2025-01-01T12:00:00")
+    def test_service(mocker, set_env, mock_tempfile):
+        mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
+        mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
+        mocker.patch(
+            "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
+        )
 
-@pytest.fixture(autouse=True)
-@freeze_time("2025-01-01T12:00:00")
-def test_service(mocker, set_env, mock_tempfile):
-    mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
-    mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
-    mocker.patch(
-        "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
-    )
+        service = BulkUploadMetadataProcessorService(
+            metadata_formatter_service=MockMetadataPreprocessorService(
+                practice_directory="test_practice_directory"
+            ),
+            staging_bucket_name="mock-staging-bucket",
+            metadata_queue_url="test_bulk_upload_metadata_queue",
+            heading_remappings={},
+        )
 
-    service = BulkUploadMetadataProcessorService(
-        metadata_formatter_service=MockMetadataPreprocessorService(
-            practice_directory="test_practice_directory"
-        ),
-        staging_bucket_name="mock-staging-bucket",
-        metadata_queue_url="test_bulk_upload_metadata_queue",
-        heading_remappings={},
-    )
-
-    mocker.patch.object(service, "s3_service")
-    return service
+        mocker.patch.object(service, "s3_service")
+        return service
 
 
 @pytest.fixture
