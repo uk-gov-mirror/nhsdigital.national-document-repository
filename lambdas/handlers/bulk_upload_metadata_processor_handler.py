@@ -39,7 +39,7 @@ def lambda_handler(event, _context):
                 logger.info("Processing file from expedite folder")
                 return  # To be added upon by ticket PRMP-540
             else:
-                failure_msg = "Unrecognized S3 listener event, cancelling."
+                failure_msg = "Failed due to unrecognized S3 listener event key"
                 logger.error(failure_msg)
                 raise BulkUploadMetadataException(failure_msg)
         except KeyError as e:
