@@ -133,7 +133,7 @@ jobs:
     name: "Run Bulk Upload"
     if: ${{ inputs.bulk_upload }}
     uses: "./.github/workflows/base-run-bulk-upload.yml"
-    needs: ["deploy_all_lambdas"]
+    needs: ["deploy_all_lambdas", "run_lg_e2etest", "run_pdm_e2etest"]
     with:
       environment: ${{ inputs.environment }}
       sandbox: ${{ inputs.sandbox }}
