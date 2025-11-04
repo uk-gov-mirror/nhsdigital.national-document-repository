@@ -15,7 +15,7 @@ def service():
 def test_build_model_for_alias_calls_expected_methods(mocker, service):
     mock_validate = mocker.patch.object(service, "validate_alias_map")
     mock_create = mocker.patch.object(
-        service, "create_dynamic_model", return_value=BaseModel
+        service, "create_metadata_model", return_value=BaseModel
     )
 
     result = service.build_model_for_alias("general")
@@ -32,7 +32,7 @@ def test_validate_alias_map_raises_when_keys_missing(service):
 
 def test_create_dynamic_model_builds_pydantic_model(service):
     alias_map = {k: k.upper() for k in MetadataFile.model_fields.keys()}
-    model = service.create_dynamic_model(alias_map)
+    model = service.create_metadata_model(alias_map)
     assert issubclass(model, BaseModel)
     assert "file_path" in model.model_fields
 
@@ -40,32 +40,53 @@ def test_create_dynamic_model_builds_pydantic_model(service):
 def test_validate_and_normalize_metadata_mixed_results(mocker, service):
     class FakeModel(BaseModel):
         file_path: str
+        scan_date: str
+        gp_practice_code: str
+        nhs_number: str
 
     mocker.patch.object(service, "build_model_for_alias", return_value=FakeModel)
 
-    # Patch required fields list to only include 'file_path'
-    mocker.patch.object(
-        service,
-        "get_empty_required_fields",
-        wraps=lambda data, req: [k for k, v in data.items() if not v],
-    )
-
     records = [
-        {"file_path": "valid.pdf"},
-        {"file_path": ""},
+        {
+            "file_path": "valid.pdf",
+            "scan_date": "01/01/1970",
+            "gp_practice_code": "A12345",
+            "nhs_number": "1234567890",
+        },
+        {
+            "file_path": "",
+            "scan_date": "01/01/1970",
+            "gp_practice_code": "A12345",
+            "nhs_number": "1234567890",
+        },
+        {"file_path": "", "gp_practice_code": "A12345", "nhs_number": "1234567890"},
     ]
 
-    validated, rejected, reasons = service.validate_and_normalize_metadata(
-        records, "general"
-    )
+    validated, rejected, reasons = service.validate_and_normalize_metadata(records, {})
 
     assert len(validated) == 1
-    assert len(rejected) == 1
+    assert len(rejected) == 2
     assert "Missing or empty required fields" in reasons[0]["REASON"]
 
 
-def test_get_empty_required_fields_detects(service):
-    data = {"file_path": "", "gp_practice_code": None, "nhs_number": "123"}
-    required = ["file_path", "gp_practice_code", "nhs_number"]
-    result = service.get_empty_required_fields(data, required)
-    assert set(result) == {"file_path", "gp_practice_code"}
+def test_validate_and_normalize_metadata_missing_type(mocker, service):
+    class FakeModel(BaseModel):
+        file_path: str
+        scan_date: str
+        gp_practice_code: str
+
+    mocker.patch.object(service, "build_model_for_alias", return_value=FakeModel)
+
+    records = [
+        {
+            "file_path": "valid.pdf",
+            "scan_date": "01/01/1970",
+            "gp_practice_code": "A12345",
+        },
+    ]
+
+    validated, rejected, reasons = service.validate_and_normalize_metadata(records, {})
+
+    assert len(validated) == 0
+    assert len(rejected) == 1
+    assert "Missing or empty required fields" in reasons[0]["REASON"]

@@ -21,18 +21,26 @@ logger = LoggingService(__name__)
 
 @set_request_context_for_logging
 @override_error_check
-@ensure_environment_variables(names=["STAGING_STORE_BUCKET_NAME", "METADATA_SQS_QUEUE_URL"])
+@ensure_environment_variables(
+    names=["STAGING_STORE_BUCKET_NAME", "METADATA_SQS_QUEUE_URL"]
+)
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
     practice_directory = event.get("practiceDirectory", "")
 
-    raw_pre_format_type = event.get("preFormatType", LloydGeorgePreProcessFormat.GENERAL)
+    raw_pre_format_type = event.get(
+        "preFormatType", LloydGeorgePreProcessFormat.GENERAL
+    )
     formatter_service_class = get_formatter_service(raw_pre_format_type)
     if not practice_directory:
-        logger.error("Failed to start metadata processing due to missing practice directory")
+        logger.error(
+            "Failed to start metadata processing due to missing practice directory"
+        )
         return
 
-    logger.info(f"Starting metadata processing for practice directory: {practice_directory}")
+    logger.info(
+        f"Starting metadata processing for practice directory: {practice_directory}"
+    )
 
     # Read the "remap" key and convert to a dictionary
     remappings = event.get("remappings", {})
@@ -42,7 +50,7 @@ def lambda_handler(event, _context):
         metadata_formatter_service=metadata_formatter_service,
         staging_bucket_name=os.getenv("STAGING_STORE_BUCKET_NAME"),
         metadata_queue_url=os.getenv("METADATA_SQS_QUEUE_URL"),
-        heading_remappings=remappings,
+        metadata_heading_remap=remappings,
     )
     metadata_service.process_metadata()
 
@@ -57,5 +65,7 @@ def get_formatter_service(raw_pre_format_type):
             logger.info("Using usb preFormatType")
             return MetadataUsbPreprocessorService
     except ValueError:
-        logger.warning(f"Invalid preFormatType: '{raw_pre_format_type}', defaulting to {LloydGeorgePreProcessFormat.GENERAL}.")
+        logger.warning(
+            f"Invalid preFormatType: '{raw_pre_format_type}', defaulting to {LloydGeorgePreProcessFormat.GENERAL}."
+        )
         return MetadataGeneralPreprocessor

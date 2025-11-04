@@ -52,26 +52,27 @@ class MockMetadataPreprocessorService(MetadataPreprocessorService):
     def validate_record_filename(self, original_filename: str, *args, **kwargs) -> str:
         return original_filename
 
-    @pytest.fixture(autouse=True)
-    @freeze_time("2025-01-01T12:00:00")
-    def test_service(mocker, set_env, mock_tempfile):
-        mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
-        mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
-        mocker.patch(
-            "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
-        )
 
-        service = BulkUploadMetadataProcessorService(
-            metadata_formatter_service=MockMetadataPreprocessorService(
-                practice_directory="test_practice_directory"
-            ),
-            staging_bucket_name="mock-staging-bucket",
-            metadata_queue_url="test_bulk_upload_metadata_queue",
-            heading_remappings={},
-        )
+@pytest.fixture(autouse=True)
+@freeze_time("2025-01-01T12:00:00")
+def test_service(mocker, set_env, mock_tempfile):
+    mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
+    mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
+    )
 
-        mocker.patch.object(service, "s3_service")
-        return service
+    service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=MockMetadataPreprocessorService(
+            practice_directory="test_practice_directory"
+        ),
+        staging_bucket_name="mock-staging-bucket",
+        metadata_queue_url="test_bulk_upload_metadata_queue",
+        metadata_heading_remap={},
+    )
+
+    mocker.patch.object(service, "s3_service")
+    return service
 
 
 @pytest.fixture
@@ -308,7 +309,7 @@ def bulk_upload_service():
         ),
         staging_bucket_name="mock-staging-bucket",
         metadata_queue_url="mock-queue-url",
-        heading_remappings={},
+        metadata_heading_remap={},
     )
 
 
@@ -500,7 +501,7 @@ def test_process_metadata_row_adds_to_existing_entry(mocker):
         metadata_formatter_service=preprocessor,
         staging_bucket_name="mock-staging-bucket",
         metadata_queue_url="test_bulk_upload_metadata_queue",
-        heading_remappings={},
+        metadata_heading_remap={},
     )
 
     service.process_metadata_row(row, patients)
@@ -702,7 +703,7 @@ def test_clear_temp_storage_handles_missing_directory(mocker, test_service):
 
 @pytest.fixture(autouse=True)
 @freeze_time("2025-01-01T12:00:00")
-def test_remapping_service(mocker):
+def mock_service_remapping_mandatory_fields(mocker):
     mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
     mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
     mocker.patch(
@@ -715,7 +716,7 @@ def test_remapping_service(mocker):
         ),
         staging_bucket_name="mock-staging-bucket",
         metadata_queue_url="test_bulk_upload_metadata_queue",
-        heading_remappings={
+        metadata_heading_remap={
             "FILEPATH": "Path",
             "NHS-NO": "NhsNumber",
             "GP-PRACTICE-CODE": "ODS Code",
@@ -724,6 +725,17 @@ def test_remapping_service(mocker):
             "USER-ID": "User ID",
             "UPLOAD": "Upload Date",
         },
+    )
+
+    mocker.patch.object(
+        service,
+        "download_metadata_from_s3",
+        return_value="fake/path.csv",
+    )
+    mocker.patch.object(
+        service,
+        "process_metadata_row",
+        wraps=service.process_metadata_row,
     )
 
     mocker.patch.object(service, "s3_service")
@@ -739,18 +751,170 @@ def mock_remap_csv_content():
     return "\n".join([header, *rows])
 
 
-def test_remapping_logic(mocker, test_remapping_service, mock_remap_csv_content):
+def test_remapping_mandatory_fields(
+    mocker, mock_service_remapping_mandatory_fields, mock_remap_csv_content
+):
     mocker.patch("builtins.open", mocker.mock_open(read_data=mock_remap_csv_content))
+
+    result = mock_service_remapping_mandatory_fields.csv_to_sqs_metadata(
+        "fake/path.csv"
+    )
+    expected = [
+        StagingSqsMetadata(
+            nhs_number="123456789",
+            files=[
+                BulkUploadQueueMetadata(
+                    file_path="/path/1.pdf",
+                    gp_practice_code="Y12345",
+                    scan_date="02/01/2023",
+                    stored_file_name="/path/1.pdf",
+                )
+            ],
+            retries=0,
+        )
+    ]
+    assert result == expected
+
+
+@pytest.fixture(autouse=True)
+@freeze_time("2025-01-01T12:00:00")
+def mock_service_no_remapping(mocker):
+    mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
+    mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
+    )
+
+    service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=MockMetadataPreprocessorService(
+            practice_directory="test_practice_directory"
+        ),
+        staging_bucket_name="mock-staging-bucket",
+        metadata_queue_url="test_bulk_upload_metadata_queue",
+        metadata_heading_remap={},
+    )
+
     mocker.patch.object(
-        test_remapping_service,
+        service,
         "download_metadata_from_s3",
         return_value="fake/path.csv",
     )
     mocker.patch.object(
-        test_remapping_service,
+        service,
         "process_metadata_row",
-        wraps=test_remapping_service.process_metadata_row,
+        wraps=service.process_metadata_row,
     )
 
-    result = test_remapping_service.csv_to_sqs_metadata("fake/path.csv")
-    assert result
+    mocker.patch.object(service, "s3_service")
+    return service
+
+
+@pytest.fixture
+def mock_noremap_csv_content():
+    header = "FILEPATH,GP-PRACTICE-CODE,NHS-NO,SCAN-DATE,SCAN-ID,USER-ID,UPLOAD"
+    rows = [
+        "/path/1.pdf,Y12345,123456789,02/01/2023,SID,UID,02/01/2023",
+    ]
+    return "\n".join([header, *rows])
+
+
+def test_no_remapping_logic(
+    mocker, mock_service_no_remapping, mock_noremap_csv_content
+):
+    mocker.patch("builtins.open", mocker.mock_open(read_data=mock_noremap_csv_content))
+
+    result = mock_service_no_remapping.csv_to_sqs_metadata("fake/path.csv")
+
+    assert result == [
+        StagingSqsMetadata(
+            nhs_number="123456789",
+            files=[
+                BulkUploadQueueMetadata(
+                    file_path="/path/1.pdf",
+                    gp_practice_code="Y12345",
+                    scan_date="02/01/2023",
+                    stored_file_name="/path/1.pdf",
+                )
+            ],
+            retries=0,
+        )
+    ]
+
+
+@pytest.fixture(autouse=True)
+@freeze_time("2025-01-01T12:00:00")
+def mock_service_full_remapping(mocker):
+    mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
+    mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
+    )
+
+    service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=MockMetadataPreprocessorService(
+            practice_directory="test_practice_directory"
+        ),
+        staging_bucket_name="mock-staging-bucket",
+        metadata_queue_url="test_bulk_upload_metadata_queue",
+        metadata_heading_remap={
+            "FILEPATH": "Path",
+            "NHS-NO": "NhsNumber",
+            "GP-PRACTICE-CODE": "ODS Code",
+            "SCAN-DATE": "Scan Date",
+            "SCAN-ID": "Scan ID",
+            "USER-ID": "User ID",
+            "UPLOAD": "Upload Date",
+            "PAGE COUNT": "Page Count",
+            "SECTION": "Section",
+            "SUB-SECTION": "Sub Section",
+        },
+    )
+
+    mocker.patch.object(
+        service,
+        "download_metadata_from_s3",
+        return_value="fake/path.csv",
+    )
+    mocker.patch.object(
+        service,
+        "process_metadata_row",
+        wraps=service.process_metadata_row,
+    )
+
+    mocker.patch.object(service, "s3_service")
+    return service
+
+
+@pytest.fixture
+def mock_full_remap_csv_content():
+    header = "Path,ODS Code,NhsNumber,Scan Date,Scan ID,User ID,Upload Date,Page Count,Section,Sub Section"
+    rows = [
+        "/path/1.pdf,Y12345,123456789,02/01/2023,SID,UID,02/01/2023,1,1,1",
+    ]
+
+    return "\n".join([header, *rows])
+
+
+def test_full_remapping_logic(
+    mocker, mock_service_full_remapping, mock_full_remap_csv_content
+):
+    mocker.patch(
+        "builtins.open", mocker.mock_open(read_data=mock_full_remap_csv_content)
+    )
+
+    result = mock_service_full_remapping.csv_to_sqs_metadata("fake/path.csv")
+
+    assert result == [
+        StagingSqsMetadata(
+            nhs_number="123456789",
+            files=[
+                BulkUploadQueueMetadata(
+                    file_path="/path/1.pdf",
+                    gp_practice_code="Y12345",
+                    scan_date="02/01/2023",
+                    stored_file_name="/path/1.pdf",
+                )
+            ],
+            retries=0,
+        )
+    ]
