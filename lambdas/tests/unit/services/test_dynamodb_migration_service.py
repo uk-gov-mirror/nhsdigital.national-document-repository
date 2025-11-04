@@ -1,6 +1,12 @@
 import pytest
+import os
 from scripts.MigrationBase import MigrationBase
 from services.dynamodb_migration_service import DynamoDBMigrationService
+
+
+@pytest.fixture(autouse=True)
+def set_env_vars(monkeypatch):
+    monkeypatch.setenv("MIGRATION_FAILED_ITEMS_STORE_BUCKET_NAME", "dummy-bucket")
 
 
 @pytest.fixture
@@ -93,7 +99,6 @@ def test_process_items_executes_update_functions(service_under_test, mocker):
         update_fn=dummy_update_fn,
         segment=service_under_test.segment
     )
-    assert service_under_test.updated_count == 0  # updated_count removed, use processed_count
     assert service_under_test.processed_count == 1
     assert service_under_test.error_count == 0
 
