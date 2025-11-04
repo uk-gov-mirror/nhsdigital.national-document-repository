@@ -72,12 +72,17 @@ def test_scan_segment_with_last_key(service_under_test, mock_boto3_resource):
         Segment=0, TotalSegments=10, ExclusiveStartKey=lek
     )
 
+
 def test_process_items_executes_update_functions(service_under_test, mocker):
     def dummy_update_fn(item):
         return None
 
     migration_instance = mocker.Mock()
     migration_instance.main.return_value = [("VeryImportantMigration", dummy_update_fn)]
+    migration_instance.process_entries.return_value = {
+        "successful_item_runs": 1,
+        "failed_items_count": 0
+    }
 
     service_under_test.process_items(migration_instance, [{"ID": "1"}])
 
@@ -86,8 +91,11 @@ def test_process_items_executes_update_functions(service_under_test, mocker):
         label="VeryImportantMigration",
         entries=[{"ID": "1"}],
         update_fn=dummy_update_fn,
+        segment=service_under_test.segment
     )
-    assert service_under_test.updated_count == 1
+    assert service_under_test.updated_count == 0  # updated_count removed, use processed_count
+    assert service_under_test.processed_count == 1
+    assert service_under_test.error_count == 0
 
 
 def test_process_items_handles_exceptions(service_under_test, mocker):
@@ -105,6 +113,7 @@ def test_process_items_handles_exceptions(service_under_test, mocker):
         label="VeryImportantMigration",
         entries=[{"ID": "1"}],
         update_fn=dummy_update_fn,
+        segment=service_under_test.segment
     )
     assert service_under_test.error_count == 1
 

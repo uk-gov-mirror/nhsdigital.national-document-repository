@@ -46,7 +46,7 @@ class MigrationBase(ABC):
         :param update_fn: Function that returns a dict of updated fields or None
         """
         self.logger.info(f"Running '{label}' migration step on {len(entries := list(entries))} items")
-        successful_item_run = 0
+        successful_item_runs = 0
         failed_items = []
 
         for index, entry in enumerate(entries, start=1):
@@ -67,12 +67,12 @@ class MigrationBase(ABC):
                             updated_fields=updated_fields,
                         )
                         self.logger.info(f"[{label}] Updated item {item_id}: {updated_fields}")
-                        successful_item_run += 1
+                        successful_item_runs += 1
                     except Exception as e:
                         self.logger.error(f"[{label}] Failed to update item {item_id}: {str(e)}")
                 else:
                     self.logger.info(f"[Dry Run] Would update item {item_id} with {updated_fields}")
-                    successful_item_run += 1
+                    successful_item_runs += 1
 
             except MigrationUnrecoverableException as e:
                 self.logger.error(f"[{label}] Unrecoverable error for item {item_id} - segment {segment}: {e.message}")
@@ -96,6 +96,6 @@ class MigrationBase(ABC):
 
         self.logger.info(f"'{label}' migration step completed.\n")
         return {
-            "successful_item_run": successful_item_run,
+            "successful_item_runs": successful_item_runs,
             "failed_items_count": len(failed_items)
         }

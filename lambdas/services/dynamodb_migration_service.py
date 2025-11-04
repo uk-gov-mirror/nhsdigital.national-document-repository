@@ -30,8 +30,8 @@ class DynamoDBMigrationService:
         self.dynamodb = boto3.resource("dynamodb")
         self.table = self.dynamodb.Table(self.table_name)
         self.dynamo_service = DynamoDBService()
-
         self.scanned_count = 0
+        self.processed_count = 0
         self.error_count = 0
 
         logger.info(
@@ -103,7 +103,7 @@ class DynamoDBMigrationService:
                     logger.error(f"process_entries output missing keys {missing_keys} for step '{label}'")
                     continue
 
-                self.scanned_count += segment_run_output.get("successful_item_run", 0)
+                self.processed_count += segment_run_output.get("successful_item_runs", 0)
                 self.error_count += segment_run_output.get("failed_items_count", 0)
             except Exception as step_error:
                 self.error_count += 1
@@ -130,6 +130,7 @@ class DynamoDBMigrationService:
         result = {
             "segmentId": self.segment,
             "totalSegments": self.total_segments,
+            "processedCount": self.processed_count,
             "scannedCount": self.scanned_count,
             "errorCount": self.error_count,
             "status": status,
