@@ -22,7 +22,7 @@ convert_to_sqs_metadata = BulkUploadMetadataProcessorService.convert_to_sqs_meta
 
 sample_metadata_model = MetadataFile(
     nhs_number="0000000000",
-    file_path="/1234567890/1of2_Lloyd_George_Record_[Joe Bloggs]_[1234567890]_[25-12-2019].pdf",
+    FILEPATH="/1234567890/1of2_Lloyd_George_Record_[Joe Bloggs]_[1234567890]_[25-12-2019].pdf",
     page_count="",
     gp_practice_code="Y12345",
     section="LG",
@@ -41,7 +41,8 @@ sample_sqs_metadata_model = BulkUploadQueueMetadata(
 patient_1_file_1 = sample_metadata_model.model_copy()
 patient_1_file_2 = sample_metadata_model.model_copy(
     update={
-        "file_path": "/1234567890/2of2_Lloyd_George_Record_[Joe Bloggs]_[1234567890]_[25-12-2019].pdf"
+        "file_path": "/1234567890/2of2_Lloyd_George_Record_[Joe Bloggs]_[1234567890]_[25-12-2019].pdf",
+        "stored_file_name": "/1234567890/2of2_Lloyd_George_Record_[Joe Bloggs]_[1234567890]_[25-12-2019].pdf",
     }
 )
 
@@ -57,6 +58,7 @@ patient_1 = StagingSqsMetadata(
 patient_2_file_1 = sample_metadata_model.model_copy(
     update={
         "file_path": "1of1_Lloyd_George_Record_[Joe Bloggs_invalid]_[123456789]_[25-12-2019].txt",
+        "stored_file_name": "1of1_Lloyd_George_Record_[Joe Bloggs_invalid]_[123456789]_[25-12-2019].txt",
         "scan_date": "04/09/2022",
     }
 )
@@ -101,6 +103,7 @@ patient_3_with_missing_nhs_number_metadata_file = sample_metadata_model.model_co
     update={
         "nhs_number": "",
         "file_path": "1of1_Lloyd_George_Record_[Jane Smith]_[1234567892]_[25-12-2019].txt",
+        "stored_file_name": "1of1_Lloyd_George_Record_[Jane Smith]_[1234567892]_[25-12-2019].txt",
         "scan_date": "04/09/2022",
     }
 )
@@ -109,6 +112,7 @@ patient_3_with_missing_nhs_number_metadata_file_different_ods_code = sample_meta
     update={
         "nhs_number": "",
         "file_path": "1of1_Lloyd_George_Record_[Jane Smith]_[1234567892]_[25-12-2019].txt",
+        "stored_file_name": "1of1_Lloyd_George_Record_[Jane Smith]_[1234567892]_[25-12-2019].txt",
         "scan_date": "04/09/2022",
         "gp_practice_code": "Y6789",
     }
@@ -244,7 +248,11 @@ def build_test_staging_metadata(file_names: list[str], nhs_number: str = "900000
         source_file_path = f"/{nhs_number}/{file_name}"
         files.append(
             sample_sqs_metadata_model.model_copy(
-                update={"file_path": source_file_path, "scan_date": "2022-09-03"}
+                update={
+                    "file_path": source_file_path,
+                    "scan_date": "2022-09-03",
+                    "stored_file_name": source_file_path,
+                }
             )
         )
     return StagingSqsMetadata(files=files, nhs_number=nhs_number)

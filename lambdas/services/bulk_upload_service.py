@@ -4,7 +4,6 @@ import uuid
 
 import pydantic
 from botocore.exceptions import ClientError
-
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.snomed_codes import SnomedCodes
 from enums.upload_status import UploadStatus
@@ -128,7 +127,7 @@ class BulkUploadService:
         try:
             file_names = []
             for file_metadata in staging_metadata.files:
-                file_names.append(os.path.basename(file_metadata.file_path))
+                file_names.append(os.path.basename(file_metadata.stored_file_name))
                 file_metadata.scan_date = validate_scan_date(file_metadata.scan_date)
             request_context.patient_nhs_no = staging_metadata.nhs_number
             validate_nhs_number(staging_metadata.nhs_number)
@@ -395,7 +394,7 @@ class BulkUploadService:
         current_gp_ods: str,
     ) -> DocumentReference:
         s3_bucket_name = self.bulk_upload_s3_repository.lg_bucket_name
-        file_name = os.path.basename(file_metadata.file_path)
+        file_name = os.path.basename(file_metadata.stored_file_name)
         document_reference = DocumentReference(
             id=str(uuid.uuid4()),
             nhs_number=nhs_number,

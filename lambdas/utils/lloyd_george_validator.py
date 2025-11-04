@@ -42,7 +42,7 @@ def validate_lg_file_type(file_type: str):
 
 def validate_file_name(name: str):
     nhs_number_pattern = "[0-9]{10}"
-    lg_regex = rf"[0-9]+of[0-9]+_Lloyd_George_Record_\[{REGEX_PATIENT_NAME_PATTERN}\]_\[{nhs_number_pattern}\]_\[\d\d-\d\d-\d\d\d\d].pdf"
+    lg_regex = rf"[1-9][0-9]*of[1-9][0-9]*_Lloyd_George_Record_\[{REGEX_PATIENT_NAME_PATTERN}\]_\[{nhs_number_pattern}\]_\[\d\d-\d\d-\d\d\d\d].pdf"
     if not re.fullmatch(lg_regex, name):
         raise LGInvalidFilesException(file_name_invalid)
 
