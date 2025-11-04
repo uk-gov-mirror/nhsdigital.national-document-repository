@@ -90,11 +90,13 @@ class GetDocumentReviewService:
             raise GetDocumentReviewException(500, LambdaError.DocRefClient)
 
     def create_cloudfront_presigned_url(self, file_location: str) -> str:
-        """
-        Create a CloudFront obfuscated pre-signed URL for a file.
+        """Create a CloudFront obfuscated pre-signed URL for a file.
 
-        :param file_location: The S3 file key/location.
-        :return: CloudFront URL that obfuscates the actual pre-signed URL.
+        Args:
+            file_location: The S3 file key/location.
+
+        Returns:
+            CloudFront URL that obfuscates the actual pre-signed URL.
         """
         s3_bucket_name, file_key = file_location.removeprefix("s3://").split("/", 1)
         presign_url_response = self.s3_service.create_download_presigned_url(

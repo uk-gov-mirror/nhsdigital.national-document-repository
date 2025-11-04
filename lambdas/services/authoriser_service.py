@@ -117,6 +117,10 @@ class AuthoriserService:
                 deny_resource = (
                     not patient_access_is_allowed or is_user_gp_clinical or is_user_pcse
                 )
+            case path if path.startswith("/DocumentReview/"):
+                deny_resource = (
+                    not patient_access_is_allowed
+                )
 
             case "/UploadState":
                 deny_resource = (

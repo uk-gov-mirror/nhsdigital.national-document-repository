@@ -1,7 +1,9 @@
 import json
 
+from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
+from services.feature_flags_service import FeatureFlagService
 from services.get_document_review_service import GetDocumentReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -32,6 +34,14 @@ def lambda_handler(event, context):
     request_context.app_interaction = LoggingAppInteraction.GET_REVIEW_DOCUMENTS.value
 
     logger.info("Get Document Review handler has been triggered")
+    feature_flag_service = FeatureFlagService()
+    upload_lambda_enabled_flag_object = feature_flag_service.get_feature_flags_by_flag(
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+    )
+
+    if not upload_lambda_enabled_flag_object[FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED]:
+        logger.info("Feature flag not enabled, event will not be processed")
+        raise GetDocumentReviewException(404, LambdaError.FeatureFlagDisabled)
 
     # Extract patient_id from query string parameters
     query_params = event.get("queryStringParameters", {})
