@@ -5,7 +5,6 @@ import pytest
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
 from handlers.get_fhir_document_reference_handler import (
-    extract_bearer_token,
     extract_document_parameters,
     get_id_and_snomed_from_path_parameters,
     lambda_handler,
@@ -15,6 +14,7 @@ from models.document_reference import DocumentReference
 from tests.unit.conftest import TEST_UUID
 from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_SEARCH_RESPONSE
 from utils.exceptions import OidcApiException
+from utils.lambda_handler_utils import extract_bearer_token
 from utils.lambda_exceptions import (
     GetFhirDocumentReferenceException,
     SearchPatientException,
@@ -30,6 +30,33 @@ MOCK_CIS2_VALID_EVENT = {
     },
     "pathParameters": {"id": f"{SNOMED_CODE}~{TEST_UUID}"},
     "body": None,
+    "requestContext": {},
+}
+
+MOCK_MTLS_VALID_EVENT = {
+    "httpMethod": "GET",
+    "headers": {},
+    "pathParameters": {"id": f"{SNOMED_CODE}~{TEST_UUID}"},
+    "body": None,
+    "requestContext": {
+        "accountId": "123456789012",
+        "apiId": "abc123",
+        "domainName": "api.example.com",
+        "identity": {
+            "sourceIp": "1.2.3.4",
+            "userAgent": "curl/7.64.1",
+            "clientCert": {
+                "clientCertPem": "-----BEGIN CERTIFICATE-----...",
+                "subjectDN": "CN=ndrclient.main.int.pdm.national.nhs.uk,O=NHS,C=UK",
+                "issuerDN": "CN=NHS Root CA,O=NHS,C=UK",
+                "serialNumber": "12:34:56",
+                "validity": {
+                    "notBefore": "May 10 00:00:00 2024 GMT",
+                    "notAfter": "May 10 00:00:00 2025 GMT",
+                },
+            },
+        },
+    },
 }
 
 MOCK_INVALID_EVENT_ID_MALFORMED = deepcopy(MOCK_CIS2_VALID_EVENT)
@@ -144,21 +171,57 @@ def test_lambda_handler_happy_path_with_application_login(
     )
 
 
-def test_extract_bearer_token():
-    token = extract_bearer_token(MOCK_CIS2_VALID_EVENT)
+def test_lambda_handler_happy_path_with_mtls_pdm_login(
+    set_env,
+    mock_document_service,
+    mock_search_patient_service,
+    context,
+):
+    mock_document_service.create_document_reference_fhir_response.return_value = (
+        "test_document_reference"
+    )
+
+    response = lambda_handler(MOCK_MTLS_VALID_EVENT, context)
+
+    assert response["statusCode"] == 200
+    assert response["body"] == "test_document_reference"
+    # Verify correct method calls
+    mock_document_service.handle_get_document_reference_request.assert_called_once_with(
+        SNOMED_CODE, TEST_UUID
+    )
+    mock_document_service.create_document_reference_fhir_response.assert_called_once_with(
+        MOCK_DOCUMENT_REFERENCE
+    )
+
+
+def test_extract_bearer_token(context):
+    context.function_name = "GetDocumentReference"
+    token = extract_bearer_token(MOCK_CIS2_VALID_EVENT, context)
     assert token == f"Bearer {TEST_UUID}"
 
 
-def test_extract_missing_bearer_token():
+def test_extract_bearer_token_when_pdm(context):
+    token = extract_bearer_token(MOCK_MTLS_VALID_EVENT, context)
+    assert token is None
+
+
+def test_extract_missing_bearer_token(context):
+    context.function_name = "GetDocumentReference"
     event_without_auth = {"headers": {}}
     with pytest.raises(GetFhirDocumentReferenceException) as e:
-        extract_bearer_token(event_without_auth)
+        extract_bearer_token(event_without_auth, context)
     assert e.value.status_code == 401
     assert e.value.error == LambdaError.DocumentReferenceUnauthorised
 
 
 def test_extract_document_parameters_valid():
     document_id, snomed_code = extract_document_parameters(MOCK_CIS2_VALID_EVENT)
+    assert document_id == TEST_UUID
+    assert snomed_code == SNOMED_CODE
+
+
+def test_extract_document_parameters_valid_pdm():
+    document_id, snomed_code = extract_document_parameters(MOCK_MTLS_VALID_EVENT)
     assert document_id == TEST_UUID
     assert snomed_code == SNOMED_CODE
 

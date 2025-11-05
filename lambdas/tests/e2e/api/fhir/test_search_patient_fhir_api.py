@@ -10,7 +10,7 @@ from lambdas.tests.e2e.api.fhir.conftest import (
     create_mtls_session,
 )
 from lambdas.tests.e2e.conftest import APIM_ENDPOINT
-from lambdas.tests.e2e.helpers.pdm_data_helper import PdmDataHelper
+from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
 
@@ -41,7 +41,9 @@ def search_document_reference(nhs_number):
     return session.get(url, headers=headers)
 
 
-def create_and_store_record(test_data, nhs_number="9912003071", doc_status=None):
+def create_and_store_record(
+    test_data, nhs_number="9912003071", doc_status: str | None = None
+):
     """Helper to create metadata and resource for a record."""
     record = build_pdm_record(nhs_number=nhs_number, doc_status=doc_status)
     test_data.append(record)
@@ -61,7 +63,7 @@ def test_search_patient_details(test_data):
 
     attachment_url = bundle["entry"][0]["resource"]["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/DocumentReference/{PDM_SNOMED}~"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~"
         in attachment_url
     )
 

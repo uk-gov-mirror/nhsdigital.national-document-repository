@@ -4,7 +4,7 @@ import time
 import pytest
 import requests
 from syrupy.extensions.json import JSONSnapshotExtension
-from tests.e2e.helpers.lloyd_george_data_helper import LloydGeorgeDataHelper
+from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
 

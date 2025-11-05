@@ -3,7 +3,7 @@ from services.post_fhir_document_reference_service import (
 )
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions_fhir
-from utils.lambda_exceptions import CreateDocumentRefException
+from utils.lambda_exceptions import DocumentRefException
 from utils.lambda_response import ApiGatewayResponse
 
 logger = LoggingService(__name__)
@@ -38,7 +38,7 @@ def lambda_handler(event, context):
             status_code=200, body=fhir_response, methods="POST"
         ).create_api_gateway_response()
 
-    except CreateDocumentRefException as exception:
+    except DocumentRefException as exception:
         logger.error(f"Error processing FHIR document reference: {str(exception)}")
         return ApiGatewayResponse(
             status_code=exception.status_code,

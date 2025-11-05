@@ -4,6 +4,7 @@ from requests import Response
 
 from enums.supported_document_types import SupportedDocumentTypes
 from enums.validation_score import ValidationResult, ValidationScore
+from models.document_reference import UploadRequestDocument
 from models.pds_models import Patient
 from services.base.ssm_service import SSMService
 from services.document_service import DocumentService
@@ -54,7 +55,7 @@ from utils.lloyd_george_validator import (
     validate_filename_with_patient_details_strict,
     validate_lg_file_names,
     validate_lg_file_type,
-    validate_lg_files,
+    validate_lg_files_for_access_and_store,
     validate_patient_date_of_birth,
     validate_patient_name_lenient,
     validate_patient_name_strict,
@@ -1045,9 +1046,21 @@ def test_mismatch_nhs_in_validate_lg_file(mocker, mock_pds_patient):
         update={"id": "9876543210"}
     )
 
+    uploadRequestDocList = []
+
+    for docRef in TEST_DOCUMENT_REFERENCE_LIST:
+        doc = UploadRequestDocument(
+            file_name=docRef.file_name,
+            content_type=docRef.content_type,
+            doc_type=docRef.doc_type,
+            client_id=docRef.id,
+            versionId=docRef.version,
+        ) 
+        uploadRequestDocList.append(doc)
+
     with pytest.raises(LGInvalidFilesException):
-        validate_lg_files(
-            TEST_DOCUMENT_REFERENCE_LIST, patient_with_different_nhs_number
+        validate_lg_files_for_access_and_store(
+            uploadRequestDocList, patient_with_different_nhs_number
         )
 
 

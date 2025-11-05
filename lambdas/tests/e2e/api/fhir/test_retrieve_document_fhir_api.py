@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 import requests
-from tests.e2e.helpers.pdm_data_helper import PdmDataHelper
+from tests.e2e.helpers.data_helper import PdmDataHelper
 
 from lambdas.tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
@@ -33,9 +33,7 @@ def build_pdm_record(nhs_number="9912003071", data=None, doc_status=None, size=N
 def get_document_reference(record_id):
     """Helper to perform GET request for DocumentReference."""
     url = f"https://{MTLS_ENDPOINT}/DocumentReference/{PDM_SNOMED}~{record_id}"
-    print("url:", url)
     headers = {
-        "Authorization": "Bearer 123",
         "X-Correlation-Id": "1234",
     }
     session = create_mtls_session()

@@ -15,6 +15,7 @@ from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.decorators.validate_patient_id import validate_patient_id_fhir
 from utils.exceptions import AuthorisationException, OidcApiException
 from utils.lambda_exceptions import DocumentRefSearchException, SearchPatientException
+from utils.lambda_handler_utils import extract_bearer_token
 from utils.lambda_response import ApiGatewayResponse
 from utils.request_context import request_context
 
@@ -46,7 +47,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     logger.info("Received request to search for document references")
 
-    bearer_token = extract_bearer_token(event)
+    bearer_token = extract_bearer_token(event, context)
     selected_role_id = event.get("headers", {}).get(HEADER_CIS2_USER_ID, "")
 
     nhs_number, search_filters = parse_query_parameters(
@@ -54,7 +55,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     )
     request_context.patient_nhs_no = nhs_number
 
-    if selected_role_id:
+    if selected_role_id and bearer_token:
         validate_user_access(bearer_token, selected_role_id, nhs_number)
 
     service = DocumentReferenceSearchService()
@@ -151,16 +152,3 @@ def validate_user_access(
         search_patient_service.handle_search_patient_request(nhs_number, False)
     except SearchPatientException as e:
         raise DocumentRefSearchException(e.status_code, e.error)
-
-
-def extract_bearer_token(event):
-    """Extract and validate bearer token from event"""
-    headers = event.get("headers", {})
-    if not headers:
-        logger.warning("No headers found in request")
-        raise DocumentRefSearchException(401, LambdaError.DocumentReferenceUnauthorised)
-    bearer_token = headers.get("Authorization", None)
-    if not bearer_token or not bearer_token.startswith("Bearer "):
-        logger.warning("No bearer token found in request")
-        raise DocumentRefSearchException(401, LambdaError.DocumentReferenceUnauthorised)
-    return bearer_token

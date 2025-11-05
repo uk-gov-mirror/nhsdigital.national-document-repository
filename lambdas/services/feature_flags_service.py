@@ -77,6 +77,7 @@ class FeatureFlagService:
                     if flag in [
                         FeatureFlags.UPLOAD_LLOYD_GEORGE_WORKFLOW_ENABLED,
                         FeatureFlags.UPLOAD_LAMBDA_ENABLED,
+                        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED,
                     ]:
                         formatted_flags[flag] = False
 
@@ -108,6 +109,7 @@ class FeatureFlagService:
                 in [
                     FeatureFlags.UPLOAD_LLOYD_GEORGE_WORKFLOW_ENABLED,
                     FeatureFlags.UPLOAD_LAMBDA_ENABLED,
+                    FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED,
                 ]
                 and not self.check_if_ods_code_is_in_pilot()
             ):
@@ -147,3 +149,10 @@ class FeatureFlagService:
         pilot_ods_codes = self.get_allowed_list_of_ods_codes_for_upload_pilot()
 
         return ods_code in pilot_ods_codes
+
+    def validate_feature_flag(self, flag_name: str):
+        flag_object = self.get_feature_flags_by_flag(flag_name)
+
+        if not flag_object.get(flag_name, False):
+            logger.info(f"Feature flag '{flag_name}' not enabled, event will not be processed")
+            raise FeatureFlagsException(404, LambdaError.FeatureFlagDisabled)

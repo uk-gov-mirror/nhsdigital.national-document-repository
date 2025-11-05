@@ -42,7 +42,7 @@ def lambda_handler(event, context):
     if event.get("methodArn") is None:
         return {"Error": "methodArn is not defined"}
     _, _, _, region, aws_account_id, api_gateway_arn = event.get("methodArn").split(":")
-    api_id, stage, _http_verb, _resource_name = api_gateway_arn.split("/")
+    api_id, stage, _http_verb, _resource_name = api_gateway_arn.split("/", 3)
     path = "/" + _resource_name
 
     policy = AuthPolicy(aws_account_id)
