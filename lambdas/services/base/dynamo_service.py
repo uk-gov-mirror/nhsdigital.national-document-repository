@@ -1,10 +1,9 @@
 import time
-from typing import Iterator, Optional, Sequence
+from typing import Optional, Sequence
 
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
 from botocore.exceptions import ClientError
-
 from utils.audit_logging_setup import LoggingService
 from utils.dynamo_utils import (
     create_expression_attribute_values,
@@ -120,7 +119,7 @@ class DynamoDBService:
 
         if condition_expression:
             update_item_args["ConditionExpression"] = condition_expression
-            
+
         return table.update_item(**update_item_args)
 
     def delete_item(self, table_name: str, key: dict):
@@ -157,10 +156,10 @@ class DynamoDBService:
             raise e
 
     def scan_whole_table(
-            self,
-            table_name: str,
-            project_expression: Optional[str] = None,
-            filter_expression: Optional[str] = None,
+        self,
+        table_name: str,
+        project_expression: Optional[str] = None,
+        filter_expression: Optional[str] = None,
     ) -> list[dict]:
         try:
             table = self.get_table(table_name)
@@ -223,7 +222,7 @@ class DynamoDBService:
                     )
                     request_items = unprocessed_keys
                     retries += 1
-                    time.sleep((2 ** retries) * 0.1)
+                    time.sleep((2**retries) * 0.1)
                 else:
                     break
 
@@ -243,15 +242,13 @@ class DynamoDBService:
             )
             raise e
 
-    def transact_write_items(
-        self, transact_items: Sequence[dict]
-    ):
+    def transact_write_items(self, transact_items: Sequence[dict]):
         """
         Execute a transactional write operation.
-        
+
         Args:
             transact_items: List of transaction items (Put, Update, Delete, ConditionCheck)
-            
+
         Raises:
             ClientError: If the transaction fails (e.g., TransactionCanceledException)
         """
@@ -263,32 +260,32 @@ class DynamoDBService:
             logger.info("Transaction completed successfully")
             return response
         except ClientError as e:
-            error_code = e.response.get('Error', {}).get('Code', '')
-            if error_code == 'TransactionCanceledException':
+            error_code = e.response.get("Error", {}).get("Code", "")
+            if error_code == "TransactionCanceledException":
                 logger.error(f"Transaction cancelled: {str(e)}")
-                cancellation_reasons = e.response.get('CancellationReasons', [])
+                cancellation_reasons = e.response.get("CancellationReasons", [])
                 logger.error(f"Cancellation reasons: {cancellation_reasons}")
             else:
                 logger.error(f"Transaction failed with error: {str(e)}")
             raise e
 
     def build_update_transaction_item(
-        self, 
+        self,
         table_name: str,
-        document_key: dict, 
-        update_fields: dict, 
-        condition_fields: dict
+        document_key: dict,
+        update_fields: dict,
+        condition_fields: dict,
     ) -> dict:
         """
         Build a DynamoDB transaction update item with a conditional expression.
-        
+
         Args:
             table_name: The name of the DynamoDB table
             document_key: The key of the table to update
             update_fields: Dictionary of fields to update (already in DynamoDB format/aliases)
             condition_fields: Dictionary of field names and their expected values for the condition to pass
                              e.g., {"DocStatus": "final", "Version": 1}
-            
+
         Returns:
             A transaction item dict ready for transact_write_items
         """
@@ -296,22 +293,24 @@ class DynamoDBService:
         update_expression = create_update_expression(field_names)
         _, expression_attribute_names = create_expressions(field_names)
         expression_attribute_values = create_expression_attribute_values(update_fields)
-        
+
         # Build condition expression for multiple fields
         condition_expressions = []
         condition_attribute_names = {}
         condition_attribute_values = {}
-        
+
         for field_name, field_value in condition_fields.items():
             condition_placeholder = f"#{field_name}_attr"
             condition_value_placeholder = f":{field_name}_condition_val"
-            condition_expressions.append(f"{condition_placeholder} = {condition_value_placeholder}")
+            condition_expressions.append(
+                f"{condition_placeholder} = {condition_value_placeholder}"
+            )
             condition_attribute_names[condition_placeholder] = field_name
             condition_attribute_values[condition_value_placeholder] = field_value
-        
+
         # Join multiple conditions with AND
         condition_expression = " AND ".join(condition_expressions)
-        
+
         return {
             "Update": {
                 "TableName": table_name,
@@ -320,11 +319,11 @@ class DynamoDBService:
                 "ConditionExpression": condition_expression,
                 "ExpressionAttributeNames": {
                     **expression_attribute_names,
-                    **condition_attribute_names
+                    **condition_attribute_names,
                 },
                 "ExpressionAttributeValues": {
                     **expression_attribute_values,
-                    **condition_attribute_values
-                }
+                    **condition_attribute_values,
+                },
             }
         }

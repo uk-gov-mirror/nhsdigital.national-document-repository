@@ -7,7 +7,7 @@ import requests
 from enums.pds_ssm_parameters import SSMParameter
 from enums.supported_document_types import SupportedDocumentTypes
 from enums.validation_score import ValidationResult, ValidationScore
-from models.document_reference import DocumentReference, UploadRequestDocument
+from models.document_reference import UploadRequestDocument
 from models.pds_models import Patient
 from requests import HTTPError
 from services.base.ssm_service import SSMService
@@ -80,9 +80,9 @@ def check_for_patient_already_exist_in_repo(nhs_number: str):
             "Lloyd George already exists for patient, upload cancelled."
         )
 
+
 def validate_lg_files_for_access_and_store(
-    file_list: list[UploadRequestDocument], 
-    pds_patient_details: Patient
+    file_list: list[UploadRequestDocument], pds_patient_details: Patient
 ):
     nhs_number = pds_patient_details.id
     files_name_list = []
