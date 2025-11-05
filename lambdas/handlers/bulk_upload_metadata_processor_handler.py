@@ -41,7 +41,6 @@ def lambda_handler(event, _context):
         f"Starting metadata processing for practice directory: {practice_directory}"
     )
 
-    # Read the "remap" key and convert to a dictionary
     remappings = event.get("metadataFieldRemappings", {})
 
     metadata_formatter_service = formatter_service_class(practice_directory)
