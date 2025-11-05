@@ -28,7 +28,7 @@ logger = LoggingService(__name__)
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
     if "Records" in event and event["Records"][0].get("eventSource") == "aws:s3":
-        logger.info("Triggered by S3 listener...")
+        logger.info(f"Triggering event sent by S3 listener {event['Records'][0].get('eventSource')}")
         try:
             key_string = event["Records"][0]["s3"]["object"]["key"]
             key = urllib.parse.unquote_plus(key_string, encoding="utf-8")
@@ -36,7 +36,7 @@ def lambda_handler(event, _context):
                 logger.info("Processing file from expedite folder")
                 return  # To be added upon by ticket PRMP-540
             else:
-                failure_msg = "Failed due to unrecognized S3 listener event key"
+                failure_msg = f"Unexpected directory or file location received from S3 Listener: {key_string}"
                 logger.error(failure_msg)
                 raise BulkUploadMetadataException(failure_msg)
         except KeyError as e:

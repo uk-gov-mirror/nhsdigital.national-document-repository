@@ -49,7 +49,7 @@ def test_s3_event_with_expedite_key_processes(
     )
     lambda_handler(event, context)
 
-    assert any("Triggered by S3 listener" in r.message for r in caplog.records)
+    assert any(f"Triggering event sent by S3 listener {event['Records'][0].get('eventSource')}" in r.message for r in caplog.records)
     assert any(
         "Processing file from expedite folder" in r.message for r in caplog.records
     )
@@ -58,13 +58,15 @@ def test_s3_event_with_expedite_key_processes(
 def test_s3_event_with_non_expedite_key_is_rejected(
     set_env, context, mock_metadata_service, caplog
 ):
+    key_string = "uploads/1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf"
     event = s3_event_with_key(
-        "uploads/1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf"
+        key_string
     )
+
     lambda_handler(event, context)
 
     assert any(
-        "Failed due to unrecognized S3 listener event key" in r.message
+        f"Unexpected directory or file location received from S3 Listener: {key_string}" in r.message
         for r in caplog.records
     )
     mock_metadata_service.process_metadata.assert_not_called()
