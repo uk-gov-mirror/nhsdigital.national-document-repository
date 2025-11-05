@@ -39,12 +39,16 @@ export const markDocumentsAsUploading = (
 ): UploadDocument[] => {
     return documents.map((doc) => {
         const documentMetadata = uploadSession[doc.id];
-        const documentReference = documentMetadata.fields.key;
+        let documentReference = documentMetadata.fields?.key;
+        if (!documentReference) {
+            documentReference = URL.parse(documentMetadata.url)!.pathname.substring(1);
+        }
+
         return {
             ...doc,
             state: DOCUMENT_UPLOAD_STATE.UPLOADING,
-            key: documentReference,
-            ref: getLastURLPath(documentReference),
+            key: documentReference ?? undefined,
+            ref: documentReference ? getLastURLPath(documentReference) : undefined,
         };
     });
 };
@@ -69,4 +73,16 @@ export const allDocsHaveState = (
     state: DOCUMENT_UPLOAD_STATE,
 ): boolean => {
     return !!documents?.length && documents.every((doc) => doc.state === state);
+};
+
+export const extractUploadSession = (data: any): UploadSession => {
+    Object.keys(data).forEach((key) => {
+        if (typeof data[key] !== 'object') {
+            data[key] = { 
+                url: data[key],
+            };
+        }
+    });
+
+    return data as UploadSession;
 };

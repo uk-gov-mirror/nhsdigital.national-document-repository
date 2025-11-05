@@ -175,6 +175,7 @@ class DocumentReferenceSearchService(DocumentService):
                 "created",
                 "virus_scanner_result",
                 "file_size",
+                "version"
             },
         )
         return document_formatted
