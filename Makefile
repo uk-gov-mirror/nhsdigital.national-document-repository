@@ -73,6 +73,9 @@ test-fhir-api-e2e: ## Runs FHIR API E2E tests. Usage: make test-fhir-api-e2e WOR
 	./scripts/test/run-e2e-fhir-api-tests.sh --workspace $(WORKSPACE)
 	rm -rf ./lambdas/mtls_env_certs/$(WORKSPACE)
 
+test-apim-e2e: ## Runs APIM E2E tests for National Document Repository FHIR R4 API against ndr-dev.
+	./scripts/test/run-apim-e2e-tests.sh
+
 test-api-e2e-snapshots:
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/api --ignore=tests/e2e/api/fhir --snapshot-update
 

@@ -8,6 +8,10 @@ Our Lambda function readme can be found [here](lambdas/README.md)
 
 Our React User Interface readme can be found [here](app/README.md)
 
+## End-to-End Tests Intro
+
+Our E2E test readme can be found [here](lambdas/tests/e2e/README.md). We have E2E tests for our FHIR endpoints and APIM setup.
+
 ## Installation
 
 - [Git](https://git-scm.com/)
