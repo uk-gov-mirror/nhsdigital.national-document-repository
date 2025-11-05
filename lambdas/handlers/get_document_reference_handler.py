@@ -37,10 +37,10 @@ def lambda_handler(event: dict[str, any], context):
     
     logger.info("Starting document fetch by ID process")
 
-    document_id = event.get("pathParameters", {}).get("id", None)
-    nhs_number = event.get("queryStringParameters", {}).get("patientId", None)
-
-    if not document_id or not nhs_number:
+    try:
+        document_id = event["pathParameters"]["id"]
+        nhs_number = event["queryStringParameters"]["patientId"]
+    except KeyError:
         raise GetDocumentRefException(400, LambdaError.DocumentReferenceMissingParameters)
     
     service = GetDocumentReferenceService()
