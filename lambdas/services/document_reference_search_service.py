@@ -191,6 +191,12 @@ class DocumentReferenceSearchService(DocumentService):
             elif filter_key == "file_type":
                 # placeholder for future filtering
                 pass
+            elif filter_key == "doc_status":
+                filter_builder.add_condition(
+                    attribute=str(DocumentReferenceMetadataFields.DOC_STATUS.value),
+                    attr_operator=AttributeOperator.EQUAL,
+                    filter_value=filter_value,
+                )
         if filter_values:
             filter_expression = filter_builder.build() & NotDeleted
         else:
