@@ -59,6 +59,8 @@ class MigrationBase(ABC):
                     self.logger.debug(f"[{label}] Item {item_id} does not require update, skipping.")
                     continue
 
+                self.logger.info(f"[{label}] Item {item_id} update fields: {updated_fields}")  
+
                 if self.run_migration:
                     try:
                         self.dynamo_service.update_item(
