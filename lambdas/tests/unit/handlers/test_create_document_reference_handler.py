@@ -4,8 +4,7 @@ from enum import Enum
 import pytest
 from enums.lambda_error import LambdaError
 from handlers.create_document_reference_handler import (
-    lambda_handler,
-    processing_event_details,
+    lambda_handler
 )
 from tests.unit.conftest import MOCK_STAGING_STORE_BUCKET, TEST_NHS_NUMBER, TEST_UUID
 from tests.unit.helpers.data.create_document_reference import (
@@ -17,8 +16,9 @@ from tests.unit.helpers.data.create_document_reference import (
     LG_MOCK_RESPONSE,
     MOCK_EVENT_BODY,
 )
+from utils.document_reference_common_validations import process_event_body
 from utils.exceptions import InvalidNhsNumberException
-from utils.lambda_exceptions import CreateDocumentRefException, SearchPatientException
+from utils.lambda_exceptions import DocumentRefException, SearchPatientException
 from utils.lambda_response import ApiGatewayResponse
 
 TEST_DOCUMENT_LOCATION_ARF = f"s3://{MOCK_STAGING_STORE_BUCKET}/{TEST_UUID}"
@@ -66,9 +66,9 @@ def lg_type_event():
 
 
 @pytest.fixture
-def mock_processing_event_details(mocker):
+def mock_process_event_body(mocker):
     yield mocker.patch(
-        "handlers.create_document_reference_handler.processing_event_details",
+        "handlers.create_document_reference_handler.process_event_body",
         return_value=(TEST_NHS_NUMBER, ARF_FILE_LIST),
     )
 
@@ -141,12 +141,12 @@ def test_cdr_request_including_non_pdf_files_returns_400(
     set_env, lg_type_event, context, mock_cdr_service, mock_upload_lambda_enabled
 ):
     mock_cdr_service.create_document_reference_request.side_effect = (
-        CreateDocumentRefException(400, LambdaError.CreateDocFiles)
+        DocumentRefException(400, LambdaError.DocRefInvalidFiles)
     )
 
     expected_body = {
         "message": "Invalid files or id",
-        "err_code": "CDR_4004",
+        "err_code": "DR_4004",
         "interaction_id": "88888888-4444-4444-4444-121212121212",
     }
 
@@ -161,12 +161,12 @@ def test_cdr_request_when_lgr_already_exists_returns_422(
     set_env, lg_type_event, context, mock_cdr_service, mock_upload_lambda_enabled
 ):
     mock_cdr_service.create_document_reference_request.side_effect = (
-        CreateDocumentRefException(422, LambdaError.CreateDocRecordAlreadyInPlace)
+        DocumentRefException(422, LambdaError.DocRefRecordAlreadyInPlace)
     )
 
     expected_body = {
         "message": "The patient already has a full set of record.",
-        "err_code": "CDR_4008",
+        "err_code": "DR_4008",
         "interaction_id": "88888888-4444-4444-4444-121212121212",
     }
 
@@ -183,7 +183,7 @@ def test_cdr_request_when_lgr_is_in_process_of_uploading_returns_423(
     set_env, lg_type_event, context, mock_cdr_service, mock_upload_lambda_enabled
 ):
     mock_cdr_service.create_document_reference_request.side_effect = (
-        CreateDocumentRefException(423, LambdaError.UploadInProgressError)
+        DocumentRefException(423, LambdaError.UploadInProgressError)
     )
 
     expected_body = {
@@ -226,20 +226,20 @@ def test_lambda_handler_missing_environment_variables_type_staging_returns_500(
 
 
 def test_processing_event_details_missing_event_body_raise_error(invalid_id_event):
-    with pytest.raises(CreateDocumentRefException):
-        processing_event_details(invalid_id_event)
+    with pytest.raises(DocumentRefException):
+        process_event_body(invalid_id_event)
 
 
 def test_processing_event_details_missing_subject_body_raise_error():
     invalid_event = {"httpMethod": "POST", "body": "some_text"}
-    with pytest.raises(CreateDocumentRefException):
-        processing_event_details(invalid_event)
+    with pytest.raises(DocumentRefException):
+        process_event_body(invalid_event)
 
 
 def test_processing_event_details_missing_identifier_body_raise_error():
     invalid_event = {"httpMethod": "POST", "body": """{"subject": "some_text"}"""}
-    with pytest.raises(CreateDocumentRefException):
-        processing_event_details(invalid_event)
+    with pytest.raises(DocumentRefException):
+        process_event_body(invalid_event)
 
 
 def test_processing_event_details_missing_value_body_raise_error():
@@ -247,8 +247,8 @@ def test_processing_event_details_missing_value_body_raise_error():
         "httpMethod": "POST",
         "body": """{"subject": {"some_text": "text"}}""",
     }
-    with pytest.raises(CreateDocumentRefException):
-        processing_event_details(invalid_event)
+    with pytest.raises(DocumentRefException):
+        process_event_body(invalid_event)
 
 
 def test_processing_event_details_missing_content_body_raise_error():
@@ -256,8 +256,8 @@ def test_processing_event_details_missing_content_body_raise_error():
         "httpMethod": "POST",
         "body": """{"subject": {"identifier": {"value": "text"}}}""",
     }
-    with pytest.raises(CreateDocumentRefException):
-        processing_event_details(invalid_event)
+    with pytest.raises(DocumentRefException):
+        process_event_body(invalid_event)
 
 
 def test_processing_event_details_missing_attachment_body_raise_error():
@@ -266,18 +266,18 @@ def test_processing_event_details_missing_attachment_body_raise_error():
         "body": """{"subject": {"identifier": {"value": "text"}},  "content": [
         {"attachment": "text}}""",
     }
-    with pytest.raises(CreateDocumentRefException):
-        processing_event_details(invalid_event)
+    with pytest.raises(DocumentRefException):
+        process_event_body(invalid_event)
 
 
 def test_processing_event_details_get_nhs_number_and_doc_list(arf_type_event):
     try:
         expected_nhs_number = TEST_NHS_NUMBER
         expected_doc_list = ARF_FILE_LIST
-        actual_nhs_number, actual_doc_list = processing_event_details(arf_type_event)
+        actual_nhs_number, actual_doc_list = process_event_body(arf_type_event)
         assert expected_nhs_number == actual_nhs_number
         assert expected_doc_list == actual_doc_list
-    except CreateDocumentRefException:
+    except DocumentRefException:
         assert False, "test"
 
 
@@ -286,10 +286,10 @@ def test_lambda_handler_processing_event_details_raise_error(
     arf_type_event,
     context,
     set_env,
-    mock_processing_event_details,
+    mock_process_event_body,
     mock_upload_lambda_enabled,
 ):
-    mock_processing_event_details.side_effect = CreateDocumentRefException(
+    mock_process_event_body.side_effect = DocumentRefException(
         400, MockError.Error
     )
     expected = ApiGatewayResponse(
@@ -299,18 +299,20 @@ def test_lambda_handler_processing_event_details_raise_error(
     ).create_api_gateway_response()
     actual = lambda_handler(arf_type_event, context)
     assert expected == actual
-    mock_processing_event_details.assert_called_with(arf_type_event)
+    mock_process_event_body.assert_called_with(
+        arf_type_event
+    )
 
 
 def test_lambda_handler_valid(
     arf_type_event,
     context,
     set_env,
-    mock_processing_event_details,
+    mock_process_event_body,
     mock_upload_lambda_enabled,
     mock_cdr_service,
 ):
-    mock_processing_event_details.return_value = (TEST_NHS_NUMBER, ARF_FILE_LIST)
+    mock_process_event_body.return_value = (TEST_NHS_NUMBER, ARF_FILE_LIST)
 
     mock_cdr_service.create_document_reference_request.return_value = ARF_MOCK_RESPONSE
 
@@ -321,14 +323,16 @@ def test_lambda_handler_valid(
     ).create_api_gateway_response()
     actual = lambda_handler(arf_type_event, context)
     assert expected == actual
-    mock_processing_event_details.assert_called_with(arf_type_event)
+    mock_process_event_body.assert_called_with(
+        arf_type_event
+    )
 
 
 def test_no_event_processing_when_upload_lambda_flag_disabled(
     set_env,
     lg_type_event,
     context,
-    mock_processing_event_details,
+    mock_process_event_body,
     mock_upload_lambda_disabled,
 ):
     expected_body = {
@@ -343,7 +347,7 @@ def test_no_event_processing_when_upload_lambda_flag_disabled(
     actual = lambda_handler(lg_type_event, context)
 
     assert expected == actual
-    mock_processing_event_details.assert_not_called()
+    mock_process_event_body.assert_not_called()
 
 
 def test_invalid_nhs_number_returns_400(
@@ -351,7 +355,7 @@ def test_invalid_nhs_number_returns_400(
     lg_type_event,
     context,
     mock_invalid_nhs_number_exception,
-    mock_processing_event_details,
+    mock_process_event_body,
     mock_cdr_service,
 ):
 
@@ -364,7 +368,7 @@ def test_invalid_nhs_number_returns_400(
 
     assert actual == expected
 
-    mock_processing_event_details.assert_not_called()
+    mock_process_event_body.assert_not_called()
     mock_cdr_service.assert_not_called()
 
 
@@ -372,12 +376,12 @@ def test_ods_code_not_in_pilot_returns_404(
     set_env, context, lg_type_event, mock_cdr_service, mock_upload_lambda_enabled
 ):
     mock_cdr_service.create_document_reference_request.side_effect = (
-        CreateDocumentRefException(404, LambdaError.CreateDocRefOdsCodeNotAllowed)
+        DocumentRefException(404, LambdaError.DocRefOdsCodeNotAllowed)
     )
 
     expected_body = {
         "message": "ODS code does not match any of the allowed.",
-        "err_code": "CDR_4009",
+        "err_code": "DR_4009",
         "interaction_id": "88888888-4444-4444-4444-121212121212",
     }
 

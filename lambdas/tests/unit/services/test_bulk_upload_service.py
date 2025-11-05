@@ -877,6 +877,7 @@ def test_create_lg_records_and_copy_files(set_env, mocker, mock_uuid, repo_under
 def test_convert_to_document_reference(set_env, mock_uuid, repo_under_test):
     TEST_STAGING_METADATA.retries = 0
     repo_under_test.bulk_upload_s3_repository.lg_bucket_name = "test_lg_s3_bucket"
+    TEST_DOCUMENT_REFERENCE.doc_type = None
     expected = TEST_DOCUMENT_REFERENCE
 
     actual = repo_under_test.convert_to_document_reference(

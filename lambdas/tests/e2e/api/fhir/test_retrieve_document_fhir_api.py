@@ -33,9 +33,7 @@ def build_pdm_record(nhs_number="9912003071", data=None, doc_status=None, size=N
 def get_document_reference(record_id):
     """Helper to perform GET request for DocumentReference."""
     url = f"https://{MTLS_ENDPOINT}/DocumentReference/{PDM_SNOMED}~{record_id}"
-    print("url:", url)
     headers = {
-        "Authorization": "Bearer 123",
         "X-Correlation-Id": "1234",
     }
     session = create_mtls_session()

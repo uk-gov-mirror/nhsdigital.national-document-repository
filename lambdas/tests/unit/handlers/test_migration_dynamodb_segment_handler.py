@@ -10,7 +10,6 @@ from handlers.migration_dynamodb_segment_handler import (
 )
 
 
-# Test fixtures - these are reusable test data/mocks
 @pytest.fixture
 def valid_event():
     """Creates a valid event for testing successful scenarios"""

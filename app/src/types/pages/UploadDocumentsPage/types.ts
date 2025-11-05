@@ -47,6 +47,7 @@ export type UploadDocument = {
     error?: UPLOAD_FILE_ERROR_TYPE;
     errorCode?: string;
     validated?: boolean;
+    versionId?: string;
 };
 
 export type SearchResult = {

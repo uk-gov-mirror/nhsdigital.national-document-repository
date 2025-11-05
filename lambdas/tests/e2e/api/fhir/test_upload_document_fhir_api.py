@@ -68,7 +68,6 @@ def upload_document(session, payload):
     """Helper to upload DocumentReference."""
     url = f"https://{MTLS_ENDPOINT}/DocumentReference"
     headers = {
-        "Authorization": "Bearer 123",
         "X-Correlation-Id": "1234",
     }
     return session.post(url, headers=headers, data=payload)
@@ -78,7 +77,6 @@ def retrieve_document_with_retry(session, doc_id, condition):
     """Poll until condition is met on DocumentReference retrieval."""
     retrieve_url = f"https://{MTLS_ENDPOINT}/DocumentReference/{doc_id}"
     headers = {
-        "Authorization": "Bearer 123",
         "X-Correlation-Id": "1234",
     }
     return fetch_with_retry_mtls(session, retrieve_url, headers, condition)
