@@ -22,7 +22,7 @@ from tests.unit.conftest import (
 from tests.unit.conftest import MOCK_LG_TABLE_NAME, MOCK_PDM_TABLE_NAME
 from tests.unit.helpers.data.bulk_upload.test_data import TEST_DOCUMENT_REFERENCE
 from utils.exceptions import PatientNotFoundException
-from utils.lambda_exceptions import CreateDocumentRefException, InvalidDocTypeException
+from utils.lambda_exceptions import DocumentRefException, InvalidDocTypeException
 
 
 @pytest.fixture
@@ -263,11 +263,11 @@ def test_process_fhir_document_reference_with_binary(
 
 def test_validation_error(mock_service):
     """Test handling of an invalid FHIR document."""
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference("{invalid json}")
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.CreateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 @pytest.mark.parametrize(
@@ -279,7 +279,7 @@ def test_validation_error(mock_service):
                 **doc,
                 "type": {"coding": [{"system": "wrong-system", "code": "9000000009"}]},
             },
-            LambdaError.CreateDocInvalidType,
+            LambdaError.DocRefInvalidType,
         ),
         # Invalid document type
         (
@@ -295,10 +295,10 @@ def test_validation_error(mock_service):
                     ]
                 },
             },
-            LambdaError.CreateDocInvalidType,
+            LambdaError.DocRefInvalidType,
         ),
         # Missing document type
-        (lambda doc: {**doc, "type": {"coding": []}}, LambdaError.CreateDocInvalidType),
+        (lambda doc: {**doc, "type": {"coding": []}}, LambdaError.DocRefInvalidType),
     ],
 )
 def test_document_validation_errors(
@@ -308,7 +308,7 @@ def test_document_validation_errors(
     doc = json.loads(valid_fhir_doc_json)
     modified_doc = FhirDocumentReference(**modify_doc(doc))
 
-    with pytest.raises(CreateDocumentRefException) as e:
+    with pytest.raises(DocumentRefException) as e:
         mock_service._determine_document_type(modified_doc, None)
 
     assert e.value.status_code == 400
@@ -322,11 +322,11 @@ def test_dynamo_error(mock_service, valid_fhir_doc_json):
         "CreateItem",
     )
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
 
     assert excinfo.value.status_code == 500
-    assert excinfo.value.error == LambdaError.CreateDocUploadInternalError
+    assert excinfo.value.error == LambdaError.DocRefUploadInternalError
 
 
 def test_save_document_reference_to_dynamo_error(mock_service, mocker):
@@ -347,11 +347,11 @@ def test_save_document_reference_to_dynamo_error(mock_service, mocker):
         document_snomed_code_type="test-code",
     )
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service._save_document_reference_to_dynamo("test-table", document_ref)
 
     assert excinfo.value.status_code == 500
-    assert excinfo.value.error == LambdaError.CreateDocUploadInternalError
+    assert excinfo.value.error == LambdaError.DocRefUploadInternalError
 
     mock_service.dynamo_service.create_item.assert_called_once()
 
@@ -360,10 +360,10 @@ def test_pds_error(mock_service, valid_fhir_doc_json, mocker):
     """Test handling of PDS error."""
 
     mock_service._check_nhs_number_with_pds = mocker.MagicMock()
-    mock_service._check_nhs_number_with_pds.side_effect = CreateDocumentRefException(
+    mock_service._check_nhs_number_with_pds.side_effect = DocumentRefException(
         400, LambdaError.MockError
     )
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
     assert excinfo.value.status_code == 400
     assert excinfo.value.error == LambdaError.MockError
@@ -382,11 +382,11 @@ def test_process_fhir_document_reference_with_pds_error(
         "Patient not found"
     )
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.CreatePatientSearchInvalid
+    assert excinfo.value.error == LambdaError.DocRefPatientSearchInvalid
 
 
 def test_s3_presigned_url_error(mock_service, valid_fhir_doc_json):
@@ -396,7 +396,7 @@ def test_s3_presigned_url_error(mock_service, valid_fhir_doc_json):
         "CreatePresignedUrl",
     )
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
 
     assert excinfo.value.status_code == 500
@@ -409,11 +409,11 @@ def test_s3_upload_error(mock_service, valid_fhir_doc_with_binary):
         {"Error": {"Code": "InternalServerError", "Message": "Test error"}}, "PutObject"
     )
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference(valid_fhir_doc_with_binary)
 
     assert excinfo.value.status_code == 500
-    assert excinfo.value.error == LambdaError.CreateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_check_nhs_number_with_pds_raise_error(mock_service, mocker):
@@ -426,7 +426,7 @@ def test_check_nhs_number_with_pds_raise_error(mock_service, mocker):
     mock_service_object.fetch_patient_details.side_effect = PatientNotFoundException(
         "test test"
     )
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service._check_nhs_number_with_pds("9000000009")
     assert excinfo.value.status_code == 400
 
@@ -439,11 +439,11 @@ def test_extract_nhs_number_from_fhir_with_invalid_system(mock_service, mocker):
         identifier=Identifier(system="invalid-system", value="9000000009")
     )
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service._extract_nhs_number_from_fhir(fhir_doc)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.CreateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_get_dynamo_table_for_patient_data_doc_type(mock_service):
@@ -608,11 +608,11 @@ def test_extract_nhs_number_from_fhir_with_missing_identifier(mock_service, mock
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
     fhir_doc.subject = Reference(identifier=None)
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service._extract_nhs_number_from_fhir(fhir_doc)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.CreateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_determine_document_type_with_missing_type(mock_service, mocker):
@@ -620,11 +620,11 @@ def test_determine_document_type_with_missing_type(mock_service, mocker):
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
     fhir_doc.type = None
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service._determine_document_type(fhir_doc, None)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.CreateDocInvalidType
+    assert excinfo.value.error == LambdaError.DocRefInvalidType
 
 
 def test_determine_document_type_with_missing_coding(mock_service, mocker):
@@ -633,11 +633,11 @@ def test_determine_document_type_with_missing_coding(mock_service, mocker):
     fhir_doc.type = mocker.MagicMock()
     fhir_doc.type.coding = None
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service._determine_document_type(fhir_doc, None)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.CreateDocInvalidType
+    assert excinfo.value.error == LambdaError.DocRefInvalidType
 
 
 def test_get_dynamo_table_for_lloyd_george_doc_type(mock_service):
@@ -653,29 +653,29 @@ def test_process_fhir_document_reference_with_malformed_json(mock_service):
     """Test process_fhir_document_reference with malformed JSON."""
     malformed_json = '{"resourceType": "DocumentReference", "invalid": }'
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference(malformed_json)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.CreateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_process_fhir_document_reference_with_empty_string(mock_service):
     """Test process_fhir_document_reference with an empty string."""
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference("")
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.CreateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_process_fhir_document_reference_with_none(mock_service):
     """Test process_fhir_document_reference with None input."""
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference(None)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.CreateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_check_nhs_number_with_pds_success(mock_service, mocker):
@@ -742,11 +742,11 @@ def test_store_binary_in_s3_with_client_error(mock_service):
         "PutObject",
     )
 
-    with pytest.raises(CreateDocumentRefException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service._store_binary_in_s3(TEST_DOCUMENT_REFERENCE, binary_data)
 
     assert excinfo.value.status_code == 500
-    assert excinfo.value.error == LambdaError.CreateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_store_binary_in_s3_with_large_binary_data(mock_service):
@@ -761,7 +761,7 @@ def test_store_binary_in_s3_with_large_binary_data(mock_service):
 
 def test_process_fhir_document_reference_with_invalid_base64_data(mock_service):
     """Test process_fhir_document_reference with invalid base64 data."""
-    with pytest.raises(CreateDocumentRefException):
+    with pytest.raises(DocumentRefException):
         mock_service._store_binary_in_s3(
             TEST_DOCUMENT_REFERENCE, b"invalid-base64-data!!!"
         )
@@ -832,8 +832,9 @@ def test_s3_file_key_for_pdm(mock_service, mocker):
 
     assert (
         f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000009"
-        in result.s3_file_key
+        in result.s3_upload_key
     )
+    assert (f"9000000009/{result.id}" in result.s3_file_key)
     assert result.sub_folder == f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}"
 
 
@@ -870,7 +871,8 @@ def test_s3_file_key_for_lg(mock_service, mocker):
         raw_fhir_doc=json.dumps({"foo": "bar"}),
     )
 
-    assert "user_upload/9000000009" in result.s3_file_key
+    assert "user_upload/9000000009" in result.s3_upload_key
+    assert (f"9000000009/{result.id}" in result.s3_file_key)
     assert result.sub_folder == "user_upload"
 
 

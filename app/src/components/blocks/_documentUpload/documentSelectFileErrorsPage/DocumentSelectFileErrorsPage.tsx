@@ -51,7 +51,7 @@ const DocumentSelectFileErrorsPage = ({ documents }: Props): JSX.Element => {
             <p>Contact your local IT support desk to resolve the problems with these files. </p>
 
             <p>
-                For information on removing passwords from files, see our{' '}
+                For information on removing passwords or converting files to PDF, see our{' '}
                 <a
                     href={helpAndGuidanceLink}
                     title="help and guidance"

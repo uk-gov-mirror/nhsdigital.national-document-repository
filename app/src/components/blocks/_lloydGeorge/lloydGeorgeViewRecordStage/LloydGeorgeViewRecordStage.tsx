@@ -55,8 +55,7 @@ function LloydGeorgeViewRecordStage({
         } else if (document.fullscreenElement !== null) {
             document.exitFullscreen?.();
         }
-
-        setUserSession({ ...session, isFullscreen });
+        // Note: Let the fullscreen event handlers manage the session state to avoid race conditions
     };
 
     let recordLinksToShow = getUserRecordActionLinks({ role, hasRecordInStorage }).map((link) => {
@@ -87,6 +86,26 @@ function LloydGeorgeViewRecordStage({
             mounted.current = true;
         }
     }, [refreshRecord, resetDocState]);
+
+    // Handle fullscreen changes from browser events
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isCurrentlyFullscreen = document.fullscreenElement !== null;
+            // Only update if the state has actually changed to avoid unnecessary re-renders
+            if (session.isFullscreen !== isCurrentlyFullscreen) {
+                setUserSession({ 
+                    ...session, 
+                    isFullscreen: isCurrentlyFullscreen 
+                });
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, [session, setUserSession]);
 
     const menuClass = showMenu ? '--menu' : '--upload';
 
@@ -137,7 +156,7 @@ function LloydGeorgeViewRecordStage({
                         </>
                     )}
 
-                    <PatientSummary showDeceasedTag>
+                    <PatientSummary showDeceasedTag oneLine={session.isFullscreen}>
                         <PatientSummary.Child item={PatientInfo.FULL_NAME} />
                         <PatientSummary.Child item={PatientInfo.NHS_NUMBER} />
                         <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
@@ -151,7 +170,7 @@ function LloydGeorgeViewRecordStage({
                         />
                     )}
 
-                    {hasRecordInStorage && config.featureFlags.uploadLloydGeorgeWorkflowEnabled && (
+                    {!session.isFullscreen && hasRecordInStorage && config.featureFlags.uploadLloydGeorgeWorkflowEnabled && (
                         <>
                             <h2>Uploading files</h2>
                             <p>

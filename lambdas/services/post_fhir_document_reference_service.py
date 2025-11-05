@@ -25,7 +25,7 @@ from utils.exceptions import (
     PatientNotFoundException,
     PdsErrorException,
 )
-from utils.lambda_exceptions import CreateDocumentRefException
+from utils.lambda_exceptions import DocumentRefException
 from utils.lambda_header_utils import validate_common_name_in_mtls
 from utils.utilities import create_reference_id, get_pds_service, validate_nhs_number
 
@@ -97,10 +97,10 @@ class PostFhirDocumentReferenceService:
 
         except (ValidationError, InvalidNhsNumberException) as e:
             logger.error(f"FHIR document validation error: {str(e)}")
-            raise CreateDocumentRefException(400, LambdaError.CreateDocNoParse)
+            raise DocumentRefException(400, LambdaError.DocRefNoParse)
         except ClientError as e:
             logger.error(f"AWS client error: {str(e)}")
-            raise CreateDocumentRefException(500, LambdaError.InternalServerError)
+            raise DocumentRefException(500, LambdaError.InternalServerError)
 
     def _extract_nhs_number_from_fhir(self, fhir_doc: FhirDocumentReference) -> str:
         """Extract NHS number from FHIR document"""
@@ -113,7 +113,7 @@ class PostFhirDocumentReferenceService:
         ):
             return fhir_doc.subject.identifier.value
 
-        raise CreateDocumentRefException(400, LambdaError.CreateDocNoParse)
+        raise DocumentRefException(400, LambdaError.DocRefNoParse)
 
     def _determine_document_type(
         self, fhir_doc: FhirDocumentReference, common_name: MtlsCommonNames | None
@@ -129,15 +129,15 @@ class PostFhirDocumentReferenceService:
                         logger.error(
                             f"SNOMED code {coding.code} - {coding.display} is not supported"
                         )
-                        raise CreateDocumentRefException(
-                            400, LambdaError.CreateDocInvalidType
+                        raise DocumentRefException(
+                            400, LambdaError.DocRefInvalidType
                         )
             logger.error("SNOMED code not found in FHIR document")
-            raise CreateDocumentRefException(400, LambdaError.CreateDocInvalidType)
+            raise DocumentRefException(400, LambdaError.DocRefInvalidType)
 
         if common_name not in MtlsCommonNames:
             logger.error(f"mTLS common name {common_name} - is not supported")
-            raise CreateDocumentRefException(400, LambdaError.CreateDocInvalidType)
+            raise DocumentRefException(400, LambdaError.DocRefInvalidType)
 
         return SnomedCodes.PATIENT_DATA.value
 
@@ -148,7 +148,7 @@ class PostFhirDocumentReferenceService:
             logger.error(
                 f"SNOMED code {doc_type.code} - {doc_type.display_name} is not supported"
             )
-            raise CreateDocumentRefException(400, LambdaError.CreateDocInvalidType)
+            raise DocumentRefException(400, LambdaError.DocRefInvalidType)
 
     def _create_document_reference(
         self,
@@ -202,8 +202,8 @@ class PostFhirDocumentReferenceService:
             logger.info(f"Successfully created document reference in {table_name}")
         except ClientError as e:
             logger.error(f"Failed to create document reference: {str(e)}")
-            raise CreateDocumentRefException(
-                500, LambdaError.CreateDocUploadInternalError
+            raise DocumentRefException(
+                500, LambdaError.DocRefUploadInternalError
             )
 
     def _store_binary_in_s3(
@@ -215,37 +215,37 @@ class PostFhirDocumentReferenceService:
             self.s3_service.upload_file_obj(
                 file_obj=binary_file,
                 s3_bucket_name=document_reference.s3_bucket_name,
-                file_key=document_reference.s3_file_key,
+                file_key=document_reference.s3_upload_key
             )
             logger.info(
-                f"Successfully stored binary content in S3: {document_reference.s3_file_key}"
+                f"Successfully stored binary content in S3: {document_reference.s3_upload_key}"
             )
         except (binascii.Error, ValueError) as e:
             logger.error(f"Failed to decode base64: {str(e)}")
-            raise CreateDocumentRefException(500, LambdaError.CreateDocNoParse)
+            raise DocumentRefException(500, LambdaError.DocRefNoParse)
         except MemoryError as e:
             logger.error(f"File too large to process: {str(e)}")
-            raise CreateDocumentRefException(500, LambdaError.CreateDocNoParse)
+            raise DocumentRefException(500, LambdaError.DocRefNoParse)
         except ClientError as e:
             logger.error(f"Failed to store binary in S3: {str(e)}")
-            raise CreateDocumentRefException(500, LambdaError.CreateDocNoParse)
+            raise DocumentRefException(500, LambdaError.DocRefNoParse)
         except (OSError, IOError) as e:
             logger.error(f"I/O error when processing binary content: {str(e)}")
-            raise CreateDocumentRefException(500, LambdaError.CreateDocNoParse)
+            raise DocumentRefException(500, LambdaError.DocRefNoParse)
 
     def _create_presigned_url(self, document_reference: DocumentReference) -> str:
         """Create a pre-signed URL for uploading a file"""
         try:
             response = self.s3_service.create_put_presigned_url(
-                document_reference.s3_bucket_name, document_reference.s3_file_key
+                document_reference.s3_bucket_name, document_reference.s3_upload_key
             )
             logger.info(
-                f"Successfully created pre-signed URL for {document_reference.s3_file_key}"
+                f"Successfully created pre-signed URL for {document_reference.s3_upload_key}"
             )
             return response
         except ClientError as e:
             logger.error(f"Failed to create pre-signed URL: {str(e)}")
-            raise CreateDocumentRefException(500, LambdaError.InternalServerError)
+            raise DocumentRefException(500, LambdaError.InternalServerError)
 
     def _create_fhir_response(
         self,
@@ -299,6 +299,6 @@ class PostFhirDocumentReferenceService:
             PdsErrorException,
         ) as e:
             logger.error(f"Error occurred when fetching patient details: {str(e)}")
-            raise CreateDocumentRefException(
-                400, LambdaError.CreatePatientSearchInvalid
+            raise DocumentRefException(
+                400, LambdaError.DocRefPatientSearchInvalid
             )

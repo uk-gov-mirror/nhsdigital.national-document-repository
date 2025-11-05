@@ -1,14 +1,12 @@
 import os
 
 from utils.audit_logging_setup import LoggingService
-from services.base.dynamo_service import DynamoDBService
-from services.base.s3_service import S3Service
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
 from models.document_reference import DocumentReference
 from services.fhir_document_reference_service_base import FhirDocumentReferenceServiceBase
-from enums.snomed_codes import SnomedCodes, SnomedCode
+from enums.snomed_codes import SnomedCode
 from enums.lambda_error import LambdaError
 from utils.lambda_exceptions import UpdateFhirDocumentReferenceException
 from utils.dynamo_utils import DocTypeTableRouter
@@ -25,6 +23,7 @@ logger = LoggingService(__name__)
 
 class PutFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
     def __init__(self):
+        super().__init__()
         self.doc_router = DocTypeTableRouter()
 
     def process_fhir_document_reference(self, fhir_document: str) -> str:
@@ -32,14 +31,14 @@ class PutFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             validated_fhir_doc = FhirDocumentReference.model_validate_json(fhir_document)
         except ValidationError as e:
             logger.error(f"FHIR document validation error: {str(e)}")
-            raise UpdateFhirDocumentReferenceException(400, LambdaError.UpdateDocNoParse)
+            raise UpdateFhirDocumentReferenceException(400, LambdaError.DocRefNoParse)
 
         try:
             # Extract document type
             doc_type = self._determine_document_type(validated_fhir_doc)
         except FhirDocumentReferenceException:
             logger.error("Could not determine document type")
-            raise UpdateFhirDocumentReferenceException(400, LambdaError.UpdateDocInvalidType)
+            raise UpdateFhirDocumentReferenceException(400, LambdaError.DocRefInvalidType)
 
         # Determine which DynamoDB table to use based on the document type
         dynamo_table = self._get_dynamo_table_for_doc_type(doc_type)
@@ -68,7 +67,7 @@ class PutFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             return self._create_fhir_response(new_doc_reference, presigned_url)
         except (ValidationError, InvalidNhsNumberException) as e:
             logger.error(f"FHIR document validation error: {str(e)}")
-            raise UpdateFhirDocumentReferenceException(400, LambdaError.UpdateDocNoParse)
+            raise UpdateFhirDocumentReferenceException(400, LambdaError.DocRefNoParse)
         
     def _get_current_doc(self, fhir_doc: FhirDocumentReference, dynamo_table: str) -> DocumentReference:
         try:
@@ -92,7 +91,7 @@ class PutFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             request_nhs_number = fhir_doc.extract_nhs_number_from_fhir()
         except FhirDocumentReferenceException:
             logger.error("Could not find NHS number in request fhir document reference")
-            raise UpdateFhirDocumentReferenceException(400, LambdaError.UpdateDocNoParse)
+            raise UpdateFhirDocumentReferenceException(400, LambdaError.DocRefNoParse)
 
         if current_doc.nhs_number != request_nhs_number:
             logger.error("NHS numbers do not match.")
@@ -121,7 +120,7 @@ class PutFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
         try:
             patient_details = self._check_nhs_number_with_pds(nhs_number)
         except FhirDocumentReferenceException:
-            raise UpdateFhirDocumentReferenceException(400, LambdaError.UpdatePatientSearchInvalid)
+            raise UpdateFhirDocumentReferenceException(400, LambdaError.DocRefPatientSearchInvalid)
         
         new_doc_version = int(current_doc.version) + 1
 
@@ -151,7 +150,7 @@ class PutFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             try:
                 self._store_binary_in_s3(document_reference, binary_content)
             except FhirDocumentReferenceException:
-                raise UpdateFhirDocumentReferenceException(500, LambdaError.UpdateDocNoParse)
+                raise UpdateFhirDocumentReferenceException(500, LambdaError.DocRefNoParse)
         else:
             # Create a pre-signed URL for uploading
             try:
@@ -162,7 +161,7 @@ class PutFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             # Save document reference to DynamoDB
             self._save_document_reference_to_dynamo(dynamo_table, document_reference)
         except FhirDocumentReferenceException:
-            raise UpdateFhirDocumentReferenceException(500, LambdaError.UpdateDocUploadInternalError)
+            raise UpdateFhirDocumentReferenceException(500, LambdaError.DocRefUploadInternalError)
         
         return presigned_url
     

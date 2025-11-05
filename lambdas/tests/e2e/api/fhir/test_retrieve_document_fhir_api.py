@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 import requests
-from tests.e2e.helpers.pdm_data_helper import PdmDataHelper
+from tests.e2e.helpers.data_helper import PdmDataHelper
 
 from lambdas.tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,

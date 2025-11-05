@@ -1,6 +1,6 @@
-import { JSX, ReactNode, createContext, useContext } from 'react';
+import { JSX, ReactNode, createContext, useContext, useMemo } from 'react';
 import usePatient from '../../../helpers/hooks/usePatient';
-import { getFormattedDateFromString } from '../../../helpers/utils/formatDate';
+import { getFormattedDate, getFormattedDateFromString } from '../../../helpers/utils/formatDate';
 import { SummaryList, Tag } from 'nhsuk-react-components';
 import type { PatientDetails } from '../../../types/generic/patientDetails';
 import { formatNhsNumber } from '../../../helpers/utils/formatNhsNumber';
@@ -15,6 +15,7 @@ import { getFormattedPatientFullName } from '../../../helpers/utils/formatPatien
 type PatientSummaryProps = {
     showDeceasedTag?: boolean;
     children?: ReactNode;
+    oneLine?: boolean;
 };
 
 // Context for sharing patient data and configuration
@@ -124,8 +125,56 @@ const Details: React.FC<{ item: PatientInfo }> = ({ item }) => {
 const PatientSummary = ({
     showDeceasedTag = false,
     children,
+    oneLine,
 }: PatientSummaryProps): JSX.Element => {
     const patientDetails = usePatient();
+    const patientDetailsContextValue = useMemo(() => ({ patientDetails }), [patientDetails]);
+
+    if (oneLine) {
+        const nameLengthLimit = 30;
+        const givenName = patientDetails?.givenName.join(' ') || '';
+        const familyName = patientDetails?.familyName || '';
+        const longname = givenName.length + familyName.length > nameLengthLimit;
+
+        return (
+            <PatientSummaryContext.Provider value={patientDetailsContextValue}>
+                <>
+                    {showDeceasedTag && patientDetails?.deceased && (
+                        <Tag color="blue" className="mb-6" data-testid="deceased-patient-tag">
+                            Deceased patient
+                        </Tag>
+                    )}
+                    <div
+                        id="patient-info"
+                        data-testid="patient-info"
+                        className="lloydgeorge_record-stage_patient-info"
+                    >
+                        <p>
+                            <span
+                                data-testid="patient-summary-full-name"
+                                className="nhsuk-u-padding-right-9 nhsuk-u-font-weight-bold"
+                            >
+                                {getFormattedPatientFullName(patientDetails)}
+                            </span>
+
+                            {longname && <br />}
+
+                            <span
+                                data-testid="patient-summary-small-nhs-number"
+                                className="nhsuk-u-padding-right-9"
+                            >
+                                NHS number: {formatNhsNumber(patientDetails!.nhsNumber)}
+                            </span>
+                            <span data-testid="patient-summary-small-date-of-birth">
+                                Date of birth:{' '}
+                                {getFormattedDate(new Date(patientDetails!.birthDate))}
+                            </span>
+                        </p>
+                    </div>
+                </>
+            </PatientSummaryContext.Provider>
+        );
+    }
 
     // If children are provided, use compound component pattern
     if (children) {

@@ -5,7 +5,6 @@ from unittest.mock import call
 import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-
 from models.staging_metadata import METADATA_FILENAME
 from services.bulk_upload_metadata_service import BulkUploadMetadataService
 from tests.unit.conftest import MOCK_LG_METADATA_SQS_QUEUE, MOCK_STAGING_STORE_BUCKET
