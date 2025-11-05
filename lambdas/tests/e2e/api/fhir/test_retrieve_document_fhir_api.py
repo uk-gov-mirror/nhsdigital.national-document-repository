@@ -1,6 +1,5 @@
 import base64
 import io
-import uuid
 
 import pytest
 import requests
@@ -9,25 +8,11 @@ from tests.e2e.helpers.data_helper import PdmDataHelper
 from lambdas.tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
     PDM_S3_BUCKET,
-    PDM_SNOMED,
     create_mtls_session,
 )
+from lambdas.tests.e2e.conftest import PDM_SNOMED
 
 pdm_data_helper = PdmDataHelper()
-
-
-def build_pdm_record(nhs_number="9912003071", data=None, doc_status=None, size=None):
-    """Helper to create a PDM record dictionary."""
-    record = {
-        "id": str(uuid.uuid4()),
-        "nhs_number": nhs_number,
-        "data": data or io.BytesIO(b"Sample PDF Content"),
-    }
-    if doc_status:
-        record["doc_status"] = doc_status
-    if size:
-        record["size"] = size
-    return record
 
 
 def get_document_reference(record_id):
@@ -43,7 +28,7 @@ def get_document_reference(record_id):
 @pytest.mark.parametrize("file_size", [None, 10 * 1024 * 1024])
 def test_file_retrieval(test_data, file_size):
     """Test retrieval for small and large files."""
-    pdm_record = build_pdm_record(
+    pdm_record = pdm_data_helper.build_record(
         data=io.BytesIO(b"A" * file_size) if file_size else None,
         size=file_size * 1024 if file_size else None,
     )
@@ -93,7 +78,7 @@ def test_retrieve_edge_cases(
 
 
 def test_preliminary_file(test_data):
-    pdm_record = build_pdm_record(doc_status="preliminary")
+    pdm_record = pdm_data_helper.build_record(doc_status="preliminary")
     test_data.append(pdm_record)
     pdm_data_helper.create_metadata(pdm_record)
     pdm_data_helper.create_resource(pdm_record)
@@ -106,7 +91,7 @@ def test_preliminary_file(test_data):
 
 
 def test_forbidden_with_invalid_cert(test_data, temp_cert_and_key):
-    pdm_record = build_pdm_record()
+    pdm_record = pdm_data_helper.build_record()
     test_data.append(pdm_record)
     pdm_data_helper.create_metadata(pdm_record)
     pdm_data_helper.create_resource(pdm_record)

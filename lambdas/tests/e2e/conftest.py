@@ -16,6 +16,7 @@ LG_UNSTITCHED_TABLE = os.environ.get("LG_UNSTITCHED_TABLE")
 BULK_REPORT_TABLE = os.environ.get("BULK_REPORT_TABLE")
 LLOYD_GEORGE_S3_BUCKET = os.environ.get("NDR_S3_BUCKET") or ""
 APIM_ENDPOINT = "internal-dev.api.service.nhs.uk"
+PDM_SNOMED = 717391000000106
 
 
 @pytest.fixture
