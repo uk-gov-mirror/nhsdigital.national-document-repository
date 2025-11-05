@@ -10,7 +10,7 @@ import {
     UploadSession,
 } from '../../types/generic/uploadResult';
 import { Dispatch, SetStateAction } from 'react';
-import { setSingleDocument } from '../utils/uploadDocumentHelpers';
+import { extractUploadSession, setSingleDocument } from '../utils/uploadDocumentHelpers';
 import { PatientDetails } from '../../types/generic/patientDetails';
 import { formatDateWithDashes } from '../utils/formatDate';
 
@@ -19,6 +19,7 @@ type UploadDocumentsArgs = {
     nhsNumber: string;
     baseUrl: string;
     baseHeaders: AuthHeaders;
+    documentReferenceId?: string | undefined;
 };
 
 type UploadDocumentsToS3Args = {
@@ -34,14 +35,15 @@ export const uploadDocumentToS3 = async ({
 }: UploadDocumentsToS3Args) => {
     const documentMetadata: S3Upload = uploadSession[document.id];
     const formData = new FormData();
-    const docFields: S3UploadFields = documentMetadata.fields;
+    const docFields: S3UploadFields = documentMetadata.fields ?? [];
     Object.entries(docFields).forEach(([key, value]) => {
         formData.append(key, value);
     });
     formData.append('file', document.file);
     const s3url = documentMetadata.url;
+    const axiosMethod = Object.keys(documentMetadata).includes('fields') ? axios.post : axios.put;
     try {
-        return await axios.post(s3url, formData, {
+        return await axiosMethod(s3url, formData, {
             onUploadProgress: (progress) => {
                 const { loaded, total } = progress;
                 if (total) {
@@ -78,9 +80,10 @@ const uploadDocuments = async ({
     documents,
     baseUrl,
     baseHeaders,
+    documentReferenceId,
 }: UploadDocumentsArgs): Promise<UploadSession> => {
     const requestBody = {
-        resourceType: 'CreateDocumentReference',
+        resourceType: 'DocumentReference',
         subject: {
             identifier: {
                 system: 'https://fhir.nhs.uk/Id/nhs-number',
@@ -102,16 +105,21 @@ const uploadDocuments = async ({
                     contentType: doc.file.type,
                     docType: doc.docType,
                     clientId: doc.id,
+                    versionId: doc.versionId,
                 })),
             },
         ],
         created: new Date(Date.now()).toISOString(),
     };
 
-    const gatewayUrl = baseUrl + endpoints.DOCUMENT_UPLOAD;
+    const gatewayUrl =
+        baseUrl +
+        endpoints.DOCUMENT_UPLOAD +
+        (documentReferenceId ? `/${documentReferenceId}` : '');
 
     try {
-        const { data } = await axios.post<UploadSession>(gatewayUrl, JSON.stringify(requestBody), {
+        const axiosMethod = documentReferenceId ? axios.put : axios.post;
+        const { data } = await axiosMethod(gatewayUrl, JSON.stringify(requestBody), {
             headers: {
                 ...baseHeaders,
             },
@@ -120,7 +128,7 @@ const uploadDocuments = async ({
             },
         });
 
-        return data;
+        return extractUploadSession(data);
     } catch (e) {
         const error = e as AxiosError;
         throw error;

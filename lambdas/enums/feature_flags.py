@@ -12,3 +12,4 @@ class FeatureFlags(StrEnum):
     UPLOAD_DOCUMENT_ITERATION_3_ENABLED = (
         "uploadDocumentIteration3Enabled"
     )
+    UPLOAD_DOCUMENT_ITERATION_2_ENABLED = "uploadDocumentIteration2Enabled"

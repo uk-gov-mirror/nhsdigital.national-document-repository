@@ -62,11 +62,12 @@ export const fileUploadErrorMessages: ErrorMessageType = {
     duplicateFileName: {
         inline: 'This file has the same name as another file you have selected',
         errorBox: 'This file has the same name as another file you have selected',
-        selectFileError: 'This file has the same name as another file you have selected',
+        selectFileError:
+            "This file has the same name as a file you've already selected. Check this file. Each file must have a unique filename.",
     },
     invalidFileType: {
         inline: 'This file is not in the correct file format',
         errorBox: 'This file is not in the correct file format',
-        selectFileError: 'This file is not in the correct file format',
+        selectFileError: 'This file is not a PDF. Convert to PDF and try again.',
     },
 };
