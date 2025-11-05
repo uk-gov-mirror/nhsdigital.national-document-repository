@@ -87,6 +87,9 @@ class MigrationBase(ABC):
                 self.logger.error(f"[{label}] Error processing item {item_id}: {str(e)}")
                 raise
 
+        
+        ##to remove this line 
+        self.logger.info({"92 failed_items": failed_items})
         if failed_items:
             self.logger.error(f"'{label}' migration segment: {segment} completed with {len(failed_items)} errors.")
             error_report_key = f"migration_errors/{label}_errors.json"
@@ -99,8 +102,6 @@ class MigrationBase(ABC):
             self.logger.error(f"Error report saved to s3://{self.failed_items_bucket}/{error_report_key}")      
 
         self.logger.info(f"'{label}' migration step completed.\n")
-        ##to remove this line 
-        self.logger.info({"103: successful_item_runs": successful_item_runs})
         return {
             "successful_item_runs": successful_item_runs,
             "failed_items_count": len(failed_items),
