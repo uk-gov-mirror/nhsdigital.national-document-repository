@@ -83,6 +83,7 @@ def validate_event_input(event):
 
 
 def lambda_handler(event, context):
+    logger.info(f"Received event: {event}")
     try:
         (
             segment,
