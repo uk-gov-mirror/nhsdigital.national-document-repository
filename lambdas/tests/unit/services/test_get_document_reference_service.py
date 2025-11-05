@@ -96,23 +96,6 @@ def test_valid_input_returns_presigned_url(
 
     assert result == expected_result
 
-def test_s3_service_returns_none_errors(
-        mock_service,
-        mock_document_reference,
-        mock_nhs_number
-        ):
-    mock_service.document_service.fetch_documents_from_table.return_value = [mock_document_reference]
-    mock_service.s3_service.create_download_presigned_url.return_value = None
-
-    with pytest.raises(GetDocumentRefException) as excinfo:
-        mock_service.get_document_url_by_id(
-            mock_document_reference.id,
-            mock_nhs_number
-        )
-
-    assert excinfo.value.status_code == 500
-    assert excinfo.value.error == LambdaError.InternalServerError
-
 def test_no_document_reference_found_errors(
         mock_service,
         mock_document_reference,

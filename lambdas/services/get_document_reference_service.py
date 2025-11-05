@@ -45,9 +45,6 @@ class GetDocumentReferenceService:
             file_key=file_location,
         )
 
-        if presigned_url_response is None:
-            raise GetDocumentRefException(500, LambdaError.InternalServerError)
-
         presigned_id = str(uuid.uuid4())
         deletion_date = datetime.now(timezone.utc)
 
