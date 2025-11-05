@@ -68,11 +68,15 @@ class MigrationBase(ABC):
                         )
                         self.logger.info(f"[{label}] Updated item {item_id}: {updated_fields}")
                         successful_item_runs += 1
+                        ##todo remove this line
+                        self.logger.info({"70: successful_item_runs": successful_item_runs})
                     except Exception as e:
                         self.logger.error(f"[{label}] Failed to update item {item_id}: {str(e)}")
                 else:
                     self.logger.info(f"[Dry Run] Would update item {item_id} with {updated_fields}")
                     successful_item_runs += 1
+                    ##to remove this line 
+                    self.logger.info({"79: successful_item_runs": successful_item_runs})
 
             except MigrationUnrecoverableException as e:
                 self.logger.error(f"[{label}] Unrecoverable error for item {item_id} - segment {segment}: {e.message}")
@@ -95,6 +99,8 @@ class MigrationBase(ABC):
             self.logger.error(f"Error report saved to s3://{self.failed_items_bucket}/{error_report_key}")      
 
         self.logger.info(f"'{label}' migration step completed.\n")
+        ##to remove this line 
+        self.logger.info({"103: successful_item_runs": successful_item_runs})
         return {
             "successful_item_runs": successful_item_runs,
             "failed_items_count": len(failed_items)
