@@ -55,12 +55,7 @@ class MigrationBase(ABC):
             self.logger.info(f"[{label}] Processing item {index} (ID: {item_id})")
 
             try:
-                ##todo remove this line
-                self.logger.info("57")
                 updated_fields = update_fn(entry)
-                ##todo remove this line
-                self.logger.info("60")
-                self.logger.info({"61: updated_fields": updated_fields})
                 if not updated_fields:
                     self.logger.info(f"[{label}] Item {item_id} does not require update, skipping.")
                     skipped_items += 1
@@ -77,15 +72,11 @@ class MigrationBase(ABC):
                         )
                         self.logger.info(f"[{label}] Updated item {item_id}: {updated_fields}")
                         successful_item_runs += 1
-                        ##todo remove this line
-                        self.logger.info({"70: successful_item_runs": successful_item_runs})
                     except Exception as e:
                         self.logger.error(f"[{label}] Failed to update item {item_id}: {str(e)}")
                 else:
                     self.logger.info(f"[Dry Run] Would update item {item_id} with {updated_fields}")
                     successful_item_runs += 1
-                    ##to remove this line 
-                    self.logger.info({"79: successful_item_runs": successful_item_runs})
 
             except MigrationUnrecoverableException as e:
                 self.logger.error(f"[{label}] Unrecoverable error for item {item_id} - segment {segment}: {e.message}")
