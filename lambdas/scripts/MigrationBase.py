@@ -47,6 +47,7 @@ class MigrationBase(ABC):
         """
         self.logger.info(f"Running '{label}' migration step on {len(entries := list(entries))} items")
         successful_item_runs = 0
+        skipped_items = 0
         failed_items = []
 
         for index, entry in enumerate(entries, start=1):
@@ -61,7 +62,8 @@ class MigrationBase(ABC):
                 self.logger.info("60")
                 self.logger.info({"61: updated_fields": updated_fields})
                 if not updated_fields:
-                    self.logger.debug(f"[{label}] Item {item_id} does not require update, skipping.")
+                    self.logger.info(f"[{label}] Item {item_id} does not require update, skipping.")
+                    skipped_items += 1
                     continue
 
                 self.logger.info(f"[{label}] Item {item_id} update fields: {updated_fields}")  
@@ -110,5 +112,6 @@ class MigrationBase(ABC):
         self.logger.info({"103: successful_item_runs": successful_item_runs})
         return {
             "successful_item_runs": successful_item_runs,
-            "failed_items_count": len(failed_items)
+            "failed_items_count": len(failed_items),
+            "skipped_items_count": skipped_items
         }

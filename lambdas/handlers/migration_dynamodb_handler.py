@@ -111,8 +111,8 @@ def lambda_handler(event, context):
         result = service.execute_migration()
         logger.info(
             f"Migration completed: status={result.get('status')}, "
-            f"scanned={result.get('scannedCount')}, updated={result.get('updatedCount')}, "
-            f"errors={result.get('errorCount')}"
+            f"scanned={result.get('scannedCount')}, processed={result.get('processedCount')}, "
+            f"errors={result.get('errorCount')}, skipped={result.get('skippedCount')}"
         )
         return result
 

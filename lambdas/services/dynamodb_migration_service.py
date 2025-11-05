@@ -31,6 +31,7 @@ class DynamoDBMigrationService:
         self.table = self.dynamodb.Table(self.table_name)
         self.dynamo_service = DynamoDBService()
         self.scanned_count = 0
+        self.skipped_count = 0
         self.processed_count = 0
         self.error_count = 0
 
@@ -89,6 +90,7 @@ class DynamoDBMigrationService:
                 )
                 self.processed_count += segment_run_output.get("successful_item_runs", 0)
                 self.error_count += segment_run_output.get("failed_items_count", 0)
+                self.skipped_count += segment_run_output.get("skipped_items_count", 0)
             except Exception:
                 self.error_count += 1
 
@@ -113,6 +115,7 @@ class DynamoDBMigrationService:
             "segmentId": self.segment,
             "totalSegments": self.total_segments,
             "processedCount": self.processed_count,
+            "skippedCount": self.skipped_count,
             "scannedCount": self.scanned_count,
             "errorCount": self.error_count,
             "status": status,
