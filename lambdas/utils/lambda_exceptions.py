@@ -16,9 +16,14 @@ class LambdaException(Exception):
             and self.err_code == other.err_code
         )
 
+
 class DocumentRefException(LambdaException):
     pass
-  
+
+
+class CreateDocumentRefException(LambdaException):
+    pass
+
 
 class SearchPatientException(LambdaException):
     pass
@@ -94,6 +99,7 @@ class AccessAuditException(LambdaException):
 
 class PdfStitchingException(LambdaException):
     pass
+
 
 class UpdateFhirDocumentReferenceException(LambdaException):
     pass

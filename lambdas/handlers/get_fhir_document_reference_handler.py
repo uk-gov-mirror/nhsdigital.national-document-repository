@@ -1,4 +1,5 @@
 from enums.lambda_error import LambdaError
+from enums.mtls import MtlsCommonNames
 from oauthlib.oauth2 import WebApplicationClient
 from services.base.ssm_service import SSMService
 from services.dynamic_configuration_service import DynamicConfigurationService
@@ -8,6 +9,8 @@ from services.search_patient_details_service import SearchPatientDetailsService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions_fhir
+from utils.lambda_handler_utils import extract_bearer_token
+from utils.lambda_header_utils import validate_common_name_in_mtls
 from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.exceptions import AuthorisationException, OidcApiException
 from utils.lambda_exceptions import (
@@ -34,8 +37,9 @@ logger = LoggingService(__name__)
 )
 def lambda_handler(event, context):
     try:
-        bearer_token = extract_bearer_token(event)
+        bearer_token = extract_bearer_token(event, context)
         selected_role_id = event.get("headers", {}).get("cis2-urid", None)
+
         document_id, snomed_code = extract_document_parameters(event)
 
         get_document_service = GetFhirDocumentReferenceService()
@@ -43,7 +47,7 @@ def lambda_handler(event, context):
             snomed_code, document_id
         )
 
-        if selected_role_id:
+        if selected_role_id and bearer_token:
             verify_user_authorisation(
                 bearer_token, selected_role_id, document_reference.nhs_number
             )
@@ -70,17 +74,6 @@ def lambda_handler(event, context):
             ),
             methods="GET",
         ).create_api_gateway_response()
-
-
-def extract_bearer_token(event):
-    """Extract and validate bearer token from event"""
-    bearer_token = event.get("headers", {}).get("Authorization", None)
-    if not bearer_token or not bearer_token.startswith("Bearer "):
-        logger.warning("No bearer token found in request")
-        raise GetFhirDocumentReferenceException(
-            401, LambdaError.DocumentReferenceUnauthorised
-        )
-    return bearer_token
 
 
 def extract_document_parameters(event):
