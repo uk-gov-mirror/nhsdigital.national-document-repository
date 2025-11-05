@@ -1,4 +1,3 @@
-
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from models.document_review import PutDocumentReviewRequest
