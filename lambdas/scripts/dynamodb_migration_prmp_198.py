@@ -4,7 +4,7 @@ from typing import Callable, Iterable
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 from utils.audit_logging_setup import LoggingService
-from lambdas.utils.exceptions import MigrationUnrecoverableException, MigrationRetryableException
+from utils.exceptions import MigrationUnrecoverableException, MigrationRetryableException
 
 
 class AuthorMigration(MigrationBase):
