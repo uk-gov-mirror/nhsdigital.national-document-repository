@@ -166,7 +166,7 @@ class TransactionConflictException(Exception):
     pass
 
 class MigrationUnrecoverableException(Exception):
-    def __inti__(self, message: str, item_id: str):
+    def __init__(self, message: str, item_id: str):
         super().__init__(message)
         self.message = message
         self.item_id = item_id
@@ -175,7 +175,7 @@ class MigrationUnrecoverableException(Exception):
         return {"itemId": self.item_id, "message": self.message}  
 
 class MigrationRetryableException(Exception):
-    def __inti__(self, message: str, segment_id: str):
+    def __init__(self, message: str, segment_id: str):
         super().__init__(message)
         self.message = message
         self.segment_id = segment_id
