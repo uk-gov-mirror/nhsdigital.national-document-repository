@@ -54,7 +54,12 @@ class MigrationBase(ABC):
             self.logger.info(f"[{label}] Processing item {index} (ID: {item_id})")
 
             try:
+                ##todo remove this line
+                self.logger.info("57")
                 updated_fields = update_fn(entry)
+                ##todo remove this line
+                self.logger.info("60")
+                self.logger.info({"61: updated_fields": updated_fields})
                 if not updated_fields:
                     self.logger.debug(f"[{label}] Item {item_id} does not require update, skipping.")
                     continue
