@@ -40,6 +40,8 @@ class S3MetadataMigration(MigrationBase):
         self.logger.info("Starting S3 metadata migration")
         self.logger.info(f"Target table: {self.target_table}")
         self.logger.info(f"Dry run mode: {not self.run_migration}")
+        #todo remove test exception
+        raise MigrationUnrecoverableException(message="TestException", item_id=entry.get("ID"))
 
         if entries is None:
             self.logger.error("No entry provided.")
