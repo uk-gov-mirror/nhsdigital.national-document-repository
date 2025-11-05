@@ -27,7 +27,11 @@ def lambda_handler(event, context):
 
         search_document_reference_service = SearchDocumentReviewService()
 
-        references, next_paged_token = search_document_reference_service.process_request(ods_code=ods_code,limit=limit,encoded_start_key=start_key)
+        references, next_paged_token = (
+            search_document_reference_service.process_request(
+                ods_code=ods_code, limit=limit, encoded_start_key=start_key
+            )
+        )
 
         return ApiGatewayResponse(
             status_code=200,
@@ -44,7 +48,9 @@ def lambda_handler(event, context):
     except OdsErrorException as e:
         logger.error(e)
         return ApiGatewayResponse(
-            status_code=400, body=LambdaError.SearchDocumentReviewMissingODS.create_error_body(), methods="GET"
+            status_code=400,
+            body=LambdaError.SearchDocumentReviewMissingODS.create_error_body(),
+            methods="GET",
         ).create_api_gateway_response()
 
 

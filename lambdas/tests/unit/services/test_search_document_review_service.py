@@ -2,7 +2,6 @@ import base64
 
 import pytest
 from botocore.exceptions import ClientError
-
 from enums.lambda_error import LambdaError
 from models.document_review import DocumentUploadReviewReference
 from services.search_document_review_service import SearchDocumentReviewService
@@ -21,9 +20,8 @@ from tests.unit.helpers.data.search_document_review.dynamo_response import (
 from utils.lambda_exceptions import SearchDocumentReviewReferenceException
 
 TEST_QUERY_LIMIT = 20
-TEST_ENCODED_START_KEY =  base64.b64encode(TEST_UUID.encode("ascii")).decode(
-                            "utf-8"
-                        )
+TEST_ENCODED_START_KEY = base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8")
+
 
 @pytest.fixture
 def search_document_review_service(mocker, set_env):
@@ -32,11 +30,13 @@ def search_document_review_service(mocker, set_env):
     yield service
 
 
-
-
 def test_handle_gateway_api_request_happy_path(search_document_review_service, mocker):
-    mocker.patch.object(search_document_review_service, "decode_start_key").return_value = TEST_UUID
-    mocker.patch.object(search_document_review_service, "get_review_document_references").return_value = (
+    mocker.patch.object(
+        search_document_review_service, "decode_start_key"
+    ).return_value = TEST_UUID
+    mocker.patch.object(
+        search_document_review_service, "get_review_document_references"
+    ).return_value = (
         [
             DocumentUploadReviewReference.model_validate(item)
             for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
@@ -44,12 +44,16 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["LastEvaluatedKey"],
     )
 
-    search_document_review_service.process_request(encoded_start_key=TEST_ENCODED_START_KEY, ods_code=TEST_CURRENT_GP_ODS, limit=TEST_QUERY_LIMIT)
+    search_document_review_service.process_request(
+        encoded_start_key=TEST_ENCODED_START_KEY,
+        ods_code=TEST_CURRENT_GP_ODS,
+        limit=TEST_QUERY_LIMIT,
+    )
 
     search_document_review_service.decode_start_key.assert_called()
-    search_document_review_service.get_review_document_references.assert_called_with(ods_code=TEST_CURRENT_GP_ODS, start_key=TEST_UUID)
-
-
+    search_document_review_service.get_review_document_references.assert_called_with(
+        ods_code=TEST_CURRENT_GP_ODS, start_key=TEST_UUID
+    )
 
 
 def test_service_queries_document_review_table_with_correct_args(
@@ -142,6 +146,7 @@ def test_get_review_document_references_throws_exception_client_error(
         assert e.value.status_code == 500
         assert e.value.error == LambdaError.SearchDocumentReviewDB
 
+
 def test_validate_search_response_items_returns_document_upload_review_references(
     search_document_review_service,
 ):
@@ -174,10 +179,9 @@ def test_get_review_document_references_throws_exception_on_validation_error(
         assert e.value.status_code == 500
         assert e.value.error == LambdaError.SearchDocumentReviewValidation
 
+
 def test_decode_start_key(search_document_review_service):
-    encoded_start_key = base64.b64encode(TEST_UUID.encode("ascii")).decode(
-        "utf-8"
-    )
+    encoded_start_key = base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8")
 
     actual = search_document_review_service.decode_start_key(encoded_start_key)
     assert actual == TEST_UUID
@@ -186,7 +190,3 @@ def test_decode_start_key(search_document_review_service):
 def test_encode_start_key(search_document_review_service):
     actual = search_document_review_service.encode_start_key(TEST_UUID)
     assert actual == TEST_ENCODED_START_KEY
-
-
-
-

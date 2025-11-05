@@ -2,7 +2,6 @@ import base64
 import json
 
 import pytest
-
 from enums.lambda_error import LambdaError
 from handlers.search_document_review_handler import (
     get_ods_code_from_request_context,
@@ -10,7 +9,7 @@ from handlers.search_document_review_handler import (
     parse_querystring_parameters,
 )
 from models.document_review import DocumentUploadReviewReference
-from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_UUID, MOCK_INTERACTION_ID
+from tests.unit.conftest import MOCK_INTERACTION_ID, TEST_CURRENT_GP_ODS, TEST_UUID
 from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
@@ -103,11 +102,13 @@ def test_get_ods_code_from_request_throws_exception_no_ods(
 def test_handler_returns_400_response_no_ods_code_in_request_context(
     set_env, context, event, mock_service, mocked_request_context_without_ods
 ):
-    body = json.dumps({
-        "message": LambdaError.SearchDocumentReviewMissingODS.value["message"],
-        "err_code": LambdaError.SearchDocumentReviewMissingODS.value["err_code"],
-        "interaction_id": MOCK_INTERACTION_ID
-    })
+    body = json.dumps(
+        {
+            "message": LambdaError.SearchDocumentReviewMissingODS.value["message"],
+            "err_code": LambdaError.SearchDocumentReviewMissingODS.value["err_code"],
+            "interaction_id": MOCK_INTERACTION_ID,
+        }
+    )
 
     expected = ApiGatewayResponse(
         status_code=400, body=body, methods="GET"
@@ -176,7 +177,11 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
 ):
 
     references = [
-        DocumentUploadReviewReference.model_validate(item).model_dump( exclude_none=True, include={"id", "nhs_number", "review_reason"}, mode="json")
+        DocumentUploadReviewReference.model_validate(item).model_dump(
+            exclude_none=True,
+            include={"id", "nhs_number", "review_reason"},
+            mode="json",
+        )
         for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
     ]
 
@@ -210,7 +215,11 @@ def test_handler_returns_list_of_references_no_limit_passed(
     mock_service, context, set_env, mocked_request_context_with_ods, event
 ):
     references = [
-        DocumentUploadReviewReference.model_validate(item).model_dump(exclude_none=True, include={"id", "nhs_number", "review_reason"}, mode="json")
+        DocumentUploadReviewReference.model_validate(item).model_dump(
+            exclude_none=True,
+            include={"id", "nhs_number", "review_reason"},
+            mode="json",
+        )
         for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
     ]
 
@@ -237,15 +246,15 @@ def test_handler_returns_500_response_error_raised(
     mock_service, context, set_env, mocked_request_context_with_ods, event_with_limit
 ):
 
-
-    mock_service.process_request.side_effect = (
-        SearchDocumentReviewReferenceException(500, LambdaError.SearchDocumentReviewValidation))
+    mock_service.process_request.side_effect = SearchDocumentReviewReferenceException(
+        500, LambdaError.SearchDocumentReviewValidation
+    )
 
     body = json.dumps(
         {
             "message": LambdaError.SearchDocumentReviewValidation.value["message"],
             "err_code": LambdaError.SearchDocumentReviewValidation.value["err_code"],
-            "interaction_id": MOCK_INTERACTION_ID
+            "interaction_id": MOCK_INTERACTION_ID,
         }
     )
 
