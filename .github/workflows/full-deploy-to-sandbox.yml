@@ -118,7 +118,7 @@ jobs:
 
   run_lg_e2etest:
     uses: ./.github/workflows/base-e2e-backendtest.yml
-    needs: ["deploy_all_lambdas", "disable_fhir_stub"]
+    needs: ["disable_fhir_stub"]
     with:
       build_branch: ${{ inputs.build_branch }}
       environment: development
@@ -128,7 +128,7 @@ jobs:
 
   run_pdm_e2etest:
     uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
-    needs: ["deploy_all_lambdas", "disable_fhir_stub"]
+    needs: ["disable_fhir_stub"]
     with:
       build_branch: ${{ inputs.build_branch }}
       environment: development
@@ -150,7 +150,7 @@ jobs:
     name: "Run Bulk Upload"
     if: ${{ inputs.bulk_upload }}
     uses: "./.github/workflows/base-run-bulk-upload.yml"
-    needs: ["deploy_all_lambdas", "run_lg_e2etest", "run_pdm_e2etest"]
+    needs: ["disable_fhir_stub", "run_lg_e2etest", "run_pdm_e2etest"]
     with:
       environment: ${{ inputs.environment }}
       sandbox: ${{ inputs.sandbox }}
