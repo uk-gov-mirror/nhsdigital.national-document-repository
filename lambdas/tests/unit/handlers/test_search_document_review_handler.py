@@ -2,17 +2,20 @@ import base64
 import json
 
 import pytest
+
+from enums.lambda_error import LambdaError
 from handlers.search_document_review_handler import (
     get_ods_code_from_request_context,
     lambda_handler,
     parse_querystring_parameters,
 )
 from models.document_review import DocumentUploadReviewReference
-from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_UUID
+from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_UUID, MOCK_INTERACTION_ID
 from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
-from utils.exceptions import OdsErrorException, SearchDocumentReviewReferenceException
+from utils.exceptions import OdsErrorException
+from utils.lambda_exceptions import SearchDocumentReviewReferenceException
 from utils.lambda_response import ApiGatewayResponse
 
 TEST_QUERY_LIMIT = 20
@@ -100,9 +103,14 @@ def test_get_ods_code_from_request_throws_exception_no_ods(
 def test_handler_returns_400_response_no_ods_code_in_request_context(
     set_env, context, event, mock_service, mocked_request_context_without_ods
 ):
+    body = json.dumps({
+        "message": LambdaError.SearchDocumentReviewMissingODS.value["message"],
+        "err_code": LambdaError.SearchDocumentReviewMissingODS.value["err_code"],
+        "interaction_id": MOCK_INTERACTION_ID
+    })
 
     expected = ApiGatewayResponse(
-        status_code=400, body="No ODS code provided.", methods="GET"
+        status_code=400, body=body, methods="GET"
     ).create_api_gateway_response()
 
     actual = lambda_handler(event, context)
@@ -119,24 +127,24 @@ def test_parse_querystring_parameters(
 
     assert parse_querystring_parameters(event_with_limit_and_start_key) == (
         TEST_QUERY_LIMIT,
-        TEST_UUID,
+        base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8"),
     )
     assert parse_querystring_parameters(event) == (None, None)
     assert parse_querystring_parameters(event_with_limit) == (TEST_QUERY_LIMIT, None)
     assert parse_querystring_parameters(event_with_start_key_no_limit) == (
         None,
-        TEST_UUID,
+        base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8"),
     )
 
 
-def test_get_document_review_document_references_called_with_correct_arguments(
+def test_process_request_called_with_correct_arguments(
     mock_service, context, set_env, event_with_limit, mocked_request_context_with_ods
 ):
 
     lambda_handler(event_with_limit, context)
 
-    mock_service.get_review_document_references.assert_called_with(
-        ods_code=TEST_CURRENT_GP_ODS, limit=TEST_QUERY_LIMIT, start_key=None
+    mock_service.process_request.assert_called_with(
+        ods_code=TEST_CURRENT_GP_ODS, limit=TEST_QUERY_LIMIT, encoded_start_key=None
     )
 
 
@@ -144,14 +152,14 @@ def test_handler_returns_empty_list_of_references_no_dynamo_results_no_limit_in_
     mock_service, context, set_env, mocked_request_context_with_ods, event
 ):
 
-    mock_service.get_review_document_references.return_value = ([], None)
+    mock_service.process_request.return_value = ([], None)
 
     expected = ApiGatewayResponse(
         status_code=200,
         body=json.dumps(
             {
                 "documentReviewReferences": [],
-                "lastEvaluatedKey": None,
+                "nextPageToken": None,
                 "count": 0,
             }
         ),
@@ -168,26 +176,21 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
 ):
 
     references = [
-        DocumentUploadReviewReference.model_validate(item)
+        DocumentUploadReviewReference.model_validate(item).model_dump( exclude_none=True, include={"id", "nhs_number", "review_reason"}, mode="json")
         for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
     ]
 
-    mock_service.get_review_document_references.return_value = (
+    mock_service.process_request.return_value = (
         references,
-        MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["LastEvaluatedKey"],
+        base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8"),
     )
 
     expected = ApiGatewayResponse(
         status_code=200,
         body=json.dumps(
             {
-                "documentReviewReferences": [
-                    reference.model_dump_json(
-                        exclude_none=True, include={"id", "nhs_number", "review_reason"}
-                    )
-                    for reference in references
-                ],
-                "lastEvaluatedKey": base64.b64encode(
+                "documentReviewReferences": references,
+                "nextPageToken": base64.b64encode(
                     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["LastEvaluatedKey"].encode(
                         "ascii"
                     )
@@ -207,23 +210,18 @@ def test_handler_returns_list_of_references_no_limit_passed(
     mock_service, context, set_env, mocked_request_context_with_ods, event
 ):
     references = [
-        DocumentUploadReviewReference.model_validate(item)
+        DocumentUploadReviewReference.model_validate(item).model_dump(exclude_none=True, include={"id", "nhs_number", "review_reason"}, mode="json")
         for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
     ]
 
-    mock_service.get_review_document_references.return_value = (references, None)
+    mock_service.process_request.return_value = (references, None)
 
     expected = ApiGatewayResponse(
         status_code=200,
         body=json.dumps(
             {
-                "documentReviewReferences": [
-                    reference.model_dump_json(
-                        exclude_none=True, include={"id", "nhs_number", "review_reason"}
-                    )
-                    for reference in references
-                ],
-                "lastEvaluatedKey": None,
+                "documentReviewReferences": references,
+                "nextPageToken": None,
                 "count": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Count"],
             }
         ),
@@ -239,13 +237,21 @@ def test_handler_returns_500_response_error_raised(
     mock_service, context, set_env, mocked_request_context_with_ods, event_with_limit
 ):
 
-    mock_service.get_review_document_references.side_effect = (
-        SearchDocumentReviewReferenceException()
+
+    mock_service.process_request.side_effect = (
+        SearchDocumentReviewReferenceException(500, LambdaError.SearchDocumentReviewValidation))
+
+    body = json.dumps(
+        {
+            "message": LambdaError.SearchDocumentReviewValidation.value["message"],
+            "err_code": LambdaError.SearchDocumentReviewValidation.value["err_code"],
+            "interaction_id": MOCK_INTERACTION_ID
+        }
     )
 
     expected = ApiGatewayResponse(
         status_code=500,
-        body="Error retrieving for document review references.",
+        body=body,
         methods="GET",
     ).create_api_gateway_response()
     actual = lambda_handler(event_with_limit, context)

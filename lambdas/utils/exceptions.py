@@ -165,7 +165,3 @@ class FhirDocumentReferenceException(Exception):
 
 class TransactionConflictException(Exception):
     pass
-
-
-class SearchDocumentReviewReferenceException(Exception):
-    pass

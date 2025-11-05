@@ -639,3 +639,13 @@ class LambdaError(Enum):
         "message": RETRIEVE_DOCUMENTS,
     }
 
+    SearchDocumentReviewValidation = {
+        "err_code": "SDR_5002",
+        "message": "Review document model error"
+    }
+
+    SearchDocumentReviewMissingODS = {
+        "err_code": "SDR_4001",
+        "message": "Missing ODS code in request context",
+    }
+
