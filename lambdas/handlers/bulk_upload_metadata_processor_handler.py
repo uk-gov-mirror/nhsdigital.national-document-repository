@@ -28,7 +28,9 @@ logger = LoggingService(__name__)
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
     if "Records" in event and event["Records"][0].get("eventSource") == "aws:s3":
-        logger.info(f"Triggering event sent by S3 listener {event['Records'][0].get('eventSource')}")
+        logger.info(
+            f"Triggering event sent by S3 listener {event['Records'][0].get('eventSource')}"
+        )
         try:
             key_string = event["Records"][0]["s3"]["object"]["key"]
             key = urllib.parse.unquote_plus(key_string, encoding="utf-8")
