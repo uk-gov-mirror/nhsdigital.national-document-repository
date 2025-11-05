@@ -25,7 +25,7 @@ class SearchDocumentReviewService:
             decoded_start_key = self.decode_start_key(encoded_start_key)
 
             references, last_evaluated_key = self.get_review_document_references(
-                start_key=decoded_start_key, ods_code=ods_code
+                start_key=decoded_start_key, ods_code=ods_code, limit=limit
             )
 
             for reference in references:
@@ -35,7 +35,7 @@ class SearchDocumentReviewService:
                     mode="json",
                 )
 
-            encoded_exclusive_start_key = self.encode_start_key(encoded_start_key)
+            encoded_exclusive_start_key = self.encode_start_key(last_evaluated_key)
 
             return references, encoded_exclusive_start_key
 
