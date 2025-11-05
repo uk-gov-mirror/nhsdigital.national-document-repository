@@ -343,7 +343,7 @@ def test_update_dynamo_table_clean_scan_result(service, mock_document_reference)
 
     service.document_service.update_document.assert_called_once_with(
         table_name=MOCK_LG_TABLE_NAME,
-        document_reference=mock_document_reference,
+        document=mock_document_reference,
         update_fields_name={
             "virus_scanner_result",
             "doc_status",
@@ -405,7 +405,7 @@ def test_document_key_extraction_from_object_key(
 
     # Check first call (preliminary document)
     first_call = service.document_service.fetch_documents_from_table.call_args_list[0]
-    assert first_call[1]["table"] == MOCK_LG_TABLE_NAME
+    assert first_call[1]["table_name"] == MOCK_LG_TABLE_NAME
     assert first_call[1]["search_condition"] == expected_document_key
     assert first_call[1]["search_key"] == "ID"
 
