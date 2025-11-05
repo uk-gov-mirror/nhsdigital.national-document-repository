@@ -40,8 +40,6 @@ class S3MetadataMigration(MigrationBase):
         self.logger.info("Starting S3 metadata migration")
         self.logger.info(f"Target table: {self.target_table}")
         self.logger.info(f"Dry run mode: {not self.run_migration}")
-        #todo remove test exception
-        raise MigrationUnrecoverableException(message="TestException", item_id=entry.get("ID"))
 
         if entries is None:
             self.logger.error("No entry provided.")
@@ -56,6 +54,10 @@ class S3MetadataMigration(MigrationBase):
         Aggregates updates from all S3 update methods for a single entry.
         Returns a dict of fields to update, or None if no update is needed.
         """
+
+        #todo remove test exception
+        raise MigrationUnrecoverableException(message="TestException", item_id=entry.get("ID"))
+
         update_items = {}
 
         if s3_metadata_items := self.get_update_s3_metadata_items(entry):
