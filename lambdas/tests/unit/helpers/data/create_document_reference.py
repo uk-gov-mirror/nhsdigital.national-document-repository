@@ -55,27 +55,39 @@ LG_FILE_LIST = [
         "contentType": "application/pdf",
         "docType": "LG",
         "clientId": "uuid1",
+        "versionId": "1"
     },
     {
         "fileName": f"2of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
         "contentType": "application/pdf",
         "docType": "LG",
         "clientId": "uuid2",
+        "versionId": "2"
     },
     {
         "fileName": f"3of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
         "contentType": "application/pdf",
         "docType": "LG",
         "clientId": "uuid3",
+        "versionId": "3"
     },
 ]
 
+LG_FILE = {
+    "fileName": f"1of1_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
+    "contentType": "application/pdf",
+    "docType": "LG",
+    "clientId": "uuid1",
+    "versionId": "1"
+}
+
 PARSED_LG_FILE_LIST = [
     UploadRequestDocument(
-        fileName=f"{i}of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
-        contentType="application/pdf",
-        docType="LG",
-        clientId=f"uuid{i}",
+        file_name=f"{i}of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
+        content_type="application/pdf",
+        doc_type="LG",
+        client_id=f"uuid{i}",
+        version_id=f"{i}"
     )
     for i in [1, 2, 3]
 ]
@@ -84,6 +96,13 @@ LG_MOCK_EVENT_BODY = {
     "resourceType": "DocumentReference",
     "subject": {"identifier": {"value": TEST_NHS_NUMBER}},
     "content": [{"attachment": LG_FILE_LIST}],
+    "created": "2023-10-02T15:55:30.650Z",
+}
+
+LG_MOCK_EVENT_BODY_WITH_SINGLE_FILE = {
+    "resourceType": "DocumentReference",
+    "subject": {"identifier": {"value": TEST_NHS_NUMBER}},
+    "content": [{"attachment": LG_FILE}],
     "created": "2023-10-02T15:55:30.650Z",
 }
 
@@ -191,10 +210,10 @@ ARF_FILE_LIST = [
 
 PARSED_ARF_FILE_LIST = [
     UploadRequestDocument(
-        fileName=f"test{i}.txt",
-        contentType="text/plain",
-        docType="ARF",
-        clientId=f"uuid{i}",
+        file_name=f"test{i}.txt",
+        content_type="text/plain",
+        doc_type="ARF",
+        client_id=f"uuid{i}",
     )
     for i in [1, 2, 3]
 ]
@@ -225,4 +244,8 @@ LG_MOCK_RESPONSE = {
     f"1of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf": MOCK_PRESIGNED_URL_RESPONSE,
     f"2of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf": MOCK_PRESIGNED_URL_RESPONSE,
     f"3of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf": MOCK_PRESIGNED_URL_RESPONSE,
+}
+
+LG_MOCK_RESPONSE_SINGLE_FILE = {
+    f"1of1_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf": MOCK_PRESIGNED_URL_RESPONSE,
 }

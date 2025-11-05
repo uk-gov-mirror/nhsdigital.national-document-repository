@@ -433,6 +433,7 @@ def test_create_document_reference_fhir_response_integration(
     mock_document_reference.doc_status = "final"
     mock_document_reference.custodian = "Y12345"
     mock_document_reference.document_snomed_code_type = "717391000000106"
+    mock_document_reference.version = "1"
 
     expected_fhir_response = {
         "id": "717391000000106~Y05868-1634567890",
@@ -480,6 +481,9 @@ def test_create_document_reference_fhir_response_integration(
                 }
             ]
         },
+        "meta": {
+            "versionId": "1"
+        }
     }
 
     result = mock_document_service.create_document_reference_fhir_response(

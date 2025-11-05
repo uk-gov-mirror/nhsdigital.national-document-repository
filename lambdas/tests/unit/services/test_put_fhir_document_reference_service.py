@@ -2,7 +2,6 @@ import json
 
 import pytest
 from enums.lambda_error import LambdaError
-from enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
@@ -156,7 +155,7 @@ def test_validation_error(mock_service):
         mock_service.process_fhir_document_reference("{invalid json}")
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.UpdateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_pds_error(mock_service, valid_fhir_doc_json, valid_doc_ref, valid_nhs_number):
@@ -173,7 +172,7 @@ def test_pds_error(mock_service, valid_fhir_doc_json, valid_doc_ref, valid_nhs_n
     with pytest.raises(UpdateFhirDocumentReferenceException) as excinfo:
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.UpdatePatientSearchInvalid
+    assert excinfo.value.error == LambdaError.DocRefPatientSearchInvalid
 
 
 def test_process_fhir_document_reference_with_pds_error(
@@ -192,7 +191,7 @@ def test_process_fhir_document_reference_with_pds_error(
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.UpdatePatientSearchInvalid
+    assert excinfo.value.error == LambdaError.DocRefPatientSearchInvalid
 
 
 def test_s3_presigned_url_error(mock_service, valid_fhir_doc_json, valid_doc_ref, valid_nhs_number):
@@ -226,7 +225,7 @@ def test_s3_upload_error(mock_service, valid_fhir_doc_with_binary, valid_doc_ref
         mock_service.process_fhir_document_reference(valid_fhir_doc_with_binary)
 
     assert excinfo.value.status_code == 500
-    assert excinfo.value.error == LambdaError.UpdateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_process_fhir_document_reference_with_malformed_json(mock_service):
@@ -237,7 +236,7 @@ def test_process_fhir_document_reference_with_malformed_json(mock_service):
         mock_service.process_fhir_document_reference(malformed_json)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.UpdateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_process_fhir_document_reference_with_empty_string(mock_service):
@@ -246,7 +245,7 @@ def test_process_fhir_document_reference_with_empty_string(mock_service):
         mock_service.process_fhir_document_reference("")
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.UpdateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_process_fhir_document_reference_with_none(mock_service):
@@ -255,7 +254,7 @@ def test_process_fhir_document_reference_with_none(mock_service):
         mock_service.process_fhir_document_reference(None)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.UpdateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_process_fhir_document_reference_non_final_document_error(mock_service, valid_fhir_doc_json, valid_doc_ref):
@@ -327,7 +326,7 @@ def test_nhs_number_extraction_error(mocker, mock_service, valid_fhir_doc_json):
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.UpdateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_determine_document_type_error(mock_service, valid_fhir_doc_json):
@@ -338,7 +337,7 @@ def test_determine_document_type_error(mock_service, valid_fhir_doc_json):
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
     
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.UpdateDocInvalidType
+    assert excinfo.value.error == LambdaError.DocRefInvalidType
 
 
 def test_get_document_reference_error(mock_service, valid_fhir_doc_json):
@@ -364,7 +363,7 @@ def test_save_document_reference_to_dynamo_error(mock_service, valid_fhir_doc_js
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
 
     assert excinfo.value.status_code == 500
-    assert excinfo.value.error == LambdaError.UpdateDocUploadInternalError
+    assert excinfo.value.error == LambdaError.DocRefUploadInternalError
 
 
 def test_create_fhir_response_validation_error(mocker, mock_service, valid_fhir_doc_json, valid_nhs_number):
@@ -380,7 +379,7 @@ def test_create_fhir_response_validation_error(mocker, mock_service, valid_fhir_
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.UpdateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_document_reference_not_found_error(mock_service, valid_fhir_doc_json):
@@ -425,5 +424,5 @@ def test_validate_nhs_number_error(mocker, mock_service, valid_fhir_doc_json):
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
 
     assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.UpdateDocNoParse
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 

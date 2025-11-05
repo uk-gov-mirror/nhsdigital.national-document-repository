@@ -1,6 +1,7 @@
 import os
 
 from enums.snomed_codes import SnomedCodes
+from enums.supported_document_types import SupportedDocumentTypes
 from enums.virus_scan_result import VirusScanResult
 from freezegun import freeze_time
 from models.document_reference import DocumentReference
@@ -309,6 +310,7 @@ def build_test_document_reference(file_name: str, nhs_number: str = "9000000009"
         custodian=TEST_CURRENT_GP_ODS,
         doc_status="preliminary",
         document_scan_creation="2022-09-03",
+        doc_type=SupportedDocumentTypes.LG
     )
     doc_ref.virus_scanner_result = VirusScanResult.CLEAN
     return doc_ref
