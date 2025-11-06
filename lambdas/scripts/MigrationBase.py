@@ -86,10 +86,12 @@ class MigrationBase(ABC):
             except Exception as e:
                 self.logger.error(f"[{label}] Error processing item {item_id}: {str(e)}")
                 raise
+        
 
         
         ##to remove this line 
-        self.logger.info({"92 failed_items": failed_items})
+        self.logger.error({"92 failed_items": failed_items})
+        self.logger.error(self.failed_items_bucket)
         if failed_items:
             self.logger.error(f"'{label}' migration segment: {segment} completed with {len(failed_items)} errors.")
             error_report_key = f"migration_errors/{label}_errors.json"
