@@ -8,6 +8,7 @@ from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.exceptions import OdsErrorException
+from utils.lambda_exceptions import SearchDocumentReviewReferenceException
 from utils.lambda_response import ApiGatewayResponse
 from utils.request_context import request_context
 
@@ -56,13 +57,18 @@ def lambda_handler(event, context):
 
 def get_ods_code_from_request_context():
     logger.info("Getting ODS code from request context")
-    ods_code = request_context.authorization.get("selected_organisation", {}).get(
-        "org_ods_code"
-    )
-    if not ods_code:
-        raise OdsErrorException()
+    try:
+        ods_code = request_context.authorization.get("selected_organisation", {}).get(
+            "org_ods_code"
+        )
+        if not ods_code:
+            raise OdsErrorException()
 
-    return ods_code
+        return ods_code
+
+    except AttributeError as e:
+        logger.error(e)
+        raise SearchDocumentReviewReferenceException(400, LambdaError.SearchDocumentReviewMissingODS)
 
 
 def parse_querystring_parameters(event):
