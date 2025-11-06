@@ -68,7 +68,9 @@ def get_ods_code_from_request_context():
 
     except AttributeError as e:
         logger.error(e)
-        raise SearchDocumentReviewReferenceException(400, LambdaError.SearchDocumentReviewMissingODS)
+        raise SearchDocumentReviewReferenceException(
+            400, LambdaError.SearchDocumentReviewMissingODS
+        )
 
 
 def parse_querystring_parameters(event):

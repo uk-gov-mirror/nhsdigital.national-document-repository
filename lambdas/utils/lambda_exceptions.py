@@ -104,5 +104,6 @@ class PdfStitchingException(LambdaException):
 class UpdateFhirDocumentReferenceException(LambdaException):
     pass
 
+
 class SearchDocumentReviewReferenceException(LambdaException):
     pass

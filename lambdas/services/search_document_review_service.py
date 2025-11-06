@@ -27,17 +27,18 @@ class SearchDocumentReviewService:
             references, last_evaluated_key = self.get_review_document_references(
                 start_key=decoded_start_key, ods_code=ods_code, limit=limit
             )
-
-            for reference in references:
+            output_refs = [
                 reference.model_dump(
                     exclude_none=True,
                     include={"id", "nhs_number", "review_reason"},
                     mode="json",
                 )
+                for reference in references
+            ]
 
             encoded_exclusive_start_key = self.encode_start_key(last_evaluated_key)
 
-            return references, encoded_exclusive_start_key
+            return output_refs, encoded_exclusive_start_key
 
         except ValidationError as e:
             logger.error(e)

@@ -44,16 +44,53 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["LastEvaluatedKey"],
     )
 
-    search_document_review_service.process_request(
+    expected = (
+        [
+            {
+                "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]["ID"],
+                "review_reason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
+                    "ReviewReason"
+                ],
+                "nhs_number": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
+                    "NhsNumber"
+                ],
+            },
+            {
+                "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1]["ID"],
+                "review_reason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
+                    "ReviewReason"
+                ],
+                "nhs_number": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
+                    "NhsNumber"
+                ],
+            },
+            {
+                "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2]["ID"],
+                "review_reason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
+                    "ReviewReason"
+                ],
+                "nhs_number": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
+                    "NhsNumber"
+                ],
+            },
+        ],
+        TEST_ENCODED_START_KEY,
+    )
+
+    actual = search_document_review_service.process_request(
         encoded_start_key=TEST_ENCODED_START_KEY,
         ods_code=TEST_CURRENT_GP_ODS,
         limit=TEST_QUERY_LIMIT,
     )
 
-    search_document_review_service.decode_start_key.assert_called_with(TEST_ENCODED_START_KEY)
+    search_document_review_service.decode_start_key.assert_called_with(
+        TEST_ENCODED_START_KEY
+    )
     search_document_review_service.get_review_document_references.assert_called_with(
         ods_code=TEST_CURRENT_GP_ODS, start_key=TEST_UUID, limit=TEST_QUERY_LIMIT
     )
+
+    assert actual == expected
 
 
 def test_service_queries_document_review_table_with_correct_args(
