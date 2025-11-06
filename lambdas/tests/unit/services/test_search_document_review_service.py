@@ -50,9 +50,9 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         limit=TEST_QUERY_LIMIT,
     )
 
-    search_document_review_service.decode_start_key.assert_called()
+    search_document_review_service.decode_start_key.assert_called_with(TEST_ENCODED_START_KEY)
     search_document_review_service.get_review_document_references.assert_called_with(
-        ods_code=TEST_CURRENT_GP_ODS, start_key=TEST_UUID
+        ods_code=TEST_CURRENT_GP_ODS, start_key=TEST_UUID, limit=TEST_QUERY_LIMIT
     )
 
 
