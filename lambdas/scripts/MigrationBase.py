@@ -50,6 +50,9 @@ class MigrationBase(ABC):
         skipped_items = 0
         failed_items = []
 
+        ##todo remove test log
+        logger.error(f"Processing {len(entries)} items for segment {segment} inside process_entries")
+
         for index, entry in enumerate(entries, start=1):
             item_id = entry.get("ID")
             self.logger.info(f"[{label}] Processing item {index} (ID: {item_id})")
