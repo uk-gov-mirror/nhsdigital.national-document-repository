@@ -110,11 +110,12 @@ def test_set_location_properties_with_s3_bucket_and_subfolder():
     doc_ref = DocumentReference.model_validate(data)
 
     assert doc_ref.s3_bucket_name == "test-bucket"
-    assert doc_ref.s3_file_key == "patients/archive/9000000009/test-id-101"
+    assert doc_ref.s3_upload_key == "patients/archive/9000000009/test-id-101"
     assert (
         doc_ref.file_location
         == "s3://test-bucket/patients/archive/9000000009/test-id-101"
     )
+    assert doc_ref.s3_file_key == "9000000009/test-id-101"
 
 
 def test_set_location_properties_with_s3_bucket_subfolder_and_doc_type():
@@ -130,11 +131,12 @@ def test_set_location_properties_with_s3_bucket_subfolder_and_doc_type():
     doc_ref = DocumentReference.model_validate(data)
 
     assert doc_ref.s3_bucket_name == "test-bucket"
-    assert doc_ref.s3_file_key == "patients/active/ARF/9000000009/test-id-202"
+    assert doc_ref.s3_upload_key == "patients/active/ARF/9000000009/test-id-202"
     assert (
         doc_ref.file_location
         == "s3://test-bucket/patients/active/ARF/9000000009/test-id-202"
     )
+    assert doc_ref.s3_file_key == "9000000009/test-id-202"
 
 
 def test_set_location_properties_with_explicit_s3_file_key():

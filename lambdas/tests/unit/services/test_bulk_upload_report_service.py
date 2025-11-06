@@ -1,3 +1,4 @@
+import csv
 import os
 from datetime import datetime
 from unittest.mock import call
@@ -6,6 +7,7 @@ import pytest
 from boto3.dynamodb.conditions import Attr
 from enums.metadata_report import MetadataReport
 from freezegun import freeze_time
+from models.report.bulk_upload_report import BulkUploadReport
 from services.bulk_upload_report_service import BulkUploadReportService, OdsReport
 from tests.unit.conftest import (
     MOCK_BULK_REPORT_TABLE_NAME,
@@ -338,6 +340,129 @@ def test_report_handler_with_items_uploads_summary_report_to_bucket(
     log_message_match = set(expected_messages).issubset(caplog.messages)
 
     assert log_message_match
+
+
+def test_write_items_to_csv_writes_header_and_rows(
+    tmp_path, bulk_upload_report_service
+):
+    items = [
+        BulkUploadReport(
+            ID="abc-123",
+            nhs_number="9000000009",
+            upload_status="complete",
+            reason="",
+            pds_ods_code="Y12345",
+            uploader_ods_code="Y12345",
+            file_path="/9000000009/file1.pdf",
+            stored_file_name="/9000000009/file1.pdf",
+            date="2023-10-30",
+            timestamp=1698661500,
+        ),
+        BulkUploadReport(
+            ID="def-456",
+            nhs_number="9000000025",
+            upload_status="failed",
+            reason="Invalid filename",
+            pds_ods_code="",
+            uploader_ods_code="Z12345",
+            file_path="/9000000025/invalid.pdf",
+            stored_file_name="/9000000025/invalid.pdf",
+            date="2023-10-30",
+            timestamp=1698661600,
+        ),
+    ]
+
+    csv_path = tmp_path / "report.csv"
+
+    bulk_upload_report_service.write_items_to_csv(items, str(csv_path))
+
+    with open(csv_path, newline="") as f:
+        reader = csv.DictReader(f)
+        expected_headers = [
+            MetadataReport.NhsNumber,
+            MetadataReport.UploadStatus,
+            MetadataReport.Reason,
+            MetadataReport.PdsOdsCode,
+            MetadataReport.UploaderOdsCode,
+            MetadataReport.FilePath,
+            MetadataReport.Date,
+            MetadataReport.Timestamp,
+        ]
+        assert reader.fieldnames == expected_headers
+
+        rows = list(reader)
+        assert len(rows) == 2
+        assert rows[0][MetadataReport.NhsNumber] == "9000000009"
+        assert rows[0][MetadataReport.UploadStatus] == "complete"
+        assert rows[0][MetadataReport.Reason] == ""
+        assert rows[0][MetadataReport.PdsOdsCode] == "Y12345"
+        assert rows[0][MetadataReport.UploaderOdsCode] == "Y12345"
+        assert rows[0][MetadataReport.FilePath] == "/9000000009/file1.pdf"
+        assert rows[0][MetadataReport.Date] == "2023-10-30"
+        assert rows[0][MetadataReport.Timestamp] == "1698661500"
+
+        assert rows[1][MetadataReport.NhsNumber] == "9000000025"
+        assert rows[1][MetadataReport.UploadStatus] == "failed"
+        assert rows[1][MetadataReport.Reason] == "Invalid filename"
+        assert rows[1][MetadataReport.PdsOdsCode] == ""
+        assert rows[1][MetadataReport.UploaderOdsCode] == "Z12345"
+        assert rows[1][MetadataReport.FilePath] == "/9000000025/invalid.pdf"
+        assert rows[1][MetadataReport.Date] == "2023-10-30"
+        assert rows[1][MetadataReport.Timestamp] == "1698661600"
+
+
+def test_write_items_to_csv_excludes_id_and_stored_file_name(
+    tmp_path, bulk_upload_report_service
+):
+    item = BulkUploadReport(
+        ID="abc-123",
+        nhs_number="9000000009",
+        upload_status="complete",
+        pds_ods_code="Y12345",
+        uploader_ods_code="Y12345",
+        file_path="/9000000009/file1.pdf",
+        stored_file_name="/9000000009/file1.pdf",
+        date="2023-10-30",
+        timestamp=1698661500,
+    )
+
+    csv_path = tmp_path / "report_exclude.csv"
+
+    bulk_upload_report_service.write_items_to_csv([item], str(csv_path))
+
+    with open(csv_path, newline="") as f:
+        reader = csv.DictReader(f)
+        assert MetadataReport.ID not in reader.fieldnames
+        assert MetadataReport.StoredFileName not in reader.fieldnames
+        rows = list(reader)
+        assert len(rows) == 1
+        assert MetadataReport.ID not in rows[0]
+        assert MetadataReport.StoredFileName not in rows[0]
+
+
+def test_write_items_to_csv_with_empty_list_writes_only_header(
+    tmp_path, bulk_upload_report_service
+):
+    csv_path = tmp_path / "empty.csv"
+
+    bulk_upload_report_service.write_items_to_csv([], str(csv_path))
+
+    with open(csv_path, newline="") as f:
+        reader = csv.reader(f)
+        lines = list(reader)
+        # Only header line should be present
+        assert len(lines) == 1
+        expected_headers = [
+            MetadataReport.NhsNumber,
+            MetadataReport.UploadStatus,
+            MetadataReport.Reason,
+            MetadataReport.PdsOdsCode,
+            MetadataReport.UploaderOdsCode,
+            MetadataReport.FilePath,
+            MetadataReport.Date,
+            MetadataReport.Timestamp,
+        ]
+        assert lines[0] == expected_headers
 
 
 def test_generate_individual_ods_report_creates_ods_report(

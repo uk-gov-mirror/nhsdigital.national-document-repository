@@ -3,8 +3,7 @@ import json
 import pytest
 from enums.lambda_error import LambdaError
 from handlers.post_fhir_document_reference_handler import lambda_handler
-from utils.lambda_exceptions import CreateDocumentRefException
-
+from utils.lambda_exceptions import DocumentRefException
 
 @pytest.fixture
 def valid_event():
@@ -113,7 +112,7 @@ def test_lambda_handler_success(valid_event, context, mock_service):
 
 def test_lambda_handler_exception_handling(valid_event, context, mock_service):
     """Test lambda exception handling."""
-    mock_error = CreateDocumentRefException(400, LambdaError.CreateDocNoParse)
+    mock_error = DocumentRefException(400, LambdaError.DocRefNoParse)
 
     mock_service.process_fhir_document_reference.side_effect = mock_error
 

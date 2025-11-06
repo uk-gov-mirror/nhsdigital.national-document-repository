@@ -99,6 +99,7 @@ node_modules/
 .vscode/
 
 lambdas/tests/unit/helpers/data/pdf/tmp
+lambdas/tests/e2e/apim/*.pdf
 /lambdas/package_/
 
 # jupyter notebook files
