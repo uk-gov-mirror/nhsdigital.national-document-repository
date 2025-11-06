@@ -19,13 +19,14 @@ class DynamoDBMigrationService:
     """
 
     def __init__(self, segment: int, total_segments: int, table_name: str,
-                 environment: str, run_migration: bool, migration_script: str):
+                 environment: str, run_migration: bool, migration_script: str, execution_id: str):
         self.segment = segment
         self.total_segments = total_segments
         self.table_name = table_name
         self.environment = environment
         self.run_migration = run_migration
         self.migration_script = migration_script
+        self.execution_id = execution_id
 
         self.dynamodb = boto3.resource("dynamodb")
         self.table = self.dynamodb.Table(self.table_name)
@@ -90,7 +91,8 @@ class DynamoDBMigrationService:
                     label=label,
                     entries=items,
                     update_fn=update_fn,
-                    segment=self.segment
+                    segment=self.segment,
+                    execution_id=self.execution_id
                 )
                 self.processed_count += segment_run_output.get("successful_item_runs", 0)
                 self.error_count += segment_run_output.get("failed_items_count", 0)

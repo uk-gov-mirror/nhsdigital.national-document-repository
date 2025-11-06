@@ -36,7 +36,8 @@ class MigrationBase(ABC):
         label: str,
         entries: Iterable[dict],
         update_fn: Callable[[dict], dict | None],
-        segment: int
+        segment: int,
+        execution_id: str
     ):
         """
         Processes a batch of DynamoDB entries for a given migration step.
@@ -94,7 +95,7 @@ class MigrationBase(ABC):
         self.logger.error(self.failed_items_bucket)
         if failed_items:
             self.logger.error(f"'{label}' migration segment: {segment} completed with {len(failed_items)} errors.")
-            error_report_key = f"migration_errors/{label}_errors.json"
+            error_report_key = f"{execution_id}/{segment}/{label}_errors.json"
             try:
                 self.s3_client.put_object(
                     Bucket=self.failed_items_bucket,

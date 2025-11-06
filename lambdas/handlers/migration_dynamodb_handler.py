@@ -71,6 +71,10 @@ def validate_event_input(event):
 
     table_name, environment, region = extract_table_info(event)
 
+    execution_id = event.get("executionId")
+    if not execution_id:
+        raise ValueError("'executionId' cannot be empty")
+
     return (
         segment,
         total_segments,
@@ -87,6 +91,7 @@ def lambda_handler(event, context):
     try:
         (
             segment,
+            execution_id,
             total_segments,
             table_name,
             environment,
@@ -106,6 +111,7 @@ def lambda_handler(event, context):
             environment=environment,
             run_migration=run_migration,
             migration_script=migration_script,
+            execution_id=execution_id,
         )
 
         result = service.execute_migration()
