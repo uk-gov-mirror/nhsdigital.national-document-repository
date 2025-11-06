@@ -64,16 +64,13 @@ class MigrationBase(ABC):
                 self.logger.info(f"[{label}] Item {item_id} update fields: {updated_fields}")  
 
                 if self.run_migration:
-                    try:
-                        self.dynamo_service.update_item(
-                            table_name=self.target_table,
-                            key_pair={"ID": item_id},
-                            updated_fields=updated_fields,
-                        )
-                        self.logger.info(f"[{label}] Updated item {item_id}: {updated_fields}")
-                        successful_item_runs += 1
-                    except Exception as e:
-                        self.logger.error(f"[{label}] Failed to update item {item_id}: {str(e)}")
+                    self.dynamo_service.update_item(
+                        table_name=self.target_table,
+                        key_pair={"ID": item_id},
+                        updated_fields=updated_fields,
+                    )
+                    self.logger.info(f"[{label}] Updated item {item_id}: {updated_fields}")
+                    successful_item_runs += 1
                 else:
                     self.logger.info(f"[Dry Run] Would update item {item_id} with {updated_fields}")
                     successful_item_runs += 1
