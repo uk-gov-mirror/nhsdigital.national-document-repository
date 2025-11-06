@@ -1,5 +1,4 @@
 import base64
-import json
 import logging
 import os
 
@@ -8,60 +7,13 @@ import requests
 
 from lambdas.tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
-    PDM_SNOMED,
     create_mtls_session,
     fetch_with_retry_mtls,
 )
+from lambdas.tests.e2e.conftest import APIM_ENDPOINT, PDM_SNOMED
 from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
 
-
-def create_upload_payload(record):
-    """Helper to build DocumentReference payload."""
-    payload = {
-        "resourceType": "DocumentReference",
-        "type": {
-            "coding": [
-                {
-                    "system": "https://snomed.info/sct",
-                    "code": f"{PDM_SNOMED}",
-                    "display": "Confidential patient data",
-                }
-            ]
-        },
-        "subject": {
-            "identifier": {
-                "system": "https://fhir.nhs.uk/Id/nhs-number",
-                "value": record["nhs_number"],
-            }
-        },
-        "author": [
-            {
-                "identifier": {
-                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-                    "value": record["ods"],
-                }
-            }
-        ],
-        "custodian": {
-            "identifier": {
-                "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-                "value": record["ods"],
-            }
-        },
-        "content": [
-            {
-                "attachment": {
-                    "creation": "2023-01-01",
-                    "contentType": "application/pdf",
-                    "language": "en-GB",
-                    "title": "1of1_record_[Paula Esme VESEY]_[9730153973]_[22-01-1960].pdf",
-                }
-            }
-        ],
-    }
-    if "data" in record:
-        payload["content"][0]["attachment"]["data"] = record["data"]
-    return json.dumps(payload)
+pdm_data_helper = PdmDataHelper()
 
 
 def upload_document(session, payload):
@@ -91,19 +43,21 @@ def test_create_document_base64(test_data):
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
     with open(sample_pdf_path, "rb") as f:
         record["data"] = base64.b64encode(f.read()).decode("utf-8")
-    payload = create_upload_payload(record)
+    payload = pdm_data_helper.create_upload_payload(record)
 
     session = create_mtls_session()
     raw_upload_response = upload_document(session, payload)
     assert raw_upload_response.status_code == 200
+    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    test_data.append(record)
 
     # Validate attachment URL
     upload_response = raw_upload_response.json()
     attachment_url = upload_response["content"][0]["attachment"]["url"]
-    assert f"/DocumentReference/{PDM_SNOMED}~" in attachment_url
-
-    record["id"] = raw_upload_response.json()["id"].split("~")[1]
-    test_data.append(record)
+    assert (
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~"
+        in attachment_url
+    )
 
     def condition(response_json):
         logging.info(response_json)
@@ -128,7 +82,7 @@ def test_create_document_presign_fails():
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "big-dummy.pdf")
     with open(sample_pdf_path, "rb") as f:
         record["data"] = base64.b64encode(f.read()).decode("utf-8")
-    payload = create_upload_payload(record)
+    payload = pdm_data_helper.create_upload_payload(record)
 
     session = create_mtls_session()
     upload_response = upload_document(session, payload)
@@ -141,7 +95,7 @@ def test_create_document_virus(test_data):
         "ods": "H81109",
         "nhs_number": "9730154260",
     }
-    payload = create_upload_payload(record)
+    payload = pdm_data_helper.create_upload_payload(record)
     session = create_mtls_session()
 
     retrieve_response = upload_document(session, payload)
@@ -198,7 +152,7 @@ def test_search_edge_cases(
     sample_pdf_bytes = b"Sample PDF Content"
     record["data"] = base64.b64encode(sample_pdf_bytes).decode("utf-8")
 
-    payload = create_upload_payload(record)
+    payload = pdm_data_helper.create_upload_payload(record)
     session = create_mtls_session()
     response = upload_document(session, payload)
     assert response.status_code == expected_status
@@ -220,7 +174,7 @@ def test_forbidden_with_invalid_cert(temp_cert_and_key):
     sample_pdf_bytes = b"Sample PDF Content"
     record["data"] = base64.b64encode(sample_pdf_bytes).decode("utf-8")
 
-    payload = create_upload_payload(record)
+    payload = pdm_data_helper.create_upload_payload(record)
 
     # Use an invalid cert that is trusted by TLS but fails truststore validation
     cert_path, key_path = temp_cert_and_key
@@ -244,7 +198,7 @@ def test_create_document_saves_raw(test_data):
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
     with open(sample_pdf_path, "rb") as f:
         record["data"] = base64.b64encode(f.read()).decode("utf-8")
-    payload = create_upload_payload(record)
+    payload = pdm_data_helper.create_upload_payload(record)
 
     session = create_mtls_session()
     raw_upload_response = upload_document(session, payload)
@@ -252,7 +206,7 @@ def test_create_document_saves_raw(test_data):
 
     json_response = raw_upload_response.json()
     record["id"] = json_response.get("id")
-    pdm_data_helper = PdmDataHelper()
+
     doc_ref = pdm_data_helper.retrieve_document_reference(record=record)
     assert "Item" in doc_ref
     assert "RawRequest" in doc_ref["Item"]
