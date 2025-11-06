@@ -112,7 +112,7 @@ def lambda_handler(event, context):
             environment=environment,
             run_migration=run_migration,
             migration_script=migration_script,
-            execution_id=execution_id,
+            execution_id=execution_id
         )
 
         result = service.execute_migration()
