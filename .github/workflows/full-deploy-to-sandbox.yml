@@ -150,7 +150,7 @@ jobs:
     name: "Run Bulk Upload"
     if: ${{ inputs.bulk_upload }}
     uses: "./.github/workflows/base-run-bulk-upload.yml"
-    needs: ["disable_fhir_stub", "run_lg_e2etest", "run_pdm_e2etest"]
+    needs: ["run_lg_e2etest", "run_pdm_e2etest"]
     with:
       environment: ${{ inputs.environment }}
       sandbox: ${{ inputs.sandbox }}
