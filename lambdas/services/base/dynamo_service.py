@@ -36,17 +36,33 @@ class DynamoDBService:
             logger.error(str(e), {"Result": "Unable to connect to DB"})
             raise e
 
-    def query_table(
+    def query_table_single(
         self,
-        table_name,
-        search_key,
+        table_name: str,
+        search_key: str,
         search_condition: str,
-        index_name: str = None,
-        requested_fields: list[str] = None,
-        query_filter: Attr | ConditionBase = None,
+        index_name: str | None = None,
+        requested_fields: list[str] | None = None,
+        query_filter: Attr | ConditionBase | None = None,
         limit: int | None = None,
-        start_key: str | None = None,
-    ) -> list[dict]:
+        start_key: dict | None = None,
+    ) -> dict:
+        """
+        Execute a single DynamoDB query and return the full response.
+
+        Args:
+            table_name: Name of the DynamoDB table
+            search_key: The partition key name to search on
+            search_condition: The value to match for the search key
+            index_name: Optional GSI/LSI name
+            requested_fields: Optional list of fields to project
+            query_filter: Optional filter expression
+            limit: Optional limit on number of items to return
+            start_key: Optional exclusive start key for pagination
+
+        Returns:
+            Full DynamoDB query response including Items, LastEvaluatedKey, etc.
+        """
         try:
             table = self.get_table(table_name)
 
@@ -69,28 +85,61 @@ class DynamoDBService:
 
             if limit:
                 query_params["Limit"] = limit
-                results = table.query(**query_params)
 
-                return results
-
-            items = []
-            while True:
-                results = table.query(**query_params)
-
-                if results is None or "Items" not in results:
-                    logger.error(f"Unusable results in DynamoDB: {results!r}")
-                    raise DynamoServiceException("Unrecognised response from DynamoDB")
-
-                items += results["Items"]
-
-                if "LastEvaluatedKey" in results:
-                    query_params["ExclusiveStartKey"] = results["LastEvaluatedKey"]
-                else:
-                    break
-            return items
+            return table.query(**query_params)
         except ClientError as e:
             logger.error(str(e), {"Result": f"Unable to query table: {table_name}"})
             raise e
+
+    def query_table(
+        self,
+        table_name: str,
+        search_key: str,
+        search_condition: str,
+        index_name: str | None = None,
+        requested_fields: list[str] | None = None,
+        query_filter: Attr | ConditionBase | None = None,
+    ) -> list[dict]:
+        """
+        Execute a DynamoDB query and automatically paginate through all results.
+
+        Args:
+            table_name: Name of the DynamoDB table
+            search_key: The partition key name to search on
+            search_condition: The value to match for the search key
+            index_name: Optional GSI/LSI name
+            requested_fields: Optional list of fields to project
+            query_filter: Optional filter expression
+
+        Returns:
+            List of all items from paginated query results
+        """
+        items = []
+        start_key = None
+
+        while True:
+            results = self.query_table_single(
+                table_name=table_name,
+                search_key=search_key,
+                search_condition=search_condition,
+                index_name=index_name,
+                requested_fields=requested_fields,
+                query_filter=query_filter,
+                start_key=start_key,
+            )
+
+            if results is None or "Items" not in results:
+                logger.error(f"Unusable results in DynamoDB: {results!r}")
+                raise DynamoServiceException("Unrecognised response from DynamoDB")
+
+            items += results["Items"]
+
+            if "LastEvaluatedKey" in results:
+                start_key = results["LastEvaluatedKey"]
+            else:
+                break
+
+        return items
 
     def create_item(self, table_name, item):
         try:

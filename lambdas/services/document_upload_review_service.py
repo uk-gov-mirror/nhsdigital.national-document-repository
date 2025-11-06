@@ -1,8 +1,12 @@
 import os
 
+from botocore.exceptions import ClientError
+from enums.lambda_error import LambdaError
 from models.document_review import DocumentUploadReviewReference
+from pydantic import ValidationError
 from services.document_service import DocumentService
 from utils.audit_logging_setup import LoggingService
+from utils.lambda_exceptions import SearchDocumentReviewReferenceException
 
 logger = LoggingService(__name__)
 
@@ -21,6 +25,51 @@ class DocumentUploadReviewService(DocumentService):
     @property
     def s3_bucket(self) -> str:
         return os.environ.get("DOCUMENT_REVIEW_S3_BUCKET_NAME")
+
+    def query_review_documents_by_custodian(
+        self, ods_code: str, limit: int | None = None, start_key: dict | None = None
+    ) -> tuple[list[DocumentUploadReviewReference], dict | None]:
+        logger.info(f"Getting review document references for custodian: {ods_code}")
+
+        if not limit:
+            limit = 50
+
+        try:
+            response = self.dynamo_service.query_table_single(
+                table_name=self.table_name,
+                search_key="Custodian",
+                search_condition=ods_code,
+                index_name="CustodianIndex",
+                limit=limit,
+                start_key=start_key,
+            )
+
+            references = self._validate_review_references(response["Items"])
+
+            last_evaluated_key = response.get("LastEvaluatedKey", None)
+
+            return references, last_evaluated_key
+
+        except ClientError as e:
+            logger.error(e)
+            raise SearchDocumentReviewReferenceException(
+                500, LambdaError.SearchDocumentReviewDB
+            )
+
+    def _validate_review_references(
+        self, items: list[dict]
+    ) -> list[DocumentUploadReviewReference]:
+        try:
+            logger.info("Validating document review search response")
+            review_references = [
+                DocumentUploadReviewReference.model_validate(item) for item in items
+            ]
+            return review_references
+        except ValidationError as e:
+            logger.error(e)
+            raise SearchDocumentReviewReferenceException(
+                500, LambdaError.SearchDocumentReviewValidation
+            )
 
     def update_document_review_custodian(
         self,

@@ -1,12 +1,10 @@
 import base64
 import json
-import os
+import json
 
-from botocore.exceptions import ClientError
 from enums.lambda_error import LambdaError
-from models.document_review import DocumentUploadReviewReference
 from pydantic import ValidationError
-from services.base.dynamo_service import DynamoDBService
+from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.lambda_exceptions import SearchDocumentReviewReferenceException
 
@@ -16,11 +14,11 @@ logger = LoggingService(__name__)
 class SearchDocumentReviewService:
 
     def __init__(self):
-        self.dynamo_service = DynamoDBService()
+        self.document_review_service = DocumentUploadReviewService()
 
     def process_request(
         self, ods_code: str, encoded_start_key: str | None, limit: int | None
-    ) -> (list[dict], str | None):
+    ) -> tuple[list[str], str | None]:
         try:
 
             decoded_start_key = self.decode_start_key(encoded_start_key)
@@ -29,10 +27,9 @@ class SearchDocumentReviewService:
                 start_key=decoded_start_key, ods_code=ods_code, limit=limit
             )
             output_refs = [
-                reference.model_dump(
+                reference.model_dump_json(
                     exclude_none=True,
                     include={"id", "nhs_number", "review_reason"},
-                    mode="json",
                 )
                 for reference in references
             ]
@@ -48,51 +45,11 @@ class SearchDocumentReviewService:
             )
 
     def get_review_document_references(
-        self, ods_code: str, limit: int | None = None, start_key: str | None = None
-    ) -> tuple[list[DocumentUploadReviewReference], str | None]:
-        logger.info(f"Getting review document references for {ods_code}")
-
-        try:
-            response = self.dynamo_service.query_table(
-                table_name=os.environ["DOCUMENT_REVIEW_DYNAMODB_NAME"],
-                search_key="Custodian",
-                search_condition=ods_code,
-                index_name="CustodianIndex",
-                limit=limit,
-                start_key=start_key,
-            )
-
-            references = (
-                self.validate_search_response_items(response["Items"])
-                if limit
-                else self.validate_search_response_items(response)
-            )
-            last_evaluated_key = (
-                response.get("LastEvaluatedKey", None) if limit else None
-            )
-
-            return references, last_evaluated_key
-
-        except ClientError as e:
-            logger.error(e)
-            raise SearchDocumentReviewReferenceException(
-                500, LambdaError.SearchDocumentReviewDB
-            )
-
-    def validate_search_response_items(
-        self, items: list[dict]
-    ) -> list[DocumentUploadReviewReference]:
-        try:
-            logger.info("Validating document review search response")
-            review_references = [
-                DocumentUploadReviewReference.model_validate(item) for item in items
-            ]
-            return review_references
-        except ValidationError as e:
-            logger.error(e)
-            raise SearchDocumentReviewReferenceException(
-                500, LambdaError.SearchDocumentReviewValidation
-            )
+        self, ods_code: str, limit: int | None = None, start_key: dict | None = None
+    ):
+        return self.document_review_service.query_review_documents_by_custodian(
+            ods_code=ods_code, limit=limit, start_key=start_key
+        )
 
     def decode_start_key(self, encoded_start_key: str | None) -> dict:
         return (

@@ -180,7 +180,7 @@ def test_query_by_index_handles_limits(
 
     expected_result = MOCK_PAGINATED_RESPONSE_1
 
-    actual = mock_service.query_table(
+    actual = mock_service.query_table_single(
         table_name=MOCK_TABLE_NAME,
         search_key="NhsNumber",
         index_name="NhsNumberIndex",
@@ -188,6 +188,204 @@ def test_query_by_index_handles_limits(
         limit=4
     )
     assert expected_result == actual
+
+
+def test_query_table_single_returns_full_response(mock_service, mock_query_method):
+    mock_query_method.return_value = MOCK_RESPONSE_WITH_LAST_KEY
+    search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
+
+    actual = mock_service.query_table_single(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+    )
+
+    assert actual == MOCK_RESPONSE_WITH_LAST_KEY
+    assert "Items" in actual
+    assert "LastEvaluatedKey" in actual
+    mock_query_method.assert_called_once_with(
+        KeyConditionExpression=search_key_obj,
+    )
+
+
+def test_query_table_single_with_all_parameters(
+    mock_service, mock_query_method, mock_filter_expression
+):
+    mock_query_method.return_value = MOCK_RESPONSE
+    search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
+    start_key = {"ID": "test_start_key"}
+    requested_fields = ["FileName", "Created"]
+
+    actual = mock_service.query_table_single(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        index_name="NhsNumberIndex",
+        requested_fields=requested_fields,
+        query_filter=mock_filter_expression,
+        limit=10,
+        start_key=start_key,
+    )
+
+    assert actual == MOCK_RESPONSE
+    mock_query_method.assert_called_once_with(
+        KeyConditionExpression=search_key_obj,
+        IndexName="NhsNumberIndex",
+        ProjectionExpression="FileName,Created",
+        FilterExpression=mock_filter_expression,
+        Limit=10,
+        ExclusiveStartKey=start_key,
+    )
+
+
+def test_query_table_single_with_start_key_for_pagination(
+    mock_service, mock_query_method
+):
+    mock_query_method.return_value = MOCK_PAGINATED_RESPONSE_2
+    search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
+    start_key = {"ID": "id_token_for_page_2"}
+
+    actual = mock_service.query_table_single(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        start_key=start_key,
+    )
+
+    assert actual == MOCK_PAGINATED_RESPONSE_2
+    mock_query_method.assert_called_once_with(
+        KeyConditionExpression=search_key_obj,
+        ExclusiveStartKey=start_key,
+    )
+
+
+def test_query_table_single_client_error_raises_exception(
+    mock_service, mock_query_method
+):
+    mock_query_method.side_effect = MOCK_CLIENT_ERROR
+
+    with pytest.raises(ClientError) as actual_response:
+        mock_service.query_table_single(
+            table_name=MOCK_TABLE_NAME,
+            search_key="NhsNumber",
+            search_condition=TEST_NHS_NUMBER,
+        )
+
+    assert actual_response.value == MOCK_CLIENT_ERROR
+
+
+def test_query_table_calls_query_table_single_and_returns_items_list(
+    mock_service, mocker
+):
+    mock_query_table_single = mocker.patch.object(
+        mock_service, "query_table_single", return_value=MOCK_RESPONSE
+    )
+
+    actual = mock_service.query_table(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+    )
+
+    assert actual == MOCK_RESPONSE["Items"]
+    mock_query_table_single.assert_called_once_with(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        index_name=None,
+        requested_fields=None,
+        query_filter=None,
+        start_key=None,
+    )
+
+
+def test_query_table_handles_pagination_using_query_table_single(
+    mock_service, mocker
+):
+    mock_query_table_single = mocker.patch.object(
+        mock_service,
+        "query_table_single",
+        side_effect=[
+            MOCK_PAGINATED_RESPONSE_1,
+            MOCK_PAGINATED_RESPONSE_2,
+            MOCK_PAGINATED_RESPONSE_3,
+        ],
+    )
+
+    actual = mock_service.query_table(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+    )
+
+    assert actual == EXPECTED_ITEMS_FOR_PAGINATED_RESULTS
+    assert mock_query_table_single.call_count == 3
+
+    # Verify pagination keys are passed correctly
+    calls = mock_query_table_single.call_args_list
+    assert calls[0][1]["start_key"] is None
+    assert calls[1][1]["start_key"] == {"ID": "id_token_for_page_2"}
+    assert calls[2][1]["start_key"] == {"ID": "id_token_for_page_3"}
+
+
+def test_query_table_with_all_optional_parameters(mock_service, mocker):
+    mock_query_table_single = mocker.patch.object(
+        mock_service, "query_table_single", return_value=MOCK_RESPONSE
+    )
+    filter_expression = Attr("Deleted").eq("")
+    requested_fields = ["FileName", "Created"]
+
+    actual = mock_service.query_table(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        index_name="NhsNumberIndex",
+        requested_fields=requested_fields,
+        query_filter=filter_expression,
+    )
+
+    assert actual == MOCK_RESPONSE["Items"]
+    mock_query_table_single.assert_called_once_with(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        index_name="NhsNumberIndex",
+        requested_fields=requested_fields,
+        query_filter=filter_expression,
+        start_key=None,
+    )
+
+
+def test_query_table_raises_exception_when_response_has_no_items(
+    mock_service, mocker
+):
+    mocker.patch.object(
+        mock_service, "query_table_single", return_value={"Count": 0}
+    )
+
+    with pytest.raises(DynamoServiceException) as exc_info:
+        mock_service.query_table(
+            table_name=MOCK_TABLE_NAME,
+            search_key="NhsNumber",
+            search_condition=TEST_NHS_NUMBER,
+        )
+
+    assert "Unrecognised response from DynamoDB" in str(exc_info.value)
+
+
+def test_query_table_raises_exception_when_response_is_none(mock_service, mocker):
+    mock_query_table_single = mocker.patch.object(
+        mock_service, "query_table_single", return_value=None
+    )
+
+    with pytest.raises(DynamoServiceException) as exc_info:
+        mock_service.query_table(
+            table_name=MOCK_TABLE_NAME,
+            search_key="NhsNumber",
+            search_condition=TEST_NHS_NUMBER,
+        )
+
+    assert "Unrecognised response from DynamoDB" in str(exc_info.value)
 
 
 def test_query_with_requested_fields_raises_exception_when_results_are_empty(
