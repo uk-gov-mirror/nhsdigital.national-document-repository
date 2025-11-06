@@ -6,10 +6,11 @@ from utils.audit_logging_setup import LoggingService
 from utils.exceptions import BulkUploadMetadataException
 
 logger = LoggingService(__name__)
-optional_remapping_keys = set(["PAGE COUNT", "SECTION", "SUB-SECTION"])
 
 
 class MetadataMappingValidatorService:
+    model_aliases = {f.alias for f in MetadataFile.model_fields.values() if f.alias}
+
     def build_model_for_alias(self, alias_map: dict) -> Type[BaseModel]:
         if alias_map:
             self.validate_alias_map(alias_map)
@@ -18,10 +19,14 @@ class MetadataMappingValidatorService:
             return self.create_metadata_model()
 
     def validate_alias_map(self, alias_map: dict) -> None:
-        model_aliases = {f.alias for f in MetadataFile.model_fields.values() if f.alias}
-        alias_field_keys = set(alias_map.keys()).intersection(model_aliases)
+        alias_field_keys = set(alias_map.keys()).intersection(self.model_aliases)
 
-        missing_keys_from_model = model_aliases - alias_field_keys
+        missing_keys_from_model = self.model_aliases - alias_field_keys
+        optional_remapping_set = set({"PAGE COUNT", "SECTION", "SUB-SECTION"})
+        optional_remapping_keys = {
+            k for k in optional_remapping_set if k in self.model_aliases
+        }
+
         required_missing_keys = missing_keys_from_model - optional_remapping_keys
         if required_missing_keys:
             raise BulkUploadMetadataException(
