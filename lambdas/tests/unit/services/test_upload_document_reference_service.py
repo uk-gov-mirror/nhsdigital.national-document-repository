@@ -401,7 +401,6 @@ def test_document_key_extraction_from_object_key(
     service.handle_upload_document_reference_request(object_key)
 
     service.document_service.fetch_documents_from_table.assert_called_with(
-        table_name=expected_table,
         search_condition=expected_document_key,
         search_key="ID",
         query_filter=PreliminaryStatus,
