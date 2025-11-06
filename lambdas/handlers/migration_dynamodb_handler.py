@@ -45,7 +45,7 @@ def extract_table_info(event):
 
 
 def validate_event_input(event):
-    required_fields = ["segment", "totalSegments", "migrationScript"]
+    required_fields = ["segment", "totalSegments", "migrationScript", "executionId"]
     for field in required_fields:
         if field not in event:
             raise ValueError(f"Missing required field: '{field}' in event")
@@ -64,6 +64,7 @@ def validate_event_input(event):
         raise ValueError("'segment' must be less than 'totalSegments'")
 
     migration_script = str(event["migrationScript"]).strip()
+    logger.info(f"migration_script: {migration_script}")
     if not migration_script:
         raise ValueError("'migrationScript' cannot be empty")
 
@@ -92,13 +93,14 @@ def lambda_handler(event, context):
     try:
         (
             segment,
-            execution_id,
             total_segments,
-            table_name,
+            table_name, 
             environment,
             region,
             run_migration,
+            execution_id,
             migration_script,
+            
         ) = validate_event_input(event)
 
         logger.info(
