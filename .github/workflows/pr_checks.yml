@@ -1,0 +1,14 @@
+name: PR Checks & Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR body for unchecked checkboxes
+        uses: actions-ecosystem/action-checklist@v1
+        with:
+          checklist: ${{ github.event.pull_request.body }}
