@@ -107,6 +107,8 @@ def lambda_handler(event, context):
             f"Starting DynamoDB migration for table: {table_name} (env={environment}, region={region})"
         )
 
+        logger.info(f"lambda_handler - migration_script: {migration_script}")
+
         service = DynamoDBMigrationService(
             segment=segment,
             total_segments=total_segments,
