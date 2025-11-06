@@ -46,9 +46,6 @@ class SearchDocumentReviewService:
                 500, LambdaError.SearchDocumentReviewValidation
             )
 
-        except Exception as e:
-            logger.error(e)
-            raise e
 
     def get_review_document_references(
         self, ods_code: str, limit: int | None = None, start_key: str | None = None

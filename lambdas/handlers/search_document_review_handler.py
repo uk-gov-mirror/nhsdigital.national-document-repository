@@ -1,6 +1,8 @@
 import json
 
+from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
+from services.feature_flags_service import FeatureFlagService
 from services.search_document_review_service import SearchDocumentReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -22,13 +24,22 @@ logger = LoggingService(__name__)
 def lambda_handler(event, context):
 
     try:
+        feature_flag_service = FeatureFlagService()
+        upload_lambda_enabled_flag_object = feature_flag_service.get_feature_flags_by_flag(
+            FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+        )
+
+        if not upload_lambda_enabled_flag_object[FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED]:
+            logger.info("Feature flag not enabled, event will not be processed")
+            raise SearchDocumentReviewReferenceException(404, LambdaError.FeatureFlagDisabled)
+
         ods_code = get_ods_code_from_request_context()
 
         limit, start_key = parse_querystring_parameters(event)
 
         search_document_reference_service = SearchDocumentReviewService()
 
-        references, next_paged_token = (
+        references, next_page_token = (
             search_document_reference_service.process_request(
                 ods_code=ods_code, limit=limit, encoded_start_key=start_key
             )

@@ -10,3 +10,4 @@ class FeatureFlags(StrEnum):
         "lloydGeorgeValidationStrictModeEnabled"
     )
     UPLOAD_DOCUMENT_ITERATION_2_ENABLED = "uploadDocumentIteration2Enabled"
+    UPLOAD_DOCUMENT_ITERATION_3_ENABLED = "uploadDocumentIteration3Enabled"
