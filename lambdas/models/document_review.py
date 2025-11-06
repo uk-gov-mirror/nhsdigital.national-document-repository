@@ -4,7 +4,7 @@ from typing import Optional
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_pascal
 
 
@@ -70,13 +70,21 @@ class PutDocumentReviewRequest(BaseModel):
         description="Document reference ID (required when status is APPROVED)",
     )
 
-    @field_validator("document_reference_id", mode="before")
-    @classmethod
-    def validate_document_reference_id(cls, v, info):
+    @model_validator(mode="after")
+    def validate_document_reference_id(self):
         """Ensure document_reference_id is provided when review_status is APPROVED."""
-        review_status = info.data.get("review_status")
-        if review_status == DocumentReviewStatus.APPROVED and not v:
+        if (
+            self.review_status == DocumentReviewStatus.APPROVED
+            and not self.document_reference_id
+        ):
             raise ValueError(
                 "document_reference_id is required when review_status is APPROVED"
             )
-        return v
+        elif (
+            self.review_status != DocumentReviewStatus.APPROVED
+            and self.document_reference_id
+        ):
+            raise ValueError(
+                "document_reference_id is not required when review_status is REJECTED"
+            )
+        return self

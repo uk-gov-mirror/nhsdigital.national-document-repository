@@ -1,6 +1,7 @@
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from models.document_review import PutDocumentReviewRequest
+from pydantic import ValidationError
 from services.put_document_review_service import PutDocumentReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -30,7 +31,7 @@ def lambda_handler(event, context):
     logger.info("Put Document Review handler has been triggered")
 
     query_params = event.get("queryStringParameters", {})
-    patient_id = query_params.get("patient_id")
+    patient_id = query_params.get("patientId")
 
     if not patient_id:
         logger.error("Missing patient_id in query string parameters")
@@ -47,14 +48,14 @@ def lambda_handler(event, context):
             400, LambdaError.DocumentReferenceMissingParameters
         )
     body = event.get("body")
-
-    review_request = PutDocumentReviewRequest.model_validate_json(body)
-
-    reviewer_ods_code = None
-    if isinstance(request_context.authorization, dict):
-        reviewer_ods_code = request_context.authorization.get(
-            "selected_organisation", {}
-        ).get("org_ods_code")
+    try:
+        review_request = PutDocumentReviewRequest.model_validate_json(body)
+    except ValidationError as e:
+        logger.error(f"Invalid request body: {str(e)}")
+        raise PutDocumentReviewException(400, LambdaError.InvalidReasonInput)
+    reviewer_ods_code = request_context.authorization.get(
+        "selected_organisation", {}
+    ).get("org_ods_code")
 
     if not reviewer_ods_code:
         logger.error("Missing ODS code in authorization token")
