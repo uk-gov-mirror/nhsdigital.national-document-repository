@@ -98,9 +98,8 @@ def lambda_handler(event, context):
             environment,
             region,
             run_migration,
-            execution_id,
-            migration_script,
-            
+            migration_script, 
+            execution_id
         ) = validate_event_input(event)
 
         logger.info(
