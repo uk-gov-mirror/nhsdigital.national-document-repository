@@ -45,15 +45,19 @@ class Subject(BaseModel):
     identifier: Identifier
 
 
-class UpdateBody(BaseModel):
-    model_config = ConfigDict(
-        validate_by_alias=True,
-        alias_generator=to_camel
-    )
+class DRBody(BaseModel):
+    model_config = ConfigDict(validate_by_alias=True, alias_generator=to_camel)
     resource_type: str
     subject: Subject
-    content: list[SingleAttachment]
     created: str
+
+
+class UpdateDRBody(DRBody):
+    content: list[SingleAttachment]
+
+
+class CreateDRBody(DRBody):
+    content: list[Attachment]
 
 
 class GenericEventModel(BaseModel):
@@ -61,15 +65,19 @@ class GenericEventModel(BaseModel):
         validate_by_alias=True,
         validate_by_name=True,
         populate_by_name=True,
-        alias_generator=to_camel
+        alias_generator=to_camel,
     )
     http_method: str
     query_string_parameters: dict
-    path_parameters: dict
+    path_parameters: Optional[dict] = None
 
 
 class UpdateEventModel(GenericEventModel):
-    body: UpdateBody
+    body: UpdateDRBody
+
+
+class CreateEventModel(GenericEventModel):
+    body: CreateDRBody
 
 
 class UploadDocumentReference(BaseModel):
@@ -190,7 +198,7 @@ class DocumentReference(BaseModel):
         s3_key = "/".join(key_parts)
 
         return s3_key
-    
+
     @staticmethod
     def _build_final_s3_key(data: dict) -> str:
         """Build the S3 key from document data."""
@@ -244,4 +252,3 @@ class DocumentReference(BaseModel):
         if self.uploading:
             return "preliminary"
         return None
-

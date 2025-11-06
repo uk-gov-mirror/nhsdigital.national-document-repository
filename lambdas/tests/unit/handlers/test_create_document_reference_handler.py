@@ -3,9 +3,8 @@ from enum import Enum
 
 import pytest
 from enums.lambda_error import LambdaError
-from handlers.create_document_reference_handler import (
-    lambda_handler
-)
+from handlers.create_document_reference_handler import lambda_handler
+from models.document_reference import CreateEventModel
 from tests.unit.conftest import MOCK_STAGING_STORE_BUCKET, TEST_NHS_NUMBER, TEST_UUID
 from tests.unit.helpers.data.create_document_reference import (
     ARF_FILE_LIST,
@@ -15,8 +14,12 @@ from tests.unit.helpers.data.create_document_reference import (
     LG_MOCK_EVENT_BODY,
     LG_MOCK_RESPONSE,
     MOCK_EVENT_BODY,
+    PARSED_LG_FILE_LIST,
 )
-from utils.document_reference_common_validations import process_event_body
+from utils.document_reference_common_validations import (
+    normalize_event_body_to_dict,
+    process_event_body,
+)
 from utils.exceptions import InvalidNhsNumberException
 from utils.lambda_exceptions import DocumentRefException, SearchPatientException
 from utils.lambda_response import ApiGatewayResponse
@@ -270,15 +273,14 @@ def test_processing_event_details_missing_attachment_body_raise_error():
         process_event_body(invalid_event)
 
 
-def test_processing_event_details_get_nhs_number_and_doc_list(arf_type_event):
-    try:
-        expected_nhs_number = TEST_NHS_NUMBER
-        expected_doc_list = ARF_FILE_LIST
-        actual_nhs_number, actual_doc_list = process_event_body(arf_type_event)
-        assert expected_nhs_number == actual_nhs_number
-        assert expected_doc_list == actual_doc_list
-    except DocumentRefException:
-        assert False, "test"
+def test_process_event_body_with_lg_event(lg_type_event):
+    normalize_event_body_to_dict(lg_type_event)
+    validated_event = CreateEventModel.model_validate(lg_type_event)
+    expected_nhs_number = TEST_NHS_NUMBER
+    expected_doc_list = PARSED_LG_FILE_LIST
+    actual_nhs_number, actual_doc_list = process_event_body(validated_event)
+    assert expected_nhs_number == actual_nhs_number
+    assert expected_doc_list == actual_doc_list
 
 
 def test_lambda_handler_processing_event_details_raise_error(
@@ -289,19 +291,16 @@ def test_lambda_handler_processing_event_details_raise_error(
     mock_process_event_body,
     mock_upload_lambda_enabled,
 ):
-    mock_process_event_body.side_effect = DocumentRefException(
-        400, MockError.Error
-    )
+    mock_process_event_body.side_effect = DocumentRefException(400, MockError.Error)
     expected = ApiGatewayResponse(
         400,
         json.dumps(MockError.Error.value),
         "POST",
     ).create_api_gateway_response()
     actual = lambda_handler(arf_type_event, context)
+    validated_event = CreateEventModel.model_validate(arf_type_event)
     assert expected == actual
-    mock_process_event_body.assert_called_with(
-        arf_type_event
-    )
+    mock_process_event_body.assert_called_with(validated_event)
 
 
 def test_lambda_handler_valid(
@@ -313,7 +312,6 @@ def test_lambda_handler_valid(
     mock_cdr_service,
 ):
     mock_process_event_body.return_value = (TEST_NHS_NUMBER, ARF_FILE_LIST)
-
     mock_cdr_service.create_document_reference_request.return_value = ARF_MOCK_RESPONSE
 
     expected = ApiGatewayResponse(
@@ -322,10 +320,9 @@ def test_lambda_handler_valid(
         "POST",
     ).create_api_gateway_response()
     actual = lambda_handler(arf_type_event, context)
+    validated_event = CreateEventModel.model_validate(arf_type_event)
     assert expected == actual
-    mock_process_event_body.assert_called_with(
-        arf_type_event
-    )
+    mock_process_event_body.assert_called_with(validated_event)
 
 
 def test_no_event_processing_when_upload_lambda_flag_disabled(
