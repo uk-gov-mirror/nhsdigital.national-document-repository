@@ -1,30 +1,11 @@
-import io
-import uuid
-
 import pytest
 import requests
 
-from lambdas.tests.e2e.api.fhir.conftest import (
-    MTLS_ENDPOINT,
-    PDM_SNOMED,
-    create_mtls_session,
-)
-from lambdas.tests.e2e.conftest import APIM_ENDPOINT
+from lambdas.tests.e2e.api.fhir.conftest import MTLS_ENDPOINT, create_mtls_session
+from lambdas.tests.e2e.conftest import APIM_ENDPOINT, PDM_SNOMED
 from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
-
-
-def build_pdm_record(nhs_number="9912003071", data=None, doc_status=None):
-    """Helper to create a PDM record dictionary."""
-    record = {
-        "id": str(uuid.uuid4()),
-        "nhs_number": nhs_number,
-        "data": data or io.BytesIO(b"Sample PDF Content"),
-    }
-    if doc_status:
-        record["doc_status"] = doc_status
-    return record
 
 
 def search_document_reference(nhs_number):
@@ -45,7 +26,7 @@ def create_and_store_record(
     test_data, nhs_number="9912003071", doc_status: str | None = None
 ):
     """Helper to create metadata and resource for a record."""
-    record = build_pdm_record(nhs_number=nhs_number, doc_status=doc_status)
+    record = pdm_data_helper.build_record(nhs_number=nhs_number, doc_status=doc_status)
     test_data.append(record)
     pdm_data_helper.create_metadata(record)
     pdm_data_helper.create_resource(record)

@@ -1,33 +1,28 @@
 import json
 
 import pytest
-from enums.snomed_codes import SnomedCodes, SnomedCode
+from botocore.exceptions import ClientError
+from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference
+from models.fhir.R4.base_models import Coding, Identifier, Reference
+from models.fhir.R4.fhir_document_reference import SNOMED_URL, Attachment
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
+from models.fhir.R4.fhir_document_reference import DocumentReferenceContent
 from services.put_fhir_document_reference_service import (
-    FhirDocumentReferenceServiceBase
-)
-from tests.unit.conftest import APIM_API_URL
-from tests.unit.helpers.data.test_documents import (
-    create_test_lloyd_george_doc_store_refs,
-    create_valid_fhir_doc_json
+    FhirDocumentReferenceServiceBase,
 )
 from tests.unit.conftest import (
     EXPECTED_PARSED_PATIENT_BASE_CASE as mock_pds_patient_details,
 )
-from botocore.exceptions import ClientError
-from utils.exceptions import (
-    FhirDocumentReferenceException,
-    PatientNotFoundException,
-)
-from models.fhir.R4.base_models import Identifier, Reference, Coding
-from models.fhir.R4.fhir_document_reference import DocumentReferenceContent
-from models.fhir.R4.fhir_document_reference import Attachment
 from tests.unit.helpers.data.bulk_upload.test_data import TEST_DOCUMENT_REFERENCE
-from unittest.mock import ANY
-from models.fhir.R4.fhir_document_reference import SNOMED_URL
+from tests.unit.helpers.data.test_documents import (
+    create_test_lloyd_george_doc_store_refs,
+    create_valid_fhir_doc_json,
+)
+from utils.exceptions import FhirDocumentReferenceException, PatientNotFoundException
+
 
 @pytest.fixture
 def mock_service(mocker):
@@ -37,6 +32,7 @@ def mock_service(mocker):
     service = FhirDocumentReferenceServiceBase()
 
     yield service
+
 
 @pytest.fixture
 def mock_dynamo_service(mocker, mock_service):
@@ -49,6 +45,7 @@ def mock_dynamo_service(mocker, mock_service):
 def mock_s3_service(mocker, mock_service):
     mocker.patch.object(mock_service.s3_service, "create_object_tag")
     yield mock_service.s3_service
+
 
 @pytest.fixture
 def valid_nhs_number():
@@ -90,9 +87,7 @@ def valid_fhir_doc_object(valid_fhir_doc_json):
         lambda doc: {**doc, "type": {"coding": []}},
     ],
 )
-def test_document_validation_errors(
-    mock_service, valid_fhir_doc_json, modify_doc
-):
+def test_document_validation_errors(mock_service, valid_fhir_doc_json, modify_doc):
     """Test validation error scenarios."""
     doc = json.loads(valid_fhir_doc_json)
     modified_doc = FhirDocumentReference(**modify_doc(doc))
@@ -204,7 +199,7 @@ def test_create_document_reference_with_author(mock_service, mocker):
         fhir_doc=fhir_doc,
         current_gp_ods="C13579",
         version="2",
-        s3_file_key="mock_s3_file_key"
+        s3_file_key="mock_s3_file_key",
     )
 
     assert result.nhs_number == "9000000009"
@@ -247,7 +242,7 @@ def test_create_document_reference_without_custodian(mock_service, mocker):
         fhir_doc=fhir_doc,
         current_gp_ods=current_gp_ods,
         version="2",
-        s3_file_key="mock_s3_file_key"
+        s3_file_key="mock_s3_file_key",
     )
 
     assert (
@@ -285,7 +280,7 @@ def test_save_document_reference_to_dynamo_success(mock_service):
         content_type="application/pdf",
         file_name="test-file.pdf",
         document_snomed_code_type="test-code",
-        version="2"
+        version="2",
     )
 
     mock_service._save_document_reference_to_dynamo("test-table", document_ref)
@@ -344,22 +339,23 @@ def test_process_fhir_document_reference_with_invalid_base64_data(mock_service):
         )
 
 
-def test_determine_document_type_returns_lloyd_george_type(mock_service, valid_fhir_doc_object):
+def test_determine_document_type_returns_lloyd_george_type(
+    mock_service, valid_fhir_doc_object
+):
     """Test that determine_document_type returns the lloyd george type for
-       a lloyd george document"""
+    a lloyd george document"""
     result = mock_service._determine_document_type(valid_fhir_doc_object)
 
     assert result == SnomedCodes.LLOYD_GEORGE.value
 
-def test_determine_document_type_non_snomed_coding(mock_service, valid_fhir_doc_object: FhirDocumentReference):
+
+def test_determine_document_type_non_snomed_coding(
+    mock_service, valid_fhir_doc_object: FhirDocumentReference
+):
     """Test that determine_document_type returns the lloyd george type for
-       a lloyd george document"""
+    a lloyd george document"""
     valid_fhir_doc_object.type.coding.append(
-        Coding(
-            system="mocked_system",
-            code="mocked_code",
-            display="mocked_display"
-        )
+        Coding(system="mocked_system", code="mocked_code", display="mocked_display")
     )
 
     valid_fhir_doc_object.type.coding.reverse()
@@ -368,15 +364,14 @@ def test_determine_document_type_non_snomed_coding(mock_service, valid_fhir_doc_
 
     assert result == SnomedCodes.LLOYD_GEORGE.value
 
-def test_determine_document_type_non_george_lloyd_code(mock_service, valid_fhir_doc_object: FhirDocumentReference):
+
+def test_determine_document_type_non_george_lloyd_code(
+    mock_service, valid_fhir_doc_object: FhirDocumentReference
+):
     """Test that determine_document_type returns the lloyd george type for
-       a lloyd george document"""
+    a lloyd george document"""
     valid_fhir_doc_object.type.coding.append(
-        Coding(
-            system=SNOMED_URL,
-            code="mocked_code",
-            display="mocked_display"
-        )
+        Coding(system=SNOMED_URL, code="mocked_code", display="mocked_display")
     )
 
     valid_fhir_doc_object.type.coding.reverse()
@@ -388,7 +383,10 @@ def test_determine_document_type_non_george_lloyd_code(mock_service, valid_fhir_
 
 def test_get_document_reference_no_documents_found(mocker, mock_service):
     """Test that get_document_reference raises an error when there are no document results"""
-    mock_service.fetch_documents_from_table = mocker.patch("services.fhir_document_reference_service_base.DocumentService.fetch_documents_from_table", return_value=[])
+    mock_service.fetch_documents_from_table = mocker.patch(
+        "services.fhir_document_reference_service_base.DocumentService.fetch_documents_from_table",
+        return_value=[],
+    )
 
     with pytest.raises(FhirDocumentReferenceException):
         mock_service._get_document_reference("", "")
@@ -398,7 +396,10 @@ def test_get_document_reference_returns_document_reference(mocker, mock_service)
     """Test that get_document_reference returns the first document reference from the results"""
     documents = create_test_lloyd_george_doc_store_refs()
 
-    mock_service.document_service.fetch_documents_from_table = mocker.patch("services.fhir_document_reference_service_base.DocumentService.fetch_documents_from_table", return_value=documents)
+    mock_service.document_service.fetch_documents_from_table = mocker.patch(
+        "services.fhir_document_reference_service_base.DocumentService.fetch_documents_from_table",
+        return_value=documents,
+    )
 
     result = mock_service._get_document_reference("", "")
 
@@ -407,7 +408,9 @@ def test_get_document_reference_returns_document_reference(mocker, mock_service)
 
 def test_create_s3_presigned_url_error(mock_service):
     """Test that create_s3_presigned_url raises a FhirDocumentReferenceException on AWS S3 ClientError"""
-    mock_service.s3_service.create_put_presigned_url.side_effect = ClientError({"Error": {}}, "")
+    mock_service.s3_service.create_put_presigned_url.side_effect = ClientError(
+        {"Error": {}}, ""
+    )
     document = create_test_lloyd_george_doc_store_refs()[0]
 
     with pytest.raises(FhirDocumentReferenceException):
@@ -417,7 +420,9 @@ def test_create_s3_presigned_url_error(mock_service):
 def test_create_s3_presigned_url_returns_url(mock_service):
     """Test that create_s3_presigned_url returns a url"""
     mock_presigned_url_response = "https://test-bucket.s3.amazonaws.com/"
-    mock_service.s3_service.create_put_presigned_url.return_value = mock_presigned_url_response
+    mock_service.s3_service.create_put_presigned_url.return_value = (
+        mock_presigned_url_response
+    )
     document = create_test_lloyd_george_doc_store_refs()[0]
 
     result = mock_service._create_s3_presigned_url(document)

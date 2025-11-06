@@ -1,10 +1,9 @@
 import time
-from typing import Iterator, Optional, Sequence
+from typing import Optional, Sequence
 
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
 from botocore.exceptions import ClientError
-
 from utils.audit_logging_setup import LoggingService
 from utils.dynamo_utils import (
     create_expression_attribute_values,
@@ -171,10 +170,10 @@ class DynamoDBService:
             raise e
 
     def scan_whole_table(
-            self,
-            table_name: str,
-            project_expression: Optional[str] = None,
-            filter_expression: Optional[str] = None,
+        self,
+        table_name: str,
+        project_expression: Optional[str] = None,
+        filter_expression: Optional[str] = None,
     ) -> list[dict]:
         try:
             table = self.get_table(table_name)
@@ -237,7 +236,7 @@ class DynamoDBService:
                     )
                     request_items = unprocessed_keys
                     retries += 1
-                    time.sleep((2 ** retries) * 0.1)
+                    time.sleep((2**retries) * 0.1)
                 else:
                     break
 
@@ -257,9 +256,7 @@ class DynamoDBService:
             )
             raise e
 
-    def transact_write_items(
-        self, transact_items: Sequence[dict]
-    ):
+    def transact_write_items(self, transact_items: Sequence[dict]):
         """
         Execute a transactional write operation.
 
@@ -277,10 +274,10 @@ class DynamoDBService:
             logger.info("Transaction completed successfully")
             return response
         except ClientError as e:
-            error_code = e.response.get('Error', {}).get('Code', '')
-            if error_code == 'TransactionCanceledException':
+            error_code = e.response.get("Error", {}).get("Code", "")
+            if error_code == "TransactionCanceledException":
                 logger.error(f"Transaction cancelled: {str(e)}")
-                cancellation_reasons = e.response.get('CancellationReasons', [])
+                cancellation_reasons = e.response.get("CancellationReasons", [])
                 logger.error(f"Cancellation reasons: {cancellation_reasons}")
             else:
                 logger.error(f"Transaction failed with error: {str(e)}")
@@ -291,7 +288,7 @@ class DynamoDBService:
         table_name: str,
         document_key: dict,
         update_fields: dict,
-        condition_fields: dict
+        condition_fields: dict,
     ) -> dict:
         """
         Build a DynamoDB transaction update item with a conditional expression.
@@ -319,7 +316,9 @@ class DynamoDBService:
         for field_name, field_value in condition_fields.items():
             condition_placeholder = f"#{field_name}_attr"
             condition_value_placeholder = f":{field_name}_condition_val"
-            condition_expressions.append(f"{condition_placeholder} = {condition_value_placeholder}")
+            condition_expressions.append(
+                f"{condition_placeholder} = {condition_value_placeholder}"
+            )
             condition_attribute_names[condition_placeholder] = field_name
             condition_attribute_values[condition_value_placeholder] = field_value
 
@@ -334,11 +333,11 @@ class DynamoDBService:
                 "ConditionExpression": condition_expression,
                 "ExpressionAttributeNames": {
                     **expression_attribute_names,
-                    **condition_attribute_names
+                    **condition_attribute_names,
                 },
                 "ExpressionAttributeValues": {
                     **expression_attribute_values,
-                    **condition_attribute_values
-                }
+                    **condition_attribute_values,
+                },
             }
         }
