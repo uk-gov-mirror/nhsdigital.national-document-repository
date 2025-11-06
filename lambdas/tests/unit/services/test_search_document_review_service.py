@@ -1,4 +1,5 @@
 import base64
+import json
 
 import pytest
 from botocore.exceptions import ClientError
@@ -20,7 +21,10 @@ from tests.unit.helpers.data.search_document_review.dynamo_response import (
 from utils.lambda_exceptions import SearchDocumentReviewReferenceException
 
 TEST_QUERY_LIMIT = 20
-TEST_ENCODED_START_KEY = base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8")
+TEST_LAST_EVALUATED_KEY = {"id": TEST_UUID}
+TEST_ENCODED_START_KEY = base64.b64encode(
+    json.dumps(TEST_LAST_EVALUATED_KEY).encode("ascii")
+).decode("utf-8")
 
 
 @pytest.fixture
@@ -33,7 +37,7 @@ def search_document_review_service(mocker, set_env):
 def test_handle_gateway_api_request_happy_path(search_document_review_service, mocker):
     mocker.patch.object(
         search_document_review_service, "decode_start_key"
-    ).return_value = TEST_UUID
+    ).return_value = TEST_LAST_EVALUATED_KEY
     mocker.patch.object(
         search_document_review_service, "get_review_document_references"
     ).return_value = (
@@ -87,7 +91,9 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         TEST_ENCODED_START_KEY
     )
     search_document_review_service.get_review_document_references.assert_called_with(
-        ods_code=TEST_CURRENT_GP_ODS, start_key=TEST_UUID, limit=TEST_QUERY_LIMIT
+        ods_code=TEST_CURRENT_GP_ODS,
+        start_key=TEST_LAST_EVALUATED_KEY,
+        limit=TEST_QUERY_LIMIT,
     )
 
     assert actual == expected
@@ -218,12 +224,12 @@ def test_get_review_document_references_throws_exception_on_validation_error(
 
 
 def test_decode_start_key(search_document_review_service):
-    encoded_start_key = base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8")
+    encoded_start_key = TEST_ENCODED_START_KEY
 
     actual = search_document_review_service.decode_start_key(encoded_start_key)
-    assert actual == TEST_UUID
+    assert actual == TEST_LAST_EVALUATED_KEY
 
 
 def test_encode_start_key(search_document_review_service):
-    actual = search_document_review_service.encode_start_key(TEST_UUID)
+    actual = search_document_review_service.encode_start_key(TEST_LAST_EVALUATED_KEY)
     assert actual == TEST_ENCODED_START_KEY

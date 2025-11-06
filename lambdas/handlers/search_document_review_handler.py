@@ -25,13 +25,19 @@ def lambda_handler(event, context):
 
     try:
         feature_flag_service = FeatureFlagService()
-        upload_lambda_enabled_flag_object = feature_flag_service.get_feature_flags_by_flag(
-            FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+        upload_lambda_enabled_flag_object = (
+            feature_flag_service.get_feature_flags_by_flag(
+                FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+            )
         )
 
-        if not upload_lambda_enabled_flag_object[FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED]:
+        if not upload_lambda_enabled_flag_object[
+            FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+        ]:
             logger.info("Feature flag not enabled, event will not be processed")
-            raise SearchDocumentReviewReferenceException(404, LambdaError.FeatureFlagDisabled)
+            raise SearchDocumentReviewReferenceException(
+                404, LambdaError.FeatureFlagDisabled
+            )
 
         ods_code = get_ods_code_from_request_context()
 
@@ -39,10 +45,8 @@ def lambda_handler(event, context):
 
         search_document_reference_service = SearchDocumentReviewService()
 
-        references, next_page_token = (
-            search_document_reference_service.process_request(
-                ods_code=ods_code, limit=limit, encoded_start_key=start_key
-            )
+        references, next_page_token = search_document_reference_service.process_request(
+            ods_code=ods_code, limit=limit, encoded_start_key=start_key
         )
 
         return ApiGatewayResponse(

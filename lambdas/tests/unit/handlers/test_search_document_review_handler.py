@@ -2,8 +2,6 @@ import base64
 import json
 
 import pytest
-
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from handlers.search_document_review_handler import (
     get_ods_code_from_request_context,
@@ -20,6 +18,10 @@ from utils.lambda_exceptions import SearchDocumentReviewReferenceException
 from utils.lambda_response import ApiGatewayResponse
 
 TEST_QUERY_LIMIT = 20
+TEST_LAST_EVALUATED_KEY = {"id": TEST_UUID}
+TEST_ENCODED_START_KEY = base64.b64encode(
+    json.dumps(TEST_LAST_EVALUATED_KEY).encode("ascii")
+).decode("utf-8")
 
 
 @pytest.fixture
@@ -49,7 +51,7 @@ def event_with_limit_and_start_key():
         "httpMethod": "GET",
         "queryStringParameters": {
             "limit": TEST_QUERY_LIMIT,
-            "startKey": base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8"),
+            "startKey": TEST_ENCODED_START_KEY,
         },
         "headers": {"Authorization": "Bearer test_token"},
     }
@@ -60,7 +62,7 @@ def event_with_start_key_no_limit():
     return {
         "httpMethod": "GET",
         "queryStringParameters": {
-            "startKey": base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8"),
+            "startKey": TEST_ENCODED_START_KEY,
         },
         "headers": {"Authorization": "Bearer test_token"},
     }
@@ -130,13 +132,13 @@ def test_parse_querystring_parameters(
 
     assert parse_querystring_parameters(event_with_limit_and_start_key) == (
         TEST_QUERY_LIMIT,
-        base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8"),
+        TEST_ENCODED_START_KEY,
     )
     assert parse_querystring_parameters(event) == (None, None)
     assert parse_querystring_parameters(event_with_limit) == (TEST_QUERY_LIMIT, None)
     assert parse_querystring_parameters(event_with_start_key_no_limit) == (
         None,
-        base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8"),
+        TEST_ENCODED_START_KEY,
     )
 
 
@@ -189,7 +191,7 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
 
     mock_service.process_request.return_value = (
         references,
-        base64.b64encode(TEST_UUID.encode("ascii")).decode("utf-8"),
+        TEST_ENCODED_START_KEY,
     )
 
     expected = ApiGatewayResponse(
@@ -197,11 +199,7 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
         body=json.dumps(
             {
                 "documentReviewReferences": references,
-                "nextPageToken": base64.b64encode(
-                    MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["LastEvaluatedKey"].encode(
-                        "ascii"
-                    )
-                ).decode("utf-8"),
+                "nextPageToken": TEST_ENCODED_START_KEY,
                 "count": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Count"],
             }
         ),
@@ -268,7 +266,3 @@ def test_handler_returns_500_response_error_raised(
     actual = lambda_handler(event_with_limit, context)
 
     assert actual == expected
-
-
-def test_handler_returns_list_of_references_last_results_fetched():
-    pass

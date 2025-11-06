@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 
 from botocore.exceptions import ClientError
@@ -45,7 +46,6 @@ class SearchDocumentReviewService:
             raise SearchDocumentReviewReferenceException(
                 500, LambdaError.SearchDocumentReviewValidation
             )
-
 
     def get_review_document_references(
         self, ods_code: str, limit: int | None = None, start_key: str | None = None
@@ -94,16 +94,18 @@ class SearchDocumentReviewService:
                 500, LambdaError.SearchDocumentReviewValidation
             )
 
-    def decode_start_key(self, encoded_start_key: str | None) -> str:
+    def decode_start_key(self, encoded_start_key: str | None) -> dict:
         return (
-            base64.b64decode(encoded_start_key.encode("ascii")).decode("utf-8")
+            json.loads(
+                base64.b64decode(encoded_start_key.encode("ascii")).decode("utf-8")
+            )
             if encoded_start_key
             else None
         )
 
-    def encode_start_key(self, start_key: str) -> str:
+    def encode_start_key(self, start_key: dict) -> str:
         return (
-            base64.b64encode(start_key.encode("ascii")).decode("utf-8")
+            base64.b64encode(json.dumps(start_key).encode("ascii")).decode("utf-8")
             if start_key
             else None
         )
