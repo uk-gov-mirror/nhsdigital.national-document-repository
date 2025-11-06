@@ -95,13 +95,18 @@ class MigrationBase(ABC):
         if failed_items:
             self.logger.error(f"'{label}' migration segment: {segment} completed with {len(failed_items)} errors.")
             error_report_key = f"migration_errors/{label}_errors.json"
-            self.s3_client.put_object(
-                Bucket=self.failed_items_bucket,
-                Key=error_report_key,
-                Body=json.dumps(failed_items).encode("utf-8"),
-                ContentType='application/json'
-            )
-            self.logger.error(f"Error report saved to s3://{self.failed_items_bucket}/{error_report_key}")      
+            try:
+                self.s3_client.put_object(
+                    Bucket=self.failed_items_bucket,
+                    Key=error_report_key,
+                    Body=json.dumps(failed_items).encode("utf-8"),
+                    ContentType='application/json'
+                )
+                self.logger.error(f"Error report saved to s3://{self.failed_items_bucket}/{error_report_key}")
+            except Exception as s3_error:
+                self.logger.error(f"Failed to save error report to S3: {str(s3_error)}")
+                self.logger.error({"Unlogged failed items": failed_items})
+
 
         self.logger.info(f"'{label}' migration step completed.\n")
         return {
