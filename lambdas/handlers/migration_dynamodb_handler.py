@@ -71,7 +71,7 @@ def validate_event_input(event):
 
     table_name, environment, region = extract_table_info(event)
 
-    execution_id = event.get("execution_id")
+    execution_id = event.get("execution_Id")
     if not execution_id:
         raise ValueError("'execution_id' cannot be empty")
 
