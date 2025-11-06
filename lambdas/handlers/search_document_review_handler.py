@@ -50,7 +50,7 @@ def lambda_handler(event, context):
             body=json.dumps(
                 {
                     "documentReviewReferences": references,
-                    "nextPageToken": next_paged_token,
+                    "nextPageToken": next_page_token,
                     "count": len(references),
                 }
             ),

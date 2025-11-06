@@ -2,6 +2,8 @@ import base64
 import json
 
 import pytest
+
+from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from handlers.search_document_review_handler import (
     get_ods_code_from_request_context,
@@ -21,7 +23,7 @@ TEST_QUERY_LIMIT = 20
 
 
 @pytest.fixture
-def mock_service(mocker):
+def mock_service(mocker, mock_upload_document_iteration_3_enabled):
     mocked_class = mocker.patch(
         "handlers.search_document_review_handler.SearchDocumentReviewService"
     )
