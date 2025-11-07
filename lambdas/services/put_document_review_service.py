@@ -83,9 +83,9 @@ class PutDocumentReviewService:
             update_fields.add("document_reference_id")
 
         try:
-            self.document_review_service.update_document(
-                document=document,
-                update_fields_name=update_fields,
+            self.document_review_service.update_document_review_for_patient(
+                review_update=document,
+                field_names=update_fields,
             )
 
             logger.info(

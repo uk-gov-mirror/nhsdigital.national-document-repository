@@ -2,12 +2,13 @@ import os
 
 from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
+from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from models.document_review import DocumentUploadReviewReference
 from pydantic import BaseModel
 from services.document_service import DocumentService
 from utils.audit_logging_setup import LoggingService
-from utils.exceptions import DynamoServiceException
+from utils.exceptions import DocumentServiceException
 
 logger = LoggingService(__name__)
 
@@ -48,40 +49,18 @@ class DocumentUploadReviewService(DocumentService):
                 )
 
     def update_document_review_for_patient(
-        self,
-        document_review_id: str,
-        patient_nhs_number: str,
-        review_update_fields: BaseModel,
+        self, review_update: BaseModel, field_names: set[str]
     ):
-        """Update a document review for a specific patient with NHS number verification.
 
-        This ensures the document is only updated if the NHS number matches,
-        preventing updates to the wrong patient's document.
-
-        Args:
-            document_review_id: The document review ID to update.
-            patient_nhs_number: The NHS number to verify matches the document.
-            review_update_fields: Pydantic model containing fields to update.
-
-        Returns:
-            DynamoDB update response.
-
-        Raises:
-            DynamoServiceException: If the condition check fails (document not found or NHS number mismatch).
-        """
-        condition_expression = Attr(
-            DocumentReferenceMetadataFields.ID.value
-        ).exists() & Attr("NhsNumber").eq(patient_nhs_number)
-
-        field_names = set(
-            review_update_fields.model_dump(by_alias=False, exclude_none=True).keys()
+        condition_expression = (
+            Attr(DocumentReferenceMetadataFields.ID.value).exists()
+            & Attr("NhsNumber").eq(review_update.nhs_number)
+            & Attr("ReviewStatus").eq(DocumentReviewStatus.PENDING_REVIEW)
         )
-
-        review_update_fields.id = document_review_id
 
         try:
             return self.update_document(
-                document=review_update_fields,
+                document=review_update,
                 update_fields_name=field_names,
                 condition_expression=condition_expression,
             )
@@ -90,15 +69,18 @@ class DocumentUploadReviewService(DocumentService):
 
             if error_code == "ConditionalCheckFailedException":
                 logger.error(
-                    f"Condition check failed: Document ID {document_review_id} and NHS number {patient_nhs_number} do not match",
+                    f"Condition check failed: Document ID {review_update.id} and "
+                    f"NHS number {review_update.nhs_number} do not match",
                     {"Result": "Failed to update document review"},
                 )
-                raise DynamoServiceException(
-                    f"Document ID {document_review_id} does not exist or NHS number does not match"
+                raise DocumentServiceException(
+                    f"Document ID {review_update.id} does not exist or NHS number does not match"
                 )
 
             logger.error(
                 f"DynamoDB error updating document review: {str(e)}",
                 {"Result": "Failed to update document review"},
             )
-            raise DynamoServiceException(f"Failed to update document review: {str(e)}")
+            raise DocumentServiceException(
+                f"Failed to update document review: {str(e)}"
+            )
