@@ -241,14 +241,8 @@ class DocumentService:
             ),
         }
 
-        # If no condition provided, default to ensuring the document exists
-        # This prevents accidentally creating new items when updating
-        if condition_expression is None:
-            condition_expression = Attr(
-                DocumentReferenceMetadataFields.ID.value
-            ).exists()
-
-        update_kwargs["condition_expression"] = condition_expression
+        if condition_expression:
+            update_kwargs["condition_expression"] = condition_expression
 
         if expression_attribute_values:
             update_kwargs["expression_attribute_values"] = expression_attribute_values
