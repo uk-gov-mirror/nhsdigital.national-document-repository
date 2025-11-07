@@ -67,7 +67,7 @@ def test_update_document_review_approved_with_document_reference_id(
 ):
     """Test successful update of document review with APPROVED status and document reference ID."""
     mock_service.document_review_service.get_item.return_value = mock_document_review
-    mock_service.document_review_service.update_document.return_value = None
+    mock_service.document_review_service.update_document_review_for_patient.return_value = None
 
     update_data = PutDocumentReviewRequest(
         review_status=DocumentReviewStatus.APPROVED,
@@ -85,10 +85,10 @@ def test_update_document_review_approved_with_document_reference_id(
         document_id=TEST_DOCUMENT_ID
     )
 
-    assert mock_service.document_review_service.update_document.call_count == 1
-    call_args = mock_service.document_review_service.update_document.call_args
+    assert mock_service.document_review_service.update_document_review_for_patient.call_count == 1
+    call_args = mock_service.document_review_service.update_document_review_for_patient.call_args
 
-    updated_document = call_args[1]["document"]
+    updated_document = call_args[1]["review_update"]
     assert updated_document.review_status == DocumentReviewStatus.APPROVED
     assert updated_document.reviewer == TEST_REVIEWER_ODS_CODE
     assert updated_document.document_reference_id == TEST_DOCUMENT_REFERENCE_ID
@@ -96,7 +96,7 @@ def test_update_document_review_approved_with_document_reference_id(
         datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc).timestamp()
     )
 
-    update_fields = call_args[1]["update_fields_name"]
+    update_fields = call_args[1]["field_names"]
     assert "review_status" in update_fields
     assert "review_date" in update_fields
     assert "reviewer" in update_fields
@@ -109,7 +109,7 @@ def test_update_document_review_rejected_without_document_reference_id(
 ):
     """Test a successful update of document review with REJECTED status (no document reference ID needed)."""
     mock_service.document_review_service.get_item.return_value = mock_document_review
-    mock_service.document_review_service.update_document.return_value = None
+    mock_service.document_review_service.update_document_review_for_patient.return_value = None
 
     update_data = PutDocumentReviewRequest(
         review_status=DocumentReviewStatus.REJECTED,
@@ -122,17 +122,17 @@ def test_update_document_review_rejected_without_document_reference_id(
         reviewer_ods_code=TEST_REVIEWER_ODS_CODE,
     )
 
-    assert mock_service.document_review_service.update_document.call_count == 1
-    call_args = mock_service.document_review_service.update_document.call_args
+    assert mock_service.document_review_service.update_document_review_for_patient.call_count == 1
+    call_args = mock_service.document_review_service.update_document_review_for_patient.call_args
 
-    updated_document = call_args[1]["document"]
+    updated_document = call_args[1]["review_update"]
     assert updated_document.review_status == DocumentReviewStatus.REJECTED
     assert updated_document.reviewer == TEST_REVIEWER_ODS_CODE
     assert updated_document.review_date == int(
         datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc).timestamp()
     )
 
-    update_fields = call_args[1]["update_fields_name"]
+    update_fields = call_args[1]["field_names"]
     assert "review_status" in update_fields
     assert "review_date" in update_fields
     assert "reviewer" in update_fields
@@ -159,7 +159,7 @@ def test_update_document_review_document_not_found(mock_service):
     assert exc_info.value.status_code == 404
     assert exc_info.value.error == LambdaError.DocumentReferenceMissingParameters
 
-    mock_service.document_review_service.update_document.assert_not_called()
+    mock_service.document_review_service.update_document_review_for_patient.assert_not_called()
 
 
 def test_update_document_review_nhs_number_mismatch(mock_service, mock_document_review):
@@ -182,7 +182,7 @@ def test_update_document_review_nhs_number_mismatch(mock_service, mock_document_
     assert exc_info.value.status_code == 400
     assert exc_info.value.error == LambdaError.DocumentReferenceMissingParameters
 
-    mock_service.document_review_service.update_document.assert_not_called()
+    mock_service.document_review_service.update_document_review_for_patient.assert_not_called()
 
 
 def test_update_document_review_invalid_status_already_reviewed(
@@ -207,7 +207,7 @@ def test_update_document_review_invalid_status_already_reviewed(
     assert exc_info.value.status_code == 400
     assert exc_info.value.error == LambdaError.DocumentReferenceMissingParameters
 
-    mock_service.document_review_service.update_document.assert_not_called()
+    mock_service.document_review_service.update_document_review_for_patient.assert_not_called()
 
 
 def test_update_document_review_invalid_status_rejected(
@@ -233,15 +233,15 @@ def test_update_document_review_invalid_status_rejected(
     assert exc_info.value.status_code == 400
     assert exc_info.value.error == LambdaError.DocumentReferenceMissingParameters
 
-    mock_service.document_review_service.update_document.assert_not_called()
+    mock_service.document_review_service.update_document_review_for_patient.assert_not_called()
 
 
 def test_update_document_review_update_fails_with_exception(
     mock_service, mock_document_review
 ):
-    """Test that PutDocumentReviewException is raised when update_document fails."""
+    """Test that PutDocumentReviewException is raised when.update_document_review_for_patient fails."""
     mock_service.document_review_service.get_item.return_value = mock_document_review
-    mock_service.document_review_service.update_document.side_effect = Exception(
+    mock_service.document_review_service.update_document_review_for_patient.side_effect = Exception(
         "DynamoDB update failed"
     )
 
