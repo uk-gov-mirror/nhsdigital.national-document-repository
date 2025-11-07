@@ -67,7 +67,7 @@ class UploadDocumentReferenceService:
             logger.error(f"Unexpected error processing document reference: {str(e)}")
             logger.error(f"Failed to process document reference: {object_key}")
             return
-        
+
     def _get_infrastructure_for_document_key(self, object_parts: list[str]) -> None:
         doc_type = None
         if object_parts[0] != "fhir_upload" or not (
@@ -126,7 +126,9 @@ class UploadDocumentReferenceService:
     ):
         """Process the preliminary (uploading) document reference with virus scanning and file operations"""
         try:
-            virus_scan_result = self._perform_virus_scan(preliminary_document_reference, object_key)
+            virus_scan_result = self._perform_virus_scan(
+                preliminary_document_reference, object_key
+            )
             preliminary_document_reference.virus_scanner_result = virus_scan_result
 
             if virus_scan_result == VirusScanResult.CLEAN:
@@ -143,6 +145,7 @@ class UploadDocumentReferenceService:
             preliminary_document_reference.uploaded = True
             preliminary_document_reference.uploading = False
 
+            # if "PDMDocumentMetadata" not in self.table_name:
             updated_doc_status = None
             if virus_scan_result != VirusScanResult.CLEAN:
                 updated_doc_status = "cancelled"
@@ -159,6 +162,15 @@ class UploadDocumentReferenceService:
 
                 # Update NRL Pointer
                 # TODO: PRMP-390
+                #
+            # else:
+            #     try:
+            #         self._update_dynamo_table(preliminary_document_reference, virus_scan_result)
+            #     except Exception as e:
+            #         logger.error(
+            #             f"Error processing document reference {preliminary_document_reference.id}: {str(e)}"
+            #         )
+            #         raise
 
         except TransactionConflictException as e:
             logger.error(
@@ -300,7 +312,9 @@ class UploadDocumentReferenceService:
             new_document.uploading = False
             new_document.file_size = None
             self._update_dynamo_table(new_document)
-            self.delete_file_from_bucket(new_document.file_location, new_document.s3_version_id)
+            self.delete_file_from_bucket(
+                new_document.file_location, new_document.s3_version_id
+            )
             raise
         except Exception as e:
             logger.error(
@@ -386,7 +400,9 @@ class UploadDocumentReferenceService:
     def delete_file_from_bucket(self, file_location: str, version_id: str):
         """Delete file from bucket"""
         try:
-            s3_bucket_name, source_file_key = DocumentReference._parse_s3_location(file_location)
+            s3_bucket_name, source_file_key = DocumentReference._parse_s3_location(
+                file_location
+            )
             logger.info(
                 f"Deleting file from bucket: {s3_bucket_name}/{source_file_key}"
             )
