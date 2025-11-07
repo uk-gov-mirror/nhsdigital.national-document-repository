@@ -496,8 +496,6 @@ def test_process_metadata_row_adds_to_existing_entry(mocker):
 
     service = BulkUploadMetadataProcessorService(
         metadata_formatter_service=preprocessor,
-        staging_bucket_name="mock-staging-bucket",
-        metadata_queue_url="test_bulk_upload_metadata_queue",
         metadata_heading_remap={},
     )
 

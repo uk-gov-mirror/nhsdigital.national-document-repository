@@ -3,7 +3,7 @@ import json
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
 from enums.supported_document_types import SupportedDocumentTypes
-from models.document_reference import DocumentReference, UploadRequestDocument
+from models.document_reference import UploadRequestDocument
 from models.fhir.R4.fhir_document_reference import Attachment, DocumentReferenceInfo
 from pydantic import ValidationError
 from services.base.ssm_service import SSMService
@@ -163,7 +163,7 @@ class UpdateDocumentReferenceService:
                 query_filter=NotDeleted,
             )
         )
-        
+
         if any(
             self.document_service.is_upload_in_process(document)
             for document in previous_records
