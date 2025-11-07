@@ -22,14 +22,9 @@ NEW_ODS_CODE = "Z98765"
 @pytest.fixture
 def mock_service(set_env, mocker):
     """Fixture to create a DocumentUploadReviewService with mocked dependencies."""
-
-    mocker.patch(
-        "services.document_upload_review_service.DocumentService.__init__",
-        return_value=None,
-    )
+    mocker.patch("services.document_service.S3Service")
+    mocker.patch("services.document_service.DynamoDBService")
     service = DocumentUploadReviewService()
-    service.s3_service = MagicMock()
-    service.dynamo_service = MagicMock()
     yield service
 
 
@@ -266,7 +261,7 @@ def test_update_document_review_for_patient_other_client_error(
 
     field_names = {"review_status"}
 
-    with pytest.raises(DynamoServiceException):
+    with pytest.raises(DocumentServiceException):
         mock_service.update_document_review_for_patient(
             review_update=mock_review_update,
             field_names=field_names,
