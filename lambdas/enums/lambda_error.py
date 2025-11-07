@@ -633,12 +633,12 @@ class LambdaError(Enum):
     """
         Errors for SearchDocumentReviewReference exceptions
     """
-    SearchDocumentReviewDB = {
+    DocumentReviewDB = {
         "err_code": "SDR_5001",
         "message": RETRIEVE_DOCUMENTS,
     }
 
-    SearchDocumentReviewValidation = {
+    DocumentReviewValidation = {
         "err_code": "SDR_5002",
         "message": "Review document model error",
     }

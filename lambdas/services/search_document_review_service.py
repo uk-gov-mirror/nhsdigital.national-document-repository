@@ -40,7 +40,7 @@ class SearchDocumentReviewService:
         except ValidationError as e:
             logger.error(e)
             raise DocumentReviewException(
-                500, LambdaError.SearchDocumentReviewValidation
+                500, LambdaError.DocumentReviewValidation
             )
 
     def get_review_document_references(

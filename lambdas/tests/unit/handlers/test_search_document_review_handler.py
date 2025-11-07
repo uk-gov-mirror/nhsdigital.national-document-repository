@@ -247,13 +247,13 @@ def test_handler_returns_500_response_error_raised(
 ):
 
     mock_service.process_request.side_effect = DocumentReviewException(
-        500, LambdaError.SearchDocumentReviewValidation
+        500, LambdaError.DocumentReviewValidation
     )
 
     body = json.dumps(
         {
-            "message": LambdaError.SearchDocumentReviewValidation.value["message"],
-            "err_code": LambdaError.SearchDocumentReviewValidation.value["err_code"],
+            "message": LambdaError.DocumentReviewValidation.value["message"],
+            "err_code": LambdaError.DocumentReviewValidation.value["err_code"],
             "interaction_id": MOCK_INTERACTION_ID,
         }
     )

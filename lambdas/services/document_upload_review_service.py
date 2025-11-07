@@ -52,7 +52,7 @@ class DocumentUploadReviewService(DocumentService):
 
         except ClientError as e:
             logger.error(e)
-            raise DocumentReviewException(500, LambdaError.SearchDocumentReviewDB)
+            raise DocumentReviewException(500, LambdaError.DocumentReviewDB)
 
     def _validate_review_references(
         self, items: list[dict]
@@ -66,7 +66,7 @@ class DocumentUploadReviewService(DocumentService):
         except ValidationError as e:
             logger.error(e)
             raise DocumentReviewException(
-                500, LambdaError.SearchDocumentReviewValidation
+                500, LambdaError.DocumentReviewValidation
             )
 
     def update_document_review_custodian(

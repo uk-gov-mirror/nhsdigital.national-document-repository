@@ -149,7 +149,7 @@ def test_get_review_document_references_throws_exception_client_error(
     search_document_review_service,
 ):
     search_document_review_service.document_service.query_review_documents_by_custodian.side_effect = DocumentReviewException(
-        500, LambdaError.SearchDocumentReviewDB
+        500, LambdaError.DocumentReviewDB
     )
 
     with pytest.raises(DocumentReviewException) as e:
@@ -157,7 +157,7 @@ def test_get_review_document_references_throws_exception_client_error(
             TEST_CURRENT_GP_ODS, TEST_QUERY_LIMIT
         )
         assert e.value.status_code == 500
-        assert e.value.error == LambdaError.SearchDocumentReviewDB
+        assert e.value.error == LambdaError.DocumentReviewDB
 
 
 def test_decode_start_key(search_document_review_service):
