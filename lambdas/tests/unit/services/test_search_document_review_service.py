@@ -29,6 +29,7 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
     mocker.patch.object(
         search_document_review_service, "decode_start_key"
     ).return_value = TEST_LAST_EVALUATED_KEY
+
     expected_refs = [
         DocumentUploadReviewReference.model_validate(item)
         for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
@@ -40,14 +41,39 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         TEST_LAST_EVALUATED_KEY,
     )
 
-    expected_output_refs = [
-        DocumentUploadReviewReference.model_dump_json(
-            ref, exclude_none=True, include={"id", "review_reason", "nhs_number"}
-        )
-        for ref in expected_refs
-    ]
+    expected = (
+        [
+            {
+                "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]["ID"],
+                "review_reason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
+                    "ReviewReason"
+                ],
+                "nhs_number": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
+                    "NhsNumber"
+                ],
+            },
+            {
+                "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1]["ID"],
+                "review_reason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
+                    "ReviewReason"
+                ],
+                "nhs_number": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
+                    "NhsNumber"
+                ],
+            },
+            {
+                "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2]["ID"],
+                "review_reason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
+                    "ReviewReason"
+                ],
+                "nhs_number": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
+                    "NhsNumber"
+                ],
+            },
+        ],
+        TEST_ENCODED_START_KEY,
+    )
 
-    expected = (expected_output_refs, TEST_ENCODED_START_KEY)
 
     actual = search_document_review_service.process_request(
         encoded_start_key=TEST_ENCODED_START_KEY,

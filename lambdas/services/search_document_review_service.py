@@ -26,9 +26,10 @@ class SearchDocumentReviewService:
                 start_key=decoded_start_key, ods_code=ods_code, limit=limit
             )
             output_refs = [
-                reference.model_dump_json(
+                reference.model_dump(
                     exclude_none=True,
                     include={"id", "nhs_number", "review_reason"},
+                    mode="json"
                 )
                 for reference in references
             ]
