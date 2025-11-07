@@ -102,3 +102,19 @@ def get_pdm_document_reference(record_id, client_cert_path=None, client_key_path
 
     response = session.get(url, headers=headers)
     return response
+
+
+def create_and_store_pdm_record(
+    test_data,
+    nhs_number: str = "9912003071",
+    doc_status: str | None = None,
+    size: int | None = None,
+):
+    """Helper to create metadata and resource for a record."""
+    record = pdm_data_helper.build_record(
+        nhs_number=nhs_number, doc_status=doc_status, size=size
+    )
+    test_data.append(record)
+    pdm_data_helper.create_metadata(record)
+    pdm_data_helper.create_resource(record)
+    return record
