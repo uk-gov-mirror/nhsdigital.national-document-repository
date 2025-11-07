@@ -28,6 +28,7 @@ def service_under_test(mock_boto3_resource, mocker):
         environment="dev",
         run_migration=True,
         migration_script="scripts.test_migration_script",
+        execution_id="test-exec-id",
     )
     yield service
 
@@ -86,7 +87,7 @@ def test_process_items_executes_update_functions(service_under_test, mocker):
     migration_instance = mocker.Mock()
     migration_instance.main.return_value = [("VeryImportantMigration", dummy_update_fn)]
     migration_instance.process_entries.return_value = {
-        "successful_item_run": 1,  # <-- match implementation key
+        "successful_item_runs": 1,  # <-- fix key to match implementation
         "failed_items_count": 0
     }
 
@@ -97,7 +98,8 @@ def test_process_items_executes_update_functions(service_under_test, mocker):
         label="VeryImportantMigration",
         entries=[{"ID": "1"}],
         update_fn=dummy_update_fn,
-        segment=service_under_test.segment
+        segment=service_under_test.segment,
+        execution_id="test-exec-id"
     )
     assert service_under_test.processed_count == 1
     assert service_under_test.error_count == 0
@@ -118,7 +120,8 @@ def test_process_items_handles_exceptions(service_under_test, mocker):
         label="VeryImportantMigration",
         entries=[{"ID": "1"}],
         update_fn=dummy_update_fn,
-        segment=service_under_test.segment
+        segment=service_under_test.segment,
+        execution_id="test-exec-id"
     )
     assert service_under_test.error_count == 1
 

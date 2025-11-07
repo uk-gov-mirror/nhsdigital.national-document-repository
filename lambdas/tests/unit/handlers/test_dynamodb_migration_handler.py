@@ -10,7 +10,7 @@ from handlers.migration_dynamodb_handler import (
 def mock_validate_event_input(mocker):
     return mocker.patch(
         "handlers.migration_dynamodb_handler.validate_event_input",
-        return_value=(0, 10, "my_table", "dev", "eu-west-2", False, "scripts.my_script")
+        return_value=(0, 10, "my_table", "dev", "eu-west-2", False, "scripts.my_script", "test-exec-id")
     )
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def mock_service(mocker):
     return instance
 
 def test_handler_calls_dependencies_and_returns_result(mock_validate_event_input, mock_service, context):
-    event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script"}
+    event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script", "executionId": "test-exec-id"}
 
     result = lambda_handler(event, context)
 
@@ -42,11 +42,10 @@ def test_handler_catches_client_error(mocker, mock_validate_event_input, context
         {"Error": {"Code": "AccessDeniedException", "Message": "Denied"}}, "Scan"
     )
 
-    event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script"}
+    event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script", "executionId": "test-exec-id"}
 
     with pytest.raises(ClientError):
         lambda_handler(event, context)
-
 
 
 @pytest.mark.parametrize(
@@ -65,7 +64,8 @@ def test_validate_event_invalid_inputs_raise_valueerror(update, expected_message
         "totalSegments": 10,
         "tableName": "my_table",
         "environment": "dev",
-        "migrationScript": "scripts.my_script"
+        "migrationScript": "scripts.my_script",
+        "executionId": "test-exec-id"
     }
 
     event.update(update)
@@ -127,7 +127,7 @@ def test_lambda_handler_catches_valueerror_exception(mocker, context):
     )
     mock_logger = mocker.patch("handlers.migration_dynamodb_handler.logger")
 
-    event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script"}
+    event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script", "executionId": "test-exec-id"}
 
     with pytest.raises(ValueError):
         lambda_handler(event, context)
