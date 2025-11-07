@@ -145,32 +145,38 @@ class UploadDocumentReferenceService:
             preliminary_document_reference.uploaded = True
             preliminary_document_reference.uploading = False
 
-            # if "PDMDocumentMetadata" not in self.table_name:
-            updated_doc_status = None
-            if virus_scan_result != VirusScanResult.CLEAN:
-                updated_doc_status = "cancelled"
+            if "PDMDocumentMetadata" not in self.table_name:
+                updated_doc_status = None
+                if virus_scan_result != VirusScanResult.CLEAN:
+                    updated_doc_status = "cancelled"
 
-                preliminary_document_reference.doc_status = updated_doc_status
-                self._update_dynamo_table(preliminary_document_reference)
+                    preliminary_document_reference.doc_status = updated_doc_status
+                    self._update_dynamo_table(preliminary_document_reference)
+                else:
+                    updated_doc_status = "final"
+                    preliminary_document_reference.doc_status = updated_doc_status
+
+                    self._finalize_and_supersede_with_transaction(
+                        preliminary_document_reference
+                    )
+
+                    # Update NRL Pointer
+                    # TODO: PRMP-390
+                    #
             else:
-                updated_doc_status = "final"
-                preliminary_document_reference.doc_status = updated_doc_status
+                try:
+                    preliminary_document_reference.doc_status = (
+                        "cancelled"
+                        if virus_scan_result != VirusScanResult.CLEAN
+                        else "final"
+                    )
 
-                self._finalize_and_supersede_with_transaction(
-                    preliminary_document_reference
-                )
-
-                # Update NRL Pointer
-                # TODO: PRMP-390
-                #
-            # else:
-            #     try:
-            #         self._update_dynamo_table(preliminary_document_reference, virus_scan_result)
-            #     except Exception as e:
-            #         logger.error(
-            #             f"Error processing document reference {preliminary_document_reference.id}: {str(e)}"
-            #         )
-            #         raise
+                    self._update_dynamo_table(preliminary_document_reference)
+                except Exception as e:
+                    logger.error(
+                        f"Error processing document reference {preliminary_document_reference.id}: {str(e)}"
+                    )
+                    raise
 
         except TransactionConflictException as e:
             logger.error(
@@ -428,6 +434,8 @@ class UploadDocumentReferenceService:
                 "uploaded",
                 "uploading",
             }
+            if "PDMDocumentMetadata" in self.table_name:
+                update_fields.add("s3_file_key")
 
             self.document_service.update_document(
                 table_name=self.table_name,
