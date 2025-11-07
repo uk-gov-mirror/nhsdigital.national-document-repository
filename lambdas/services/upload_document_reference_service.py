@@ -185,7 +185,7 @@ class UploadDocumentReferenceService:
 
             existing_docs: list[DocumentReference] = (
                 self.document_service.fetch_documents_from_table(
-                    table=self.table_name,
+                    table_name=self.table_name,
                     index_name="S3FileKeyIndex",
                     search_condition=new_document.s3_file_key,
                     search_key="S3FileKey",

@@ -405,13 +405,13 @@ def test_document_key_extraction_from_object_key(
 
     # Check first call (preliminary document)
     first_call = service.document_service.fetch_documents_from_table.call_args_list[0]
-    assert first_call[1]["table"] == MOCK_LG_TABLE_NAME
+    assert first_call[1]["table_name"] == MOCK_LG_TABLE_NAME
     assert first_call[1]["search_condition"] == expected_document_key
     assert first_call[1]["search_key"] == "ID"
 
     # Check second call (existing final documents)
     second_call = service.document_service.fetch_documents_from_table.call_args_list[1]
-    assert second_call[1]["table"] == MOCK_LG_TABLE_NAME
+    assert second_call[1]["table_name"] == MOCK_LG_TABLE_NAME
     assert second_call[1]["index_name"] == "S3FileKeyIndex"
     assert second_call[1]["search_condition"] == mock_document_reference.s3_file_key
     assert second_call[1]["search_key"] == "S3FileKey"
@@ -452,7 +452,7 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
     service._finalize_and_supersede_with_transaction(new_doc)
 
     service.document_service.fetch_documents_from_table.assert_called_once_with(
-        table=MOCK_LG_TABLE_NAME,
+        table_name=MOCK_LG_TABLE_NAME,
         index_name="S3FileKeyIndex",
         search_condition=new_doc.s3_file_key,
         search_key="S3FileKey",
