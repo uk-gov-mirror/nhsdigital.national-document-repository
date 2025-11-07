@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 from botocore.exceptions import ClientError
 from enums.virus_scan_result import VirusScanResult
+from lambdas.enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
 from services.mock_virus_scan_service import MockVirusScanService
 from services.upload_document_reference_service import UploadDocumentReferenceService
@@ -10,12 +11,16 @@ from tests.unit.conftest import (
     MOCK_LG_BUCKET,
     MOCK_LG_TABLE_NAME,
     MOCK_STAGING_STORE_BUCKET,
+    MOCK_PDM_TABLE_NAME,
+    MOCK_PDM_BUCKET,
 )
 from utils.common_query_filters import (
     FinalOrPreliminaryAndNotSuperseded,
     PreliminaryStatus,
 )
 from utils.exceptions import DocumentServiceException, FileProcessingException
+from utils.lambda_exceptions import InvalidDocTypeException
+
 
 @pytest.fixture
 def mock_document_reference():
@@ -662,3 +667,45 @@ def test_process_preliminary_document_reference_exception_during_processing(
         )
 
     assert "Processing failed" in str(exc_info.value)
+
+
+def test_get_infrastructure_for_document_key_pdm(service):
+    assert service.table_name == MOCK_LG_TABLE_NAME
+    assert service.destination_bucket_name == MOCK_LG_BUCKET
+    service._get_infrastructure_for_document_key(
+        object_parts=["fhir_upload", SnomedCodes.PATIENT_DATA.value.code, "1234"]
+    )
+    assert service.table_name == MOCK_PDM_TABLE_NAME
+    assert service.destination_bucket_name == MOCK_PDM_BUCKET
+
+
+def test_get_infrastructure_for_document_key_non_pdm(service):
+    infra = service._get_infrastructure_for_document_key(object_parts=["1234", "123"])
+    assert infra is None
+
+
+def test_get_infra_invalid_doc_type(monkeypatch, service):
+    # Create a fake doc_type object
+    fake_doc_type = Mock()
+    fake_doc_type.code = "999999"
+    fake_doc_type.display_name = "Fake Doc"
+
+    # Mock SnomedCodes.find_by_code so doc_type is NOT None
+    monkeypatch.setattr(
+        "services.upload_document_reference_service.SnomedCodes.find_by_code",
+        lambda code: fake_doc_type,
+    )
+
+    # Mock routers
+    mock_table_router = Mock()
+    mock_table_router.resolve.side_effect = KeyError("nope")
+
+    mock_bucket_router = Mock()
+
+    # Force KeyError inside the try block
+    mock_table_router.resolve.side_effect = KeyError("not found")
+    service.table_router = mock_table_router
+    service.bucket_router = mock_bucket_router
+    # Call function and assert the exception is raised
+    with pytest.raises(InvalidDocTypeException):
+        service._get_infrastructure_for_document_key(["fhir_upload", "999999"])
