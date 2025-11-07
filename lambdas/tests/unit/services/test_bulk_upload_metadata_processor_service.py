@@ -66,8 +66,6 @@ def test_service(mocker, set_env, mock_tempfile):
         metadata_formatter_service=MockMetadataPreprocessorService(
             practice_directory="test_practice_directory"
         ),
-        staging_bucket_name="mock-staging-bucket",
-        metadata_queue_url="test_bulk_upload_metadata_queue",
         metadata_heading_remap={},
     )
 
@@ -308,8 +306,6 @@ def bulk_upload_service():
         metadata_formatter_service=TestMetadataPreprocessorService(
             practice_directory="test_practice_directory"
         ),
-        staging_bucket_name="mock-staging-bucket",
-        metadata_queue_url="mock-queue-url",
         metadata_heading_remap={},
     )
 
@@ -715,8 +711,6 @@ def mock_service_remapping_mandatory_fields(mocker):
         metadata_formatter_service=MockMetadataPreprocessorService(
             practice_directory="test_practice_directory"
         ),
-        staging_bucket_name="mock-staging-bucket",
-        metadata_queue_url="test_bulk_upload_metadata_queue",
         metadata_heading_remap={
             "FILEPATH": "Path",
             "NHS-NO": "NhsNumber",
@@ -790,8 +784,6 @@ def mock_service_no_remapping(mocker):
         metadata_formatter_service=MockMetadataPreprocessorService(
             practice_directory="test_practice_directory"
         ),
-        staging_bucket_name="mock-staging-bucket",
-        metadata_queue_url="test_bulk_upload_metadata_queue",
         metadata_heading_remap={},
     )
 

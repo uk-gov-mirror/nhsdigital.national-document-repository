@@ -1,5 +1,3 @@
-import os
-
 from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
 from services.bulk_upload.metadata_general_preprocessor import (
     MetadataGeneralPreprocessor,
@@ -46,8 +44,6 @@ def lambda_handler(event, _context):
     metadata_formatter_service = formatter_service_class(practice_directory)
     metadata_service = BulkUploadMetadataProcessorService(
         metadata_formatter_service=metadata_formatter_service,
-        staging_bucket_name=os.getenv("STAGING_STORE_BUCKET_NAME"),
-        metadata_queue_url=os.getenv("METADATA_SQS_QUEUE_URL"),
         metadata_heading_remap=remappings,
     )
     metadata_service.process_metadata()

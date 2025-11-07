@@ -1,4 +1,5 @@
 import csv
+import os
 import shutil
 import tempfile
 import uuid
@@ -36,20 +37,21 @@ UNSUCCESSFUL = "Unsuccessful bulk upload"
 
 
 class BulkUploadMetadataProcessorService:
+
     def __init__(
         self,
         metadata_formatter_service: MetadataPreprocessorService,
-        staging_bucket_name: str,
-        metadata_queue_url: str,
         metadata_heading_remap: dict,
     ):
+        self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
+        self.metadata_queue_url = os.getenv("METADATA_SQS_QUEUE_URL")
         self.s3_service = S3Service()
         self.sqs_service = SQSService()
         self.dynamo_repository = BulkUploadDynamoRepository()
         self.metadata_heading_remap = metadata_heading_remap
 
-        self.staging_bucket_name = staging_bucket_name
-        self.metadata_queue_url = metadata_queue_url
+        self.staging_bucket_name = self.staging_bucket_name
+        self.metadata_queue_url = self.metadata_queue_url
 
         self.temp_download_dir = tempfile.mkdtemp()
         self.practice_directory = metadata_formatter_service.practice_directory
@@ -128,9 +130,7 @@ class BulkUploadMetadataProcessorService:
             records = list(csv_reader)
 
         if not headers:
-            raise BulkUploadMetadataException(
-                f"{METADATA_FILENAME} has no headers or is empty."
-            )
+            raise BulkUploadMetadataException(f"{METADATA_FILENAME} has no headers.")
 
         validated_rows, rejected_rows, rejected_reasons = (
             self.metadata_mapping_validator_service.validate_and_normalize_metadata(

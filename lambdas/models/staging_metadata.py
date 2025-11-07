@@ -1,5 +1,4 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from typing import Optional
 
 METADATA_FILENAME = "metadata.csv"
 NHS_NUMBER_FIELD_NAME = "NHS-NO"
@@ -32,12 +31,12 @@ class MetadataFile(MetadataBase):
     )
     nhs_number: str = Field(alias=NHS_NUMBER_FIELD_NAME)
     file_path: str = Field(alias="FILEPATH")
-    page_count: Optional[str] = Field(default=None, alias="PAGE COUNT")
-    section: Optional[str] = None
-    sub_section: Optional[str] = None
-    scan_id: Optional[str] = None
-    user_id: Optional[str] = None
-    upload: Optional[str] = None
+    page_count: str | None = Field(default=None, alias="PAGE COUNT")
+    section: str | None = None
+    sub_section: str | None = None
+    scan_id: str | None = None
+    user_id: str | None = None
+    upload: str | None = None
 
 
 class StagingSqsMetadata(BaseModel):
