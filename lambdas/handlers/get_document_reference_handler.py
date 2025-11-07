@@ -13,6 +13,7 @@ from utils.decorators.set_audit_arg import set_request_context_for_logging
 from enums.logging_app_interaction import LoggingAppInteraction
 from utils.audit_logging_setup import LoggingService
 from utils.request_context import request_context
+import json
 
 logger = LoggingService(__name__)
 
@@ -45,8 +46,8 @@ def lambda_handler(event: dict[str, any], context):
     
     service = GetDocumentReferenceService()
 
-    presigned_document_url = service.get_document_url_by_id(document_id, nhs_number)
+    document_info = service.get_document_url_by_id(document_id, nhs_number)
 
     return ApiGatewayResponse(
-        status_code=200, body=presigned_document_url, methods="GET"
+        status_code=200, body=json.dumps(document_info), methods="GET"
     ).create_api_gateway_response()

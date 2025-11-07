@@ -74,20 +74,26 @@ def test_handler_valid_request_returns_200(
     valid_id_event_with_auth_header["pathParameters"] = {"id": mock_document_id}
     valid_id_event_with_auth_header["queryStringParameters"]["patientId"] = mock_valid_nhs_number
     mock_presigned_s3_url = "https://mock.url/"
+    mock_content_type = "application/pdf"
+
+    expected_body = {
+        "url": mock_presigned_s3_url,
+        "contentType": mock_content_type
+    }
 
     expected_result = ApiGatewayResponse(
-        status_code=200, body=mock_presigned_s3_url, methods="GET"
+        status_code=200, body=json.dumps(expected_body), methods="GET"
     ).create_api_gateway_response()
 
-    mock_get_document_service.get_document_url_by_id.return_value = mock_presigned_s3_url
+    mock_get_document_service.get_document_url_by_id.return_value = expected_body
 
     result = lambda_handler(valid_id_event_with_auth_header, context)
 
     assert result == expected_result
-    assert result["body"] == mock_presigned_s3_url
+    assert result["body"] == json.dumps(expected_body)
 
     mock_feature_flag_service.validate_feature_flag.assert_called_once_with(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+        feature_flag
         )
     mock_get_document_service.get_document_url_by_id.assert_called_once_with(
         mock_document_id,

@@ -37,7 +37,10 @@ class GetDocumentReferenceService:
             document_reference.s3_file_key
             )
         
-        return presigned_s3_url
+        return {
+            "url": presigned_s3_url,
+            "contentType": document_reference.content_type
+        }
     
     def create_document_presigned_url(self, bucket_name, file_location):
         presigned_url_response = self.s3_service.create_download_presigned_url(

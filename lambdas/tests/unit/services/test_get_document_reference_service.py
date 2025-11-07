@@ -76,7 +76,10 @@ def test_valid_input_returns_presigned_url(
     
     mock_service.cloudfront_url = mock_cloudfront_url
 
-    expected_result = "https://" + mock_cloudfront_url + "/" + str(expected_uuid)
+    expected_result = {
+        "url": "https://" + mock_cloudfront_url + "/" + str(expected_uuid),
+        "contentType": mock_document_reference.content_type
+    }
 
     result = mock_service.get_document_url_by_id(
         mock_document_reference.id,
