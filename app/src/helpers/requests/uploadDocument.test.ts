@@ -96,6 +96,8 @@ describe('uploadDocuments', () => {
             documentReferenceId,
         });
 
+        const requestBody = JSON.parse(mockedAxios.put.mock.calls[0][1] as string);
+
         expect(mockedAxios.put).toHaveBeenCalledTimes(1);
         expect(mockedAxios.put).toHaveBeenCalledWith(
             baseUrl + endpoints.DOCUMENT_UPLOAD + `/${documentReferenceId}`,
@@ -107,6 +109,36 @@ describe('uploadDocuments', () => {
                 },
             },
         );
+
+        expect(requestBody).toMatchObject({
+            resourceType: 'DocumentReference',
+            subject: {
+                identifier: {
+                    system: 'https://fhir.nhs.uk/Id/nhs-number',
+                    value: nhsNumber,
+                },
+            },
+            type: {
+                coding: [
+                    {
+                        system: 'http://snomed.info/sct',
+                        code: '22151000087106',
+                    },
+                ],
+            },
+            content: [
+                {
+                    attachment: expect.objectContaining({
+                        fileName: documents[0].file.name,
+                        contentType: documents[0].file.type,
+                        docType: documents[0].docType,
+                        clientId: documents[0].id,
+                        versionId: documents[0].versionId,
+                    }),
+                },
+            ],
+        });
+
         expect(result).toEqual(mockUploadSession);
     });
 
@@ -458,6 +490,7 @@ describe('uploadDocuments', () => {
             contentType: documents[0].file.type,
             docType: documents[0].docType,
             clientId: documents[0].id,
+            versionId: documents[0].versionId,
         });
     });
 });
