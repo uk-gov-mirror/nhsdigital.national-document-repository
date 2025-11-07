@@ -14,7 +14,7 @@ from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
 from utils.exceptions import OdsErrorException
-from utils.lambda_exceptions import SearchDocumentReviewReferenceException
+from utils.lambda_exceptions import DocumentReviewException
 from utils.lambda_response import ApiGatewayResponse
 
 TEST_QUERY_LIMIT = 20
@@ -246,7 +246,7 @@ def test_handler_returns_500_response_error_raised(
     mock_service, context, set_env, mocked_request_context_with_ods, event_with_limit
 ):
 
-    mock_service.process_request.side_effect = SearchDocumentReviewReferenceException(
+    mock_service.process_request.side_effect = DocumentReviewException(
         500, LambdaError.SearchDocumentReviewValidation
     )
 

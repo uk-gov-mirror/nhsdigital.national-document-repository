@@ -1,12 +1,11 @@
 import base64
 import json
-import json
 
 from enums.lambda_error import LambdaError
 from pydantic import ValidationError
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
-from utils.lambda_exceptions import SearchDocumentReviewReferenceException
+from utils.lambda_exceptions import DocumentReviewException
 
 logger = LoggingService(__name__)
 
@@ -14,7 +13,7 @@ logger = LoggingService(__name__)
 class SearchDocumentReviewService:
 
     def __init__(self):
-        self.document_review_service = DocumentUploadReviewService()
+        self.document_service = DocumentUploadReviewService()
 
     def process_request(
         self, ods_code: str, encoded_start_key: str | None, limit: int | None
@@ -40,14 +39,14 @@ class SearchDocumentReviewService:
 
         except ValidationError as e:
             logger.error(e)
-            raise SearchDocumentReviewReferenceException(
+            raise DocumentReviewException(
                 500, LambdaError.SearchDocumentReviewValidation
             )
 
     def get_review_document_references(
         self, ods_code: str, limit: int | None = None, start_key: dict | None = None
     ):
-        return self.document_review_service.query_review_documents_by_custodian(
+        return self.document_service.query_review_documents_by_custodian(
             ods_code=ods_code, limit=limit, start_key=start_key
         )
 

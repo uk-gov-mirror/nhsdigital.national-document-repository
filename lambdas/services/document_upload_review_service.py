@@ -6,7 +6,7 @@ from models.document_review import DocumentUploadReviewReference
 from pydantic import ValidationError
 from services.document_service import DocumentService
 from utils.audit_logging_setup import LoggingService
-from utils.lambda_exceptions import SearchDocumentReviewReferenceException
+from utils.lambda_exceptions import DocumentReviewException
 
 logger = LoggingService(__name__)
 
@@ -52,9 +52,7 @@ class DocumentUploadReviewService(DocumentService):
 
         except ClientError as e:
             logger.error(e)
-            raise SearchDocumentReviewReferenceException(
-                500, LambdaError.SearchDocumentReviewDB
-            )
+            raise DocumentReviewException(500, LambdaError.SearchDocumentReviewDB)
 
     def _validate_review_references(
         self, items: list[dict]
@@ -67,7 +65,7 @@ class DocumentUploadReviewService(DocumentService):
             return review_references
         except ValidationError as e:
             logger.error(e)
-            raise SearchDocumentReviewReferenceException(
+            raise DocumentReviewException(
                 500, LambdaError.SearchDocumentReviewValidation
             )
 
