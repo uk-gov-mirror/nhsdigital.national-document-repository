@@ -71,10 +71,8 @@ class DataHelper:
         )
 
     def retrieve_document_reference(self, record):
-        params = record["id"].split("~")
-        id = params[1] if len(params) == 2 else params
         return self.dynamo_service.get_item(
-            table_name=self.dynamo_table, key={"ID": id}
+            table_name=self.dynamo_table, key={"ID": record["id"]}
         )
 
     def create_upload_payload(self, record):
@@ -126,6 +124,7 @@ class DataHelper:
         return json.dumps(payload)
 
     def tidyup(self, record):
+        print(f"Tidying up record ID: {record['id']}")
         self.dynamo_service.delete_item(
             table_name=self.dynamo_table,
             key={"ID": record["id"]},

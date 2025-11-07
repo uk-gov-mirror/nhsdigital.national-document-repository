@@ -203,9 +203,6 @@ def test_create_document_saves_raw(test_data):
     record["id"] = raw_upload_response.json()["id"].split("~")[1]
     test_data.append(record)
 
-    json_response = raw_upload_response.json()
-    record["id"] = json_response.get("id")
-
     doc_ref = pdm_data_helper.retrieve_document_reference(record=record)
     assert "Item" in doc_ref
     assert "RawRequest" in doc_ref["Item"]
