@@ -2,9 +2,7 @@ from datetime import datetime, timezone
 
 from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
-from models.document_review import (
-    PutDocumentReviewRequest,
-)
+from models.document_review import PutDocumentReviewRequest
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.lambda_exceptions import PutDocumentReviewException

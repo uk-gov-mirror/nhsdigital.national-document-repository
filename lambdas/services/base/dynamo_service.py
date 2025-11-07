@@ -1,5 +1,5 @@
 import time
-from typing import Iterator, Optional
+from typing import Optional, Sequence
 
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key

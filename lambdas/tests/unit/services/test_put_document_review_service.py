@@ -12,10 +12,7 @@ from models.document_review import (
     PutDocumentReviewRequest,
 )
 from services.put_document_review_service import PutDocumentReviewService
-from tests.unit.conftest import (
-    MOCK_DOCUMENT_REVIEW_BUCKET,
-    TEST_NHS_NUMBER,
-)
+from tests.unit.conftest import MOCK_DOCUMENT_REVIEW_BUCKET, TEST_NHS_NUMBER
 from utils.lambda_exceptions import PutDocumentReviewException
 
 TEST_DOCUMENT_ID = "test-document-id-123"
@@ -263,5 +260,3 @@ def test_update_document_review_update_fails_with_exception(
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.error == LambdaError.DocumentReferenceGeneralError
-
-

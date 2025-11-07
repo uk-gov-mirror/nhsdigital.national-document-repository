@@ -244,7 +244,9 @@ class DocumentService:
         # If no condition provided, default to ensuring the document exists
         # This prevents accidentally creating new items when updating
         if condition_expression is None:
-            condition_expression = Attr(DocumentReferenceMetadataFields.ID.value).exists()
+            condition_expression = Attr(
+                DocumentReferenceMetadataFields.ID.value
+            ).exists()
 
         update_kwargs["condition_expression"] = condition_expression
 
@@ -290,4 +292,3 @@ class DocumentService:
 
         found_docs = [model_to_use.model_validate(item) for item in response]
         return found_docs
-
