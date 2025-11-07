@@ -51,6 +51,21 @@ describe('GP Workflow: View Lloyd George record', () => {
         cy.getByTestId('patient-summary-date-of-birth').should('have.text', `1 January 1970`);
     };
 
+    const assertPatientInfoSmall = () => {
+        cy.getByTestId('patient-summary-full-name').should(
+            'have.text',
+            `${searchPatientPayload.familyName}, ${searchPatientPayload.givenName}`,
+        );
+        cy.getByTestId('patient-summary-small-nhs-number').should(
+            'have.text',
+            `NHS number: 900 000 0009`,
+        );
+        cy.getByTestId('patient-summary-small-date-of-birth').should(
+            'have.text',
+            `Date of birth: 1 January 1970`,
+        );
+    };
+
     const beforeEachConfiguration = (role) => {
         cy.login(role);
         cy.navigateToPatientSearchPage();
@@ -80,6 +95,16 @@ describe('GP Workflow: View Lloyd George record', () => {
                 body: viewLloydGeorgePayload,
             });
         }).as('stitchJobCompleted');
+
+        return new Date(viewLloydGeorgePayload.lastUpdated).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric',
+            timeZone: 'Europe/London',
+        });
     };
 
     gpRoles.forEach((role) => {
@@ -91,16 +116,17 @@ describe('GP Workflow: View Lloyd George record', () => {
                 roleName(role) + ' can view a Lloyd George document of an active patient',
                 { tags: 'regression' },
                 () => {
-                    setUpStitchJobIntercepts();
+                    const date = setUpStitchJobIntercepts();
 
                     cy.get('#verify-submit').click();
                     cy.wait('@stitchJobCompleted', { timeout: 20000 });
 
                     // Assert
                     assertPatientInfo();
+                    cy.getByTestId('pdf-card').scrollIntoView();
                     cy.getByTestId('pdf-card')
                         .should('include.text', 'Lloyd George record')
-                        .should('include.text', 'Last updated: 09 October 2023 at 15:41:38');
+                        .should('include.text', `Last updated: ${date}`);
                     cy.getByTestId('pdf-viewer').should('be.visible');
 
                     // Act - open full screen view
@@ -112,7 +138,7 @@ describe('GP Workflow: View Lloyd George record', () => {
                     }
 
                     // Assert
-                    assertPatientInfo();
+                    assertPatientInfoSmall();
                     cy.getByTestId('pdf-card').should('not.exist');
                     cy.getByTestId('pdf-viewer').should('be.visible');
 

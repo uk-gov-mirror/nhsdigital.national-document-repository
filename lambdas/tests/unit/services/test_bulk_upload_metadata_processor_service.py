@@ -100,6 +100,7 @@ def mock_sqs_service(test_service):
 def base_metadata_file():
     row = {
         "FILEPATH": "valid/path/to/file.pdf",
+        "STORED-FILE-NAME": "valid/path/to/file.pdf",
         "GP-PRACTICE-CODE": "Y12345",
         "NHS-NO": "1234567890",
         "PAGE COUNT": "1",

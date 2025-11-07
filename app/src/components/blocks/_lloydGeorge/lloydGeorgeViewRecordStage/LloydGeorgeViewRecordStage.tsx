@@ -1,23 +1,30 @@
-import { Dispatch, SetStateAction, useEffect, useRef } from 'react';
 import { Button, ChevronLeftIcon } from 'nhsuk-react-components';
-import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
-import LloydGeorgeRecordDetails from '../lloydGeorgeRecordDetails/LloydGeorgeRecordDetails';
-import { LG_RECORD_STAGE } from '../../../../types/blocks/lloydGeorgeStages';
-import LloydGeorgeRecordError from '../lloydGeorgeRecordError/LloydGeorgeRecordError';
-import useRole from '../../../../helpers/hooks/useRole';
-import BackButton from '../../../generic/backButton/BackButton';
-import { getUserRecordActionLinks } from '../../../../types/blocks/lloydGeorgeActions';
-import RecordCard from '../../../generic/recordCard/RecordCard';
-import useTitle from '../../../../helpers/hooks/useTitle';
-import { routes, routeChildren } from '../../../../types/generic/routes';
-import ProgressBar from '../../../generic/progressBar/ProgressBar';
-import usePatient from '../../../../helpers/hooks/usePatient';
-import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
-import RecordMenuCard from '../../../generic/recordMenuCard/RecordMenuCard';
-import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
-import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
-import { Link } from 'react-router-dom';
+import { Dispatch, SetStateAction, useEffect, useRef } from 'react';
+import { createSearchParams, NavigateOptions, To, useNavigate } from 'react-router-dom';
 import useConfig from '../../../../helpers/hooks/useConfig';
+import usePatient from '../../../../helpers/hooks/usePatient';
+import useRole from '../../../../helpers/hooks/useRole';
+import useTitle from '../../../../helpers/hooks/useTitle';
+import { generateFileName } from '../../../../helpers/requests/uploadDocuments';
+import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
+import { getUserRecordActionLinks } from '../../../../types/blocks/lloydGeorgeActions';
+import { LG_RECORD_STAGE } from '../../../../types/blocks/lloydGeorgeStages';
+import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
+import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
+import { routeChildren, routes } from '../../../../types/generic/routes';
+import BackButton from '../../../generic/backButton/BackButton';
+import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
+import ProgressBar from '../../../generic/progressBar/ProgressBar';
+import RecordCard from '../../../generic/recordCard/RecordCard';
+import RecordMenuCard from '../../../generic/recordMenuCard/RecordMenuCard';
+import LloydGeorgeRecordDetails from '../lloydGeorgeRecordDetails/LloydGeorgeRecordDetails';
+import LloydGeorgeRecordError from '../lloydGeorgeRecordError/LloydGeorgeRecordError';
+import getDocumentSearchResults from '../../../../helpers/requests/getDocumentSearchResults';
+import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
+import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
+import { AxiosError } from 'axios';
+import { SearchResult } from '../../../../types/generic/searchResult';
+import { isMock } from '../../../../helpers/utils/isLocal';
 
 export type Props = {
     downloadStage: DOWNLOAD_STAGE;
@@ -40,8 +47,11 @@ function LloydGeorgeViewRecordStage({
     resetDocState,
 }: Props) {
     const patientDetails = usePatient();
+    const navigate = useNavigate();
     const [session, setUserSession] = useSessionContext();
     const config = useConfig();
+    const baseUrl = useBaseAPIUrl();
+    const baseHeaders = useBaseAPIHeaders();
 
     const role = useRole();
 
@@ -55,8 +65,7 @@ function LloydGeorgeViewRecordStage({
         } else if (document.fullscreenElement !== null) {
             document.exitFullscreen?.();
         }
-
-        setUserSession({ ...session, isFullscreen });
+        // Note: Let the fullscreen event handlers manage the session state to avoid race conditions
     };
 
     let recordLinksToShow = getUserRecordActionLinks({ role, hasRecordInStorage }).map((link) => {
@@ -88,7 +97,84 @@ function LloydGeorgeViewRecordStage({
         }
     }, [refreshRecord, resetDocState]);
 
+    // Handle fullscreen changes from browser events
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isCurrentlyFullscreen = document.fullscreenElement !== null;
+            // Only update if the state has actually changed to avoid unnecessary re-renders
+            if (session.isFullscreen !== isCurrentlyFullscreen) {
+                setUserSession({ 
+                    ...session, 
+                    isFullscreen: isCurrentlyFullscreen 
+                });
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, [session, setUserSession]);
+
     const menuClass = showMenu ? '--menu' : '--upload';
+
+    const handleAddFilesClick = async (): Promise<void> => {
+        if (!patientDetails?.nhsNumber) {
+            navigate(routes.SERVER_ERROR);
+            return;
+        }
+
+        const handleSuccess = async (searchResults: SearchResult[]): Promise<void> => {
+            const fileName = searchResults[0].fileName;
+            const documentId = searchResults[0].id;
+            const versionId = searchResults[0].version;
+
+            const response = await fetch(pdfObjectUrl);
+            const blob = await response.blob();
+
+            const to: To = {
+                pathname: routes.DOCUMENT_UPLOAD,
+                search: createSearchParams({ journey: 'update' }).toString(),
+            };
+            const options: NavigateOptions = {
+                state: {
+                    journey: 'update',
+                    existingDocuments: [{ fileName, blob, documentId, versionId }],
+                },
+            };
+            navigate(to, options);
+        };
+
+        try {
+            const searchResults = await getDocumentSearchResults({
+                nhsNumber: patientDetails?.nhsNumber,
+                baseUrl: baseUrl,
+                baseHeaders: baseHeaders,
+            });
+
+            handleSuccess(searchResults);
+        } catch (e) {
+            const error = e as AxiosError;
+
+            if (isMock(error)) {
+                handleSuccess([
+                    {
+                        id: 'mock-document-id',
+                        fileName: generateFileName(patientDetails),
+                        version: 'mock-version-id',
+                        created: new Date().toISOString(),
+                        fileSize: 12345,
+                        virusScannerResult: 'clean',
+                    },
+                ]);
+            } else if (error.response?.status === 403) {
+                navigate(routes.SESSION_EXPIRED);
+            } else {
+                navigate(routes.SERVER_ERROR + `?message=${encodeURIComponent(error.message)}`);
+            }
+        }
+    };
 
     return (
         <div className="lloydgeorge_record-stage">
@@ -99,7 +185,7 @@ function LloydGeorgeViewRecordStage({
                             reverse
                             data-testid="back-link"
                             className="exit-fullscreen-button"
-                            onClick={() => {
+                            onClick={(): void => {
                                 setFullScreen(false);
                             }}
                         >
@@ -110,7 +196,7 @@ function LloydGeorgeViewRecordStage({
                         <a
                             className="sign-out-link"
                             href={routes.LOGOUT}
-                            onClick={() => {
+                            onClick={(): void => {
                                 setFullScreen(false);
                             }}
                         >
@@ -137,7 +223,7 @@ function LloydGeorgeViewRecordStage({
                         </>
                     )}
 
-                    <PatientSummary showDeceasedTag>
+                    <PatientSummary showDeceasedTag oneLine={session.isFullscreen}>
                         <PatientSummary.Child item={PatientInfo.FULL_NAME} />
                         <PatientSummary.Child item={PatientInfo.NHS_NUMBER} />
                         <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
@@ -151,18 +237,15 @@ function LloydGeorgeViewRecordStage({
                         />
                     )}
 
-                    {hasRecordInStorage && config.featureFlags.uploadLloydGeorgeWorkflowEnabled && (
+                    {!session.isFullscreen &&
+                        hasRecordInStorage &&
+                        config.featureFlags.uploadDocumentIteration2Enabled && (
                         <>
-                            <h2>Uploading files</h2>
-                            <p>
-                                You cannot currently add more files to this patient's record. This
-                                feature is coming soon. If you have more files for this patient,
-                                store them following the{' '}
-                                <Link to="https://transform.england.nhs.uk/information-governance/guidance/records-management-code/records-management-code-of-practice/">
-                                    Records Management Code of Practice
-                                </Link>
-                                {'.'}
-                            </p>
+                            <h2 className="title">Add Files</h2>
+                            <p>You can add more files to this patient's record.</p>
+                            <Button onClick={handleAddFilesClick} data-testid="add-files-btn">
+                                Add Files
+                            </Button>
                         </>
                     )}
                 </div>

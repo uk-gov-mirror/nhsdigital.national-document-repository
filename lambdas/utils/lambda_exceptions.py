@@ -17,6 +17,10 @@ class LambdaException(Exception):
         )
 
 
+class DocumentRefException(LambdaException):
+    pass
+
+
 class CreateDocumentRefException(LambdaException):
     pass
 

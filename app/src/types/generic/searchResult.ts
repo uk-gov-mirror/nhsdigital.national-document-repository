@@ -4,4 +4,5 @@ export type SearchResult = {
     virusScannerResult: string;
     id: string;
     fileSize: number;
+    version: string;
 };

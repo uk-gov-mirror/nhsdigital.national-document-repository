@@ -7,7 +7,7 @@ import time
 import pytest
 import requests
 
-from lambdas.tests.e2e.helpers.pdm_data_helper import PdmDataHelper
+from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
 
