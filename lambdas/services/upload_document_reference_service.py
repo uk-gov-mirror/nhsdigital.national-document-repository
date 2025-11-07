@@ -33,6 +33,7 @@ class UploadDocumentReferenceService:
         self.staging_s3_bucket_name = os.environ["STAGING_STORE_BUCKET_NAME"]
         self.table_name = os.environ["LLOYD_GEORGE_DYNAMODB_NAME"]
         self.destination_bucket_name = os.environ["LLOYD_GEORGE_BUCKET_NAME"]
+        self.doc_type = SnomedCodes.LLOYD_GEORGE.value
         self.document_service = DocumentService()
         self.dynamo_service = DynamoDBService()
         self.virus_scan_service = get_virus_scan_service()
@@ -76,6 +77,7 @@ class UploadDocumentReferenceService:
             return
 
         try:
+            self.doc_type = doc_type
             self.table_name = self.table_router.resolve(doc_type)
             self.destination_bucket_name = self.bucket_router.resolve(doc_type)
         except KeyError:
@@ -145,7 +147,7 @@ class UploadDocumentReferenceService:
             preliminary_document_reference.uploaded = True
             preliminary_document_reference.uploading = False
 
-            if "PDMDocumentMetadata" not in self.table_name:
+            if self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
                 updated_doc_status = None
                 if virus_scan_result != VirusScanResult.CLEAN:
                     updated_doc_status = "cancelled"
@@ -370,8 +372,9 @@ class UploadDocumentReferenceService:
         """Copy files from staging bucket to destination bucket"""
         try:
             logger.info("Copying files from staging bucket")
-
-            dest_file_key = document_reference.s3_file_key
+            dest_file_key = f"{document_reference.nhs_number}/{document_reference.id}"
+            if self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
+                dest_file_key = document_reference.s3_file_key
 
             copy_result = self.s3_service.copy_across_bucket(
                 source_bucket=self.staging_s3_bucket_name,
@@ -379,13 +382,13 @@ class UploadDocumentReferenceService:
                 dest_bucket=self.destination_bucket_name,
                 dest_file_key=dest_file_key,
             )
-
+            if self.doc_type.code == SnomedCodes.PATIENT_DATA.value.code:
+                document_reference.s3_file_key = dest_file_key
             document_reference.s3_bucket_name = self.destination_bucket_name
             document_reference.file_location = document_reference._build_s3_location(
                 self.destination_bucket_name, dest_file_key
             )
             document_reference.s3_version_id = copy_result.get("VersionId")
-
             return copy_result
 
         except ClientError as e:
