@@ -22,7 +22,7 @@ class MetadataMappingValidatorService:
         alias_field_keys = set(alias_map.keys()).intersection(self.model_aliases)
 
         missing_keys_from_model = self.model_aliases - alias_field_keys
-        optional_remapping_set = set({"PAGE COUNT", "SECTION", "SUB-SECTION"})
+        optional_remapping_set = {"PAGE COUNT", "SECTION", "SUB-SECTION"}
         optional_remapping_keys = {
             k for k in optional_remapping_set if k in self.model_aliases
         }

@@ -50,9 +50,6 @@ class BulkUploadMetadataProcessorService:
         self.dynamo_repository = BulkUploadDynamoRepository()
         self.metadata_heading_remap = metadata_heading_remap
 
-        self.staging_bucket_name = self.staging_bucket_name
-        self.metadata_queue_url = self.metadata_queue_url
-
         self.temp_download_dir = tempfile.mkdtemp()
         self.practice_directory = metadata_formatter_service.practice_directory
         self.file_key = (
