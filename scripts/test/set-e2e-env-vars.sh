@@ -31,5 +31,7 @@ fi
 # Set certificate paths in regards to where e2e tests are run from
 export CLIENT_CERT_PATH=./mtls_env_certs/"${WORKSPACE}"/client.crt
 export CLIENT_KEY_PATH=./mtls_env_certs/"${WORKSPACE}"/client.key
+export FOOBAR_CLIENT_CERT_PATH=./mtls_env_certs/"${WORKSPACE}"/foobar_client.crt
+export FOOBAR_CLIENT_KEY_PATH=./mtls_env_certs/"${WORKSPACE}"/foobar_client.key
 
 echo "Environment variables set for WORKSPACE ${WORKSPACE}"

@@ -14,9 +14,9 @@ pdm_data_helper = PdmDataHelper()
 PDM_SNOMED = 717391000000106
 PDM_METADATA_TABLE = os.environ.get("PDM_METADATA_TABLE")
 PDM_S3_BUCKET = os.environ.get("PDM_S3_BUCKET") or ""
-MTLS_ENDPOINT = os.environ["MTLS_ENDPOINT"]
-CLIENT_CERT_PATH = os.environ["CLIENT_CERT_PATH"]
-CLIENT_KEY_PATH = os.environ["CLIENT_KEY_PATH"]
+MTLS_ENDPOINT = os.environ.get("MTLS_ENDPOINT")
+CLIENT_CERT_PATH = os.environ.get("CLIENT_CERT_PATH")
+CLIENT_KEY_PATH = os.environ.get("CLIENT_KEY_PATH")
 
 
 @pytest.fixture
@@ -47,9 +47,11 @@ def fetch_with_retry_mtls(
     raise Exception("Condition not met within retry limit")
 
 
-def create_mtls_session():
+def create_mtls_session(
+    client_cert_path=CLIENT_CERT_PATH, client_key_path=CLIENT_KEY_PATH
+):
     session = requests.Session()
-    session.cert = (CLIENT_CERT_PATH, CLIENT_KEY_PATH)
+    session.cert = (client_cert_path, client_key_path)
     return session
 
 
@@ -83,3 +85,20 @@ def temp_cert_and_key():
         yield cert_path, key_path
     finally:
         shutil.rmtree(temp_dir)
+
+
+def get_pdm_document_reference(record_id, client_cert_path=None, client_key_path=None):
+    url = f"https://{MTLS_ENDPOINT}/DocumentReference/{PDM_SNOMED}~{record_id}"
+    headers = {
+        "X-Correlation-Id": "1234",
+    }
+
+    # Call with invalid or foobar certs
+    if client_cert_path and client_key_path:
+        session = create_mtls_session(client_cert_path, client_key_path)
+    else:
+        # Call with default valid certs
+        session = create_mtls_session()
+
+    response = session.get(url, headers=headers)
+    return response
