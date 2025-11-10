@@ -79,11 +79,7 @@ class DynamoDBMigrationService:
         return response, items
 
     def process_items(self, migration_instance, items):
-        ##todo remove test log
-        logger.error(f"Processing {len(items)} items for segment {self.segment}")
         if not items:
-            ##todo remove test log
-            logger.error("No items to process.")
             return
         for label, update_fn in migration_instance.main(entries=items):
             try:

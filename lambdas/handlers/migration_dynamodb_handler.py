@@ -82,7 +82,7 @@ def validate_event_input(event):
         table_name,
         environment,
         region,
-        run_migration,
+        run_migration, 
         migration_script,
         execution_id
     )
