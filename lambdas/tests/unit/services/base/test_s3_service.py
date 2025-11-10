@@ -141,8 +141,8 @@ def test_copy_across_bucket(mock_service, mock_client):
 
 def test_copy_across_bucket_if_none_match(mock_service, mock_client):
     test_etag = '"abc123def456"'
-    
-    mock_service.copy_across_bucket_if_none_match(
+
+    mock_service.copy_across_bucket(
         source_bucket="bucket_to_copy_from",
         source_file_key=TEST_FILE_KEY,
         dest_bucket="bucket_to_copy_to",
@@ -157,6 +157,7 @@ def test_copy_across_bucket_if_none_match(mock_service, mock_client):
         IfNoneMatch=test_etag,
         StorageClass="INTELLIGENT_TIERING",
     )
+
 
 def test_delete_object(mock_service, mock_client):
     mock_service.delete_object(s3_bucket_name=MOCK_BUCKET, file_key=TEST_FILE_NAME)
@@ -530,30 +531,38 @@ def test_get_head_object_returns_metadata(mock_service, mock_client):
     result = mock_service.get_head_object(bucket=MOCK_BUCKET, key=TEST_FILE_KEY)
 
     assert result == mock_response
-    mock_client.head_object.assert_called_once_with(Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY)
+    mock_client.head_object.assert_called_once_with(
+        Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY
+    )
 
 
-def test_get_head_object_raises_client_error_when_object_not_found(mock_service, mock_client):
+def test_get_head_object_raises_client_error_when_object_not_found(
+    mock_service, mock_client
+):
     mock_error = ClientError(
-        {"Error": {"Code": "404", "Message": "Not Found"}},
-        "HeadObject"
+        {"Error": {"Code": "404", "Message": "Not Found"}}, "HeadObject"
     )
     mock_client.head_object.side_effect = mock_error
 
     with pytest.raises(ClientError):
         mock_service.get_head_object(bucket=MOCK_BUCKET, key=TEST_FILE_KEY)
 
-    mock_client.head_object.assert_called_once_with(Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY)
+    mock_client.head_object.assert_called_once_with(
+        Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY
+    )
 
 
-def test_get_head_object_raises_client_error_on_access_denied(mock_service, mock_client):
+def test_get_head_object_raises_client_error_on_access_denied(
+    mock_service, mock_client
+):
     mock_error = ClientError(
-        {"Error": {"Code": "403", "Message": "Forbidden"}},
-        "HeadObject"
+        {"Error": {"Code": "403", "Message": "Forbidden"}}, "HeadObject"
     )
     mock_client.head_object.side_effect = mock_error
 
     with pytest.raises(ClientError):
         mock_service.get_head_object(bucket=MOCK_BUCKET, key=TEST_FILE_KEY)
 
-    mock_client.head_object.assert_called_once_with(Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY)
+    mock_client.head_object.assert_called_once_with(
+        Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY
+    )

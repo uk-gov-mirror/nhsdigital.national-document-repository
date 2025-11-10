@@ -27,7 +27,6 @@ class ReviewProcessorService:
         self.staging_bucket_name = os.environ["STAGING_STORE_BUCKET_NAME"]
         self.review_bucket_name = os.environ["PENDING_REVIEW_BUCKET_NAME"]
 
-
     def process_review_message(self, review_message: ReviewMessageBody) -> None:
         """
         Process a single SQS message from the review queue.
@@ -47,18 +46,23 @@ class ReviewProcessorService:
 
         review_id = review_message.upload_id
         review_files = self._move_files_to_review_bucket(review_message, review_id)
-        document_upload_review = self._build_review_record(review_message, review_id, review_files)
+        document_upload_review = self._build_review_record(
+            review_message, review_id, review_files
+        )
         self.dynamo_service.put_item(
             table_name=self.review_table_name,
             item=document_upload_review.model_dump(by_alias=True, exclude_none=True),
-            key_name=DocumentReferenceMetadataFields.ID.value
+            key_name=DocumentReferenceMetadataFields.ID.value,
         )
 
         logger.info(f"Created review record {document_upload_review.id}")
         self._delete_files_from_staging(review_message)
 
     def _build_review_record(
-            self, message_data: ReviewMessageBody, review_id: str, review_files: list[DocumentReviewFileDetails]
+        self,
+        message_data: ReviewMessageBody,
+        review_id: str,
+        review_files: list[DocumentReviewFileDetails],
     ) -> DocumentsUploadReview:
         return DocumentsUploadReview(
             id=review_id,
@@ -68,7 +72,7 @@ class ReviewProcessorService:
             author=message_data.uploader_ods,
             custodian=message_data.current_gp,
             files=review_files,
-            upload_date=int(datetime.now(tz=timezone.utc).timestamp())
+            upload_date=int(datetime.now(tz=timezone.utc).timestamp()),
         )
 
     def _move_files_to_review_bucket(
@@ -86,11 +90,15 @@ class ReviewProcessorService:
         """
         new_file_keys: list[DocumentReviewFileDetails] = []
         for file in message_data.files:
-            new_file_key = f"{message_data.nhs_number}/{review_record_id}/{file.file_name}"
+            new_file_key = (
+                f"{message_data.nhs_number}/{review_record_id}/{file.file_name}"
+            )
 
-            logger.info(f"Copying file from ({file.file_path}) in staging to review bucket: {new_file_key}")
+            logger.info(
+                f"Copying file from ({file.file_path}) in staging to review bucket: {new_file_key}"
+            )
 
-            self.s3_service.copy_across_bucket_if_none_match(
+            self.s3_service.copy_across_bucket(
                 source_bucket=self.staging_bucket_name,
                 source_file_key=file.file_path,
                 dest_bucket=self.review_bucket_name,
@@ -113,9 +121,9 @@ class ReviewProcessorService:
         for file in message_data.files:
             try:
                 logger.info(f"Deleting file from staging bucket: {file.file_path}")
-                self.s3_service.delete_object(s3_bucket_name=self.staging_bucket_name, file_key=file.file_path)
+                self.s3_service.delete_object(
+                    s3_bucket_name=self.staging_bucket_name, file_key=file.file_path
+                )
             except Exception as e:
                 logger.error(f"Error deleting files from staging: {str(e)}")
                 # Continue processing as files
-
-
