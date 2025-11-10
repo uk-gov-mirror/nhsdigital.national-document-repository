@@ -55,6 +55,9 @@ class S3MetadataMigration(MigrationBase):
         Returns a dict of fields to update, or None if no update is needed.
         """
 
+        #todo remove test exception
+        raise MigrationUnrecoverableException(message="TestException", item_id=entry.get("ID"))
+
         update_items = {}
 
         if s3_metadata_items := self.get_update_s3_metadata_items(entry):
