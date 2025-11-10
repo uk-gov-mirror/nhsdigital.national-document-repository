@@ -64,7 +64,6 @@ def validate_event_input(event):
         raise ValueError("'segment' must be less than 'totalSegments'")
 
     migration_script = str(event["migrationScript"]).strip()
-    logger.info(f"migration_script: {migration_script}")
     if not migration_script:
         raise ValueError("'migrationScript' cannot be empty")
 
@@ -89,7 +88,6 @@ def validate_event_input(event):
 
 
 def lambda_handler(event, context):
-    logger.info(f"Received event: {event}")
     try:
         (
             segment,
@@ -105,8 +103,6 @@ def lambda_handler(event, context):
         logger.info(
             f"Starting DynamoDB migration for table: {table_name} (env={environment}, region={region})"
         )
-
-        logger.info(f"lambda_handler - migration_script: {migration_script}")
 
         service = DynamoDBMigrationService(
             segment=segment,
