@@ -95,6 +95,7 @@ class DynamoDBMigrationService:
                 self.skipped_count += segment_run_output.get("skipped_items_count", 0)
             except Exception:
                 self.error_count += 1
+                raise 
 
     def iterate_segment_items(self,migration_instance):
        last_evaluated_key = None
