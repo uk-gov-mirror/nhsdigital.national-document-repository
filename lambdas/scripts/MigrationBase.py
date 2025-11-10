@@ -100,6 +100,7 @@ class MigrationBase(ABC):
             except Exception as s3_error:
                 self.logger.error(f"Failed to save error report to S3: {str(s3_error)}")
                 self.logger.error({"Unlogged failed items": failed_items})
+                raise
 
         self.logger.info(f"'{label}' migration step completed.\n")
         return {
