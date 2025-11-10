@@ -51,9 +51,6 @@ class MigrationBase(ABC):
         skipped_items = 0
         failed_items = []
 
-        ##todo remove test log
-        self.logger.error(f"Processing {len(entries)} items for segment {segment} inside process_entries")
-
         for index, entry in enumerate(entries, start=1):
             item_id = entry.get("ID")
             self.logger.info(f"[{label}] Processing item {index} (ID: {item_id})")
@@ -87,12 +84,7 @@ class MigrationBase(ABC):
             except Exception as e:
                 self.logger.error(f"[{label}] Error processing item {item_id}: {str(e)}")
                 raise
-        
 
-        
-        ##to remove this line 
-        self.logger.error({"92 failed_items": failed_items})
-        self.logger.error(self.failed_items_bucket)
         if failed_items:
             self.logger.error(f"'{label}' migration segment: {segment} completed with {len(failed_items)} errors.")
             error_report_key = f"{execution_id}/{segment}/{label}_errors.json"
