@@ -27,6 +27,7 @@ share/python-wheels/
 MANIFEST
 .pip_cache/
 package/
+lambdas/mtls_env_certs/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
