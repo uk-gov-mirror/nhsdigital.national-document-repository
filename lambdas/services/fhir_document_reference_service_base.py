@@ -47,10 +47,10 @@ class FhirDocumentReferenceServiceBase:
             self.s3_service.upload_file_obj(
                 file_obj=binary_file,
                 s3_bucket_name=document_reference.s3_bucket_name,
-                file_key=document_reference.s3_file_key,
+                file_key=document_reference.s3_upload_key,
             )
             logger.info(
-                f"Successfully stored binary content in S3: {document_reference.s3_file_key}"
+                f"Successfully stored binary content in S3: {document_reference.s3_upload_key}"
             )
         except (binascii.Error, ValueError) as e:
             logger.error(f"Failed to decode base64: {str(e)}")
@@ -69,10 +69,10 @@ class FhirDocumentReferenceServiceBase:
         """Create a pre-signed URL for uploading a file"""
         try:
             response = self.s3_service.create_put_presigned_url(
-                document_reference.s3_bucket_name, document_reference.s3_file_key
+                document_reference.s3_bucket_name, document_reference.s3_upload_key
             )
             logger.info(
-                f"Successfully created pre-signed URL for {document_reference.s3_file_key}"
+                f"Successfully created pre-signed URL for {document_reference.s3_upload_key}"
             )
             return response
         except ClientError as e:
@@ -112,7 +112,8 @@ class FhirDocumentReferenceServiceBase:
             status="current",
             sub_folder="user_upload",
             version=version,
-            s3_file_key=s3_file_key
+            s3_file_key=s3_file_key,
+            uploading=True,
         )
 
         return document_reference

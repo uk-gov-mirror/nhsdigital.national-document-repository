@@ -4,13 +4,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 from enums.lambda_error import LambdaError
 from handlers.fhir_document_reference_search_handler import (
-    extract_bearer_token,
     lambda_handler,
     parse_query_parameters,
     validate_user_access,
 )
 from utils.exceptions import AuthorisationException, OidcApiException
 from utils.lambda_exceptions import DocumentRefSearchException
+from utils.lambda_handler_utils import extract_bearer_token
 
 
 @pytest.fixture
@@ -349,27 +349,30 @@ def test_parse_query_parameters():
     assert filters == {}
 
 
-def test_extract_bearer_token_valid():
+def test_extract_bearer_token_valid(context):
+    context.function_name = "SearchDocumentReferencesFHIR"
     event = {"headers": {"Authorization": "Bearer valid-token"}}
 
-    token = extract_bearer_token(event)
+    token = extract_bearer_token(event, context)
     assert token == "Bearer valid-token"
 
 
-def test_extract_bearer_token_invalid_format():
+def test_extract_bearer_token_invalid_format(context):
+    context.function_name = "SearchDocumentReferencesFHIR"
     event = {"headers": {"Authorization": "Token valid-token"}}
 
     with pytest.raises(DocumentRefSearchException) as e:
-        extract_bearer_token(event)
+        extract_bearer_token(event, context)
 
     assert e.value.status_code == 401
 
 
-def test_extract_bearer_token_missing():
+def test_extract_bearer_token_missing(context):
+    context.function_name = "SearchDocumentReferencesFHIR"
     event = {"headers": {}}
 
     with pytest.raises(DocumentRefSearchException) as e:
-        extract_bearer_token(event)
+        extract_bearer_token(event, context)
 
     assert e.value.status_code == 401
 

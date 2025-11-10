@@ -9,7 +9,7 @@ from tests.e2e.conftest import (
     LLOYD_GEORGE_S3_BUCKET,
     LLOYD_GEORGE_SNOMED,
 )
-from tests.e2e.helpers.lloyd_george_data_helper import LloydGeorgeDataHelper
+from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
 

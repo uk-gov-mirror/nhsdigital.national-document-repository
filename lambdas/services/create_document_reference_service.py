@@ -21,10 +21,10 @@ from utils.exceptions import (
     PatientNotFoundException,
     PdsTooManyRequestsException,
 )
-from utils.lambda_exceptions import CreateDocumentRefException
+from utils.lambda_exceptions import DocumentRefException
 from utils.lloyd_george_validator import (
     getting_patient_info_from_pds,
-    validate_lg_files,
+    validate_lg_files_for_access_and_store,
 )
 from utils.utilities import create_reference_id
 
@@ -59,12 +59,13 @@ class CreateDocumentReferenceService:
         arf_documents: list[DocumentReference] = []
         arf_documents_dict_format: list = []
         lg_documents: list[DocumentReference] = []
+        upload_lg_documents: list[UploadRequestDocument] = []
         lg_documents_dict_format: list = []
         url_responses = {}
         upload_request_documents = self.parse_documents_list(documents_list)
 
         has_lg_document = any(
-            document.docType == SupportedDocumentTypes.LG
+            document.doc_type == SupportedDocumentTypes.LG
             for document in upload_request_documents
         )
 
@@ -78,8 +79,8 @@ class CreateDocumentReferenceService:
                 )
                 ods_allowed = self.check_if_ods_code_is_in_pilot(current_gp_ods)
                 if not ods_allowed:
-                    raise CreateDocumentRefException(
-                        404, LambdaError.CreateDocRefOdsCodeNotAllowed
+                    raise DocumentRefException(
+                        404, LambdaError.DocRefOdsCodeNotAllowed
                     )
                 snomed_code_type = SnomedCodes.LLOYD_GEORGE.value.code
 
@@ -98,6 +99,7 @@ class CreateDocumentReferenceService:
                         )
                     case SupportedDocumentTypes.LG:
                         lg_documents.append(document_reference)
+                        upload_lg_documents.append(validated_doc)
                         lg_documents_dict_format.append(
                             document_reference.model_dump(
                                 by_alias=True, exclude_none=True
@@ -105,19 +107,19 @@ class CreateDocumentReferenceService:
                         )
                     case _:
                         logger.error(
-                            f"{LambdaError.CreateDocInvalidType.to_str()}",
+                            f"{LambdaError.DocRefInvalidType.to_str()}",
                             {"Result": UPLOAD_REFERENCE_FAILED_MESSAGE},
                         )
-                        raise CreateDocumentRefException(
-                            400, LambdaError.CreateDocInvalidType
+                        raise DocumentRefException(
+                            400, LambdaError.DocRefInvalidType
                         )
 
-                url_responses[validated_doc.clientId] = self.prepare_pre_signed_url(
+                url_responses[validated_doc.client_id] = self.prepare_pre_signed_url(
                     document_reference
                 )
 
             if lg_documents:
-                validate_lg_files(lg_documents, pds_patient_details)
+                validate_lg_files_for_access_and_store(upload_lg_documents, pds_patient_details)
                 self.check_existing_lloyd_george_records_and_remove_failed_upload(
                     nhs_number
                 )
@@ -136,7 +138,7 @@ class CreateDocumentReferenceService:
             return url_responses
 
         except PatientNotFoundException:
-            raise CreateDocumentRefException(404, LambdaError.SearchPatientNoPDS)
+            raise DocumentRefException(404, LambdaError.SearchPatientNoPDS)
 
         except (
             InvalidNhsNumberException,
@@ -144,10 +146,10 @@ class CreateDocumentReferenceService:
             PdsTooManyRequestsException,
         ) as e:
             logger.error(
-                f"{LambdaError.CreateDocFiles.to_str()} :{str(e)}",
+                f"{LambdaError.DocRefInvalidFiles.to_str()} :{str(e)}",
                 {"Result": FAILED_CREATE_REFERENCE_MESSAGE},
             )
-            raise CreateDocumentRefException(400, LambdaError.CreateDocFiles)
+            raise DocumentRefException(400, LambdaError.DocRefInvalidFiles)
 
     def check_if_ods_code_is_in_pilot(self, ods_code) -> bool:
         pilot_ods_codes = self.get_allowed_list_of_ods_codes_for_upload_pilot()
@@ -174,10 +176,10 @@ class CreateDocumentReferenceService:
                 upload_request_document_list.append(validated_doc)
             except ValidationError as e:
                 logger.error(
-                    f"{LambdaError.CreateDocNoParse.to_str()} :{str(e)}",
+                    f"{LambdaError.DocRefNoParse.to_str()} :{str(e)}",
                     {"Result": FAILED_CREATE_REFERENCE_MESSAGE},
                 )
-                raise CreateDocumentRefException(400, LambdaError.CreateDocNoParse)
+                raise DocumentRefException(400, LambdaError.DocRefNoParse)
 
         return upload_request_document_list
 
@@ -202,9 +204,9 @@ class CreateDocumentReferenceService:
             author=current_gp_ods,
             current_gp_ods=current_gp_ods,
             custodian=current_gp_ods,
-            content_type=validated_doc.contentType,
-            file_name=validated_doc.fileName,
-            doc_type=validated_doc.docType,
+            content_type=validated_doc.content_type,
+            file_name=validated_doc.file_name,
+            doc_type=validated_doc.doc_type,
             document_snomed_code_type=snomed_code_type,
             s3_bucket_name=s3_bucket_name,
             sub_folder=sub_folder,
@@ -216,17 +218,17 @@ class CreateDocumentReferenceService:
     def prepare_pre_signed_url(self, document_reference: DocumentReference):
         try:
             s3_response = self.s3_service.create_upload_presigned_url(
-                document_reference.s3_bucket_name, document_reference.s3_file_key
+                document_reference.s3_bucket_name, document_reference.s3_upload_key
             )
 
             return s3_response
 
         except ClientError as e:
             logger.error(
-                f"{LambdaError.CreateDocPresign.to_str()}: {str(e)}",
+                f"{LambdaError.DocRefPresign.to_str()}: {str(e)}",
                 {"Result": PRESIGNED_URL_ERROR_MESSAGE},
             )
-            raise CreateDocumentRefException(500, LambdaError.CreateDocPresign)
+            raise DocumentRefException(500, LambdaError.DocRefPresign)
 
     def create_reference_in_dynamodb(self, dynamo_table, document_list):
         try:
@@ -238,11 +240,11 @@ class CreateDocumentReferenceService:
 
         except ClientError as e:
             logger.error(
-                f"{LambdaError.CreateDocUploadInternalError.to_str()}: {str(e)}",
+                f"{LambdaError.DocRefUploadInternalError.to_str()}: {str(e)}",
                 {"Result": UPLOAD_REFERENCE_FAILED_MESSAGE},
             )
-            raise CreateDocumentRefException(
-                500, LambdaError.CreateDocUploadInternalError
+            raise DocumentRefException(
+                500, LambdaError.DocRefUploadInternalError
             )
 
     def check_existing_lloyd_george_records_and_remove_failed_upload(
@@ -277,7 +279,7 @@ class CreateDocumentReferenceService:
                 "Records are in the process of being uploaded. Will not process the new upload.",
                 {"Result": UPLOAD_REFERENCE_FAILED_MESSAGE},
             )
-            raise CreateDocumentRefException(423, LambdaError.UploadInProgressError)
+            raise DocumentRefException(423, LambdaError.UploadInProgressError)
 
     def stop_if_all_records_uploaded(self, previous_records: list[DocumentReference]):
         all_records_uploaded = all(record.uploaded for record in previous_records)
@@ -287,11 +289,11 @@ class CreateDocumentReferenceService:
                 "We should not be processing the new Lloyd George record upload."
             )
             logger.error(
-                f"{LambdaError.CreateDocRecordAlreadyInPlace.to_str()}",
+                f"{LambdaError.DocRefRecordAlreadyInPlace.to_str()}",
                 {"Result": UPLOAD_REFERENCE_FAILED_MESSAGE},
             )
-            raise CreateDocumentRefException(
-                422, LambdaError.CreateDocRecordAlreadyInPlace
+            raise DocumentRefException(
+                422, LambdaError.DocRefRecordAlreadyInPlace
             )
 
     def remove_records_of_failed_upload(
@@ -306,9 +308,8 @@ class CreateDocumentReferenceService:
 
         logger.info("Deleting files from s3...")
         for record in failed_upload_records:
-            s3_bucket_name = record.s3_bucket_name
-            file_key = record.s3_file_key
-            self.s3_service.delete_object(s3_bucket_name, file_key)
+            s3_bucket_name, s3_file_key = record._parse_s3_location(record.file_location)
+            self.s3_service.delete_object(s3_bucket_name, s3_file_key)
 
         logger.info("Deleting dynamodb record...")
         self.document_service.hard_delete_metadata_records(

@@ -1,3 +1,4 @@
+import re
 import time
 
 from enums.repository_role import RepositoryRole
@@ -79,6 +80,11 @@ class AuthoriserService:
         is_user_gp_clinical = user_role == RepositoryRole.GP_CLINICAL.value
         is_user_pcse = user_role == RepositoryRole.PCSE.value
 
+        doc_ref_pattern = (
+            r"^/DocumentReference(/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-"
+            r"[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}))?(\?.*)?$"
+        )
+
         match path:
             case "/AccessAudit":
                 deny_resource = not access_to_deceased_patient
@@ -89,11 +95,9 @@ class AuthoriserService:
             case "/DocumentManifest":
                 deny_resource = not patient_access_is_allowed or is_user_gp_clinical
 
-            case "/CreateDocumentReference":
+            case doc_ref if re.match(doc_ref_pattern, doc_ref):
                 deny_resource = True
-                if (
-                    is_user_gp_admin or is_user_gp_clinical
-                ) and patient_access_is_allowed:
+                if (is_user_gp_admin or is_user_gp_clinical) and patient_access_is_allowed:
                     deny_resource = False
                 if patient_access_is_allowed and access_to_deceased_patient:
                     deny_resource = True

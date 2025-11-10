@@ -113,6 +113,24 @@ def mock_upload_lambda_disabled(mocker):
     }
     yield mock_upload_lambda_feature_flag
 
+@pytest.fixture
+def mock_upload_document_iteration2_enabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_function.side_effect = [
+        {"uploadLambdaEnabled": True},
+        {"uploadDocumentIteration2Enabled": True},
+    ]
+    yield mock_function
+
+@pytest.fixture
+def mock_upload_document_iteration2_disabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_function.side_effect = [
+        {"uploadLambdaEnabled": True},
+        {"uploadDocumentIteration2Enabled": False},
+    ]
+    yield mock_function
+
 
 @pytest.fixture
 def mock_validation_strict_disabled(mocker):
