@@ -136,3 +136,77 @@ def test_lambda_handler_catches_valueerror_exception(mocker, context):
         "Unexpected error in dynamodb_migration_handler: bad event", exc_info=True
     )
 
+def test_validate_event_input_logs_migration_script(mocker):
+    event = {
+        "segment": 0,
+        "totalSegments": 10,
+        "tableName": "my_table",
+        "environment": "dev",
+        "migrationScript": "scripts.my_script",
+        "executionId": "test-exec-id"
+    }
+    mock_logger = mocker.patch("handlers.migration_dynamodb_handler.logger")
+    validate_event_input(event)
+    mock_logger.info.assert_any_call("migration_script: scripts.my_script")
+
+def test_validate_event_input_run_migration_true(mocker):
+    event = {
+        "segment": 0,
+        "totalSegments": 10,
+        "tableName": "my_table",
+        "environment": "dev",
+        "migrationScript": "scripts.my_script",
+        "executionId": "test-exec-id",
+        "runMigration": True
+    }
+    result = validate_event_input(event)
+    assert result[5] is True  # run_migration
+
+def test_validate_event_input_region_extracted_from_arn(mocker):
+    event = {
+        "segment": 0,
+        "totalSegments": 10,
+        "tableArn": "arn:aws:dynamodb:eu-west-2:123456789012:table/dev_MyTable",
+        "migrationScript": "scripts.my_script",
+        "executionId": "test-exec-id"
+    }
+    result = validate_event_input(event)
+    assert result[4] == "eu-west-2"
+
+def test_extract_table_info_invalid_arn_prefix():
+    event = {"tableArn": "invalid-arn"}
+    with pytest.raises(ValueError) as exc:
+        extract_table_info(event)
+    assert "Invalid DynamoDB ARN format" in str(exc.value)
+
+def test_extract_table_info_unable_to_parse_arn():
+    event = {"tableArn": "arn:aws:dynamodb:eu-west-2:bad"}
+    # purposely break the ARN so split fails
+    table_name, environment, region = extract_table_info(event)
+    assert table_name == "arn:aws:dynamodb:eu-west-2:bad"
+    assert environment == "unknown"
+    assert region == "eu-west-2"
+
+def test_validate_event_input_missing_execution_id():
+    event = {
+        "segment": 0,
+        "totalSegments": 10,
+        "tableName": "my_table",
+        "environment": "dev",
+        "migrationScript": "scripts.my_script"
+    }
+    with pytest.raises(ValueError) as exc:
+        validate_event_input(event)
+    assert "Missing required field: 'executionId' in event" in str(exc.value)
+
+def test_validate_event_input_missing_table_info():
+    event = {
+        "segment": 0,
+        "totalSegments": 10,
+        "migrationScript": "scripts.my_script",
+        "executionId": "test-exec-id"
+    }
+    with pytest.raises(ValueError) as exc:
+        validate_event_input(event)
+    assert "Event must include either 'tableArn' or both 'tableName' and 'environment'" in str(exc.value)
+
