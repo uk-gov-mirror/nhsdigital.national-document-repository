@@ -89,7 +89,6 @@ class MigrationBase(ABC):
             self.logger.error(f"'{label}' migration segment: {segment} completed with {len(failed_items)} errors.")
             error_report_key = f"{execution_id}/{segment}/{label}_errors.json"
             try:
-                raise Exception("Simulated S3 failure")
                 self.s3_client.put_object(
                     Bucket=self.failed_items_bucket,
                     Key=error_report_key,
