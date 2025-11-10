@@ -49,7 +49,7 @@ class ReviewProcessorService:
         document_upload_review = self._build_review_record(
             review_message, review_id, review_files
         )
-        self.dynamo_service.put_item(
+        self.dynamo_service.create_item(
             table_name=self.review_table_name,
             item=document_upload_review.model_dump(by_alias=True, exclude_none=True),
             key_name=DocumentReferenceMetadataFields.ID.value,

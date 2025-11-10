@@ -80,7 +80,7 @@ def test_process_review_message_success(
     service_under_test.process_review_message(sample_review_message)
 
     mock_move.assert_called_once()
-    service_under_test.dynamo_service.put_item.assert_called_once()
+    service_under_test.dynamo_service.create_item.assert_called_once()
     mock_delete.assert_called_once_with(sample_review_message)
 
 
@@ -122,7 +122,7 @@ def test_process_review_message_multiple_files(service_under_test, mocker):
     service_under_test.process_review_message(message)
 
     mock_move.assert_called_once()
-    service_under_test.dynamo_service.put_item.assert_called_once()
+    service_under_test.dynamo_service.create_item.assert_called_once()
     mock_delete.assert_called_once_with(message)
 
 
@@ -150,7 +150,7 @@ def test_process_review_message_dynamo_error(
     mocker.patch.object(
         service_under_test, "_move_files_to_review_bucket", return_value=[]
     )
-    service_under_test.dynamo_service.put_item.side_effect = ClientError(
+    service_under_test.dynamo_service.create_item.side_effect = ClientError(
         {"Error": {"Code": "InternalServerError", "Message": "DynamoDB error"}},
         "PutItem",
     )
@@ -328,20 +328,20 @@ def test_delete_from_staging_handles_errors(service_under_test, sample_review_me
 
 def test_full_workflow_with_valid_message(service_under_test, sample_review_message):
     """Test complete workflow from message to final record creation."""
-    service_under_test.dynamo_service.put_item.return_value = None
+    service_under_test.dynamo_service.create_item.return_value = None
     service_under_test.s3_service.copy_across_bucket.return_value = None
     service_under_test.s3_service.delete_object.return_value = None
 
     service_under_test.process_review_message(sample_review_message)
 
-    service_under_test.dynamo_service.put_item.assert_called_once()
+    service_under_test.dynamo_service.create_item.assert_called_once()
     service_under_test.s3_service.copy_across_bucket.assert_called_once()
     service_under_test.s3_service.delete_object.assert_called_once()
 
 
 def test_workflow_handles_multiple_different_patients(service_under_test):
     """Test processing messages for different patients."""
-    service_under_test.dynamo_service.put_item.return_value = None
+    service_under_test.dynamo_service.create_item.return_value = None
     service_under_test.s3_service.copy_across_bucket.return_value = None
     service_under_test.s3_service.delete_object.return_value = None
 
@@ -366,5 +366,5 @@ def test_workflow_handles_multiple_different_patients(service_under_test):
     for message in messages:
         service_under_test.process_review_message(message)
 
-    assert service_under_test.dynamo_service.put_item.call_count == 3
+    assert service_under_test.dynamo_service.create_item.call_count == 3
     assert service_under_test.s3_service.copy_across_bucket.call_count == 3
