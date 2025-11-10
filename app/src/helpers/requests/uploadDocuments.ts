@@ -82,6 +82,13 @@ const uploadDocuments = async ({
     baseHeaders,
     documentReferenceId,
 }: UploadDocumentsArgs): Promise<UploadSession> => {
+    const attachments = documents.map((doc) => ({
+        fileName: doc.file.name,
+        contentType: doc.file.type,
+        docType: doc.docType,
+        clientId: doc.id,
+        versionId: doc.versionId,
+    }));
     const requestBody = {
         resourceType: 'DocumentReference',
         subject: {
@@ -100,13 +107,7 @@ const uploadDocuments = async ({
         },
         content: [
             {
-                attachment: documents.map((doc) => ({
-                    fileName: doc.file.name,
-                    contentType: doc.file.type,
-                    docType: doc.docType,
-                    clientId: doc.id,
-                    versionId: doc.versionId,
-                })),
+                attachment: documentReferenceId ? attachments[0] : attachments,
             },
         ],
         created: new Date(Date.now()).toISOString(),
