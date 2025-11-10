@@ -19,10 +19,15 @@ on:
         type: "string"
         default: "development"
       bulk_upload:
-        description: "Do you want to disable the PDS stub and run a Bulk Upload on this sandbox?"
+        description: "Do you want to run a Bulk Upload on this sandbox?"
         required: true
         type: boolean
         default: false
+      disable_pds:
+        description: "Do you want to disable the PDS stub?"
+        required: true
+        type: boolean
+        default: true
       mock_login_enabled:
         description: "Do you want to deploy with mock login enabled?"
         required: true
@@ -30,7 +35,7 @@ on:
         default: true
 
 permissions:
-  actions: read   # Required for anchore/sbom-action
+  actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   pull-requests: write
   id-token: write # This is required for requesting the JWT
@@ -99,6 +104,38 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
+  disable_fhir_stub:
+    name: "Disable PDS stub"
+    if: ${{ inputs.disable_pds || inputs.bulk_upload }}
+    uses: "./.github/workflows/base-run-disable-pds-stub.yml"
+    needs: ["deploy_all_lambdas"]
+    with:
+      environment: ${{ inputs.environment }}
+      sandbox: ${{ inputs.sandbox }}
+      base_branch: ${{ inputs.build_branch }}
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  run_lg_e2etest:
+    uses: ./.github/workflows/base-e2e-backendtest.yml
+    needs: ["disable_fhir_stub"]
+    with:
+      build_branch: ${{ inputs.build_branch }}
+      environment: development
+      sandbox: ${{ inputs.sandbox }}
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  run_pdm_e2etest:
+    uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
+    needs: ["disable_fhir_stub"]
+    with:
+      build_branch: ${{ inputs.build_branch }}
+      environment: development
+      sandbox: ${{ inputs.sandbox }}
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
   deploy_ui:
     name: Deploy UI
     uses: ./.github/workflows/base-deploy-ui.yml
@@ -113,7 +150,7 @@ jobs:
     name: "Run Bulk Upload"
     if: ${{ inputs.bulk_upload }}
     uses: "./.github/workflows/base-run-bulk-upload.yml"
-    needs: ["deploy_all_lambdas"]
+    needs: ["run_lg_e2etest", "run_pdm_e2etest"]
     with:
       environment: ${{ inputs.environment }}
       sandbox: ${{ inputs.sandbox }}

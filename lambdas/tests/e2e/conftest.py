@@ -21,6 +21,7 @@ MTLS_ENDPOINT = os.environ.get("MTLS_ENDPOINT")
 CLIENT_CERT_PATH = os.environ.get("CLIENT_CERT_PATH")
 CLIENT_KEY_PATH = os.environ.get("CLIENT_KEY_PATH")
 
+
 @pytest.fixture
 def test_data():
     test_records = []
