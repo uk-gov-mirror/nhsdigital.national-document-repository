@@ -4,7 +4,7 @@ from typing import Optional, Sequence
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
 from botocore.exceptions import ClientError
-from types_boto3_dynamodb.type_defs import PutItemOutputTableTypeDef
+from types_boto3_dynamodb import DynamoDBServiceResource
 from utils.audit_logging_setup import LoggingService
 from utils.dynamo_utils import (
     create_expression_attribute_values,
@@ -12,7 +12,6 @@ from utils.dynamo_utils import (
     create_update_expression,
 )
 from utils.exceptions import DynamoServiceException
-from types_boto3_dynamodb import DynamoDBServiceResource
 
 logger = LoggingService(__name__)
 
@@ -28,7 +27,9 @@ class DynamoDBService:
 
     def __init__(self):
         if not self.initialised:
-            self.dynamodb: DynamoDBServiceResource = boto3.resource("dynamodb", region_name="eu-west-2")
+            self.dynamodb: DynamoDBServiceResource = boto3.resource(
+                "dynamodb", region_name="eu-west-2"
+            )
             self.initialised = True
 
     def get_table(self, table_name: str):
@@ -80,26 +81,13 @@ class DynamoDBService:
             logger.error(str(e), {"Result": f"Unable to query table: {table_name}"})
             raise e
 
-    def create_item(self, table_name, item):
-        try:
-            table = self.get_table(table_name)
-            logger.info(f"Writing item to table: {table_name}")
-            table.put_item(Item=item)
-        except ClientError as e:
-            logger.error(
-                str(e), {"Result": f"Unable to write item to table: {table_name}"}
-            )
-            raise e
-    
-    def put_item(self, table_name, item, key_name, check_exists: bool = True) -> PutItemOutputTableTypeDef:
+    def create_item(self, table_name, item, key_name: str | None = None):
         """
         Put an item into the specified DynamoDB table with a condition on the existence of the key.
         Args:
             table_name: Name of the DynamoDB table
             item: The item to be inserted (as a dictionary)
-            key_name: The name of the key field
-            check_exists: If True, the item will only be inserted if the key does not already exist.
-                           If False, the item will only be inserted if the key already exists.
+            key_name: The name of the key field to check existance for conditional put
         Returns:
             Response from the DynamoDB put_item operation
         Raises:
@@ -108,11 +96,10 @@ class DynamoDBService:
         try:
             table = self.get_table(table_name)
             logger.info(f"Writing item to table: {table_name}")
-            return table.put_item(Item=item, Expected={
-                key_name: {
-                    'Exists': check_exists
-                }
-            })
+            if key_name:
+                return table.put_item(Item=item, Expected={key_name: {"Exists": True}})
+            else:
+                return table.put_item(Item=item)
         except ClientError as e:
             logger.error(
                 str(e), {"Result": f"Unable to write item to table: {table_name}"}
