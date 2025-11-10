@@ -10,7 +10,7 @@ from services.base.ssm_service import SSMService
 from services.document_service import DocumentService
 from services.put_fhir_document_reference_service import PutFhirDocumentReferenceService
 from utils.audit_logging_setup import LoggingService
-from utils.common_query_filters import CurrentStatusFile
+from utils.common_query_filters import CurrentStatusFile, NotDeleted
 from utils.constants.ssm import UPLOAD_PILOT_ODS_ALLOWED_LIST
 from utils.dynamo_utils import DocTypeTableRouter
 from utils.exceptions import (
@@ -155,7 +155,15 @@ class UpdateDocumentReferenceService:
 
         return validated_doc
 
-    def stop_if_upload_is_in_progress(self, previous_records: list[DocumentReference]):
+    def stop_if_upload_is_in_progress(self, nhs_number: str):
+        previous_records = (
+            self.document_service.fetch_available_document_references_by_type(
+                nhs_number=nhs_number,
+                doc_type=SupportedDocumentTypes.LG,
+                query_filter=NotDeleted,
+            )
+        )
+        
         if any(
             self.document_service.is_upload_in_process(document)
             for document in previous_records

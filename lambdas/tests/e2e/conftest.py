@@ -17,6 +17,9 @@ BULK_REPORT_TABLE = os.environ.get("BULK_REPORT_TABLE")
 LLOYD_GEORGE_S3_BUCKET = os.environ.get("NDR_S3_BUCKET") or ""
 APIM_ENDPOINT = "internal-dev.api.service.nhs.uk"
 PDM_SNOMED = 717391000000106
+MTLS_ENDPOINT = os.environ.get("MTLS_ENDPOINT")
+CLIENT_CERT_PATH = os.environ.get("CLIENT_CERT_PATH")
+CLIENT_KEY_PATH = os.environ.get("CLIENT_KEY_PATH")
 
 
 @pytest.fixture

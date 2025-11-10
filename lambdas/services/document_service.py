@@ -76,7 +76,7 @@ class DocumentService:
         self,
         search_condition: str,
         search_key: str,
-        index_name: str = None,
+        index_name: str | None = None,
         query_filter: Attr | ConditionBase = None,
         table_name: str = None,
         model_class: type[BaseModel] = None,
