@@ -124,7 +124,6 @@ class DataHelper:
         return json.dumps(payload)
 
     def tidyup(self, record):
-        print(f"Tidying up record ID: {record['id']}")
         self.dynamo_service.delete_item(
             table_name=self.dynamo_table,
             key={"ID": record["id"]},
