@@ -15,7 +15,8 @@
 - [ ] I have followed the code style of the project
 - [ ] I have added tests to cover my changes
 - [ ] I have updated the documentation accordingly
-- [ ] I have considered the cross-team impact when creating this PR and where possible written tests to validate.
-- [ ] I have built a sandbox with code from this PR and ensured that the unit tests and e2e tests have run successfully
+- [ ] I have considered the cross-team impact when creating this PR and where possible written tests to validate for all affected.
+- [ ] I have built a sandbox with code from this PR and ensured the unit tests and end-to-end tests have run successfully
+- [ ] A member of all teams that this PR affects has approved.
 
 ---
