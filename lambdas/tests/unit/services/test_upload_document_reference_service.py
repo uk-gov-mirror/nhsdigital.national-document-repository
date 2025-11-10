@@ -456,23 +456,18 @@ def test_document_key_extraction_from_object_key_for_lg(
 
     service.handle_upload_document_reference_request(object_key)
 
-    service.document_service.fetch_documents_from_table.assert_called_with(
-        search_condition=expected_document_key,
-        search_key="ID",
-        query_filter=PreliminaryStatus,
-    )
     # Verify the method was called twice
     assert service.document_service.fetch_documents_from_table.call_count == 2
 
     # Check first call (preliminary document)
     first_call = service.document_service.fetch_documents_from_table.call_args_list[0]
-    assert first_call[1]["table"] == MOCK_LG_TABLE_NAME
+    assert first_call[1]["table_name"] == MOCK_LG_TABLE_NAME
     assert first_call[1]["search_condition"] == expected_document_key
     assert first_call[1]["search_key"] == "ID"
 
     # Check second call (existing final documents)
     second_call = service.document_service.fetch_documents_from_table.call_args_list[1]
-    assert second_call[1]["table"] == MOCK_LG_TABLE_NAME
+    assert second_call[1]["table_name"] == MOCK_LG_TABLE_NAME
     assert second_call[1]["index_name"] == "S3FileKeyIndex"
     assert second_call[1]["search_condition"] == mock_document_reference.s3_file_key
     assert second_call[1]["search_key"] == "S3FileKey"
