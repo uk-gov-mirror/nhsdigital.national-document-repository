@@ -12,6 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check PR body for unchecked checkboxes
-        uses: actions-ecosystem/action-checklist@v1
+        uses: actions-ecosystem/action-checklist@main
         with:
           checklist: ${{ github.event.pull_request.body }}
