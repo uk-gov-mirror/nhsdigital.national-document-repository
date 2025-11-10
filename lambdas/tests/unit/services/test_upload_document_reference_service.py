@@ -476,7 +476,7 @@ def test_document_key_extraction_from_object_key_for_lg(
 def test_finalize_and_supersede_with_transaction_with_existing_finals(
     service, mock_document_reference, mocker
 ):
-    """Test transaction-based finalization with existing final documents to supersede"""
+    """Test transaction-based finalisation with existing final documents to supersede"""
     new_doc = mock_document_reference
     new_doc.id = "new-doc-id"
     new_doc.nhs_number = "9000000001"
@@ -508,7 +508,7 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
     service._finalize_and_supersede_with_transaction(new_doc)
 
     service.document_service.fetch_documents_from_table.assert_called_once_with(
-        table=MOCK_LG_TABLE_NAME,
+        table_name=MOCK_LG_TABLE_NAME,
         index_name="S3FileKeyIndex",
         search_condition=new_doc.s3_file_key,
         search_key="S3FileKey",
