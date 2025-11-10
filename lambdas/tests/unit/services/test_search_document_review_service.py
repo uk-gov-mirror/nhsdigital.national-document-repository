@@ -107,13 +107,15 @@ def test_service_queries_document_review_table_with_correct_args(
 ):
 
     search_document_review_service.get_review_document_references(
-        TEST_CURRENT_GP_ODS, TEST_QUERY_LIMIT, TEST_LAST_EVALUATED_KEY
+        TEST_CURRENT_GP_ODS, TEST_QUERY_LIMIT, TEST_LAST_EVALUATED_KEY, None, None
     )
 
     search_document_review_service.document_service.query_docs_pending_review_by_custodian.assert_called_with(
         ods_code=TEST_CURRENT_GP_ODS,
         limit=TEST_QUERY_LIMIT,
         start_key=TEST_LAST_EVALUATED_KEY,
+        nhs_number=None,
+        uploader=None
     )
 
 

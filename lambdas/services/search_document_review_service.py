@@ -55,7 +55,7 @@ class SearchDocumentReviewService:
         uploader: str | None = None,
     ):
         return self.document_service.query_docs_pending_review_by_custodian(
-            ods_code=ods_code, limit=limit, start_key=start_key
+            ods_code=ods_code, limit=limit, start_key=start_key, nhs_number=nhs_number, uploader=uploader
         )
 
     def decode_start_key(self, encoded_start_key: str | None) -> dict:
