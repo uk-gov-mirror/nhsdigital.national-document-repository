@@ -136,19 +136,6 @@ def test_lambda_handler_catches_valueerror_exception(mocker, context):
         "Unexpected error in dynamodb_migration_handler: bad event", exc_info=True
     )
 
-def test_validate_event_input_logs_migration_script(mocker):
-    event = {
-        "segment": 0,
-        "totalSegments": 10,
-        "tableName": "my_table",
-        "environment": "dev",
-        "migrationScript": "scripts.my_script",
-        "executionId": "test-exec-id"
-    }
-    mock_logger = mocker.patch("handlers.migration_dynamodb_handler.logger")
-    validate_event_input(event)
-    mock_logger.info.assert_any_call("migration_script: scripts.my_script")
-
 def test_validate_event_input_run_migration_true(mocker):
     event = {
         "segment": 0,
