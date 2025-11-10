@@ -16,20 +16,24 @@ class SearchDocumentReviewService:
         self.document_service = DocumentUploadReviewService()
 
     def process_request(
-        self, ods_code: str, encoded_start_key: str | None, limit: int | None
+        self, ods_code: str, params: dict
     ) -> tuple[list[str], str | None]:
         try:
 
-            decoded_start_key = self.decode_start_key(encoded_start_key)
+            decoded_start_key = self.decode_start_key(params.get("startKey", None))
 
             references, last_evaluated_key = self.get_review_document_references(
-                start_key=decoded_start_key, ods_code=ods_code, limit=limit
+                start_key=decoded_start_key,
+                ods_code=ods_code,
+                limit=params.get("limit", None),
+                nhs_number=params.get("nhsNumber", None),
+                uploader=params.get("uploader", None),
             )
             output_refs = [
                 reference.model_dump(
                     exclude_none=True,
                     include={"id", "nhs_number", "review_reason"},
-                    mode="json"
+                    mode="json",
                 )
                 for reference in references
             ]
@@ -40,14 +44,17 @@ class SearchDocumentReviewService:
 
         except ValidationError as e:
             logger.error(e)
-            raise DocumentReviewException(
-                500, LambdaError.DocumentReviewValidation
-            )
+            raise DocumentReviewException(500, LambdaError.DocumentReviewValidation)
 
     def get_review_document_references(
-        self, ods_code: str, limit: int | None = None, start_key: dict | None = None
+        self,
+        ods_code: str,
+        limit: int | None = None,
+        start_key: dict | None = None,
+        nhs_number: str | None = None,
+        uploader: str | None = None,
     ):
-        return self.document_service.query_review_documents_by_custodian(
+        return self.document_service.query_docs_pending_review_by_custodian(
             ods_code=ods_code, limit=limit, start_key=start_key
         )
 

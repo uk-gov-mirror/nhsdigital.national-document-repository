@@ -23,6 +23,19 @@ TEST_ENCODED_START_KEY = base64.b64encode(
     json.dumps(TEST_LAST_EVALUATED_KEY).encode("ascii")
 ).decode("utf-8")
 
+MOCK_EMPTY_QUERYSTRING_PARAMS = {}
+MOCK_QUERYSTRING_PARAMS_LIMIT = {"limit": TEST_QUERY_LIMIT}
+MOCK_QUERYSTRING_PARAMS_LIMIT_KEY = {
+    "limit": TEST_QUERY_LIMIT,
+    "startKey": TEST_ENCODED_START_KEY,
+}
+MOCK_QUERYSTRING_PARAMS_LIMIT_KEY_UPLOAD = {
+    "uploader": "Z67890",
+    **MOCK_QUERYSTRING_PARAMS_LIMIT_KEY,
+}
+MOCK_QUERYSTRING_PARAMS_UNWANTED_PARAM = {"unwanted": "this is not added"}
+MOCK_QUERYSTRING_PARAMS_KEY = {"startKey": TEST_ENCODED_START_KEY}
+
 
 @pytest.fixture
 def mock_service(mocker, mock_upload_document_iteration_3_enabled):
@@ -38,9 +51,7 @@ def mock_service(mocker, mock_upload_document_iteration_3_enabled):
 def event_with_limit():
     return {
         "httpMethod": "GET",
-        "queryStringParameters": {
-            "limit": TEST_QUERY_LIMIT,
-        },
+        "queryStringParameters": MOCK_QUERYSTRING_PARAMS_LIMIT,
         "headers": {"Authorization": "Bearer test_token"},
     }
 
@@ -49,10 +60,7 @@ def event_with_limit():
 def event_with_limit_and_start_key():
     return {
         "httpMethod": "GET",
-        "queryStringParameters": {
-            "limit": TEST_QUERY_LIMIT,
-            "startKey": TEST_ENCODED_START_KEY,
-        },
+        "queryStringParameters": MOCK_QUERYSTRING_PARAMS_LIMIT_KEY,
         "headers": {"Authorization": "Bearer test_token"},
     }
 
@@ -61,9 +69,25 @@ def event_with_limit_and_start_key():
 def event_with_start_key_no_limit():
     return {
         "httpMethod": "GET",
-        "queryStringParameters": {
-            "startKey": TEST_ENCODED_START_KEY,
-        },
+        "queryStringParameters": MOCK_QUERYSTRING_PARAMS_KEY,
+        "headers": {"Authorization": "Bearer test_token"},
+    }
+
+
+@pytest.fixture
+def event_with_unwanted_params():
+    return {
+        "httpMethod": "GET",
+        "queryStringParameters": MOCK_QUERYSTRING_PARAMS_UNWANTED_PARAM,
+        "headers": {"Authorization": "Bearer test_token"},
+    }
+
+
+@pytest.fixture
+def event_with_all_params():
+    return {
+        "httpMethod": "GET",
+        "queryStringParameters": MOCK_QUERYSTRING_PARAMS_LIMIT_KEY_UPLOAD,
         "headers": {"Authorization": "Bearer test_token"},
     }
 
@@ -128,28 +152,42 @@ def test_parse_querystring_parameters(
     event,
     event_with_limit,
     event_with_start_key_no_limit,
+    event_with_unwanted_params,
+    event_with_all_params,
 ):
-
-    assert parse_querystring_parameters(event_with_limit_and_start_key) == (
-        TEST_QUERY_LIMIT,
-        TEST_ENCODED_START_KEY,
+    assert (
+        parse_querystring_parameters(event_with_limit_and_start_key)
+        == MOCK_QUERYSTRING_PARAMS_LIMIT_KEY
     )
-    assert parse_querystring_parameters(event) == (None, None)
-    assert parse_querystring_parameters(event_with_limit) == (TEST_QUERY_LIMIT, None)
-    assert parse_querystring_parameters(event_with_start_key_no_limit) == (
-        None,
-        TEST_ENCODED_START_KEY,
+    assert parse_querystring_parameters(event) == {}
+    assert (
+        parse_querystring_parameters(event_with_limit) == MOCK_QUERYSTRING_PARAMS_LIMIT
+    )
+    assert (
+        parse_querystring_parameters(event_with_start_key_no_limit)
+        == MOCK_QUERYSTRING_PARAMS_KEY
+    )
+    assert parse_querystring_parameters(event_with_unwanted_params) == {}
+    assert (
+        parse_querystring_parameters(event_with_all_params)
+        == MOCK_QUERYSTRING_PARAMS_LIMIT_KEY_UPLOAD
     )
 
 
 def test_process_request_called_with_correct_arguments(
-    mock_service, context, set_env, event_with_limit, mocked_request_context_with_ods
+    mock_service,
+    context,
+    set_env,
+    event_with_all_params,
+    mocked_request_context_with_ods,
 ):
 
-    lambda_handler(event_with_limit, context)
+    lambda_handler(event_with_all_params, context)
+
+    params = MOCK_QUERYSTRING_PARAMS_LIMIT_KEY_UPLOAD
 
     mock_service.process_request.assert_called_with(
-        ods_code=TEST_CURRENT_GP_ODS, limit=TEST_QUERY_LIMIT, encoded_start_key=None
+        params=params, ods_code=TEST_CURRENT_GP_ODS
     )
 
 

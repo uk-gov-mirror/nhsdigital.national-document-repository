@@ -1,11 +1,15 @@
 import os
 
+from boto3.dynamodb.conditions import Attr, ConditionBase
 from botocore.exceptions import ClientError
+from enums.document_review_status import DocumentReviewStatus
+from enums.dynamo_filter import AttributeOperator
 from enums.lambda_error import LambdaError
 from models.document_review import DocumentUploadReviewReference
 from pydantic import ValidationError
 from services.document_service import DocumentService
 from utils.audit_logging_setup import LoggingService
+from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.lambda_exceptions import DocumentReviewException
 
 logger = LoggingService(__name__)
@@ -26,10 +30,19 @@ class DocumentUploadReviewService(DocumentService):
     def s3_bucket(self) -> str:
         return os.environ.get("DOCUMENT_REVIEW_S3_BUCKET_NAME")
 
-    def query_review_documents_by_custodian(
-        self, ods_code: str, limit: int | None = None, start_key: dict | None = None
+    def query_docs_pending_review_by_custodian(
+        self,
+        ods_code: str,
+        limit: int | None = None,
+        start_key: dict | None = None,
+        nhs_number: str | None = None,
+        uploader: str | None = None,
     ) -> tuple[list[DocumentUploadReviewReference], dict | None]:
         logger.info(f"Getting review document references for custodian: {ods_code}")
+
+        filter_expression = self.build_review_query_filter(
+            nhs_number=nhs_number, uploader=uploader
+        )
 
         if not limit:
             limit = 50
@@ -42,6 +55,7 @@ class DocumentUploadReviewService(DocumentService):
                 index_name="CustodianIndex",
                 limit=limit,
                 start_key=start_key,
+                filter_expression=filter_expression,
             )
 
             references = self._validate_review_references(response["Items"])
@@ -60,14 +74,12 @@ class DocumentUploadReviewService(DocumentService):
         try:
             logger.info("Validating document review search response")
             review_references = [
-                DocumentUploadReviewReference.model_validate(item) for item in items
+                self.model_class.model_validate(item) for item in items
             ]
             return review_references
         except ValidationError as e:
             logger.error(e)
-            raise DocumentReviewException(
-                500, LambdaError.DocumentReviewValidation
-            )
+            raise DocumentReviewException(500, LambdaError.DocumentReviewValidation)
 
     def update_document_review_custodian(
         self,
@@ -88,3 +100,21 @@ class DocumentUploadReviewService(DocumentService):
                     document=review,
                     update_fields_name=review_update_field,
                 )
+
+    def build_review_query_filter(
+        self, nhs_number: str | None = None, uploader: str | None = None
+    ) -> Attr | ConditionBase:
+        filter_builder = DynamoQueryFilterBuilder()
+        filter_builder.add_condition(
+            "ReviewStatus", AttributeOperator.EQUAL, DocumentReviewStatus.PENDING_REVIEW
+        )
+
+        if nhs_number:
+            filter_builder.add_condition(
+                "NhsNumber", AttributeOperator.EQUAL, nhs_number
+            )
+
+        if uploader:
+            filter_builder.add_condition("Author", AttributeOperator.EQUAL, uploader)
+
+        return filter_builder.build()

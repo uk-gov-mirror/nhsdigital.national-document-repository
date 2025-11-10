@@ -17,9 +17,18 @@ TEST_ENCODED_START_KEY = base64.b64encode(
     json.dumps(TEST_LAST_EVALUATED_KEY).encode("ascii")
 ).decode("utf-8")
 
+MOCK_QUERYSTRING_PARAMS_LIMIT_KEY = {
+    "limit": TEST_QUERY_LIMIT,
+    "startKey": TEST_ENCODED_START_KEY,
+}
+MOCK_QUERYSTRING_PARAMS_LIMIT_KEY_UPLOAD = {
+    "uploader": "Z67890",
+    **MOCK_QUERYSTRING_PARAMS_LIMIT_KEY,
+}
+
 
 @pytest.fixture
-def search_document_review_service(mocker, set_env):
+def search_document_review_service(set_env, mocker):
     service = SearchDocumentReviewService()
     mocker.patch.object(service, "document_service")
     yield service
@@ -74,11 +83,9 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         TEST_ENCODED_START_KEY,
     )
 
-
     actual = search_document_review_service.process_request(
-        encoded_start_key=TEST_ENCODED_START_KEY,
+        params=MOCK_QUERYSTRING_PARAMS_LIMIT_KEY_UPLOAD,
         ods_code=TEST_CURRENT_GP_ODS,
-        limit=TEST_QUERY_LIMIT,
     )
 
     search_document_review_service.decode_start_key.assert_called_with(
@@ -88,6 +95,8 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         ods_code=TEST_CURRENT_GP_ODS,
         start_key=TEST_LAST_EVALUATED_KEY,
         limit=TEST_QUERY_LIMIT,
+        uploader="Z67890",
+        nhs_number=None,
     )
 
     assert actual == expected
@@ -101,7 +110,7 @@ def test_service_queries_document_review_table_with_correct_args(
         TEST_CURRENT_GP_ODS, TEST_QUERY_LIMIT, TEST_LAST_EVALUATED_KEY
     )
 
-    search_document_review_service.document_service.query_review_documents_by_custodian.assert_called_with(
+    search_document_review_service.document_service.query_docs_pending_review_by_custodian.assert_called_with(
         ods_code=TEST_CURRENT_GP_ODS,
         limit=TEST_QUERY_LIMIT,
         start_key=TEST_LAST_EVALUATED_KEY,
@@ -115,7 +124,7 @@ def test_get_review_document_references_returns_document_references(
         DocumentUploadReviewReference.model_validate(item)
         for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
     ]
-    search_document_review_service.document_service.query_review_documents_by_custodian.return_value = (
+    search_document_review_service.document_service.query_docs_pending_review_by_custodian.return_value = (
         expected_references,
         TEST_LAST_EVALUATED_KEY,
     )
@@ -135,7 +144,7 @@ def test_get_review_document_references_returns_document_references(
 def test_get_review_document_references_handles_empty_result(
     search_document_review_service,
 ):
-    search_document_review_service.document_service.query_review_documents_by_custodian.return_value = (
+    search_document_review_service.document_service.query_docs_pending_review_by_custodian.return_value = (
         [],
         None,
     )
@@ -154,7 +163,7 @@ def test_get_review_document_references_handles_no_limit_passed(
         DocumentUploadReviewReference.model_validate(item)
         for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
     ]
-    search_document_review_service.document_service.query_review_documents_by_custodian.return_value = (
+    search_document_review_service.document_service.query_docs_pending_review_by_custodian.return_value = (
         expected_references,
         None,
     )
@@ -174,7 +183,7 @@ def test_get_review_document_references_handles_no_limit_passed(
 def test_get_review_document_references_throws_exception_client_error(
     search_document_review_service,
 ):
-    search_document_review_service.document_service.query_review_documents_by_custodian.side_effect = DocumentReviewException(
+    search_document_review_service.document_service.query_docs_pending_review_by_custodian.side_effect = DocumentReviewException(
         500, LambdaError.DocumentReviewDB
     )
 

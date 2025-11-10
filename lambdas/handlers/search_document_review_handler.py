@@ -1,5 +1,8 @@
 import json
 
+from enums.document_review_accepted_querystring_parameters import (
+    DocumentReviewQuerystringParameters,
+)
 from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from services.feature_flags_service import FeatureFlagService
@@ -39,12 +42,12 @@ def lambda_handler(event, context):
 
         ods_code = get_ods_code_from_request_context()
 
-        limit, start_key = parse_querystring_parameters(event)
+        params = parse_querystring_parameters(event)
 
         search_document_reference_service = SearchDocumentReviewService()
 
         references, next_page_token = search_document_reference_service.process_request(
-            ods_code=ods_code, limit=limit, encoded_start_key=start_key
+            params=params, ods_code=ods_code
         )
 
         return ApiGatewayResponse(
@@ -87,10 +90,11 @@ def get_ods_code_from_request_context():
 def parse_querystring_parameters(event):
     logger.info("Parsing query string parameters.")
     params = event.get("queryStringParameters", {})
-    if not params:
-        return None, None
 
-    limit = params.get("limit", None)
-    start_key = params.get("startKey", None)
+    extracted_params = {}
 
-    return limit, start_key
+    for param in DocumentReviewQuerystringParameters:
+        if param in params:
+            extracted_params[param.value] = params.get(param)
+
+    return extracted_params
