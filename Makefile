@@ -82,8 +82,12 @@ test-api-e2e-snapshots:
 test-bulk-upload-e2e:
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/bulk_upload -vv
 
+# test-unit:
+# 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/unit
+
 test-unit:
-	cd ./lambdas && ./venv/bin/python3 -m pytest tests/unit
+	cd ./lambdas && \
+	PYTHONPATH=.. ./venv/bin/python3 -m pytest tests/unit ../scripts/github/checklist_validator/tests
 
 test-unit-coverage:
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/unit --cov=. --cov-report xml:coverage.xml
