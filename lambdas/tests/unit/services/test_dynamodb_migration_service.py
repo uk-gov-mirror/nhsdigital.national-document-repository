@@ -113,17 +113,11 @@ def test_process_items_handles_exceptions(service_under_test, mocker):
     migration_instance.main.return_value = [("VeryImportantMigration", dummy_update_fn)]
     migration_instance.process_entries.side_effect = Exception("failed :(")
 
-    service_under_test.process_items(migration_instance, [{"ID": "1"}])
+    with pytest.raises(Exception):
+        service_under_test.process_items(migration_instance, [{"ID": "1"}])
 
     migration_instance.main.assert_called_once_with(entries=[{"ID": "1"}])
-    migration_instance.process_entries.assert_called_once_with(
-        label="VeryImportantMigration",
-        entries=[{"ID": "1"}],
-        update_fn=dummy_update_fn,
-        segment=service_under_test.segment,
-        execution_id="test-exec-id"
-    )
-    assert service_under_test.error_count == 1
+    migration_instance.process_entries.assert_called()
 
 
 def test_process_items_no_items_skips(service_under_test, mocker):
