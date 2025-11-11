@@ -27,6 +27,7 @@ share/python-wheels/
 MANIFEST
 .pip_cache/
 package/
+lambdas/mtls_env_certs/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -99,6 +100,7 @@ node_modules/
 .vscode/
 
 lambdas/tests/unit/helpers/data/pdf/tmp
+lambdas/tests/e2e/apim/*.pdf
 /lambdas/package_/
 
 # jupyter notebook files

@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 from botocore.exceptions import ClientError
 from enums.virus_scan_result import VirusScanResult
+from lambdas.enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
 from services.mock_virus_scan_service import MockVirusScanService
 from services.upload_document_reference_service import UploadDocumentReferenceService
@@ -10,12 +11,16 @@ from tests.unit.conftest import (
     MOCK_LG_BUCKET,
     MOCK_LG_TABLE_NAME,
     MOCK_STAGING_STORE_BUCKET,
+    MOCK_PDM_TABLE_NAME,
+    MOCK_PDM_BUCKET,
 )
 from utils.common_query_filters import (
     FinalOrPreliminaryAndNotSuperseded,
     PreliminaryStatus,
 )
 from utils.exceptions import DocumentServiceException, FileProcessingException
+from utils.lambda_exceptions import InvalidDocTypeException
+
 
 @pytest.fixture
 def mock_document_reference():
@@ -59,6 +64,44 @@ def service(set_env, mock_virus_scan_service):
         service.dynamo_service = Mock()
         service.virus_scan_service = MockVirusScanService()
         service.s3_service = Mock()
+        return service
+
+
+@pytest.fixture
+def mock_pdm_document_reference():
+    """Create a mock document reference"""
+    doc_ref = Mock(spec=DocumentReference)
+    doc_ref.id = "test-doc-id"
+    doc_ref.nhs_number = "9000000001"
+    doc_ref.s3_file_key = (
+        f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000001/test-doc-id"
+    )
+    doc_ref.s3_bucket_name = "test-staging-bucket"
+    doc_ref.virus_scanner_result = None
+    doc_ref.file_size = 1234567890
+    doc_ref.doc_status = "uploading"
+    doc_ref._build_s3_location = Mock(
+        return_value=f"s3://test-staging-bucket/fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000001/test-doc-id"
+    )
+    return doc_ref
+
+
+@pytest.fixture
+def pdm_service(set_env, mock_virus_scan_service):
+    with patch.multiple(
+        "services.upload_document_reference_service",
+        DocumentService=Mock(),
+        DynamoDBService=Mock(),
+        S3Service=Mock(),
+    ):
+        service = UploadDocumentReferenceService()
+        service.document_service = Mock()
+        service.dynamo_service = Mock()
+        service.virus_scan_service = MockVirusScanService()
+        service.s3_service = Mock()
+        service.table_name = MOCK_PDM_TABLE_NAME
+        service.destination_bucket_name = MOCK_PDM_BUCKET
+        service.doc_type = SnomedCodes.PATIENT_DATA.value
         return service
 
 
@@ -319,6 +362,19 @@ def test_delete_file_from_staging_bucket_success(service):
     )
 
 
+def test_delete_pdm_file_from_staging_bucket_success(service):
+    """Test successful file deletion from staging bucket"""
+    source_file_key = (
+        f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/staging/test-doc-id"
+    )
+
+    service.delete_file_from_staging_bucket(source_file_key)
+
+    service.s3_service.delete_object.assert_called_once_with(
+        MOCK_STAGING_STORE_BUCKET, source_file_key
+    )
+
+
 def test_delete_file_from_staging_bucket_client_error(service):
     """Test handling of ClientError during file deletion"""
     source_file_key = "staging/test-doc-id"
@@ -384,7 +440,7 @@ def test_update_dynamo_table_client_error(service, mock_document_reference):
         ("simple-doc", "simple-doc", "9000000001/test-doc-id"),
     ],
 )
-def test_document_key_extraction_from_object_key(
+def test_document_key_extraction_from_object_key_for_lg(
     service,
     mock_document_reference,
     object_key,
@@ -662,3 +718,152 @@ def test_process_preliminary_document_reference_exception_during_processing(
         )
 
     assert "Processing failed" in str(exc_info.value)
+
+
+def test_get_infrastructure_for_document_key_pdm(service):
+    assert service.table_name == MOCK_LG_TABLE_NAME
+    assert service.destination_bucket_name == MOCK_LG_BUCKET
+    service._get_infrastructure_for_document_key(
+        object_parts=["fhir_upload", SnomedCodes.PATIENT_DATA.value.code, "1234"]
+    )
+    assert service.table_name == MOCK_PDM_TABLE_NAME
+    assert service.destination_bucket_name == MOCK_PDM_BUCKET
+
+
+def test_get_infrastructure_for_document_key_non_pdm(service):
+    infra = service._get_infrastructure_for_document_key(object_parts=["1234", "123"])
+    assert infra is None
+
+
+def test_get_infra_invalid_doc_type(monkeypatch, service):
+    # Create a fake doc_type object
+    fake_doc_type = Mock()
+    fake_doc_type.code = "999999"
+    fake_doc_type.display_name = "Fake Doc"
+
+    # Mock SnomedCodes.find_by_code so doc_type is NOT None
+    monkeypatch.setattr(
+        "services.upload_document_reference_service.SnomedCodes.find_by_code",
+        lambda code: fake_doc_type,
+    )
+
+    # Mock routers
+    mock_table_router = Mock()
+    mock_table_router.resolve.side_effect = KeyError("nope")
+
+    mock_bucket_router = Mock()
+
+    # Force KeyError inside the try block
+    mock_table_router.resolve.side_effect = KeyError("not found")
+    service.table_router = mock_table_router
+    service.bucket_router = mock_bucket_router
+    # Call function and assert the exception is raised
+    with pytest.raises(InvalidDocTypeException):
+        service._get_infrastructure_for_document_key(["fhir_upload", "999999"])
+
+
+@pytest.mark.parametrize(
+    "object_key,expected_document_key,expected_table",
+    [
+        (
+            "staging/documents/test-doc-123",
+            "test-doc-123",
+            MOCK_LG_TABLE_NAME,
+        ),
+        ("folder/subfolder/another-doc", "another-doc", MOCK_LG_TABLE_NAME),
+        ("simple-doc", "simple-doc", MOCK_LG_TABLE_NAME),
+        (
+            f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/staging/test-doc-123",
+            "test-doc-123",
+            MOCK_PDM_TABLE_NAME,
+        ),
+        (
+            f"{SnomedCodes.LLOYD_GEORGE.value.code}/staging/test-doc-123",
+            "test-doc-123",
+            MOCK_LG_TABLE_NAME,
+        ),
+        (
+            f"fhir_upload/{SnomedCodes.LLOYD_GEORGE.value.code}/staging/test-doc-123",
+            "test-doc-123",
+            MOCK_LG_TABLE_NAME,
+        ),
+    ],
+)
+def test_document_type_extraction_from_object_key(
+    service,
+    mock_document_reference,
+    object_key,
+    expected_document_key,
+    expected_table,
+):
+    """Test extraction of a document key from various object key formats"""
+    service.document_service.fetch_documents_from_table.return_value = [
+        mock_document_reference
+    ]
+
+    service.handle_upload_document_reference_request(object_key)
+
+    assert service.table_name == expected_table
+
+    # if expected_table != MOCK_LG_TABLE_NAME:
+    #     service.document_service.fetch_documents_from_table.assert_called_with(
+    #         table=expected_table,
+    #         search_condition=expected_document_key,
+    #         search_key="ID",
+    #         query_filter=PreliminaryStatus,
+    #     )
+    # else:
+    #     service.document_service.fetch_documents_from_table.assert_called_with(
+    #         table=expected_table,
+    #         index_name="S3FileKeyIndex",
+    #         search_condition="original/test-key",
+    #         search_key="S3FileKey",
+    #         query_filter=PreliminaryStatus,
+    #     )
+
+
+def test_handle_upload_pdm_document_reference_request_success(
+    service, mock_document_reference, mocker
+):
+    """Test successful handling of the upload document reference request"""
+    pdm_snomed = SnomedCodes.PATIENT_DATA.value
+    object_key = f"fhir_upload/{pdm_snomed.code}/staging/test-doc-id"
+    object_size = 1111
+    service.document_service.fetch_documents_from_table.return_value = [
+        mock_document_reference
+    ]
+    service.virus_scan_service.scan_file = mocker.MagicMock(
+        return_value=VirusScanResult.CLEAN
+    )
+
+    service.handle_upload_document_reference_request(object_key, object_size)
+
+    service.document_service.fetch_documents_from_table.assert_called_once()
+    service.document_service.update_document.assert_called_once()
+    service.s3_service.copy_across_bucket.assert_called_once()
+    service.s3_service.delete_object.assert_called_once()
+    service.virus_scan_service.scan_file.assert_called_once()
+
+
+def test_copy_files_from_staging_bucket_to_pdm_success(
+    pdm_service, mock_pdm_document_reference
+):
+    """Test successful file copying from staging bucket"""
+    source_file_key = (
+        f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/staging/test-doc-id"
+    )
+    expected_dest_key = (
+        f"{mock_pdm_document_reference.nhs_number}/{mock_pdm_document_reference.id}"
+    )
+    pdm_service.copy_files_from_staging_bucket(
+        mock_pdm_document_reference, source_file_key
+    )
+    pdm_service.s3_service.copy_across_bucket.assert_called_once_with(
+        source_bucket=MOCK_STAGING_STORE_BUCKET,
+        source_file_key=source_file_key,
+        dest_bucket=MOCK_PDM_BUCKET,
+        dest_file_key=expected_dest_key,
+    )
+
+    assert mock_pdm_document_reference.s3_file_key == expected_dest_key
+    assert mock_pdm_document_reference.s3_bucket_name == MOCK_PDM_BUCKET
