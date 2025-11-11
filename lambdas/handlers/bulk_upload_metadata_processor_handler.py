@@ -69,6 +69,7 @@ def get_formatter_service(raw_pre_format_type):
         )
         return MetadataGeneralPreprocessor
 
+
 def handle_expedite_event(event):
     try:
         key_string = event["detail"]["object"]["key"]
