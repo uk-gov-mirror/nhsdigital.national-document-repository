@@ -80,6 +80,7 @@ const buildDocument = (
         id: uuidv4(),
         docType: docType ?? DOCUMENT_TYPE.ARF,
         attempts: 0,
+        versionId: '1',
     };
     return mockDocument;
 };

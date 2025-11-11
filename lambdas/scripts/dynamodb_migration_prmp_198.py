@@ -4,6 +4,7 @@ from typing import Callable, Iterable
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 from utils.audit_logging_setup import LoggingService
+from utils.exceptions import MigrationUnrecoverableException, MigrationRetryableException
 
 
 class AuthorMigration(MigrationBase):
@@ -41,7 +42,9 @@ class AuthorMigration(MigrationBase):
 
         if entries is None:
             self.logger.error("No entries provided — expected a list of table items.")
-            raise ValueError("Entries must be provided to main().")
+            raise MigrationRetryableException(
+                message="Entries missing for segment worker", segment_id=None
+            )
 
         return [("Author", self.get_update_author_items)]
 
@@ -71,14 +74,18 @@ class AuthorMigration(MigrationBase):
             self.logger.warning(
                 f"No completed bulk upload found for NHS number: {nhs_number}"
             )
-            return None
+            raise MigrationUnrecoverableException(
+                message=f"No completed bulk upload found for NHS number: {nhs_number}", item_id=entry.get("ID")
+            )
 
         new_author = bulk_upload_row.get("UploaderOdsCode")
         if not new_author:
             self.logger.warning(
                 f"No uploader ODS code found for NHS number: {nhs_number}"
             )
-            return None
+            raise MigrationUnrecoverableException(
+                message=f"No uploader ODS code found for NHS number: {nhs_number}", item_id=entry.get("ID")
+            )
 
         return {"Author": new_author}
 

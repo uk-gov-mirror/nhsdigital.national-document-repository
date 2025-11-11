@@ -41,7 +41,7 @@ class DynamoDBService:
         table_name,
         search_key,
         search_condition: str,
-        index_name: str = None,
+        index_name: str | None = None,
         requested_fields: list[str] = None,
         query_filter: Attr | ConditionBase = None,
     ) -> list[dict]:

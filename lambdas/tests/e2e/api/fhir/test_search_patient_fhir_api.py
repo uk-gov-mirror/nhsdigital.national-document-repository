@@ -1,40 +1,37 @@
 import pytest
-import requests
 
-from lambdas.tests.e2e.api.fhir.conftest import MTLS_ENDPOINT, create_mtls_session
+from lambdas.tests.e2e.api.fhir.conftest import (
+    MTLS_ENDPOINT,
+    create_and_store_pdm_record,
+    create_mtls_session,
+)
 from lambdas.tests.e2e.conftest import APIM_ENDPOINT, PDM_SNOMED
 from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
 
 
-def search_document_reference(nhs_number):
-    """Helper to perform search by NHS number."""
+def search_document_reference(nhs_number, client_cert_path=None, client_key_path=None):
+    """Helper to perform search by NHS number with optional mTLS certs."""
     url = (
         f"https://{MTLS_ENDPOINT}/DocumentReference?"
         f"subject:identifier=https://fhir.nhs.uk/Id/nhs-number|{nhs_number}"
     )
     headers = {
-        "Authorization": "Bearer 123",
         "X-Correlation-Id": "1234",
     }
-    session = create_mtls_session()
+
+    # Use provided certs if available, else defaults
+    if client_cert_path and client_key_path:
+        session = create_mtls_session(client_cert_path, client_key_path)
+    else:
+        session = create_mtls_session()
+
     return session.get(url, headers=headers)
 
 
-def create_and_store_record(
-    test_data, nhs_number="9912003071", doc_status: str | None = None
-):
-    """Helper to create metadata and resource for a record."""
-    record = pdm_data_helper.build_record(nhs_number=nhs_number, doc_status=doc_status)
-    test_data.append(record)
-    pdm_data_helper.create_metadata(record)
-    pdm_data_helper.create_resource(record)
-    return record
-
-
 def test_search_patient_details(test_data):
-    create_and_store_record(test_data)
+    create_and_store_pdm_record(test_data)
 
     response = search_document_reference("9912003071")
     assert response.status_code == 200
@@ -50,8 +47,8 @@ def test_search_patient_details(test_data):
 
 
 def test_multiple_cancelled_search_patient_details(test_data):
-    create_and_store_record(test_data, doc_status="cancelled")
-    create_and_store_record(test_data, doc_status="cancelled")
+    create_and_store_pdm_record(test_data, doc_status="cancelled")
+    create_and_store_pdm_record(test_data, doc_status="cancelled")
 
     response = search_document_reference("9912003071")
     assert response.status_code == 200
@@ -90,20 +87,15 @@ def test_search_edge_cases(
 
 def test_search_patient_unauthorized_mtls(test_data, temp_cert_and_key):
     """Search should return 403 when mTLS certificate is invalid or missing."""
-    create_and_store_record(test_data)
-    url = (
-        f"https://{MTLS_ENDPOINT}/DocumentReference?"
-        f"subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071"
-    )
-    headers = {
-        "Authorization": "Bearer 123",
-        "X-Correlation-Id": "unauthorized-test",
-    }
+    create_and_store_pdm_record(test_data)
 
     # Use an invalid cert that is trusted by TLS but fails truststore validation
     cert_path, key_path = temp_cert_and_key
 
-    response = requests.get(url, headers=headers, cert=(cert_path, key_path))
+    response = search_document_reference(
+        "9912003071", client_cert_path=cert_path, client_key_path=key_path
+    )
+
     body = response.json()
     assert response.status_code == 403
     assert body["message"] == "Forbidden"

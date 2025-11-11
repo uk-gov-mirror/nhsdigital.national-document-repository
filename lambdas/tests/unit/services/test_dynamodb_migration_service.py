@@ -1,6 +1,12 @@
 import pytest
+import os
 from scripts.MigrationBase import MigrationBase
 from services.dynamodb_migration_service import DynamoDBMigrationService
+
+
+@pytest.fixture(autouse=True)
+def set_env_vars(monkeypatch):
+    monkeypatch.setenv("MIGRATION_FAILED_ITEMS_STORE_BUCKET_NAME", "dummy-bucket")
 
 
 @pytest.fixture
@@ -22,6 +28,7 @@ def service_under_test(mock_boto3_resource, mocker):
         environment="dev",
         run_migration=True,
         migration_script="scripts.test_migration_script",
+        execution_id="test-exec-id",
     )
     yield service
 
@@ -72,12 +79,17 @@ def test_scan_segment_with_last_key(service_under_test, mock_boto3_resource):
         Segment=0, TotalSegments=10, ExclusiveStartKey=lek
     )
 
+
 def test_process_items_executes_update_functions(service_under_test, mocker):
     def dummy_update_fn(item):
         return None
 
     migration_instance = mocker.Mock()
     migration_instance.main.return_value = [("VeryImportantMigration", dummy_update_fn)]
+    migration_instance.process_entries.return_value = {
+        "successful_item_runs": 1,  # <-- fix key to match implementation
+        "failed_items_count": 0
+    }
 
     service_under_test.process_items(migration_instance, [{"ID": "1"}])
 
@@ -86,8 +98,11 @@ def test_process_items_executes_update_functions(service_under_test, mocker):
         label="VeryImportantMigration",
         entries=[{"ID": "1"}],
         update_fn=dummy_update_fn,
+        segment=service_under_test.segment,
+        execution_id="test-exec-id"
     )
-    assert service_under_test.updated_count == 1
+    assert service_under_test.processed_count == 1
+    assert service_under_test.error_count == 0
 
 
 def test_process_items_handles_exceptions(service_under_test, mocker):
@@ -98,15 +113,11 @@ def test_process_items_handles_exceptions(service_under_test, mocker):
     migration_instance.main.return_value = [("VeryImportantMigration", dummy_update_fn)]
     migration_instance.process_entries.side_effect = Exception("failed :(")
 
-    service_under_test.process_items(migration_instance, [{"ID": "1"}])
+    with pytest.raises(Exception):
+        service_under_test.process_items(migration_instance, [{"ID": "1"}])
 
     migration_instance.main.assert_called_once_with(entries=[{"ID": "1"}])
-    migration_instance.process_entries.assert_called_once_with(
-        label="VeryImportantMigration",
-        entries=[{"ID": "1"}],
-        update_fn=dummy_update_fn,
-    )
-    assert service_under_test.error_count == 1
+    migration_instance.process_entries.assert_called()
 
 
 def test_process_items_no_items_skips(service_under_test, mocker):

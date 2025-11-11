@@ -1,4 +1,4 @@
-name: "Base Bulk Upload - Execute a Bulk Upload"
+name: "Base PDS - Disable PDS Stub"
 
 permissions:
   pull-requests: write
@@ -14,7 +14,7 @@ on:
         type: "string"
         default: "ndr"
       base_branch:
-        description: "Which Feature Branch for the Bulk Upload Script"
+        description: "Which Feature Branch for the PDS Disable Script"
         required: false
         type: "string"
         default: "main"
@@ -23,22 +23,12 @@ on:
         required: true
         type: "string"
         default: "development"
-      combi_settings:
-        description: "Use 300 or 8000 patients"
-        required: false
-        type: "string"
-        default: "combi300"
-      file_count:
-        description: "How many files per patient to generate."
-        required: false
-        type: "string"
-        default: "3"
     secrets:
       AWS_ASSUME_ROLE:
         required: true
 
 jobs:
-  perform-bulk-upload:
+  disable-fhir-stub:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
@@ -62,24 +52,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install boto3
-        working-directory: ./tests/bulk-upload/scripts
+        working-directory: ./tests/scripts
 
-      - name: Setup Bulk Upload
+      - name: Disable FHIR Stub
         run: |
-          python setup_bulk_upload.py \
-            --environment "${{ inputs.sandbox }}" \
-            --delete-table \
-            --download-data \
-            --build-files \
-            --data-file "${{ inputs.combi_settings }}" \
-            --upload \
-            --num-files "${{ inputs.file_count }}" \
-            --empty-lloydgeorge-store
-        working-directory: ./tests/bulk-upload/scripts
-
-      - name: Run Bulk Upload
-        run: |
-          python run_bulk_upload.py \
-            --environment "${{ inputs.sandbox }}" \
-            --start-bulk-upload
-        working-directory: ./tests/bulk-upload/scripts
+          python disable_fhir_stub.py \
+            --environment "${{ inputs.sandbox }}"
+        working-directory: ./tests/scripts
