@@ -11,18 +11,6 @@ def service():
     return service
 
 
-def test_build_model_for_alias_calls_expected_methods(mocker, service):
-    mock_validate = mocker.patch.object(service, "validate_alias_map")
-    mock_create = mocker.patch.object(
-        service, "create_metadata_model", return_value=BaseModel
-    )
-
-    result = service.build_model_for_alias("general")
-    assert result == BaseModel
-    mock_validate.assert_called_once()
-    mock_create.assert_called_once()
-
-
 def test_create_dynamic_model_builds_pydantic_model(service):
     alias_map = {k: k.upper() for k in MetadataFile.model_fields.keys()}
     model = service.create_metadata_model(alias_map)
@@ -37,7 +25,7 @@ def test_validate_and_normalize_metadata_mixed_results(mocker, service):
         gp_practice_code: str
         nhs_number: str
 
-    mocker.patch.object(service, "build_model_for_alias", return_value=FakeModel)
+    mocker.patch.object(service, "create_metadata_model", return_value=FakeModel)
 
     records = [
         {
@@ -68,7 +56,7 @@ def test_validate_and_normalize_metadata_missing_type(mocker, service):
         scan_date: str
         gp_practice_code: str
 
-    mocker.patch.object(service, "build_model_for_alias", return_value=FakeModel)
+    mocker.patch.object(service, "create_metadata_model", return_value=FakeModel)
 
     records = [
         {
