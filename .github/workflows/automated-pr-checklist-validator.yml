@@ -1,7 +1,9 @@
-name: "Z-AUTOMATED: PR Checklist validator"
+name: "Z-AUTOMATED: PR Validator"
 
 on:
   pull_request:
+    branches:
+      - main
     types: [opened, edited, synchronize]
 
 permissions:
@@ -9,14 +11,14 @@ permissions:
   pull-requests: read
 
 jobs:
-  validate:
+  checklist_validator:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.11
 
