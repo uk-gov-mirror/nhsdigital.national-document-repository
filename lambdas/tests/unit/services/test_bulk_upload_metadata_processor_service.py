@@ -710,7 +710,6 @@ def mock_service_remapping_mandatory_fields(mocker):
             practice_directory="test_practice_directory"
         ),
         metadata_heading_remap={
-            "FILEPATH": "Path",
             "NHS-NO": "NhsNumber",
             "GP-PRACTICE-CODE": "ODS Code",
             "SCAN-DATE": "Scan Date",
@@ -737,7 +736,7 @@ def mock_service_remapping_mandatory_fields(mocker):
 
 @pytest.fixture
 def mock_remap_csv_content():
-    header = "Path,ODS Code,NhsNumber,Scan Date,Scan ID,User ID,Upload Date"
+    header = "FILEPATH,ODS Code,NhsNumber,Scan Date,Scan ID,User ID,Upload Date"
     rows = [
         "/path/1.pdf,Y12345,123456789,02/01/2023,SID,UID,02/01/2023",
     ]

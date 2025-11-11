@@ -2,7 +2,6 @@ import pytest
 from models.staging_metadata import MetadataFile
 from pydantic import BaseModel
 from services.metadata_mapping_validator_service import MetadataMappingValidatorService
-from utils.exceptions import BulkUploadMetadataException
 
 
 @pytest.fixture
@@ -22,12 +21,6 @@ def test_build_model_for_alias_calls_expected_methods(mocker, service):
     assert result == BaseModel
     mock_validate.assert_called_once()
     mock_create.assert_called_once()
-
-
-def test_validate_alias_map_raises_when_keys_missing(service):
-    alias_map = {"file_path": "FILE"}
-    with pytest.raises(BulkUploadMetadataException, match="missing mappings"):
-        service.validate_alias_map(alias_map)
 
 
 def test_create_dynamic_model_builds_pydantic_model(service):

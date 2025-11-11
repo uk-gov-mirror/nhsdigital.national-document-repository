@@ -3,7 +3,6 @@ from typing import Type
 from models.staging_metadata import MetadataFile
 from pydantic import BaseModel, ConfigDict, Field, create_model
 from utils.audit_logging_setup import LoggingService
-from utils.exceptions import BulkUploadMetadataException
 
 logger = LoggingService(__name__)
 
@@ -11,31 +10,11 @@ logger = LoggingService(__name__)
 class MetadataMappingValidatorService:
     model_aliases = {f.alias for f in MetadataFile.model_fields.values() if f.alias}
 
-    def build_model_for_alias(self, alias_map: dict) -> Type[BaseModel]:
-        if alias_map:
-            self.validate_alias_map(alias_map)
-            return self.create_metadata_model(alias_map)
+    def create_metadata_model(self, alias_map) -> Type[BaseModel]:
+        if not alias_map:
+            logger.info("Empty or no alias map provided")
         else:
-            return self.create_metadata_model()
-
-    def validate_alias_map(self, alias_map: dict) -> None:
-        alias_field_keys = set(alias_map.keys()).intersection(self.model_aliases)
-
-        missing_keys_from_model = self.model_aliases - alias_field_keys
-        optional_remapping_set = {"PAGE COUNT", "SECTION", "SUB-SECTION"}
-        optional_remapping_keys = {
-            k for k in optional_remapping_set if k in self.model_aliases
-        }
-
-        required_missing_keys = missing_keys_from_model - optional_remapping_keys
-        if required_missing_keys:
-            raise BulkUploadMetadataException(
-                f"Alias config is missing mappings for: {', '.join(sorted(missing_keys_from_model))}"
-            )
-
-    def create_metadata_model(self, alias_map=None) -> Type[BaseModel]:
-        if alias_map is None:
-            alias_map = {}
+            logger.info(f"Alias map provided as {alias_map}")
         new_fields = {}
 
         for name, model_field in MetadataFile.model_fields.items():
@@ -58,11 +37,13 @@ class MetadataMappingValidatorService:
             **new_fields,
         )
 
-        logger.info("Dynamic metadata model created from interpreted fields")
+        logger.info(
+            f"Dynamic metadata model created from interpreted fields: {new_fields}"
+        )
         return dynamic_model
 
     def validate_and_normalize_metadata(self, records: list[dict], remappings: dict):
-        model = self.build_model_for_alias(remappings)
+        model = self.create_metadata_model(remappings)
         validated_rows, rejected_rows, rejected_reasons = [], [], []
         required_fields = [
             name
