@@ -4,11 +4,11 @@ from typing import Optional
 from botocore.exceptions import ClientError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.virus_scan_result import VirusScanResult
-from lambdas.enums.lambda_error import LambdaError
-from lambdas.enums.snomed_codes import SnomedCodes
-from lambdas.utils.dynamo_utils import DocTypeTableRouter
-from lambdas.utils.lambda_exceptions import InvalidDocTypeException
-from lambdas.utils.s3_utils import DocTypeS3BucketRouter
+from enums.lambda_error import LambdaError
+from enums.snomed_codes import SnomedCodes
+from utils.dynamo_utils import DocTypeTableRouter
+from utils.lambda_exceptions import InvalidDocTypeException
+from utils.s3_utils import DocTypeS3BucketRouter
 from models.document_reference import DocumentReference
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
@@ -33,6 +33,7 @@ class UploadDocumentReferenceService:
         self.staging_s3_bucket_name = os.environ["STAGING_STORE_BUCKET_NAME"]
         self.table_name = os.environ["LLOYD_GEORGE_DYNAMODB_NAME"]
         self.destination_bucket_name = os.environ["LLOYD_GEORGE_BUCKET_NAME"]
+        self.doc_type = SnomedCodes.LLOYD_GEORGE.value
         self.document_service = DocumentService()
         self.dynamo_service = DynamoDBService()
         self.virus_scan_service = get_virus_scan_service()
@@ -67,7 +68,7 @@ class UploadDocumentReferenceService:
             logger.error(f"Unexpected error processing document reference: {str(e)}")
             logger.error(f"Failed to process document reference: {object_key}")
             return
-        
+
     def _get_infrastructure_for_document_key(self, object_parts: list[str]) -> None:
         doc_type = None
         if object_parts[0] != "fhir_upload" or not (
@@ -76,6 +77,7 @@ class UploadDocumentReferenceService:
             return
 
         try:
+            self.doc_type = doc_type
             self.table_name = self.table_router.resolve(doc_type)
             self.destination_bucket_name = self.bucket_router.resolve(doc_type)
         except KeyError:
@@ -126,7 +128,9 @@ class UploadDocumentReferenceService:
     ):
         """Process the preliminary (uploading) document reference with virus scanning and file operations"""
         try:
-            virus_scan_result = self._perform_virus_scan(preliminary_document_reference, object_key)
+            virus_scan_result = self._perform_virus_scan(
+                preliminary_document_reference, object_key
+            )
             preliminary_document_reference.virus_scanner_result = virus_scan_result
 
             if virus_scan_result == VirusScanResult.CLEAN:
@@ -143,22 +147,38 @@ class UploadDocumentReferenceService:
             preliminary_document_reference.uploaded = True
             preliminary_document_reference.uploading = False
 
-            updated_doc_status = None
-            if virus_scan_result != VirusScanResult.CLEAN:
-                updated_doc_status = "cancelled"
+            if self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
+                updated_doc_status = None
+                if virus_scan_result != VirusScanResult.CLEAN:
+                    updated_doc_status = "cancelled"
 
-                preliminary_document_reference.doc_status = updated_doc_status
-                self._update_dynamo_table(preliminary_document_reference)
+                    preliminary_document_reference.doc_status = updated_doc_status
+                    self._update_dynamo_table(preliminary_document_reference)
+                else:
+                    updated_doc_status = "final"
+                    preliminary_document_reference.doc_status = updated_doc_status
+
+                    self._finalize_and_supersede_with_transaction(
+                        preliminary_document_reference
+                    )
+
+                    # Update NRL Pointer
+                    # TODO: PRMP-390
+                    #
             else:
-                updated_doc_status = "final"
-                preliminary_document_reference.doc_status = updated_doc_status
+                try:
+                    preliminary_document_reference.doc_status = (
+                        "cancelled"
+                        if virus_scan_result != VirusScanResult.CLEAN
+                        else "final"
+                    )
 
-                self._finalize_and_supersede_with_transaction(
-                    preliminary_document_reference
-                )
-
-                # Update NRL Pointer
-                # TODO: PRMP-390
+                    self._update_dynamo_table(preliminary_document_reference)
+                except Exception as e:
+                    logger.error(
+                        f"Error processing document reference {preliminary_document_reference.id}: {str(e)}"
+                    )
+                    raise
 
         except TransactionConflictException as e:
             logger.error(
@@ -300,7 +320,9 @@ class UploadDocumentReferenceService:
             new_document.uploading = False
             new_document.file_size = None
             self._update_dynamo_table(new_document)
-            self.delete_file_from_bucket(new_document.file_location, new_document.s3_version_id)
+            self.delete_file_from_bucket(
+                new_document.file_location, new_document.s3_version_id
+            )
             raise
         except Exception as e:
             logger.error(
@@ -350,8 +372,9 @@ class UploadDocumentReferenceService:
         """Copy files from staging bucket to destination bucket"""
         try:
             logger.info("Copying files from staging bucket")
-
-            dest_file_key = document_reference.s3_file_key
+            dest_file_key = f"{document_reference.nhs_number}/{document_reference.id}"
+            if self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
+                dest_file_key = document_reference.s3_file_key
 
             copy_result = self.s3_service.copy_across_bucket(
                 source_bucket=self.staging_s3_bucket_name,
@@ -359,13 +382,13 @@ class UploadDocumentReferenceService:
                 dest_bucket=self.destination_bucket_name,
                 dest_file_key=dest_file_key,
             )
-
+            if self.doc_type.code == SnomedCodes.PATIENT_DATA.value.code:
+                document_reference.s3_file_key = dest_file_key
             document_reference.s3_bucket_name = self.destination_bucket_name
             document_reference.file_location = document_reference._build_s3_location(
                 self.destination_bucket_name, dest_file_key
             )
             document_reference.s3_version_id = copy_result.get("VersionId")
-
             return copy_result
 
         except ClientError as e:
@@ -386,7 +409,9 @@ class UploadDocumentReferenceService:
     def delete_file_from_bucket(self, file_location: str, version_id: str):
         """Delete file from bucket"""
         try:
-            s3_bucket_name, source_file_key = DocumentReference._parse_s3_location(file_location)
+            s3_bucket_name, source_file_key = DocumentReference._parse_s3_location(
+                file_location
+            )
             logger.info(
                 f"Deleting file from bucket: {s3_bucket_name}/{source_file_key}"
             )
@@ -412,6 +437,8 @@ class UploadDocumentReferenceService:
                 "uploaded",
                 "uploading",
             }
+            if self.doc_type.code == SnomedCodes.PATIENT_DATA.value.code:
+                update_fields.add("s3_file_key")
 
             self.document_service.update_document(
                 table_name=self.table_name,

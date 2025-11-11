@@ -1,10 +1,12 @@
 import datetime
+import io
+import json
 import os
-
-from services.base.dynamo_service import DynamoDBService
-from services.base.s3_service import S3Service
+import uuid
 
 from enums.snomed_codes import SnomedCodes
+from services.base.dynamo_service import DynamoDBService
+from services.base.s3_service import S3Service
 
 
 class DataHelper:
@@ -21,6 +23,22 @@ class DataHelper:
         self.record_type = record_type
         self.dynamo_service = DynamoDBService()
         self.s3_service = S3Service()
+
+    def build_record(
+        self, nhs_number="9912003071", data=None, doc_status=None, size=None
+    ):
+        """Helper to create a PDM record dictionary."""
+        record = {
+            "id": str(uuid.uuid4()),
+            "nhs_number": nhs_number,
+            "ods": "H81109",
+            "data": data or io.BytesIO(b"Sample PDF Content"),
+        }
+        if doc_status:
+            record["doc_status"] = doc_status
+        if size:
+            record["size"] = size
+        return record
 
     def create_metadata(self, document_details):
         dynamo_item = {
@@ -53,11 +71,57 @@ class DataHelper:
         )
 
     def retrieve_document_reference(self, record):
-        params = record["id"].split("~")
-        id = params[1] if len(params) == 2 else params
         return self.dynamo_service.get_item(
-            table_name=self.dynamo_table, key={"ID": id}
+            table_name=self.dynamo_table, key={"ID": record["id"]}
         )
+
+    def create_upload_payload(self, record):
+        """Helper to build DocumentReference payload."""
+        payload = {
+            "resourceType": "DocumentReference",
+            "type": {
+                "coding": [
+                    {
+                        "system": "https://snomed.info/sct",
+                        "code": f"{self.snomed_code}",
+                        "display": "Confidential patient data",
+                    }
+                ]
+            },
+            "subject": {
+                "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/nhs-number",
+                    "value": record["nhs_number"],
+                }
+            },
+            "author": [
+                {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": record["ods"],
+                    }
+                }
+            ],
+            "custodian": {
+                "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": record["ods"],
+                }
+            },
+            "content": [
+                {
+                    "attachment": {
+                        "creation": "2023-01-01",
+                        "contentType": "application/pdf",
+                        "language": "en-GB",
+                        "title": "1of1_pdm_record_[Paula Esme VESEY]_[9730153973]_[22-01-1960].pdf",
+                    }
+                }
+            ],
+        }
+        if "data" in record:
+            payload["content"][0]["attachment"]["data"] = record["data"]
+        return json.dumps(payload)
 
     def tidyup(self, record):
         self.dynamo_service.delete_item(
