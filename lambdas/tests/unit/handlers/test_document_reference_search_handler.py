@@ -21,6 +21,9 @@ def mocked_service(set_env, mocker):
     mocked_class = mocker.patch(
         "handlers.document_reference_search_handler.DocumentReferenceSearchService"
     )
+    mocker.patch(
+        "handlers.document_reference_search_handler.FeatureFlagService.get_feature_flags_by_flag"
+    )
     mocked_service = mocked_class.return_value
     yield mocked_service
 
