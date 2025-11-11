@@ -28,21 +28,9 @@ logger = LoggingService(__name__)
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
     if "source" in event and event.get("source") == "aws.s3":
-        logger.info("Triggering EventBridge event from S3")
-        try:
-            key_string = event["detail"]["object"]["key"]
-            key = urllib.parse.unquote_plus(key_string, encoding="utf-8")
-            if key.startswith("expedite/"):
-                logger.info("Processing file from expedite folder")
-                return  # To be added upon by ticket PRMP-540
-            else:
-                failure_msg = f"Unexpected directory or file location received from EventBridge: {key_string}"
-                logger.error(failure_msg)
-                raise BulkUploadMetadataException(failure_msg)
-        except KeyError as e:
-            failure_msg = f"Failed due to missing key: {str(e)}"
-            logger.error(failure_msg)
-            raise BulkUploadMetadataException(failure_msg)
+        logger.info("Handling EventBridge event from S3")
+        handle_expedite_event(event)
+        return
 
     practice_directory = event.get("practiceDirectory", "")
 
@@ -80,3 +68,19 @@ def get_formatter_service(raw_pre_format_type):
             f"Invalid preFormatType: '{raw_pre_format_type}', defaulting to {LloydGeorgePreProcessFormat.GENERAL}."
         )
         return MetadataGeneralPreprocessor
+
+def handle_expedite_event(event):
+    try:
+        key_string = event["detail"]["object"]["key"]
+        key = urllib.parse.unquote_plus(key_string, encoding="utf-8")
+        if key.startswith("expedite/"):
+            logger.info("Processing file from expedite folder")
+            return  # To be added upon by ticket PRMP-540
+        else:
+            failure_msg = f"Unexpected directory or file location received from EventBridge: {key_string}"
+            logger.error(failure_msg)
+            raise BulkUploadMetadataException(failure_msg)
+    except KeyError as e:
+        failure_msg = f"Failed due to missing key: {str(e)}"
+        logger.error(failure_msg)
+        raise BulkUploadMetadataException(failure_msg)
