@@ -12,6 +12,19 @@ on:
         description: "Sandbox environment"
         required: true
         default: "ndr"
+  workflow_call:
+    inputs:
+      build_branch:
+        description: "Branch with smoke tests."
+        required: true
+        type: "string"
+      sandbox:
+        description: "Sandbox to push code to"
+        required: true
+        type: string
+    secrets:
+      AWS_ASSUME_ROLE:
+        required: true
 
 permissions:
   pull-requests: write
@@ -43,7 +56,7 @@ jobs:
     if: always()
     steps:
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
           role-skip-session-tagging: true
