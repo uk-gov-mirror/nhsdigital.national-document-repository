@@ -45,7 +45,7 @@ def extract_table_info(event):
 
 
 def validate_event_input(event):
-    required_fields = ["segment", "totalSegments", "migrationScript"]
+    required_fields = ["segment", "totalSegments", "migrationScript", "executionId"]
     for field in required_fields:
         if field not in event:
             raise ValueError(f"Missing required field: '{field}' in event")
@@ -67,9 +67,13 @@ def validate_event_input(event):
     if not migration_script:
         raise ValueError("'migrationScript' cannot be empty")
 
-    run_migration = bool(event.get("run_migration", False))
+    run_migration = bool(event.get("runMigration", False))
 
     table_name, environment, region = extract_table_info(event)
+
+    execution_id = event.get("executionId")
+    if not execution_id:
+        raise ValueError("'executionId' cannot be empty")
 
     return (
         segment,
@@ -77,8 +81,9 @@ def validate_event_input(event):
         table_name,
         environment,
         region,
-        run_migration,
+        run_migration, 
         migration_script,
+        execution_id
     )
 
 
@@ -87,11 +92,12 @@ def lambda_handler(event, context):
         (
             segment,
             total_segments,
-            table_name,
+            table_name, 
             environment,
             region,
             run_migration,
-            migration_script,
+            migration_script, 
+            execution_id
         ) = validate_event_input(event)
 
         logger.info(
@@ -105,13 +111,14 @@ def lambda_handler(event, context):
             environment=environment,
             run_migration=run_migration,
             migration_script=migration_script,
+            execution_id=execution_id
         )
 
         result = service.execute_migration()
         logger.info(
             f"Migration completed: status={result.get('status')}, "
-            f"scanned={result.get('scannedCount')}, updated={result.get('updatedCount')}, "
-            f"errors={result.get('errorCount')}"
+            f"scanned={result.get('scannedCount')}, processed={result.get('processedCount')}, "
+            f"errors={result.get('errorCount')}, skipped={result.get('skippedCount')}"
         )
         return result
 

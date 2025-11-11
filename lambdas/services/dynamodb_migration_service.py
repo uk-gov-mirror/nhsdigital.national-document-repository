@@ -19,21 +19,21 @@ class DynamoDBMigrationService:
     """
 
     def __init__(self, segment: int, total_segments: int, table_name: str,
-                 environment: str, run_migration: bool, migration_script: str):
+                 environment: str, run_migration: bool, migration_script: str, execution_id: str):
         self.segment = segment
         self.total_segments = total_segments
         self.table_name = table_name
         self.environment = environment
         self.run_migration = run_migration
         self.migration_script = migration_script
+        self.execution_id = execution_id
 
         self.dynamodb = boto3.resource("dynamodb")
         self.table = self.dynamodb.Table(self.table_name)
         self.dynamo_service = DynamoDBService()
-
         self.scanned_count = 0
-        self.updated_count = 0
         self.skipped_count = 0
+        self.processed_count = 0
         self.error_count = 0
 
         logger.info(
@@ -80,24 +80,22 @@ class DynamoDBMigrationService:
 
     def process_items(self, migration_instance, items):
         if not items:
-            logger.info(f"No items found for segment {self.segment}")
             return
-
-        update_definitions = migration_instance.main(entries=items)
-
-        for label, update_fn in update_definitions:
-            logger.info(f"Executing migration step '{label}'")
+        for label, update_fn in migration_instance.main(entries=items):
             try:
-                migration_instance.process_entries(
+                segment_run_output = migration_instance.process_entries(
                     label=label,
                     entries=items,
                     update_fn=update_fn,
+                    segment=self.segment,
+                    execution_id=self.execution_id
                 )
-                self.updated_count += len(items)
-            except Exception as step_error:
+                self.processed_count += segment_run_output.get("successful_item_runs", 0)
+                self.error_count += segment_run_output.get("failed_items_count", 0)
+                self.skipped_count += segment_run_output.get("skipped_items_count", 0)
+            except Exception:
                 self.error_count += 1
-                logger.error(f"Error in step '{label}' for segment {self.segment}: {step_error}", exc_info=True)
-
+                raise 
 
     def iterate_segment_items(self,migration_instance):
        last_evaluated_key = None
@@ -119,9 +117,9 @@ class DynamoDBMigrationService:
         result = {
             "segmentId": self.segment,
             "totalSegments": self.total_segments,
-            "scannedCount": self.scanned_count,
-            "updatedCount": self.updated_count,
+            "processedCount": self.processed_count,
             "skippedCount": self.skipped_count,
+            "scannedCount": self.scanned_count,
             "errorCount": self.error_count,
             "status": status,
         }
