@@ -1,0 +1,29 @@
+name: "Z-AUTOMATED: PR Validator"
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, edited, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  checklist_validator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.11
+
+      - name: Run checklist validator
+        run: |
+          python3 scripts/github/checklist_validator/main.py
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
