@@ -25,6 +25,9 @@
       }
     },
     "docStatus": "cancelled",
+    "meta": {
+      "versionId": "1"
+    },
     "resourceType": "DocumentReference",
     "status": "current",
     "subject": {

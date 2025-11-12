@@ -212,7 +212,8 @@ def test_create_document_does_not_save_raw(test_data):
     retrieve_response = requests.post(url, headers=headers, data=payload)
     json_response = retrieve_response.json()
 
-    lloyd_george_record["id"] = json_response.get("id")
+    lloyd_george_record["id"] = json_response.get("id").split("~")[1]
+    test_data.append(lloyd_george_record)
     doc_ref = data_helper.retrieve_document_reference(record=lloyd_george_record)
     assert "Item" in doc_ref
     assert "RawRequest" not in doc_ref["Item"]
