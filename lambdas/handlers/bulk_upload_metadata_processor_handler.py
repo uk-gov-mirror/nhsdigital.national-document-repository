@@ -25,11 +25,9 @@ logger = LoggingService(__name__)
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
     practice_directory = event.get("practiceDirectory", "")
-
     raw_pre_format_type = event.get(
         "preFormatType", LloydGeorgePreProcessFormat.GENERAL
     )
-
     formatter_service_class = get_formatter_service(raw_pre_format_type)
     if not practice_directory:
         logger.error(
@@ -41,8 +39,13 @@ def lambda_handler(event, _context):
         f"Starting metadata processing for practice directory: {practice_directory}"
     )
 
+    remappings = event.get("metadataFieldRemappings", {})
+
     metadata_formatter_service = formatter_service_class(practice_directory)
-    metadata_service = BulkUploadMetadataProcessorService(metadata_formatter_service)
+    metadata_service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=metadata_formatter_service,
+        metadata_heading_remap=remappings,
+    )
     metadata_service.process_metadata()
 
 

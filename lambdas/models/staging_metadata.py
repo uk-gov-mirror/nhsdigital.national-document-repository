@@ -26,17 +26,17 @@ class BulkUploadQueueMetadata(MetadataBase):
 
 
 class MetadataFile(MetadataBase):
-    model_config = ConfigDict(
+    model_config: ConfigDict = ConfigDict(
         alias_generator=to_upper_case_with_hyphen,
     )
     nhs_number: str = Field(alias=NHS_NUMBER_FIELD_NAME)
     file_path: str = Field(alias="FILEPATH")
-    page_count: str = Field(default=None, alias="PAGE COUNT")
-    section: str = None
-    sub_section: str = None
-    scan_id: str = None
-    user_id: str = None
-    upload: str = None
+    page_count: str | None = Field(default=None, alias="PAGE COUNT")
+    section: str | None = None
+    sub_section: str | None = None
+    scan_id: str | None = None
+    user_id: str | None = None
+    upload: str | None = None
 
 
 class StagingSqsMetadata(BaseModel):

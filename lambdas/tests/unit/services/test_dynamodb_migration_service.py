@@ -1,5 +1,4 @@
 import pytest
-import os
 from scripts.MigrationBase import MigrationBase
 from services.dynamodb_migration_service import DynamoDBMigrationService
 
@@ -88,7 +87,7 @@ def test_process_items_executes_update_functions(service_under_test, mocker):
     migration_instance.main.return_value = [("VeryImportantMigration", dummy_update_fn)]
     migration_instance.process_entries.return_value = {
         "successful_item_runs": 1,  # <-- fix key to match implementation
-        "failed_items_count": 0
+        "failed_items_count": 0,
     }
 
     service_under_test.process_items(migration_instance, [{"ID": "1"}])
@@ -99,7 +98,7 @@ def test_process_items_executes_update_functions(service_under_test, mocker):
         entries=[{"ID": "1"}],
         update_fn=dummy_update_fn,
         segment=service_under_test.segment,
-        execution_id="test-exec-id"
+        execution_id="test-exec-id",
     )
     assert service_under_test.processed_count == 1
     assert service_under_test.error_count == 0
@@ -145,7 +144,9 @@ def test_iterate_segment_items_multiple_pages(service_under_test, mocker):
 
 
 def test_run_migration_success(service_under_test, mocker):
-    mock_load = mocker.patch.object(service_under_test, "load_migration_instance", return_value=mocker.Mock())
+    mock_load = mocker.patch.object(
+        service_under_test, "load_migration_instance", return_value=mocker.Mock()
+    )
     mock_iterate = mocker.patch.object(service_under_test, "iterate_segment_items")
 
     result = service_under_test.execute_migration()
@@ -157,7 +158,9 @@ def test_run_migration_success(service_under_test, mocker):
 
 
 def test_run_migration_with_errors(service_under_test, mocker):
-    mocker.patch.object(service_under_test, "load_migration_instance", return_value=mocker.Mock())
+    mocker.patch.object(
+        service_under_test, "load_migration_instance", return_value=mocker.Mock()
+    )
     mocker.patch.object(service_under_test, "iterate_segment_items")
     service_under_test.error_count = 2
 
