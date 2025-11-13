@@ -2,6 +2,7 @@ import json
 from enum import Enum
 
 import pytest
+from enums.feature_flags import FeatureFlags
 from handlers.document_reference_search_handler import lambda_handler
 from tests.unit.helpers.data.dynamo.dynamo_responses import EXPECTED_RESPONSE
 from utils.lambda_exceptions import DocumentRefSearchException
@@ -20,6 +21,9 @@ class MockError(Enum):
 def mocked_service(set_env, mocker):
     mocked_class = mocker.patch(
         "handlers.document_reference_search_handler.DocumentReferenceSearchService"
+    )
+    mocker.patch(
+        "handlers.document_reference_search_handler.FeatureFlagService.get_feature_flags_by_flag"
     )
     mocked_service = mocked_class.return_value
     yield mocked_service
@@ -119,3 +123,73 @@ def test_lambda_handler_when_dynamo_tables_env_variable_not_supplied_then_return
     ).create_api_gateway_response()
     actual = lambda_handler(valid_id_event_without_auth_header, context)
     assert expected == actual
+
+
+def test_lambda_handler_with_feature_flag_enabled_applies_doc_status_filter(
+    set_env, mocker, valid_id_event_without_auth_header, context
+):
+    """Test that when feature flag is ON, doc_status filter is applied"""
+    mocked_service_class = mocker.patch(
+        "handlers.document_reference_search_handler.DocumentReferenceSearchService"
+    )
+    mocked_service = mocked_service_class.return_value
+    mocked_service.get_document_references.return_value = EXPECTED_RESPONSE
+
+    mocked_feature_flag_service = mocker.patch(
+        "handlers.document_reference_search_handler.FeatureFlagService"
+    )
+    mocked_feature_flag_instance = mocked_feature_flag_service.return_value
+    mocked_feature_flag_instance.get_feature_flags_by_flag.return_value = {
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED: True
+    }
+
+    expected = ApiGatewayResponse(
+        200, json.dumps(EXPECTED_RESPONSE), "GET"
+    ).create_api_gateway_response()
+
+    actual = lambda_handler(valid_id_event_without_auth_header, context)
+
+    assert expected == actual
+    mocked_feature_flag_instance.get_feature_flags_by_flag.assert_called_once_with(
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED
+    )
+    mocked_service.get_document_references.assert_called_once_with(
+        "9000000009",
+        check_upload_completed=True,
+        additional_filters={"doc_status": "final"},
+    )
+
+
+def test_lambda_handler_with_feature_flag_disabled_no_doc_status_filter(
+    set_env, mocker, valid_id_event_without_auth_header, context
+):
+    """Test that when feature flag is OFF, no doc_status filter is applied"""
+    mocked_service_class = mocker.patch(
+        "handlers.document_reference_search_handler.DocumentReferenceSearchService"
+    )
+    mocked_service = mocked_service_class.return_value
+    mocked_service.get_document_references.return_value = EXPECTED_RESPONSE
+
+    mocked_feature_flag_service = mocker.patch(
+        "handlers.document_reference_search_handler.FeatureFlagService"
+    )
+    mocked_feature_flag_instance = mocked_feature_flag_service.return_value
+    mocked_feature_flag_instance.get_feature_flags_by_flag.return_value = {
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED: False
+    }
+
+    expected = ApiGatewayResponse(
+        200, json.dumps(EXPECTED_RESPONSE), "GET"
+    ).create_api_gateway_response()
+
+    actual = lambda_handler(valid_id_event_without_auth_header, context)
+
+    assert expected == actual
+    mocked_feature_flag_instance.get_feature_flags_by_flag.assert_called_once_with(
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED
+    )
+    mocked_service.get_document_references.assert_called_once_with(
+        "9000000009",
+        check_upload_completed=True,
+        additional_filters=None,
+    )

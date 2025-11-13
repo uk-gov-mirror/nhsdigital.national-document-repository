@@ -1,7 +1,9 @@
 import json
 
+from enums.feature_flags import FeatureFlags
 from enums.logging_app_interaction import LoggingAppInteraction
 from services.document_reference_search_service import DocumentReferenceSearchService
+from services.feature_flags_service import FeatureFlagService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
@@ -30,8 +32,17 @@ def lambda_handler(event, context):
     request_context.patient_nhs_no = nhs_number
 
     document_reference_search_service = DocumentReferenceSearchService()
+    upload_lambda_enabled_flag_object = FeatureFlagService().get_feature_flags_by_flag(
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED
+    )
+    doc_upload_iteration2_enabled = upload_lambda_enabled_flag_object[
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED
+    ]
+    doc_status_filter = (
+        {"doc_status": "final"} if doc_upload_iteration2_enabled else None
+    )
     response = document_reference_search_service.get_document_references(
-        nhs_number, check_upload_completed=True, additional_filters={'doc_status': 'final'}
+        nhs_number, check_upload_completed=True, additional_filters=doc_status_filter
     )
     logger.info("User is able to view docs", {"Result": "Successful viewing docs"})
 
