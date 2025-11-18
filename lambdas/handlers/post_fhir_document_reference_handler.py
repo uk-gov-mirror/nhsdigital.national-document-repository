@@ -5,6 +5,9 @@ from utils.audit_logging_setup import LoggingService
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions_fhir
 from utils.lambda_exceptions import DocumentRefException
 from utils.lambda_response import ApiGatewayResponse
+from aws_xray_sdk.core import patch_all, xray_recorder
+
+patch_all()
 
 logger = LoggingService(__name__)
 
