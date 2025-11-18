@@ -16,6 +16,9 @@ from utils.lambda_exceptions import (
 )
 from utils.lambda_handler_utils import extract_bearer_token
 from utils.lambda_response import ApiGatewayResponse
+from aws_xray_sdk.core import patch_all, xray_recorder
+
+patch_all()
 
 logger = LoggingService(__name__)
 
