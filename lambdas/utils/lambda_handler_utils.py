@@ -8,10 +8,12 @@ from utils.lambda_exceptions import (
     DocumentRefSearchException,
     DocumentRefException,
 )
+from aws_xray_sdk.core import xray_recorder
 
 logger = LoggingService(__name__)
 
 
+@xray_recorder.capture("extract_bearer_token")
 def extract_bearer_token(event, context):
     """Extract and validate bearer token from event"""
     if (

@@ -2,7 +2,10 @@ from typing import Optional
 
 from enums.mtls import MtlsCommonNames
 
+from aws_xray_sdk.core import xray_recorder
 
+
+@xray_recorder.capture("Validate mtls common name")
 def validate_common_name_in_mtls(
     api_request_context: dict,
 ) -> Optional[MtlsCommonNames]:
