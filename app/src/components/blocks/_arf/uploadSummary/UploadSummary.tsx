@@ -13,7 +13,7 @@ import PatientSummary from '../../../generic/patientSummary/PatientSummary';
 export interface Props {
     documents: Array<UploadDocument>;
 }
-const UploadSummary = ({ documents }: Props) => {
+const UploadSummary = ({ documents }: Props): React.JSX.Element => {
     const successfulUploads = documents.filter((document) => {
         return document.state === DOCUMENT_UPLOAD_STATE.SUCCEEDED;
     });

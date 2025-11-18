@@ -1,10 +1,7 @@
 import { ErrorMessage } from 'nhsuk-react-components';
 import { useNavigate } from 'react-router-dom';
 import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
-import {
-    fileUploadErrorMessages,
-    UPLOAD_FILE_ERROR_TYPE,
-} from '../../../../helpers/utils/fileUploadErrorMessages';
+import { fileUploadErrorMessages } from '../../../../helpers/utils/fileUploadErrorMessages';
 import { JSX, useEffect } from 'react';
 import { routes } from '../../../../types/generic/routes';
 

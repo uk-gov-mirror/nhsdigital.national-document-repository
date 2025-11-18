@@ -4,7 +4,7 @@ type Props = {
     customStyleSheet?: string;
 };
 
-const PdfViewer = ({ fileUrl, customClasses, customStyleSheet }: Props) => {
+const PdfViewer = ({ fileUrl, customClasses, customStyleSheet }: Props): React.JSX.Element => {
     return (
         <pdfjs-viewer-element
             id="pdf-viewer"

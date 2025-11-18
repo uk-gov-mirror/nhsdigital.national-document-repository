@@ -21,7 +21,11 @@ interface Props {
     startUpload: () => Promise<void>;
 }
 
-function SelectStage({ setDocuments, documents, startUpload }: Readonly<Props>) {
+const SelectStage = ({
+    setDocuments,
+    documents,
+    startUpload,
+}: Readonly<Props>): React.JSX.Element => {
     const arfInputRef = useRef<HTMLInputElement | null>(null);
 
     const hasFileInput = documents.length > 0;
@@ -29,7 +33,7 @@ function SelectStage({ setDocuments, documents, startUpload }: Readonly<Props>) 
     const { handleSubmit, control, formState, setError } = useForm();
     const arfController = useController(ARFFormConfig(control));
 
-    const submitDocuments = async () => {
+    const submitDocuments = async (): Promise<void> => {
         if (!hasFileInput) {
             setError('arf-documents', { type: 'custom', message: 'Select a file to upload' });
             return;
@@ -38,7 +42,7 @@ function SelectStage({ setDocuments, documents, startUpload }: Readonly<Props>) 
         await startUpload();
     };
 
-    const onInput = (e: FileInputEvent, docType: DOCUMENT_TYPE) => {
+    const onInput = (e: FileInputEvent, docType: DOCUMENT_TYPE): void => {
         const fileArray = Array.from(e.target.files ?? new FileList());
         const newlyAddedDocuments: Array<UploadDocument> = fileArray.map((file) => ({
             id: uuidv4(),
@@ -53,7 +57,7 @@ function SelectStage({ setDocuments, documents, startUpload }: Readonly<Props>) 
         setDocuments(updatedDocList);
     };
 
-    const onRemove = (index: number, _docType: DOCUMENT_TYPE) => {
+    const onRemove = (index: number, _docType: DOCUMENT_TYPE): void => {
         const updatedDocList: UploadDocument[] = [
             ...documents.slice(0, index),
             ...documents.slice(index + 1),
@@ -107,6 +111,6 @@ function SelectStage({ setDocuments, documents, startUpload }: Readonly<Props>) 
             </form>
         </>
     );
-}
+};
 
 export default SelectStage;

@@ -78,7 +78,7 @@ export const allDocsHaveState = (
 export const extractUploadSession = (data: any): UploadSession => {
     Object.keys(data).forEach((key) => {
         if (typeof data[key] !== 'object') {
-            data[key] = { 
+            data[key] = {
                 url: data[key],
             };
         }

@@ -26,7 +26,7 @@ const DocumentInputForm = ({
     inputRef,
     formType,
     showHelp = false,
-}: Props) => {
+}: Props): React.JSX.Element => {
     const hasDuplicateFiles = documents.some((doc: UploadDocument) => {
         return documents.some(
             (compare: UploadDocument) =>
@@ -45,10 +45,10 @@ const DocumentInputForm = ({
                 multiple={true}
                 name={formController.field.name}
                 error={formController.fieldState.error?.message}
-                onChange={(e: FileInputEvent) => onDocumentInput(e, formType)}
+                onChange={(e: FileInputEvent): void => onDocumentInput(e, formType)}
                 onBlur={formController.field.onBlur}
                 // @ts-ignore  The NHS Component library is outdated and does not allow for any reference other than a blank MutableRefObject
-                inputRef={(e: HTMLInputElement) => {
+                inputRef={(e: HTMLInputElement): void => {
                     formController.field.ref(e);
                     inputRef.current = e;
                 }}
@@ -111,7 +111,7 @@ const DocumentInputForm = ({
                                             type="button"
                                             aria-label={`Remove ${document.file.name} from selection`}
                                             className="link-button"
-                                            onClick={() => {
+                                            onClick={(): void => {
                                                 onDocumentRemove(index, formType);
                                             }}
                                         >

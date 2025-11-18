@@ -1,7 +1,7 @@
 import React from 'react';
 import useTitle from '../../../../helpers/hooks/useTitle';
 
-const UploadConfirmationFailed = () => {
+const UploadConfirmationFailed = (): React.JSX.Element => {
     const pageHeader = "We couldn't confirm the upload";
     useTitle({ pageTitle: pageHeader });
 

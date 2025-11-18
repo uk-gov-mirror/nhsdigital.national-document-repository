@@ -37,7 +37,7 @@ export type Props = {
     resetDocState: () => void;
 };
 
-function LloydGeorgeViewRecordStage({
+const LloydGeorgeViewRecordStage = ({
     downloadStage,
     lastUpdated,
     setStage,
@@ -45,7 +45,7 @@ function LloydGeorgeViewRecordStage({
     pdfObjectUrl,
     showMenu,
     resetDocState,
-}: Props) {
+}: Props): React.JSX.Element => {
     const patientDetails = usePatient();
     const navigate = useNavigate();
     const [session, setUserSession] = useSessionContext();
@@ -57,7 +57,7 @@ function LloydGeorgeViewRecordStage({
 
     const hasRecordInStorage = downloadStage === DOWNLOAD_STAGE.SUCCEEDED;
 
-    const setFullScreen = (isFullscreen: boolean) => {
+    const setFullScreen = (isFullscreen: boolean): void => {
         if (isFullscreen) {
             if (document.fullscreenEnabled) {
                 document.documentElement.requestFullscreen?.();
@@ -69,7 +69,7 @@ function LloydGeorgeViewRecordStage({
     };
 
     let recordLinksToShow = getUserRecordActionLinks({ role, hasRecordInStorage }).map((link) => {
-        link.onClick = () => {
+        link.onClick = (): void => {
             setFullScreen(false);
         };
 
@@ -87,7 +87,7 @@ function LloydGeorgeViewRecordStage({
     const mounted = useRef(false);
 
     useEffect(() => {
-        const onPageLoad = async () => {
+        const onPageLoad = async (): Promise<void> => {
             resetDocState();
             refreshRecord();
         };
@@ -99,19 +99,19 @@ function LloydGeorgeViewRecordStage({
 
     // Handle fullscreen changes from browser events
     useEffect(() => {
-        const handleFullscreenChange = () => {
+        const handleFullscreenChange = (): void => {
             const isCurrentlyFullscreen = document.fullscreenElement !== null;
             // Only update if the state has actually changed to avoid unnecessary re-renders
             if (session.isFullscreen !== isCurrentlyFullscreen) {
-                setUserSession({ 
-                    ...session, 
-                    isFullscreen: isCurrentlyFullscreen 
+                setUserSession({
+                    ...session,
+                    isFullscreen: isCurrentlyFullscreen,
                 });
             }
         };
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
-        
+
         return () => {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
@@ -240,14 +240,14 @@ function LloydGeorgeViewRecordStage({
                     {!session.isFullscreen &&
                         hasRecordInStorage &&
                         config.featureFlags.uploadDocumentIteration2Enabled && (
-                        <>
-                            <h2 className="title">Add Files</h2>
-                            <p>You can add more files to this patient's record.</p>
-                            <Button onClick={handleAddFilesClick} data-testid="add-files-btn">
-                                Add Files
-                            </Button>
-                        </>
-                    )}
+                            <>
+                                <h2 className="title">Add Files</h2>
+                                <p>You can add more files to this patient's record.</p>
+                                <Button onClick={handleAddFilesClick} data-testid="add-files-btn">
+                                    Add Files
+                                </Button>
+                            </>
+                        )}
                 </div>
 
                 {!session.isFullscreen ? (
@@ -279,11 +279,11 @@ function LloydGeorgeViewRecordStage({
             </div>
         </div>
     );
-}
+};
 
 type RecordDetailsProps = Pick<Props, 'downloadStage' | 'lastUpdated'>;
 
-const RecordDetails = ({ downloadStage, lastUpdated }: RecordDetailsProps) => {
+const RecordDetails = ({ downloadStage, lastUpdated }: RecordDetailsProps): React.JSX.Element => {
     const [{ isFullscreen }] = useSessionContext();
 
     switch (downloadStage) {

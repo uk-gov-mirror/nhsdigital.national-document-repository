@@ -1,7 +1,7 @@
 import React from 'react';
 import useTitle from '../../../../helpers/hooks/useTitle';
 
-const UploadFailedStage = () => {
+const UploadFailedStage = (): React.JSX.Element => {
     const pageHeader = 'All files failed to upload';
     useTitle({ pageTitle: pageHeader });
 

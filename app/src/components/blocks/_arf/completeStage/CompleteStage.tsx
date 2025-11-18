@@ -7,7 +7,7 @@ interface Props {
     documents: Array<UploadDocument>;
 }
 
-function CompleteStage({ documents }: Props) {
+const CompleteStage = ({ documents }: Props): React.JSX.Element => {
     const navigate = useNavigate();
 
     return (
@@ -18,7 +18,7 @@ function CompleteStage({ documents }: Props) {
             </p>
             <Button
                 id="start-again-button"
-                onClick={() => {
+                onClick={(): void => {
                     navigate('/');
                 }}
             >
@@ -26,6 +26,6 @@ function CompleteStage({ documents }: Props) {
             </Button>
         </>
     );
-}
+};
 
 export default CompleteStage;
