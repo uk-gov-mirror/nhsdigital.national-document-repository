@@ -136,7 +136,8 @@ MOCK_ALARM_HISTORY_TABLE = "test_alarm_history_table"
 MOCK_TEAMS_WEBHOOK = "test_teams_webhook"
 MOCK_SLACK_BOT_TOKEN = f"xoxb-{TEST_UUID}"
 MOCK_ALERTING_SLACK_CHANNEL_ID = "slack_channel_id"
-
+MOCK_DOCUMENT_REVIEW_TABLE = "test_document_review"
+MOCK_DOCUMENT_REVIEW_BUCKET = "test_document_review_bucket"
 
 @pytest.fixture
 def set_env(monkeypatch):
@@ -225,6 +226,8 @@ def set_env(monkeypatch):
     monkeypatch.setenv("SLACK_BOT_TOKEN", MOCK_SLACK_BOT_TOKEN)
     monkeypatch.setenv("SLACK_CHANNEL_ID", MOCK_ALERTING_SLACK_CHANNEL_ID)
     monkeypatch.setenv("ITOC_TESTING_ODS_CODES", MOCK_ITOC_ODS_CODES)
+    monkeypatch.setenv("DOCUMENT_REVIEW_DYNAMODB_NAME", MOCK_DOCUMENT_REVIEW_TABLE)
+    monkeypatch.setenv("DOCUMENT_REVIEW_S3_BUCKET_NAME", MOCK_DOCUMENT_REVIEW_BUCKET)
     monkeypatch.setenv("STAGING_STORE_BUCKET_NAME", MOCK_STAGING_STORE_BUCKET)
     monkeypatch.setenv("METADATA_SQS_QUEUE_URL", MOCK_LG_METADATA_SQS_QUEUE)
 
