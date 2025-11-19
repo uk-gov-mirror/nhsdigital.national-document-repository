@@ -24,6 +24,7 @@ jobs:
       sandbox: ndr-dev
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+  
   services-fhir-api-e2etest:
     uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
     with:
@@ -32,3 +33,79 @@ jobs:
       sandbox: ndr-dev
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+  
+  notify-slack:
+    runs-on: ubuntu-latest
+    needs: [services-e2etest, services-fhir-api-e2etest]
+    if: failure()
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
+          role-skip-session-tagging: true
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+  
+      - name: Get slack bot token from SSM parameter store
+        id: ssm-parameters
+        run: |
+          slack_bot_token=$(aws ssm get-parameter --name "/ndr/alerting/slack/bot_token" --with-decryption --query "Parameter.Value" --output text)
+          echo "::add-mask::$slack_bot_token"
+          echo "SLACK_BOT_TOKEN=$slack_bot_token" >> $GITHUB_ENV
+  
+      - name: Send Slack Notification
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          method: chat.postMessage
+          token: ${{ env.SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "${{ vars.ALERTS_SLACK_CHANNEL_ID }}",
+              "attachments": [
+                {
+                  "color": "#ff0000",
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "❌ Workflow `${{ github.workflow }}` failed"
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "*Triggered by:* `${{ github.actor }}`\n*Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|${{ github.workflow }}>"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*services-e2etest:* ${{ needs.services-e2etest.result == 'success' && ':white_check_mark:' || ':x:' }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*services-fhir-api-e2etest:* ${{ needs.services-fhir-api-e2etest.result == 'success' && ':white_check_mark:' || ':x:' }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "context",
+                      "elements": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "Environment: `${{ needs.services-fhir-api-e2etest.outputs.environment }}` | Sandbox: `${{ needs.services-fhir-api-e2etest.outputs.sandbox }}`"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }

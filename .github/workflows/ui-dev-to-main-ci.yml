@@ -32,13 +32,13 @@ jobs:
     name: Run UI Unit Tests
     uses: ./.github/workflows/base-vitest-test.yml
     with:
-      build_branch: ${{github.event.pull_request.head.ref}}
+      build_branch: ${{ github.event.pull_request.head.ref }}
 
   cypress_build_job:
     name: Build UI version for E2E Tests
     uses: ./.github/workflows/base-cypress-build.yml
     with:
-      build_branch: ${{github.event.pull_request.head.ref}}
+      build_branch: ${{ github.event.pull_request.head.ref }}
 
   cypress_test_job:
     name: Run Cypress E2E Tests
@@ -46,7 +46,7 @@ jobs:
     uses: ./.github/workflows/base-cypress-test-all-env.yml
     with:
       cypress_base_url: ${{ vars.CYPRESS_BASE_URL }}
-      build_branch: ${{github.event.pull_request.head.ref}}
+      build_branch: ${{ github.event.pull_request.head.ref }}
 
   deploy_ui:
     name: Deploy UI
@@ -54,8 +54,77 @@ jobs:
     needs: ["react_testing_job", "cypress_test_job"]
     uses: ./.github/workflows/base-deploy-ui.yml
     with:
-      build_branch: ${{github.event.pull_request.head.ref}}
+      build_branch: ${{ github.event.pull_request.head.ref }}
       environment: development
       sandbox: ndr-dev
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  notify-slack:
+    runs-on: ubuntu-latest
+    needs: [react_testing_job, cypress_build_job, cypress_test_job, deploy_ui]
+    if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Get slack bot token from SSM parameter store
+        run: |
+          slack_bot_token=$(aws ssm get-parameter --name "/ndr/alerting/slack/bot_token" --with-decryption --query "Parameter.Value" --output text)
+          echo "::add-mask::$slack_bot_token"
+          echo "SLACK_BOT_TOKEN=$slack_bot_token" >> $GITHUB_ENV
+
+      - name: Send Slack Notification
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          method: chat.postMessage
+          token: ${{ env.SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "${{ vars.ALERTS_SLACK_CHANNEL_ID }}",
+              "attachments": [
+                {
+                  "color": "#ff0000",
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "❌ Workflow `${{ github.workflow }}` failed"
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "*Triggered by:* `${{ github.actor }}`\n*Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|${{ github.workflow }}>"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        { "type": "mrkdwn", "text": "*react_testing_job:* ${{ needs.react_testing_job.result == 'success' && ':white_check_mark:' || ':x:' }}" },
+                        { "type": "mrkdwn", "text": "*cypress_build_job:* ${{ needs.cypress_build_job.result == 'success' && ':white_check_mark:' || ':x:' }}" },
+                        { "type": "mrkdwn", "text": "*cypress_test_job:* ${{ needs.cypress_test_job.result == 'success' && ':white_check_mark:' || ':x:' }}" },
+                        { "type": "mrkdwn", "text": "*deploy_ui:* ${{ needs.deploy_ui.result == 'success' && ':white_check_mark:' || ':x:' }}" }
+                      ]
+                    },
+                    {
+                      "type": "context",
+                      "elements": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "Environment: `development` | Sandbox: `ndr-dev`"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }

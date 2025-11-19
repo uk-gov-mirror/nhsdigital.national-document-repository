@@ -12,6 +12,11 @@ on:
         description: "Sandbox environment"
         required: true
         default: "ndr"
+      environment:
+        description: Which environment settings to use?
+        required: true
+        type: string
+        default: development
 
 permissions:
   pull-requests: write
@@ -23,15 +28,16 @@ jobs:
     uses: ./.github/workflows/base-e2e-backendtest.yml
     with:
       build_branch: ${{ inputs.build_branch }}
-      environment: development
+      environment: ${{ inputs.environment }}
       sandbox: ${{ inputs.sandbox }}
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+  
   services-fhir-api-e2etest:
     uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
     with:
       build_branch: ${{ inputs.build_branch }}
-      environment: development
+      environment: ${{ inputs.environment }}
       sandbox: ${{ inputs.sandbox }}
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
