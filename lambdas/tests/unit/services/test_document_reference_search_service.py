@@ -107,15 +107,26 @@ def test_get_document_references_raise_dynamodb_error(mock_document_service):
         )
 
 
-def test_get_document_references_dynamo_return_empty_response(mock_document_service):
+def test_get_document_references_dynamo_return_empty_response_with_fhir(
+    mock_document_service,
+):
     mock_document_service.fetch_documents_from_table_with_nhs_number.return_value = []
-    expected_results = None
 
     actual = mock_document_service._search_tables_for_documents(
         "1234567890", ["table1", "table2"], return_fhir=True
     )
+    assert actual["resourceType"] == "Bundle"
+    assert actual["entry"] == []
+    assert actual["total"] == 0
 
-    assert actual == expected_results
+
+def test_get_document_references_dynamo_return_empty_response(mock_document_service):
+    mock_document_service.fetch_documents_from_table_with_nhs_number.return_value = []
+
+    actual = mock_document_service._search_tables_for_documents(
+        "1234567890", ["table1", "table2"], return_fhir=False
+    )
+    assert actual is None
 
 
 def test_get_document_references_dynamo_return_successful_response_single_table(

@@ -67,15 +67,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         api_request_context=event.get("requestContext", {}),
     )
 
-    if not document_references:
+    if document_references["total"] < 1:
         logger.info(f"No document references found for NHS number: {nhs_number}")
-        return ApiGatewayResponse(
-            404,
-            LambdaError.DocumentReferenceNotFound.create_error_response().create_error_fhir_response(
-                LambdaError.DocumentReferenceNotFound.value.get("fhir_coding")
-            ),
-            "GET",
-        ).create_api_gateway_response()
     return ApiGatewayResponse(
         200, json.dumps(document_references), "GET"
     ).create_api_gateway_response()

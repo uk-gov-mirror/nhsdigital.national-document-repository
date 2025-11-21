@@ -30,6 +30,18 @@ def search_document_reference(nhs_number, client_cert_path=None, client_key_path
     return session.get(url, headers=headers)
 
 
+def test_search_nonexistent_document_references_for_patient_details():
+    response = search_document_reference("9912003071")
+    assert response.status_code == 200
+
+    bundle = response.json()
+    assert bundle["resourceType"] == "Bundle"
+    assert bundle["type"] == "searchset"
+    assert bundle["total"] == 0
+    assert "entry" in bundle
+    assert bundle["entry"] == []
+
+
 def test_search_patient_details(test_data):
     create_and_store_pdm_record(test_data)
 
@@ -66,7 +78,6 @@ def test_multiple_cancelled_search_patient_details(test_data):
 @pytest.mark.parametrize(
     "nhs_number,expected_status,expected_code,expected_diagnostics",
     [
-        ("9912003071", 404, "RESOURCE_NOT_FOUND", "Document reference not found"),
         ("9999999993", 400, "INVALID_SEARCH_DATA", "Invalid patient number 9999999993"),
         ("123", 400, "INVALID_SEARCH_DATA", "Invalid patient number 123"),
     ],

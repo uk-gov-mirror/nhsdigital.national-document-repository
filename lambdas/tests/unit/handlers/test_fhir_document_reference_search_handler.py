@@ -13,6 +13,62 @@ from utils.lambda_exceptions import DocumentRefSearchException
 from utils.lambda_handler_utils import extract_bearer_token
 
 
+MOCK_DOCUMENT_REFERENCE_RESULT = {
+    "entry": [
+        {
+            "resource": {
+                "author": [
+                    {
+                        "identifier": {
+                            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                            "value": "H81109",
+                        }
+                    }
+                ],
+                "content": [
+                    {
+                        "attachment": {
+                            "contentType": "application/pdf",
+                            "creation": "2023-01-01",
+                            "language": "en-GB",
+                            "title": "1of1_Lloyd_George_Record_[Holly Lorna MAGAN]_[9449305943]_[29-05-2006].pdf",
+                        }
+                    }
+                ],
+                "custodian": {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "H81109",
+                    }
+                },
+                "docStatus": "final",
+                "meta": {"versionId": "1"},
+                "resourceType": "DocumentReference",
+                "status": "current",
+                "subject": {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/nhs-number",
+                        "value": "9000000009",
+                    }
+                },
+                "type": {
+                    "coding": [
+                        {
+                            "code": "16521000000101",
+                            "display": "Lloyd George record folder",
+                            "system": "http://snomed.info/sct",
+                        }
+                    ]
+                },
+            }
+        }
+    ],
+    "resourceType": "Bundle",
+    "total": 1,
+    "type": "searchset",
+}
+
+
 @pytest.fixture
 def valid_nhs_number_event():
     return {
@@ -130,18 +186,14 @@ def mock_dynamic_config_service():
 def test_lambda_handler_returns_200_with_documents(
     mock_document_reference_search_service, valid_nhs_number_event, context, set_env
 ):
-    mock_document_references = [
-        {"resourceType": "DocumentReference", "status": "current"},
-        {"resourceType": "DocumentReference", "status": "current"},
-    ]
     mock_document_reference_search_service.get_document_references.return_value = (
-        mock_document_references
+        MOCK_DOCUMENT_REFERENCE_RESULT
     )
 
     response = lambda_handler(valid_nhs_number_event, context)
 
     assert response["statusCode"] == 200
-    assert json.loads(response["body"]) == mock_document_references
+    assert json.loads(response["body"]) == MOCK_DOCUMENT_REFERENCE_RESULT
     mock_document_reference_search_service.get_document_references.assert_called_once_with(
         nhs_number="9000000009",
         return_fhir=True,
@@ -151,14 +203,20 @@ def test_lambda_handler_returns_200_with_documents(
     )
 
 
-def test_lambda_handler_returns_404_when_no_documents(
+def test_lambda_handler_returns_a_200_with_an_empty_bundle_when_no_documents(
     mock_document_reference_search_service, valid_nhs_number_event, context, set_env
 ):
-    mock_document_reference_search_service.get_document_references.return_value = []
+    mock_document_reference_search_service.get_document_references.return_value = {
+        "resourceType": "Bundle",
+        "type": "searchset",
+        "timestamp": 1763647621,
+        "total": 0,
+        "entry": [],
+    }
 
     response = lambda_handler(valid_nhs_number_event, context)
-
-    assert response["statusCode"] == 404
+    body = json.loads(response["body"])
+    assert response["statusCode"] == 200
     mock_document_reference_search_service.get_document_references.assert_called_once_with(
         nhs_number="9000000009",
         return_fhir=True,
@@ -166,6 +224,9 @@ def test_lambda_handler_returns_404_when_no_documents(
         check_upload_completed=False,
         api_request_context={},
     )
+    assert body["resourceType"] == "Bundle"
+    assert body["total"] == 0
+    assert body["entry"] == []
 
 
 def test_lambda_handler_returns_400_for_invalid_nhs_number(
@@ -191,17 +252,14 @@ def test_lambda_handler_returns_400_for_missing_nhs_number(
 def test_lambda_handler_with_additional_filters(
     mock_document_reference_search_service, valid_event_with_filters, context, set_env
 ):
-    mock_document_references = [
-        {"resourceType": "DocumentReference", "status": "current"},
-    ]
     mock_document_reference_search_service.get_document_references.return_value = (
-        mock_document_references
+        MOCK_DOCUMENT_REFERENCE_RESULT
     )
 
     response = lambda_handler(valid_event_with_filters, context)
 
     assert response["statusCode"] == 200
-    assert json.loads(response["body"]) == mock_document_references
+    assert json.loads(response["body"]) == MOCK_DOCUMENT_REFERENCE_RESULT
 
     # Check that the filters were correctly parsed and passed
     expected_filters = {"file_type": "736253002", "custodian": "Y12345"}
@@ -224,11 +282,8 @@ def test_lambda_handler_with_auth_validation(
     set_env,
 ):
     # Setup mocks
-    mock_document_references = [
-        {"resourceType": "DocumentReference", "status": "current"}
-    ]
     mock_document_reference_search_service.get_document_references.return_value = (
-        mock_document_references
+        MOCK_DOCUMENT_REFERENCE_RESULT
     )
 
     # Mock successful authorisation
@@ -244,7 +299,7 @@ def test_lambda_handler_with_auth_validation(
     response = lambda_handler(valid_event_with_auth, context)
 
     assert response["statusCode"] == 200
-    assert json.loads(response["body"]) == mock_document_references
+    assert json.loads(response["body"]) == MOCK_DOCUMENT_REFERENCE_RESULT
 
     # Verify authorisation flow
     mock_dynamic_config_service.set_auth_ssm_prefix.assert_called_once()

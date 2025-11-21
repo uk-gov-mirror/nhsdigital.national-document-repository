@@ -106,15 +106,12 @@ class DocumentReferenceSearchService(DocumentService):
             )
             document_resources.extend(processed_documents)
 
-        if not document_resources:
-            return None
-
         logger.info(f"Found {len(document_resources)} document references")
 
         if return_fhir:
             return self._create_fhir_bundle(document_resources)
-        else:
-            return document_resources
+
+        return document_resources or None
 
     def _get_filter_expression(
         self, filters: dict[str, str] = None, upload_completed=False
@@ -175,7 +172,7 @@ class DocumentReferenceSearchService(DocumentService):
                 "created",
                 "virus_scanner_result",
                 "file_size",
-                "version"
+                "version",
             },
         )
         return document_formatted

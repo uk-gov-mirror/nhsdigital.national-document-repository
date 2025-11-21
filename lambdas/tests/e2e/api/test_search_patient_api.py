@@ -104,7 +104,14 @@ def test_no_records(snapshot_json):
     response = requests.request("GET", url, headers=headers)
     bundle = response.json()
 
-    assert bundle == snapshot_json
+    assert bundle == snapshot_json(
+        exclude=paths(
+            "entry.0.resource.id",
+            "entry.0.resource.date",
+            "entry.0.resource.content.0.attachment.url",
+            "timestamp",
+        )
+    )
 
 
 def test_invalid_patient(snapshot_json):
