@@ -43,24 +43,39 @@ def test_search_nonexistent_document_references_for_patient_details():
 
 
 def test_search_patient_details(test_data):
-    create_and_store_pdm_record(test_data)
+    created_record = create_and_store_pdm_record(test_data)
+    expected_record_id = created_record["id"]
 
     response = search_document_reference("9912003071")
     assert response.status_code == 200
 
     bundle = response.json()
-    assert "entry" in bundle
+    entries = bundle.get("entry", [])
+    assert entries
 
-    attachment_url = bundle["entry"][0]["resource"]["content"][0]["attachment"]["url"]
+    # Find the entry with the matching record_id
+    matching_entry = next(
+        (
+            e
+            for e in entries
+            if e["resource"].get("id") == f"{PDM_SNOMED}~{expected_record_id}"
+        ),
+        None,
+    )
+    assert matching_entry
+
+    attachment_url = matching_entry["resource"]["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~{expected_record_id}"
         in attachment_url
     )
 
 
 def test_multiple_cancelled_search_patient_details(test_data):
-    create_and_store_pdm_record(test_data, doc_status="cancelled")
-    create_and_store_pdm_record(test_data, doc_status="cancelled")
+    record_ids = [
+        create_and_store_pdm_record(test_data, doc_status="cancelled")["id"]
+        for _ in range(2)
+    ]
 
     response = search_document_reference("9912003071")
     assert response.status_code == 200
@@ -69,10 +84,18 @@ def test_multiple_cancelled_search_patient_details(test_data):
     entries = bundle.get("entry", [])
     assert len(entries) >= 2
 
-    # Assert that all entries have status "cancelled"
-    for entry in entries:
-        resource = entry.get("resource", {})
-        assert resource.get("docStatus") == "cancelled"
+    # Validate all created records exist and have status cancelled
+    for record_id in record_ids:
+        entry = next(
+            (
+                e
+                for e in entries
+                if e["resource"].get("id") == f"{PDM_SNOMED}~{record_id}"
+            ),
+            None,
+        )
+        assert entry
+        assert entry["resource"].get("docStatus") == "cancelled"
 
 
 @pytest.mark.parametrize(
