@@ -131,13 +131,13 @@ class BulkUploadService:
                 file_metadata.scan_date = validate_scan_date(file_metadata.scan_date)
             request_context.patient_nhs_no = staging_metadata.nhs_number
             validate_nhs_number(staging_metadata.nhs_number)
-            validate_lg_file_names(file_names, staging_metadata.nhs_number)
             pds_patient_details = getting_patient_info_from_pds(
                 staging_metadata.nhs_number
             )
             patient_ods_code = (
                 pds_patient_details.get_ods_code_or_inactive_status_for_gp()
             )
+            validate_lg_file_names(file_names, staging_metadata.nhs_number)
 
             if not self.bypass_pds:
                 if not self.strict_mode:

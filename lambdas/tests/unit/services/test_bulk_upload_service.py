@@ -378,7 +378,7 @@ def test_handle_sqs_message_calls_report_upload_failure_when_patient_record_alre
     mock_create_lg_records_and_copy_files.assert_not_called()
     mock_remove_ingested_file_from_source_bucket.assert_not_called()
     mock_report_upload_failure.assert_called_with(
-        TEST_STAGING_METADATA, UploadStatus.FAILED, str(mocked_error), ""
+        TEST_STAGING_METADATA, UploadStatus.FAILED, str(mocked_error), "Y12345"
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
@@ -416,7 +416,7 @@ def test_handle_sqs_message_calls_report_upload_failure_when_lg_file_name_invali
         TEST_STAGING_METADATA_WITH_INVALID_FILENAME,
         UploadStatus.FAILED,
         str(mocked_error),
-        "",
+        "Y12345"
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
