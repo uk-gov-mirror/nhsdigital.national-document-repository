@@ -22,6 +22,9 @@ default: help
 help: ## This is a help message
 	@grep -E --no-filename '^[a-zA-Z-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-42s\033[0m %s\n", $$1, $$2}'
 
+aws-login: ## Login to AWS. Usage: make aws-login AWS_PROFILE=<AWS_PROFILE>
+	aws sso login --profile $(PROFILE) && export AWS_PROFILE=$(PROFILE)
+
 clean: clean-build clean-py clean-test
 
 clean-build:
@@ -96,14 +99,19 @@ test-unit-collect:
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/unit --collect-only
 
 env:
-	rm -rf lambdas/venv || true
-	python3 -m venv ./lambdas/venv
-	./lambdas/venv/bin/pip3 install --upgrade pip
-	./lambdas/venv/bin/pip3 install -r $(TEST_REQUIREMENTS) --no-cache-dir
-	./lambdas/venv/bin/pip3 install -r $(CORE_REQUIREMENTS) --no-cache-dir
-	./lambdas/venv/bin/pip3 install -r $(DATA_REQUIREMENTS) --no-cache-dir
-	./lambdas/venv/bin/pip3 install -r $(REPORTS_REQUIREMENTS) --no-cache-dir
-	./lambdas/venv/bin/pip3 install -r $(ALERTING_REQUIREMENTS) --no-cache-dir
+	@echo "Removing old venv."
+	@rm -rf lambdas/venv || true
+	@echo "Building new venv and installing requirements."
+	@python3 -m venv ./lambdas/venv
+	@./lambdas/venv/bin/pip3 install --upgrade pip
+	@./lambdas/venv/bin/pip3 install -r $(TEST_REQUIREMENTS) --no-cache-dir
+	@./lambdas/venv/bin/pip3 install -r $(CORE_REQUIREMENTS) --no-cache-dir
+	@./lambdas/venv/bin/pip3 install -r $(DATA_REQUIREMENTS) --no-cache-dir
+	@./lambdas/venv/bin/pip3 install -r $(REPORTS_REQUIREMENTS) --no-cache-dir
+	@./lambdas/venv/bin/pip3 install -r $(ALERTING_REQUIREMENTS) --no-cache-dir
+	@echo " "
+	@echo " "
+	@echo "Now activate your venv."
 
 github_env:
 	rm -rf lambdas/venv || true

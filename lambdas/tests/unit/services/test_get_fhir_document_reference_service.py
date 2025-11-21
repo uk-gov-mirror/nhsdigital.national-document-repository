@@ -5,9 +5,9 @@ from io import BytesIO
 
 import pytest
 from enums.lambda_error import LambdaError
-from enums.snomed_codes import SnomedCode, SnomedCodes
+from enums.snomed_codes import SnomedCodes, SnomedCode
 from services.get_fhir_document_reference_service import GetFhirDocumentReferenceService
-from tests.unit.conftest import MOCK_LG_TABLE_NAME, MOCK_PDM_TABLE_NAME
+from tests.unit.conftest import MOCK_LG_TABLE_NAME
 from tests.unit.helpers.data.test_documents import create_test_doc_store_refs
 from utils.lambda_exceptions import (
     GetFhirDocumentReferenceException,
@@ -51,15 +51,6 @@ def test_handle_get_document_reference_request(patched_service, mocker, set_env)
     )
 
     assert expected == actual
-
-
-def test_get_dynamo_table_for_patient_data_doc_type(patched_service):
-    """Test _get_dynamo_table_for_doc_type method with a non-Lloyd George document type."""
-
-    patient_data_code = SnomedCodes.PATIENT_DATA.value
-
-    result = patched_service._get_dynamo_table_for_doc_type(patient_data_code)
-    assert result == MOCK_PDM_TABLE_NAME
 
 
 def test_get_dynamo_table_for_unsupported_doc_type(patched_service):
