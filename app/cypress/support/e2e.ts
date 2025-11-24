@@ -13,7 +13,7 @@ import { defaultFeatureFlags } from './feature_flags';
 import './aws.commands';
 import 'cypress-real-events';
 
-const registerCypressGrep = require('@cypress/grep');
+const { register: registerCypressGrep } = require('@cypress/grep')
 registerCypressGrep();
 
 const roleEntries = Object.entries(Roles) as [RoleKey, RoleId][];
