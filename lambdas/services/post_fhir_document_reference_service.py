@@ -129,9 +129,7 @@ class PostFhirDocumentReferenceService:
                         logger.error(
                             f"SNOMED code {coding.code} - {coding.display} is not supported"
                         )
-                        raise DocumentRefException(
-                            400, LambdaError.DocRefInvalidType
-                        )
+                        raise DocumentRefException(400, LambdaError.DocRefInvalidType)
             logger.error("SNOMED code not found in FHIR document")
             raise DocumentRefException(400, LambdaError.DocRefInvalidType)
 
@@ -202,9 +200,7 @@ class PostFhirDocumentReferenceService:
             logger.info(f"Successfully created document reference in {table_name}")
         except ClientError as e:
             logger.error(f"Failed to create document reference: {str(e)}")
-            raise DocumentRefException(
-                500, LambdaError.DocRefUploadInternalError
-            )
+            raise DocumentRefException(500, LambdaError.DocRefUploadInternalError)
 
     def _store_binary_in_s3(
         self, document_reference: DocumentReference, binary_content: bytes
@@ -215,7 +211,7 @@ class PostFhirDocumentReferenceService:
             self.s3_service.upload_file_obj(
                 file_obj=binary_file,
                 s3_bucket_name=document_reference.s3_bucket_name,
-                file_key=document_reference.s3_upload_key
+                file_key=document_reference.s3_upload_key,
             )
             logger.info(
                 f"Successfully stored binary content in S3: {document_reference.s3_upload_key}"
@@ -299,6 +295,4 @@ class PostFhirDocumentReferenceService:
             PdsErrorException,
         ) as e:
             logger.error(f"Error occurred when fetching patient details: {str(e)}")
-            raise DocumentRefException(
-                400, LambdaError.DocRefPatientSearchInvalid
-            )
+            raise DocumentRefException(400, LambdaError.DocRefPatientSearchInvalid)

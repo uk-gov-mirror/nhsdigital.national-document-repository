@@ -76,8 +76,8 @@ class DocumentService:
 
     def fetch_documents_from_table(
         self,
-        search_condition: str,
-        search_key: str,
+        search_condition: str | list[str],
+        search_key: str | list[str],
         index_name: str | None = None,
         query_filter: Attr | ConditionBase = None,
         table_name: str | None = None,

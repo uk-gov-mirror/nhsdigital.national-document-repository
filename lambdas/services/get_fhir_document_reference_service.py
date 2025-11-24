@@ -1,5 +1,6 @@
 import base64
 import os
+from re import search
 
 from enums.file_size import FileSize
 from enums.lambda_error import LambdaError
@@ -33,7 +34,9 @@ class GetFhirDocumentReferenceService:
     def handle_get_document_reference_request(self, snomed_code, document_id):
         doc_type = SnomedCodes.find_by_code(snomed_code)
         dynamo_table = self._get_dynamo_table_for_doc_type(doc_type)
-        document_reference = self.get_document_references(document_id, dynamo_table)
+        document_reference = self.get_document_references(
+            document_id, snomed_code, dynamo_table
+        )
 
         return document_reference
 
@@ -46,11 +49,22 @@ class GetFhirDocumentReferenceService:
             )
             raise GetFhirDocumentReferenceException(400, LambdaError.DocTypeInvalid)
 
-    def get_document_references(self, document_id: str, table) -> DocumentReference:
+    def get_document_references(
+        self, document_id: str, snomed_code: str, table
+    ) -> DocumentReference:
+        index_name = "idx_gsi_snomed_id"
+        search_key = ["DocumentSnomedCodeType", "ID"]
+        search_condition = [snomed_code, document_id]
+        if snomed_code != SnomedCodes.PATIENT_DATA.value.code:
+            index_name = None
+            search_key = "ID"
+            search_condition = document_id
+
         documents = self.document_service.fetch_documents_from_table(
             table_name=table,
-            search_condition=document_id,
-            search_key="ID",
+            search_condition=search_condition,
+            search_key=search_key,
+            index_name=index_name,
             query_filter=CurrentStatusFile,
         )
         if len(documents) > 0:

@@ -1,7 +1,9 @@
 import time
+from functools import reduce
 from typing import Optional, Sequence
 
 import boto3
+import operator
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
 from botocore.exceptions import ClientError
 from utils.audit_logging_setup import LoggingService
@@ -36,11 +38,31 @@ class DynamoDBService:
             logger.error(str(e), {"Result": "Unable to connect to DB"})
             raise e
 
+    def build_key_condition(
+        self, search_key: str | list[str], search_condition: str | list[str]
+    ):
+        if isinstance(search_key, str) and isinstance(search_condition, str):
+            return Key(search_key).eq(search_condition)
+
+        if isinstance(search_key, list) and isinstance(search_condition, list):
+            if len(search_key) != len(search_condition):
+                raise ValueError(
+                    "search_key and search_condition lists must be the same length"
+                )
+
+            conditions = [Key(k).eq(v) for k, v in zip(search_key, search_condition)]
+
+            return reduce(operator.and_, conditions)
+
+        raise TypeError(
+            "search_key and search_condition must be strings or lists of strings"
+        )
+
     def query_table(
         self,
         table_name,
-        search_key,
-        search_condition: str,
+        search_key: str | list[str],
+        search_condition: str | list[str],
         index_name: str | None = None,
         requested_fields: list[str] = None,
         query_filter: Attr | ConditionBase = None,
@@ -48,9 +70,10 @@ class DynamoDBService:
         try:
             table = self.get_table(table_name)
 
-            query_params: dict = {
-                "KeyConditionExpression": Key(search_key).eq(search_condition),
-            }
+            expr = self.build_key_condition(
+                search_key=search_key, search_condition=search_condition
+            )
+            query_params: dict = {"KeyConditionExpression": expr}
 
             if index_name:
                 query_params["IndexName"] = index_name
@@ -63,6 +86,7 @@ class DynamoDBService:
             while True:
                 results = table.query(**query_params)
 
+                # Combine with "&"
                 if results is None or "Items" not in results:
                     logger.error(f"Unusable results in DynamoDB: {results!r}")
                     raise DynamoServiceException("Unrecognised response from DynamoDB")
