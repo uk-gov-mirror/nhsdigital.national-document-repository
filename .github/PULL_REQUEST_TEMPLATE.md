@@ -1,22 +1,40 @@
 <!-- markdownlint-disable-next-line first-line-heading -->
+## Overview
 
-## Description
+**Jira ticket**: [TBC](https://nhsd-jira.digital.nhs.uk/browse/XXX)
+
+### Description
 
 <!-- Describe your changes in detail. -->
 
-## Context
+### Context
 
 <!-- Why is this change required? What problem does it solve? -->
 
 ## Checklist
 
-<!-- Go over all the following points, and put an `x` in all the boxes that apply. -->
+<!--
 
-- [ ] I have followed the code style of the project.
-- [ ] I have added tests to cover my changes.
-- [ ] I have updated the documentation accordingly.
-- [ ] I have considered the cross-team impact when creating this PR and where possible written tests to validate for all affected.
-- [ ] I have built a sandbox with code from this PR and ensured the unit tests and end-to-end tests have run successfully.
-- [ ] A member of all teams has approved this PR if there is a major code change. (If this is a minor change and you are confident this is not necessary then you may accept the standard approval process of 2 approvals from any teams.)
+  Put an `x` in the completed tasks.
 
----
+  If a task is not relevant, `x` it, then strike through the text e.g.:
+  - [x] ~~This task is not relevant.~~
+
+-->
+
+Tasks for all changes:
+
+- [ ] 1. I have linked this PR to its Jira ticket.
+- [x] 2. ~~I have run git pre-commits.~~ (WIP)
+- [ ] 3. I have added and/or updated relevant tests.
+- [ ] 4. I have updated relevant documentation.
+- [ ] 5. I have considered the cross-team impact (and have PR approval from both Core & Demographics if necessary).
+- [ ] 6. I have successfully deployed this change to a sandbox and witnessed unit and e2e tests passing:
+  - [ ] 6a. [`Deploy - Sandbox`](https://github.com/NHSDigital/national-document-repository-infrastructure/actions/workflows/deploy-sandbox.yml) - [workflow run - TBC](https://github.com/NHSDigital/national-document-repository-infrastructure/actions/runs/XXX)
+  - [ ] 6b. [`SANDBOX Full- Deploy feature branch to sandbox`](https://github.com/NHSDigital/national-document-repository/actions/workflows/full-deploy-to-sandbox.yml) - [workflow run - TBC](https://github.com/NHSDigital/national-document-repository/actions/runs/XXX)
+
+Additional tasks for UI changes (delete if not applicable):
+
+- [ ] 1. I have run the UI Smoke Tests against the deployed sandbox and witnessed it passing:
+  - [ ] 1a. [`SANDBOX - UI Smoke Test`](https://github.com/NHSDigital/national-document-repository/actions/workflows/ui-smoketest.yml) - [workflow run - TBC](https://github.com/NHSDigital/national-document-repository/actions/runs/XXX)
+- [ ] 2. I have added evidence (to this PR) e.g. screenshots/gifs of all visual changes.
