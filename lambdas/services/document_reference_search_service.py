@@ -101,7 +101,7 @@ class DocumentReferenceSearchService(DocumentService):
             else:
                 documents = self.fetch_documents_from_table(
                     search_condition=nhs_number,
-                    search_key="pk",
+                    search_key="NhsNumber",
                     table_name=table_name,
                     query_filter=filter_expression,
                 )
