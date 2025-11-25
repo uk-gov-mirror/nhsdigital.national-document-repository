@@ -9,6 +9,7 @@ from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.supported_document_types import SupportedDocumentTypes
 from freezegun import freeze_time
 from models.document_reference import DocumentReference
+from models.document_review import DocumentUploadReviewReference
 from services.document_service import DocumentService
 from tests.unit.conftest import (
     MOCK_ARF_TABLE_NAME,
@@ -419,3 +420,122 @@ def test_get_batch_document_references_by_id_client_error(
 
     with pytest.raises(ClientError):
         mock_service.get_batch_document_references_by_id(document_ids, doc_type)
+
+
+@pytest.mark.parametrize(
+    "document_id,table_name,file_name,expected_table",
+    [
+        ("test-doc-id-123", None, "test-file.pdf", MOCK_LG_TABLE_NAME),
+        ("test-doc-id-456", MOCK_ARF_TABLE_NAME, "arf-file.pdf", MOCK_ARF_TABLE_NAME),
+    ],
+)
+def test_get_item_success(
+    mock_service, mock_dynamo_service, document_id, table_name, file_name, expected_table
+):
+    """Test successful retrieval of a document with default or custom table."""
+    mock_dynamo_response = {
+        "Item": {
+            "ID": document_id,
+            "NhsNumber": TEST_NHS_NUMBER,
+            "FileName": file_name,
+            "Created": "2023-01-01T00:00:00Z",
+            "Deleted": "",
+            "VirusScannerResult": "Clean",
+        }
+    }
+
+    mock_dynamo_service.get_item.return_value = mock_dynamo_response
+
+    if table_name:
+        result = mock_service.get_item(document_id, table_name=table_name)
+    else:
+        result = mock_service.get_item(document_id)
+
+    mock_dynamo_service.get_item.assert_called_once_with(
+        table_name=expected_table, key={"ID": document_id}
+    )
+    assert result is not None
+    assert isinstance(result, DocumentReference)
+    assert result.id == document_id
+    assert result.nhs_number == TEST_NHS_NUMBER
+
+
+@pytest.mark.parametrize(
+    "document_id,mock_response,expected_log",
+    [
+        ("non-existent-doc", {}, "No document found for document_id: non-existent-doc"),
+        (
+            "invalid-doc",
+            {"Item": {"ID": "invalid-doc", "InvalidField": "invalid-value"}},
+            "Validation error on document:",
+        ),
+    ],
+)
+def test_get_item_returns_none(
+    mock_service, mock_dynamo_service, caplog, document_id, mock_response, expected_log
+):
+    """Test get_item returns None for not found or invalid documents."""
+    mock_dynamo_service.get_item.return_value = mock_response
+
+    result = mock_service.get_item(document_id)
+
+    mock_dynamo_service.get_item.assert_called_once_with(
+        table_name=MOCK_LG_TABLE_NAME, key={"ID": document_id}
+    )
+    assert result is None
+    assert expected_log in caplog.text
+
+
+@pytest.mark.parametrize(
+    "document_id,table_name,file_name,expected_table",
+    [
+        ("review-doc-id", None, "test.pdf", MOCK_LG_TABLE_NAME),
+        ("custom-review-doc", "custom-review-table", "custom.pdf", "custom-review-table"),
+    ],
+)
+def test_get_item_with_custom_model_class(
+    mock_service, mock_dynamo_service, document_id, table_name, file_name, expected_table
+):
+    """Test retrieval using a custom model class with default or custom table."""
+
+    mock_dynamo_response = {
+        "Item": {
+            "ID": document_id,
+            "Author": "Y12345",
+            "Custodian": "Y12345",
+            "ReviewStatus": "PENDING_REVIEW",
+            "ReviewReason": "Test reason",
+            "UploadDate": 1699000000,
+            "Files": [
+                {
+                    "FileName": file_name,
+                    "FileLocation": f"s3://bucket/{file_name}",
+                }
+            ],
+            "NhsNumber": TEST_NHS_NUMBER,
+            "DocumentSnomedCodeType": "734163000",
+        }
+    }
+
+    mock_dynamo_service.get_item.return_value = mock_dynamo_response
+
+    if table_name:
+        result = mock_service.get_item(
+            document_id,
+            table_name=table_name,
+            model_class=DocumentUploadReviewReference,
+        )
+    else:
+        result = mock_service.get_item(
+            document_id, model_class=DocumentUploadReviewReference
+        )
+
+    mock_dynamo_service.get_item.assert_called_once_with(
+        table_name=expected_table, key={"ID": document_id}
+    )
+    assert result is not None
+    assert isinstance(result, DocumentUploadReviewReference)
+    assert result.id == document_id
+    assert result.nhs_number == TEST_NHS_NUMBER
+
+

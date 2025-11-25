@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timezone
+from typing import Optional
 
 from boto3.dynamodb.conditions import Attr, ConditionBase
 from enums.metadata_field_names import DocumentReferenceMetadataFields
@@ -104,12 +105,47 @@ class DocumentService:
                 continue
         return documents
 
+    def get_item(
+        self,
+        document_id: str,
+        table_name: str = None,
+        model_class: type[BaseModel] = None,
+    ) -> Optional[BaseModel]:
+        """Fetch a single document by ID from specified or configured table.
+
+        Args:
+            document_id: The document ID to retrieve.
+            table_name: Optional table name, defaults to self.table_name.
+            model_class: Optional model class, defaults to self.model_class.
+
+        Returns:
+            Document object if found, None otherwise.
+        """
+        table_to_use = table_name or self.table_name
+        model_to_use = model_class or self.model_class
+
+        try:
+            response = self.dynamo_service.get_item(
+                table_name=table_to_use, key={"ID": document_id}
+            )
+
+            if "Item" not in response:
+                logger.info(f"No document found for document_id: {document_id}")
+                return None
+
+            document = model_to_use.model_validate(response["Item"])
+            return document
+
+        except ValidationError as e:
+            logger.error(f"Validation error on document: {response.get('Item')}")
+            logger.error(f"{e}")
+            return None
+
     def get_nhs_numbers_based_on_ods_code(
         self, ods_code: str, table_name: str | None = None
     ) -> list[str]:
         """Get unique NHS numbers for patients with given ODS code."""
         table_name = table_name or self.table_name
-
         documents = self.fetch_documents_from_table(
             index_name="OdsCodeIndex",
             search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,

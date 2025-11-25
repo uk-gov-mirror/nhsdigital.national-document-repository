@@ -3,7 +3,11 @@ from unittest.mock import MagicMock
 import pytest
 from models.document_review import DocumentUploadReviewReference
 from services.document_upload_review_service import DocumentUploadReviewService
-from tests.unit.conftest import TEST_NHS_NUMBER, MOCK_DOCUMENT_REVIEW_TABLE, MOCK_DOCUMENT_REVIEW_BUCKET
+from tests.unit.conftest import (
+    MOCK_DOCUMENT_REVIEW_BUCKET,
+    MOCK_DOCUMENT_REVIEW_TABLE,
+    TEST_NHS_NUMBER,
+)
 
 TEST_ODS_CODE = "Y12345"
 NEW_ODS_CODE = "Z98765"
