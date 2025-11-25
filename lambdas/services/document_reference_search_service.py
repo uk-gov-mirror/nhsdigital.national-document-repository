@@ -94,9 +94,17 @@ class DocumentReferenceSearchService(DocumentService):
                 filters, upload_completed=check_upload_completed
             )
 
-            documents = self.fetch_documents_from_table_with_nhs_number(
-                nhs_number, table_name, query_filter=filter_expression
-            )
+            if "pdm" not in table_name.lower():
+                documents = self.fetch_documents_from_table_with_nhs_number(
+                    nhs_number, table_name, query_filter=filter_expression
+                )
+            else:
+                documents = self.fetch_documents_from_table(
+                    search_condition=nhs_number,
+                    search_key="pk",
+                    table_name=table_name,
+                    query_filter=filter_expression,
+                )
 
             if check_upload_completed:
                 self._validate_upload_status(documents)

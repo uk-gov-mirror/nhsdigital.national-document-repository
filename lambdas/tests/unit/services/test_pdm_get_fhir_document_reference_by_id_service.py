@@ -26,7 +26,9 @@ def test_get_document_reference_service(patched_service):
     patched_service.document_service.fetch_documents_from_table.return_value = documents
 
     actual = patched_service.get_document_references(
-        "3d8683b9-1665-40d2-8499-6e8302d507ff", MOCK_PDM_TABLE_NAME
+        document_id="3d8683b9-1665-40d2-8499-6e8302d507ff",
+        snomed_code=SnomedCodes.PATIENT_DATA.value.code,
+        table=MOCK_PDM_TABLE_NAME,
     )
     assert actual == documents[0]
 
@@ -84,7 +86,11 @@ def test_get_document_references_empty_result(patched_service):
     patched_service.document_service.fetch_documents_from_table.return_value = []
 
     with pytest.raises(GetFhirDocumentReferenceException) as exc_info:
-        patched_service.get_document_references("test-id", MOCK_PDM_TABLE_NAME)
+        patched_service.get_document_references(
+            document_id="test-id",
+            snomed_code=SnomedCodes.PATIENT_DATA.value.code,
+            table=MOCK_PDM_TABLE_NAME,
+        )
 
     assert exc_info.value.error == LambdaError.DocumentReferenceNotFound
     assert exc_info.value.status_code == 404

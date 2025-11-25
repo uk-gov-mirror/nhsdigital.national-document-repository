@@ -143,6 +143,16 @@ class PdmDataHelper(DataHelper):
             "pdm_record",
         )
 
+    def tidyup(self, record):
+        self.dynamo_service.delete_item(
+            table_name=self.dynamo_table,
+            key={"pk": record["nhs_number"], "sk": record["id"]},
+        )
+        self.s3_service.delete_object(
+            self.s3_bucket,
+            f"{record['nhs_number']}/{record['id']}",
+        )
+
 
 class LloydGeorgeDataHelper(DataHelper):
     def __init__(self):
