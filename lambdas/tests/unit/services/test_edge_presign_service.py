@@ -3,7 +3,11 @@ from unittest.mock import patch
 import pytest
 from botocore.exceptions import ClientError
 from services.edge_presign_service import EdgePresignService
-from tests.unit.conftest import MOCK_TABLE_NAME, MOCKED_LG_BUCKET_URL
+from tests.unit.conftest import (
+    MOCK_TABLE_NAME,
+    MOCKED_LG_BUCKET_ENV,
+    MOCKED_LG_BUCKET_URL,
+)
 from tests.unit.enums.test_edge_presign_values import (
     EXPECTED_EDGE_NO_CLIENT_ERROR_CODE,
     EXPECTED_EDGE_NO_CLIENT_ERROR_MESSAGE,
@@ -22,7 +26,7 @@ def edge_presign_service(mock_ssm_service, mock_dynamo_service):
             "presignedUrl": f"https://{MOCKED_LG_BUCKET_URL}/some/path?querystring"
         }
     }
-    return EdgePresignService()
+    return EdgePresignService(MOCKED_LG_BUCKET_ENV)
 
 
 @pytest.fixture
@@ -51,9 +55,7 @@ def test_use_presigned(edge_presign_service, request_values, mocker):
 
     request_result = edge_presign_service.use_presigned(request_values)
 
-    mock_attempt_presigned_ingestion.assert_called_once_with(
-        "some/path", MOCKED_LG_BUCKET_URL
-    )
+    mock_attempt_presigned_ingestion.assert_called_once_with("some/path")
     assert request_result.get("uri") == "/someother/path"
     assert request_result.get("querystring") == "querystring"
 
@@ -65,9 +67,7 @@ def test_attempt_presigned_ingestion_success(edge_presign_service):
                 "presignedUrl": f"https://{MOCKED_LG_BUCKET_URL}/some/path?querystring"
             }
         }
-        result = edge_presign_service._attempt_presigned_ingestion(
-            "random id", MOCKED_LG_BUCKET_URL
-        )
+        result = edge_presign_service._attempt_presigned_ingestion("random id")
 
         edge_presign_service.dynamo_service.update_item.assert_called_once()
         edge_presign_service.ssm_service.get_ssm_parameter.assert_called_once()
@@ -83,9 +83,7 @@ def test_attempt_presigned_ingestion_client_error(edge_presign_service):
     edge_presign_service.dynamo_service.update_item.side_effect = client_error
 
     with pytest.raises(CloudFrontEdgeException) as exc_info:
-        edge_presign_service._attempt_presigned_ingestion(
-            "hashed_uri", MOCKED_LG_BUCKET_URL
-        )
+        edge_presign_service._attempt_presigned_ingestion("hashed_uri")
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.err_code == EXPECTED_EDGE_NO_CLIENT_ERROR_CODE
@@ -98,27 +96,11 @@ def test_update_s3_headers(edge_presign_service, request_values):
     assert response["headers"]["host"][0]["value"] == MOCKED_LG_BUCKET_URL
 
 
-@pytest.mark.parametrize(
-    ["domain_name", "expected_environment"],
-    [
-        ("test-env-lloyd.example.com", "test-env"),
-        ("ndra-lloyd-test-test.com", "ndra"),
-        ("ndr-test-lloyd-test-test.com", "ndr-test"),
-        ("pre-prod-lloyd-test-test.com", "pre-prod"),
-        ("prod-lloyd-test-test.com", "prod"),
-        ("lloyd-test-test.com", ""),
-        ("invalid.com", ""),
-    ],
-)
-def test_filter_domain_for_env(edge_presign_service, domain_name, expected_environment):
-    environment = edge_presign_service._filter_domain_for_env(domain_name)
-    assert environment == expected_environment
-
-
 @pytest.mark.parametrize("environment", ["test-env", "", "prod"])
 def test_extend_table_name(edge_presign_service, environment):
     edge_presign_service.ssm_service.get_ssm_parameter.return_value = MOCK_TABLE_NAME
-    table_name = edge_presign_service._get_formatted_table_name(environment)
+    edge_presign_service.environment = environment
+    table_name = edge_presign_service._get_formatted_table_name()
     assert (
         table_name == f"{environment}_{MOCK_TABLE_NAME}"
         if environment
