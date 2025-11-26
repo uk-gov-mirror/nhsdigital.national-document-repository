@@ -1,0 +1,35 @@
+[
+    {
+        "name": "Scanned Paper Notes",
+        "snomed_code": "16521000000101",
+        "config_name": "scannedPaperNotesConfig",
+        "content": [
+            {
+                "upload_title": "Scanned Lloyd George notes",
+                "upload_description": "Upload and add files to a scanned paper Lloyd George record."
+            }
+        ]
+    },
+    {
+        "name": "Electronic Health Record",
+        "snomed_code": "16521000000102",
+        "config_name": "electronicHealthRecordConfig",
+        "content": [
+            {
+                "upload_title": "Electronic health record (EHR) summary",
+                "upload_description": "Upload the summary file of an electronic health record. You might also call these a 'journal' or 'practice notes'. Upload this suymmary if, for example, GP2GP fails."
+            }
+        ]
+    },
+    {
+        "name": "Electronic Health Record Attachments",
+        "snomed_code": "16521000000103",
+        "config_name": "electronicHealthRecordAttachmentsConfig",
+        "content": [
+            {
+                "upload_title": "Attachments to an electronic health record",
+                "upload_description": "Upload other files that are part of the patient's EHR on your clinical system. For example, letters, laboratory reports and imaging. Upload these files if, for example GP2GP fails."
+            }
+        ]
+    }
+]

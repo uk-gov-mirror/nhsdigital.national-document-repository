@@ -1,0 +1,15 @@
+{
+    "snomedCode": "16521000000101",
+    "displayName": "Scanned Paper Notes",
+    "canBeUpdated": true,
+    "associatedSnomed": "",
+    "multifileUpload": true,
+    "multifileZipped": false,
+    "multifileReview": true,
+    "canBeDiscarded": true,
+    "stitched": true,
+    "acceptedFileTypes": [
+        ".pdf"
+    ],
+    "content": []
+}

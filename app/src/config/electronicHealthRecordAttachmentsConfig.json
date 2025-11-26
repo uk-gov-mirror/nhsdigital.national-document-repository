@@ -1,0 +1,13 @@
+{
+    "snomedCode": "16521000000103",
+    "displayName": "Electronic Health Record Attachments",
+    "canBeUpdated": false,
+    "associatedSnomed": "",
+    "multifileUpload": false,
+    "multifileZipped": true,
+    "multifileReview": false,
+    "canBeDiscarded": true,
+    "stitched": false,
+    "acceptedFileTypes": [],
+    "content": []
+}
