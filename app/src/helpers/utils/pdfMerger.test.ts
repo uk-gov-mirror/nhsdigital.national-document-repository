@@ -6,11 +6,17 @@ const mockSetMetadata = vi.fn();
 const mockSaveAsBlob = vi.fn();
 
 vi.mock('pdf-merger-js/browser', () => ({
-    default: vi.fn(() => ({
-        add: mockAdd,
-        setMetadata: mockSetMetadata,
-        saveAsBlob: mockSaveAsBlob,
-    })),
+    default: class PDFMerger {
+        add() {
+            return mockAdd();
+        }
+        setMetadata() {
+            return mockSetMetadata();
+        }
+        saveAsBlob() {
+            return mockSaveAsBlob();
+        }
+    },
 }));
 
 describe('getMergedPdfBlob', () => {

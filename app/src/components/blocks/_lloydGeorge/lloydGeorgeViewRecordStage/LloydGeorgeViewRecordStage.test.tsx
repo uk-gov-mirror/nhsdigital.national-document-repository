@@ -80,7 +80,7 @@ const simulateFullscreenChange = (isFullscreen: boolean) => {
             configurable: true,
             value: isFullscreen ? document.documentElement : null,
         });
-        
+
         // Dispatch the fullscreenchange event
         document.dispatchEvent(new Event('fullscreenchange'));
     });
@@ -109,20 +109,20 @@ describe('<LloydGeorgeViewRecordStage />', () => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockedUsePatient.mockReturnValue(mockPatientDetails);
         mockUseConfig.mockReturnValue(buildConfig());
-        
+
         // Mock fullscreen API
         Object.defineProperty(document, 'fullscreenEnabled', {
             writable: true,
             configurable: true,
             value: true,
         });
-        
+
         Object.defineProperty(document, 'fullscreenElement', {
             writable: true,
             configurable: true,
             value: null,
         });
-        
+
         mockUseBaseAPIUrl.mockReturnValue('http://test-api.com');
         mockUseBaseAPIHeaders.mockReturnValue({ Authorization: 'Bearer token' });
         mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
@@ -174,7 +174,7 @@ describe('<LloydGeorgeViewRecordStage />', () => {
 
             await screen.findByTitle(EMBEDDED_PDF_VIEWER_TITLE);
             await userEvent.click(screen.getByText('View in full screen'));
-            
+
             // Simulate the browser entering fullscreen
             simulateFullscreenChange(true);
 
@@ -198,7 +198,7 @@ describe('<LloydGeorgeViewRecordStage />', () => {
             await userEvent.click(await screen.findByText('View in full screen'));
             // Simulate entering fullscreen
             simulateFullscreenChange(true);
-            
+
             await userEvent.click(await screen.findByText('Exit full screen'));
             // Simulate exiting fullscreen
             simulateFullscreenChange(false);
@@ -270,7 +270,7 @@ describe('<LloydGeorgeViewRecordStage />', () => {
             await userEvent.click(
                 await screen.findByRole('button', { name: 'View in full screen' }),
             );
-            
+
             // Simulate entering fullscreen
             simulateFullscreenChange(true);
 

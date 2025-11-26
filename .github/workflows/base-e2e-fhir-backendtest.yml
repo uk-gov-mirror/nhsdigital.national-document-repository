@@ -34,13 +34,13 @@ jobs:
       sandbox: ${{ inputs.sandbox }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: "NHSDigital/national-document-repository"
           ref: ${{ inputs.build_branch }}
 
       - name: AWS Role
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
           role-skip-session-tagging: true
@@ -48,7 +48,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.11
 

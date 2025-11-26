@@ -33,7 +33,7 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - name: Configure AWS Credentials for ${{ vars.AWS_REGION }}
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
           role-skip-session-tagging: true
@@ -41,10 +41,10 @@ jobs:
           mask-aws-account-id: true
 
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 

@@ -36,6 +36,7 @@ describe('LloydGeorgeRecordError', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+        vi.restoreAllMocks();
     });
 
     describe('Rendering', () => {
@@ -80,8 +81,8 @@ describe('LloydGeorgeRecordError', () => {
             "renders a message and upload button when the document download status is 'No records', user role is '%s' and upload flags are enabled",
             (role) => {
                 const noRecordsStatus = DOWNLOAD_STAGE.NO_RECORDS;
-                mockUseRole.mockReturnValue(role);
-                mockUseConfig.mockReturnValue(
+                mockUseRole.mockReturnValueOnce(role);
+                mockUseConfig.mockReturnValueOnce(
                     buildConfig(
                         {},
                         {
@@ -109,7 +110,7 @@ describe('LloydGeorgeRecordError', () => {
             (role) => {
                 const noRecordsStatus = DOWNLOAD_STAGE.NO_RECORDS;
 
-                mockUseRole.mockReturnValue(role);
+                mockUseRole.mockReturnValueOnce(role);
 
                 render(<LloydGeorgeRecordError downloadStage={noRecordsStatus} />);
 
@@ -127,8 +128,8 @@ describe('LloydGeorgeRecordError', () => {
         it("renders a message but no upload button when the document download status is 'No records', user role is PCSE and upload flags are enabled", () => {
             const noRecordsStatus = DOWNLOAD_STAGE.NO_RECORDS;
 
-            mockUseRole.mockReturnValue(REPOSITORY_ROLE.PCSE);
-            mockUseConfig.mockReturnValue(
+            mockUseRole.mockReturnValueOnce(REPOSITORY_ROLE.PCSE);
+            mockUseConfig.mockReturnValueOnce(
                 buildConfig(
                     {},
                     {
@@ -154,8 +155,8 @@ describe('LloydGeorgeRecordError', () => {
             "renders a message but no upload button when the document download status is 'No records', user role is '%s' and upload flags are enabled and patient is deceased",
             (role) => {
                 const noRecordsStatus = DOWNLOAD_STAGE.NO_RECORDS;
-                mockPatient.mockReturnValue(mockDeceasedPatientDetails);
-                mockUseConfig.mockReturnValue(
+                mockPatient.mockReturnValueOnce(mockDeceasedPatientDetails);
+                mockUseConfig.mockReturnValueOnce(
                     buildConfig(
                         {},
                         {
@@ -164,7 +165,7 @@ describe('LloydGeorgeRecordError', () => {
                         },
                     ),
                 );
-                mockUseRole.mockReturnValue(role);
+                mockUseRole.mockReturnValueOnce(role);
 
                 render(<LloydGeorgeRecordError downloadStage={noRecordsStatus} />);
 
@@ -196,8 +197,8 @@ describe('LloydGeorgeRecordError', () => {
         });
 
         it('pass accessibility checks for DOWNLOAD_STAGE.NO_RECORDS when user is GP_ADMIN', async () => {
-            mockUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
-            mockUseConfig.mockReturnValue(
+            mockUseRole.mockReturnValueOnce(REPOSITORY_ROLE.GP_ADMIN);
+            mockUseConfig.mockReturnValueOnce(
                 buildConfig(
                     {},
                     {
@@ -264,7 +265,7 @@ describe('LloydGeorgeRecordError', () => {
         });
 
         it("navigates to unauthorised, when download status is 'Timeout' and the link is clicked: GP_CLINICAL", () => {
-            mockUseRole.mockReturnValue(REPOSITORY_ROLE.GP_CLINICAL);
+            mockUseRole.mockReturnValueOnce(REPOSITORY_ROLE.GP_CLINICAL);
             const timeoutStatus = DOWNLOAD_STAGE.TIMEOUT;
 
             render(<LloydGeorgeRecordError downloadStage={timeoutStatus} />);
@@ -288,8 +289,8 @@ describe('LloydGeorgeRecordError', () => {
 
         it("navigates to upload page, when the document download status is 'No records', user is gp user and upload flags are enabled", () => {
             const noRecordsStatus = DOWNLOAD_STAGE.NO_RECORDS;
-            mockUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
-            mockUseConfig.mockReturnValue(
+            mockUseRole.mockReturnValueOnce(REPOSITORY_ROLE.GP_ADMIN);
+            mockUseConfig.mockReturnValueOnce(
                 buildConfig(
                     {},
                     {

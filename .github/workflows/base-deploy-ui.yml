@@ -35,14 +35,14 @@ jobs:
         working-directory: app
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           repository: 'NHSDigital/national-document-repository'
           ref: ${{ inputs.build_branch }}
           fetch-depth: '0'
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
           role-skip-session-tagging: true

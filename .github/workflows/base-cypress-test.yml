@@ -37,13 +37,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: 'NHSDigital/national-document-repository'
           ref: ${{ inputs.build_branch }}
 
       - name: Download the build folder
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: build
           path: ./app/build
@@ -68,13 +68,13 @@ jobs:
           CYPRESS_BASE_URL: ${{ inputs.cypress_base_url }}
           CYPRESS_grepTags: 'regression'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: cypress-screenshots-${{ inputs.cypress_browser}}
           path: /home/runner/work/national-document-repository/national-document-repository/app/cypress/screenshots
           if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: cypress-videos-${{ inputs.cypress_browser}}

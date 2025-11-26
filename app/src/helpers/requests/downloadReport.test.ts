@@ -2,7 +2,8 @@ import axios, { AxiosError } from 'axios';
 import downloadReport from './downloadReport';
 import { ReportData } from '../../types/generic/reports';
 import { AuthHeaders } from '../../types/blocks/authHeaders';
-import { describe, expect, it, vi, Mocked, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, vi, Mocked, beforeEach, afterEach, Mock } from 'vitest';
+import { Procedure } from '@vitest/spy';
 
 vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;
@@ -13,7 +14,7 @@ describe('downloadReport', () => {
         endpoint: '/download',
     } as ReportData;
 
-    let clickSpy: ReturnType<typeof vi.fn>;
+    let clickSpy: Mock<Procedure>;
     let mockAnchor: Partial<HTMLAnchorElement>;
 
     beforeEach(() => {
