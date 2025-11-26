@@ -126,7 +126,6 @@ def test_process_metadata_send_metadata_to_sqs_queue(
     mock_download_metadata_from_s3,
 ):
     fake_csv_path = "fake/path/metadata.csv"
-    fake_uuid = "123412342"
 
     mock_download_metadata_from_s3.return_value = fake_csv_path
 
@@ -134,7 +133,6 @@ def test_process_metadata_send_metadata_to_sqs_queue(
         test_service.s3_service, "copy_across_bucket", return_value=None
     )
     mocker.patch.object(test_service.s3_service, "delete_object", return_value=None)
-    mocker.patch("uuid.uuid4", return_value=fake_uuid)
 
     fake_metadata = [
         {"nhs_number": "1234567890", "some_data": "value1"},
@@ -365,19 +363,18 @@ def test_duplicates_csv_to_sqs_metadata(mocker, bulk_upload_service):
 
 
 def test_send_metadata_to_sqs(set_env, mocker, mock_sqs_service, test_service):
-    mocker.patch("uuid.uuid4", return_value="123412342")
     expected_calls = [
         call(
             queue_url=MOCK_LG_METADATA_SQS_QUEUE,
             message_body=EXPECTED_SQS_MSG_FOR_PATIENT_1234567890,
             nhs_number="1234567890",
-            group_id="bulk_upload_123412342",
+            group_id="bulk_upload_1234567890",
         ),
         call(
             queue_url=MOCK_LG_METADATA_SQS_QUEUE,
             message_body=EXPECTED_SQS_MSG_FOR_PATIENT_123456789,
             nhs_number="123456789",
-            group_id="bulk_upload_123412342",
+            group_id="bulk_upload_123456789",
         ),
     ]
 

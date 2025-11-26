@@ -2,7 +2,6 @@ import csv
 import os
 import shutil
 import tempfile
-import uuid
 from collections import defaultdict
 from datetime import datetime
 
@@ -217,8 +216,6 @@ class BulkUploadMetadataProcessorService:
         self, staging_sqs_metadata_list: list[StagingSqsMetadata]
     ) -> None:
         """Send validated metadata entries to SQS FIFO queue."""
-        sqs_group_id = f"bulk_upload_{uuid.uuid4()}"
-
         for staging_sqs_metadata in staging_sqs_metadata_list:
             nhs_number = staging_sqs_metadata.nhs_number
             logger.info(f"Sending metadata for patientId: {nhs_number}")
@@ -226,7 +223,7 @@ class BulkUploadMetadataProcessorService:
                 queue_url=self.metadata_queue_url,
                 message_body=staging_sqs_metadata.model_dump_json(by_alias=True),
                 nhs_number=nhs_number,
-                group_id=sqs_group_id,
+                group_id=f"bulk_upload_{nhs_number}",
             )
 
     def copy_metadata_to_dated_folder(self):
