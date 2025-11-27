@@ -1,5 +1,7 @@
 import os
 import tempfile
+import urllib
+import urllib.parse
 from collections import defaultdict
 from unittest.mock import call
 
@@ -7,6 +9,8 @@ import pytest
 from botocore.exceptions import ClientError
 from enums.upload_status import UploadStatus
 from freezegun import freeze_time
+
+from enums.virus_scan_result import VirusScanResult
 from models.staging_metadata import (
     METADATA_FILENAME,
     BulkUploadQueueMetadata,
@@ -31,6 +35,7 @@ from utils.exceptions import (
     BulkUploadMetadataException,
     InvalidFileNameException,
     LGInvalidFilesException,
+    VirusScanNoResultException, VirusScanFailedException,
 )
 
 METADATA_FILE_DIR = "tests/unit/helpers/data/bulk_upload"
@@ -60,6 +65,12 @@ def test_service(mocker, set_env, mock_tempfile):
     mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
     mocker.patch(
         "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadS3Repository"
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.get_virus_scan_service"
     )
 
     service = BulkUploadMetadataProcessorService(
@@ -299,7 +310,19 @@ class TestMetadataPreprocessorService(MetadataPreprocessorService):
 
 
 @pytest.fixture
-def bulk_upload_service():
+def bulk_upload_service(mocker, set_env, mock_tempfile):
+    mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
+    mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadS3Repository"
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.get_virus_scan_service"
+    )
+
     return BulkUploadMetadataProcessorService(
         metadata_formatter_service=TestMetadataPreprocessorService(
             practice_directory="test_practice_directory"
@@ -693,13 +716,20 @@ def test_clear_temp_storage_handles_missing_directory(mocker, test_service):
     mock_rm.assert_called_once_with(test_service.temp_download_dir)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 @freeze_time("2025-01-01T12:00:00")
-def mock_service_remapping_mandatory_fields(mocker):
+def mock_service_remapping_mandatory_fields(mocker, set_env, mock_tempfile):
+    # Patch out external dependencies so __init__ doesn't touch real AWS/services
     mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
     mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
     mocker.patch(
         "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadS3Repository"
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.get_virus_scan_service"
     )
 
     service = BulkUploadMetadataProcessorService(
@@ -726,8 +756,8 @@ def mock_service_remapping_mandatory_fields(mocker):
         "process_metadata_row",
         wraps=service.process_metadata_row,
     )
-
     mocker.patch.object(service, "s3_service")
+
     return service
 
 
@@ -765,13 +795,20 @@ def test_remapping_mandatory_fields(
     assert result == expected
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 @freeze_time("2025-01-01T12:00:00")
-def mock_service_no_remapping(mocker):
+def mock_service_no_remapping(mocker, set_env, mock_tempfile):
+    # Patch out external dependencies so __init__ doesn't touch real AWS/services
     mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
     mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
     mocker.patch(
         "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository"
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadS3Repository"
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.get_virus_scan_service"
     )
 
     service = BulkUploadMetadataProcessorService(
@@ -791,7 +828,6 @@ def mock_service_no_remapping(mocker):
         "process_metadata_row",
         wraps=service.process_metadata_row,
     )
-
     mocker.patch.object(service, "s3_service")
     return service
 
@@ -826,3 +862,185 @@ def test_no_remapping_logic(
             retries=0,
         )
     ]
+
+
+def test_handle_expedite_event_calls_enforce_for_expedite_key(mocker, test_service):
+    encoded_key = urllib.parse.quote_plus("expedite/folder/some file.pdf")
+    event = {"detail": {"object": {"key": encoded_key}}}
+
+    mocked_enforce = mocker.patch.object(test_service, "enforce_virus_scanner")
+    mocked_check_status = mocker.patch.object(test_service, "check_file_status")
+
+    test_service.handle_expedite_event(event)
+
+    decoded_key = "expedite/folder/some file.pdf"
+    mocked_enforce.assert_called_once_with(decoded_key)
+    mocked_check_status.assert_called_once_with(decoded_key)
+
+
+def test_handle_expedite_event_raises_on_unexpected_directory(mocker, test_service):
+    mocked_enforce = mocker.patch.object(test_service, "enforce_virus_scanner")
+    event = {"detail": {"object": {"key": "uploads/something.pdf"}}}
+
+    with pytest.raises(BulkUploadMetadataException) as excinfo:
+        test_service.handle_expedite_event(event)
+
+    assert "Unexpected directory or file location received from EventBridge" in str(
+        excinfo.value
+    )
+
+    mocked_enforce.assert_not_called()
+
+
+def test_handle_expedite_event_raises_on_missing_key(mocker, test_service):
+    mocked_enforce = mocker.patch.object(test_service, "enforce_virus_scanner")
+    event = {"detail": {"object": {}}}
+
+    with pytest.raises(BulkUploadMetadataException) as excinfo:
+        test_service.handle_expedite_event(event)
+
+    assert "Failed due to missing key" in str(excinfo.value)
+
+    mocked_enforce.assert_not_called()
+
+
+def test_get_formatter_service_returns_general_for_general_value():
+    from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
+    from services.bulk_upload.metadata_general_preprocessor import (
+        MetadataGeneralPreprocessor,
+    )
+    from services.bulk_upload_metadata_processor_service import get_formatter_service
+
+    cls = get_formatter_service(LloydGeorgePreProcessFormat.GENERAL.value)
+    assert cls is MetadataGeneralPreprocessor
+
+
+def test_get_formatter_service_returns_usb_for_usb_value():
+    from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
+    from services.bulk_upload.metadata_usb_preprocessor import (
+        MetadataUsbPreprocessorService,
+    )
+    from services.bulk_upload_metadata_processor_service import get_formatter_service
+
+    cls = get_formatter_service(LloydGeorgePreProcessFormat.USB.value)
+    assert cls is MetadataUsbPreprocessorService
+
+
+def test_get_formatter_service_defaults_to_general_on_invalid_value():
+    from services.bulk_upload.metadata_general_preprocessor import (
+        MetadataGeneralPreprocessor,
+    )
+    from services.bulk_upload_metadata_processor_service import get_formatter_service
+
+    cls = get_formatter_service("this-is-not-valid")
+    assert cls is MetadataGeneralPreprocessor
+
+
+def test_enforce_virus_scanner_happy_path_does_not_trigger_scan(mocker, test_service):
+    file_key = "expedite/folder/file.pdf"
+
+    mock_check = mocker.patch.object(
+        test_service.s3_repo,
+        "check_file_tag_status_on_staging_bucket",
+        return_value=VirusScanResult.CLEAN,
+    )
+    mock_scan = mocker.patch.object(test_service.virus_scan_service, "scan_file")
+
+    test_service.enforce_virus_scanner(file_key)
+
+    mock_check.assert_called_once_with(file_key)
+    mock_scan.assert_not_called()
+
+
+def test_enforce_virus_scanner_triggers_scan_when_no_result(mocker, test_service):
+    file_key = "expedite/folder/file.pdf"
+
+    mocker.patch.object(
+        test_service.s3_repo,
+        "check_file_tag_status_on_staging_bucket",
+        return_value="",
+    )
+    mock_scan = mocker.patch.object(test_service.virus_scan_service, "scan_file")
+
+    test_service.enforce_virus_scanner(file_key)
+
+    mock_scan.assert_called_once_with(file_ref=file_key)
+
+
+def test_enforce_virus_scanner_raises_bulk_exception_on_s3_access_error(
+    mocker, test_service
+):
+    file_key = "expedite/folder/file.pdf"
+    client_error = ClientError(
+        {"Error": {"Code": "403", "Message": "NoSuchKey: object not found"}},
+        "GetObject",
+    )
+
+    mocker.patch.object(
+        test_service.s3_repo,
+        "check_file_tag_status_on_staging_bucket",
+        side_effect=client_error,
+    )
+    mock_scan = mocker.patch.object(test_service.virus_scan_service, "scan_file")
+
+    with pytest.raises(BulkUploadMetadataException) as excinfo:
+        test_service.enforce_virus_scanner(file_key)
+
+    assert f"Failed to access S3 file {file_key} during tag check." in str(
+        excinfo.value
+    )
+    mock_scan.assert_not_called()
+
+
+def test_enforce_virus_scanner_re_raises_unexpected_client_error(mocker, test_service):
+    file_key = "expedite/folder/file.pdf"
+    client_error = ClientError(
+        {"Error": {"Code": "500", "Message": "InternalError"}},
+        "GetObject",
+    )
+
+    mocker.patch.object(
+        test_service.s3_repo,
+        "check_file_tag_status_on_staging_bucket",
+        side_effect=client_error,
+    )
+    mock_scan = mocker.patch.object(test_service.virus_scan_service, "scan_file")
+
+    with pytest.raises(ClientError):
+        test_service.enforce_virus_scanner(file_key)
+
+    mock_scan.assert_not_called()
+
+def test_check_file_status_clean_does_nothing(mocker, test_service, caplog):
+    file_key = "expedite/folder/file.pdf"
+    mock_check = mocker.patch.object(
+        test_service.s3_repo,
+        "check_file_tag_status_on_staging_bucket",
+        return_value=VirusScanResult.CLEAN,
+    )
+
+    with caplog.at_level("INFO"):
+        test_service.check_file_status(file_key)
+
+    mock_check.assert_called_once_with(file_key)
+    assert not any(
+        "Found an issue with the file" in record.msg for record in caplog.records
+    )
+
+
+def test_check_file_status_logs_issue_when_not_clean(mocker, test_service, caplog):
+    file_key = "expedite/folder/file.pdf"
+    mocker.patch.object(
+        test_service.s3_repo,
+        "check_file_tag_status_on_staging_bucket",
+        return_value=VirusScanResult.INFECTED,
+    )
+
+    with caplog.at_level("INFO"):
+        with pytest.raises(VirusScanFailedException):
+            test_service.check_file_status(file_key)
+
+    assert any(
+        f"Found an issue with the file {file_key}." in record.msg
+        for record in caplog.records
+    )

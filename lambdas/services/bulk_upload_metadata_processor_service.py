@@ -2,12 +2,16 @@ import csv
 import os
 import shutil
 import tempfile
+import urllib.parse
 from collections import defaultdict
 from datetime import datetime
 
 import pydantic
 from botocore.exceptions import ClientError
+
+from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
 from enums.upload_status import UploadStatus
+from enums.virus_scan_result import VirusScanResult
 from models.staging_metadata import (
     METADATA_FILENAME,
     BulkUploadQueueMetadata,
@@ -17,8 +21,15 @@ from models.staging_metadata import (
 from repositories.bulk_upload.bulk_upload_dynamo_repository import (
     BulkUploadDynamoRepository,
 )
+from repositories.bulk_upload.bulk_upload_s3_repository import BulkUploadS3Repository
 from services.base.s3_service import S3Service
 from services.base.sqs_service import SQSService
+from services.bulk_upload.metadata_general_preprocessor import (
+    MetadataGeneralPreprocessor,
+)
+from services.bulk_upload.metadata_usb_preprocessor import (
+    MetadataUsbPreprocessorService,
+)
 from services.bulk_upload_metadata_preprocessor_service import (
     MetadataPreprocessorService,
 )
@@ -28,8 +39,10 @@ from utils.exceptions import (
     BulkUploadMetadataException,
     InvalidFileNameException,
     LGInvalidFilesException,
+    VirusScanFailedException,
 )
 from utils.lloyd_george_validator import validate_file_name
+from utils.utilities import get_virus_scan_service
 
 logger = LoggingService(__name__)
 UNSUCCESSFUL = "Unsuccessful bulk upload"
@@ -47,6 +60,9 @@ class BulkUploadMetadataProcessorService:
         self.s3_service = S3Service()
         self.sqs_service = SQSService()
         self.dynamo_repository = BulkUploadDynamoRepository()
+        self.s3_repo = BulkUploadS3Repository()
+        self.virus_scan_service = get_virus_scan_service()
+
         self.metadata_heading_remap = metadata_heading_remap
 
         self.temp_download_dir = tempfile.mkdtemp()
@@ -245,3 +261,71 @@ class BulkUploadMetadataProcessorService:
             shutil.rmtree(self.temp_download_dir)
         except FileNotFoundError:
             pass
+
+    def check_file_status(self, file_key: str):
+        scan_result = self.s3_repo.check_file_tag_status_on_staging_bucket(file_key)
+        if scan_result != VirusScanResult.CLEAN:
+            logger.info(f"Found an issue with the file {file_key}.")
+            raise VirusScanFailedException(
+                f"Encountered an issue when scanning the file {file_key}, scan result was {scan_result}"
+            )
+
+    def enforce_virus_scanner(self, file_key: str):
+        logger.info(
+            f"Checking virus scan result for file: {file_key} in {self.staging_bucket_name}"
+        )
+
+        try:
+            result = self.s3_repo.check_file_tag_status_on_staging_bucket(file_key)
+            if(result != ""):
+                logger.info("The file has been scanned before")
+                return
+            logger.info(f"Virus scan tag missing for {file_key}.")
+            self.virus_scan_service.scan_file(file_ref=file_key)
+
+        except ClientError as e:
+            error_message = str(e)
+            if "NoSuchKey" in error_message or "AccessDenied" in error_message:
+                logger.error(f"S3 access error when checking tag for {file_key}.")
+                raise BulkUploadMetadataException(
+                    f"Failed to access S3 file {file_key} during tag check."
+                )
+            else:
+                raise
+
+    def handle_expedite_event(self, event):
+        try:
+            key_string = event["detail"]["object"]["key"]
+            key = urllib.parse.unquote_plus(key_string, encoding="utf-8")
+
+            if key.startswith("expedite/"):
+                logger.info("Processing file from expedite folder")
+
+                self.enforce_virus_scanner(key)
+                self.check_file_status(key)
+
+                return  # To be added upon by ticket PRMP-540
+            else:
+                failure_msg = f"Unexpected directory or file location received from EventBridge: {key_string}"
+                logger.error(failure_msg)
+                raise BulkUploadMetadataException(failure_msg)
+        except KeyError as e:
+            failure_msg = f"Failed due to missing key: {str(e)}"
+            logger.error(failure_msg)
+            raise BulkUploadMetadataException(failure_msg)
+
+
+def get_formatter_service(raw_pre_format_type):
+    try:
+        pre_format_type = LloydGeorgePreProcessFormat(raw_pre_format_type)
+        if pre_format_type == LloydGeorgePreProcessFormat.GENERAL:
+            logger.info("Using general preFormatType")
+            return MetadataGeneralPreprocessor
+        elif pre_format_type == LloydGeorgePreProcessFormat.USB:
+            logger.info("Using usb preFormatType")
+            return MetadataUsbPreprocessorService
+    except ValueError:
+        logger.warning(
+            f"Invalid preFormatType: '{raw_pre_format_type}', defaulting to {LloydGeorgePreProcessFormat.GENERAL}."
+        )
+        return MetadataGeneralPreprocessor

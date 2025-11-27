@@ -14,7 +14,7 @@ from utils.exceptions import (
     VirusScanNoResultException,
 )
 
-_logger = LoggingService(__name__)
+logger = LoggingService(__name__)
 
 
 class BulkUploadS3Repository:
@@ -54,17 +54,17 @@ class BulkUploadS3Repository:
                 )
             except ClientError as e:
                 if "AccessDenied" in str(e) or "NoSuchKey" in str(e):
-                    _logger.info(
+                    logger.info(
                         f"Failed to check object tag for given file_path: {file_path}"
                     )
-                    _logger.info(
+                    logger.info(
                         "file_path may be incorrect or contain invalid character"
                     )
                     raise S3FileNotFoundException(f"Failed to access file {file_path}")
                 else:
                     raise e
 
-        _logger.info(
+        logger.info(
             f"Verified that all documents for patient {staging_metadata.nhs_number} are clean."
         )
 
@@ -96,3 +96,33 @@ class BulkUploadS3Repository:
 
     def file_exists_on_staging_bucket(self, file_key: str) -> bool:
         return self.s3_repository.file_exist_on_s3(self.staging_bucket_name, file_key)
+
+    def check_file_tag_status_on_staging_bucket(self, file_key: str) -> str:
+        """
+        Retrieves the virus scan tag value for a single file.
+        Raises specific exceptions based on the tag's presence or S3 access.
+        """
+        s3_service = self.s3_repository
+
+        try:
+            # Call the underlying S3 method to get the tag value
+            raw_scan_result = s3_service.get_tag_value(
+                s3_bucket_name=self.staging_bucket_name,
+                file_key=file_key,
+                tag_key=SCAN_RESULT_TAG_KEY,
+            )
+            return raw_scan_result
+
+        except TagNotFoundException:
+            return ""
+
+        except ClientError as e:
+            error_msg = str(e)
+            if "AccessDenied" in str(e) or "NoSuchKey" in error_msg:
+                logger.error(
+                    f"Failed to check object tag for given file_path: {file_key}"
+                )
+                logger.error("file_path may be incorrect or contain invalid character")
+                raise S3FileNotFoundException(f"Failed to access file {file_key}")
+            else:
+                raise e

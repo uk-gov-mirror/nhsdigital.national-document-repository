@@ -50,6 +50,7 @@ from utils.exceptions import (
     PatientRecordAlreadyExistException,
     PdsTooManyRequestsException,
     S3FileNotFoundException,
+    TagNotFoundException,
     VirusScanNoResultException,
 )
 from utils.lloyd_george_validator import LGInvalidFilesException
@@ -1097,3 +1098,62 @@ def test_patient_not_found_is_caught_and_written_to_dynamo(
     assert call_status == UploadStatus.FAILED
     assert call_reason == expected_error_message
     assert call_metadata == TEST_STAGING_METADATA
+
+
+@pytest.fixture
+def repo(mocker):
+    r = BulkUploadS3Repository.__new__(BulkUploadS3Repository)  # skip __init__
+    r.s3_repository = mocker.Mock()
+    r.staging_bucket_name = MOCK_STAGING_STORE_BUCKET
+    return r
+
+
+@pytest.fixture
+def file_key():
+    return "expedite/folder/file.pdf"
+
+
+def test_check_file_tag_status_returns_value_when_tag_exists(repo, file_key):
+    repo.s3_repository.get_tag_value.return_value = "CLEAN"
+
+    result = repo.check_file_tag_status_on_staging_bucket(file_key)
+
+    assert result == "CLEAN"
+    repo.s3_repository.get_tag_value.assert_called_once_with(
+        s3_bucket_name=MOCK_STAGING_STORE_BUCKET,
+        file_key=file_key,
+        tag_key=SCAN_RESULT_TAG_KEY,
+    )
+
+
+def test_check_file_tag_status_returns_empty_string_when_tag_missing(repo, file_key):
+    repo.s3_repository.get_tag_value.side_effect = TagNotFoundException("no tag")
+
+    result = repo.check_file_tag_status_on_staging_bucket(file_key)
+
+    assert result == ""
+    repo.s3_repository.get_tag_value.assert_called_once_with(
+        s3_bucket_name=MOCK_STAGING_STORE_BUCKET,
+        file_key=file_key,
+        tag_key=SCAN_RESULT_TAG_KEY,
+    )
+
+
+@pytest.mark.parametrize("fragment", ["AccessDenied", "NoSuchKey"])
+def test_wraps_access_errors_as_s3_not_found(repo, file_key, fragment):
+    repo.s3_repository.get_tag_value.side_effect = ClientError(
+        {"Error": {"Code": "S3Error", "Message": fragment}}, "GetObject"
+    )
+
+    with pytest.raises(S3FileNotFoundException):
+        repo.check_file_tag_status_on_staging_bucket(file_key)
+
+
+def test_reraises_other_client_errors(repo, file_key):
+    repo.s3_repository.get_tag_value.side_effect = ClientError(
+        {"Error": {"Code": "ThrottlingException", "Message": "Rate exceeded"}},
+        "GetObject",
+    )
+
+    with pytest.raises(ClientError):
+        repo.check_file_tag_status_on_staging_bucket(file_key)

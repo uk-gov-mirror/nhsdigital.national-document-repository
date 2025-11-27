@@ -18,10 +18,10 @@ def eventbridge_event_with_s3_key(key: str):
     return {
         "source": "aws.s3",
         "detail": {
-          "object":{
-             "key": key,
-          },
-        }
+            "object": {
+                "key": key,
+            },
+        },
     }
 
 
@@ -41,22 +41,40 @@ def test_metadata_processor_lambda_handler_empty_event(
     mock_metadata_service.process_metadata.assert_not_called()
 
 
+def test_metadata_processor_lambda_handler_s3_event_triggers_expedite(
+    set_env, context, mock_metadata_service
+):
+    event = {
+        "source": "aws.s3",
+        "detail": {
+            "object": {
+                "key": "expedite/folder/file.pdf",
+            }
+        },
+    }
+
+    lambda_handler(event, context)
+
+    mock_metadata_service.handle_expedite_event.assert_called_once_with(event)
+    mock_metadata_service.process_metadata.assert_not_called()
+
+
 def test_s3_event_with_expedite_key_processes(
     set_env, context, mock_metadata_service, caplog
 ):
     event = eventbridge_event_with_s3_key(
         "expedite%2F1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf"
     )
-    lambda_handler(event, context)
+
+    with caplog.at_level("INFO"):
+        lambda_handler(event, context)
 
     assert any(
-        f"Handling EventBridge event from S3"
-        in r.message
-        for r in caplog.records
+        "Handling EventBridge event from S3" in r.message for r in caplog.records
     )
-    assert any(
-        "Processing file from expedite folder" in r.message for r in caplog.records
-    )
+
+    mock_metadata_service.handle_expedite_event.assert_called_once_with(event)
+    mock_metadata_service.process_metadata.assert_not_called()
 
 
 def test_s3_event_with_non_expedite_key_is_rejected(
@@ -65,11 +83,8 @@ def test_s3_event_with_non_expedite_key_is_rejected(
     key_string = "uploads/1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf"
     event = eventbridge_event_with_s3_key(key_string)
 
-    lambda_handler(event, context)
+    with caplog.at_level("INFO"):
+        lambda_handler(event, context)
 
-    assert any(
-        f"Unexpected directory or file location received from EventBridge: {key_string}"
-        in r.message
-        for r in caplog.records
-    )
+    mock_metadata_service.handle_expedite_event.assert_called_once_with(event)
     mock_metadata_service.process_metadata.assert_not_called()
