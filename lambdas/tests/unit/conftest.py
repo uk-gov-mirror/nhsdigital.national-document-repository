@@ -140,6 +140,8 @@ MOCK_DOCUMENT_REVIEW_TABLE = "test_document_review"
 MOCK_DOCUMENT_REVIEW_BUCKET = "test_document_review_bucket"
 MOCK_EDGE_TABLE = "test_edge_reference_table"
 
+MOCK_EDGE_REFERENCE_TABLE = "test_edge_reference_table"
+
 @pytest.fixture
 def set_env(monkeypatch):
     monkeypatch.setenv("AWS_DEFAULT_REGION", REGION_NAME)
@@ -232,6 +234,7 @@ def set_env(monkeypatch):
     monkeypatch.setenv("EDGE_REFERENCE_TABLE", MOCK_EDGE_TABLE)
     monkeypatch.setenv("STAGING_STORE_BUCKET_NAME", MOCK_STAGING_STORE_BUCKET)
     monkeypatch.setenv("METADATA_SQS_QUEUE_URL", MOCK_LG_METADATA_SQS_QUEUE)
+    monkeypatch.setenv("EDGE_REFERENCE_TABLE", MOCK_EDGE_REFERENCE_TABLE)
 
 EXPECTED_PARSED_PATIENT_BASE_CASE = PatientDetails(
     givenName=["Jane"],
