@@ -35,7 +35,9 @@ jobs:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
   
   notify-slack:
+    name: Notify Slack on Failure
     runs-on: ubuntu-latest
+    environment: development
     needs: [services-e2etest, services-fhir-api-e2etest]
     if: failure()
     steps:

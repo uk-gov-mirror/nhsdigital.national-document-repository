@@ -80,7 +80,9 @@ jobs:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
   notify-slack:
+    name: Notify Slack on Failure
     runs-on: ubuntu-latest
+    environment: development
     needs: [check_packages, run_tests, publish_all_lambda_layers, deploy_all_lambdas, deploy_data_collection]
     if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
