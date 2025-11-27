@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+from boto3.dynamodb.conditions import Attr
 from models.document_review import DocumentUploadReviewReference
 from services.document_upload_review_service import DocumentUploadReviewService
 from tests.unit.conftest import (
@@ -11,6 +12,7 @@ from tests.unit.conftest import (
 
 TEST_ODS_CODE = "Y12345"
 NEW_ODS_CODE = "Z98765"
+TEST_QUERY_LIMIT = 50
 
 
 @pytest.fixture
@@ -160,4 +162,111 @@ def test_update_document_review_custodian_single_document(mock_service, mocker):
     assert single_review.custodian == NEW_ODS_CODE
     mock_update_document.assert_called_once_with(
         document=single_review, update_fields_name={"custodian"}
+    )
+
+
+def test_build_review_query_filter_creates_filter_from_nhs_number(mock_service):
+    expected = Attr("ReviewStatus").eq("PENDING_REVIEW") & Attr("NhsNumber").eq(
+        TEST_NHS_NUMBER
+    )
+    actual = mock_service.build_review_query_filter(nhs_number=TEST_NHS_NUMBER)
+
+    assert actual == expected
+
+
+def test_build_review_query_filter_creates_filter_from_uploader_ods_code(mock_service):
+    expected = Attr("ReviewStatus").eq("PENDING_REVIEW") & Attr("Author").eq(
+        TEST_ODS_CODE
+    )
+    actual = mock_service.build_review_query_filter(uploader=TEST_ODS_CODE)
+
+    assert actual == expected
+
+
+def test_build_filter_handles_both_nhs_number_and_uploader(mock_service):
+    expected = (
+        Attr("ReviewStatus").eq("PENDING_REVIEW")
+        & Attr("NhsNumber").eq(TEST_NHS_NUMBER)
+        & Attr("Author").eq(TEST_ODS_CODE)
+    )
+    actual = mock_service.build_review_query_filter(
+        nhs_number=TEST_NHS_NUMBER, uploader=TEST_ODS_CODE
+    )
+
+    assert actual == expected
+
+
+def test_query_review_documents_queries_dynamodb_with_filter_expression_nhs_number_passed(
+    mock_service, mocker
+):
+    mock_nhs_number_filter_builder = mocker.patch.object(
+        mock_service, "build_review_query_filter"
+    )
+    mock_nhs_number_filter_builder.return_value = Attr("NhsNumber").eq(TEST_NHS_NUMBER)
+
+    mock_service.query_docs_pending_review_by_custodian_with_limit(
+        ods_code=TEST_ODS_CODE, nhs_number=TEST_NHS_NUMBER
+    )
+
+    mock_nhs_number_filter_builder.assert_called_with(
+        nhs_number=TEST_NHS_NUMBER, uploader=None
+    )
+    mock_service.dynamo_service.query_table_single.assert_called_with(
+        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
+        search_key="Custodian",
+        search_condition=TEST_ODS_CODE,
+        index_name="CustodianIndex",
+        limit=TEST_QUERY_LIMIT,
+        start_key=None,
+        query_filter=mock_nhs_number_filter_builder.return_value,
+    )
+
+
+def test_query_review_documents_queries_dynamodb_with_filter_expression_uploader_passed(
+    mock_service, mocker
+):
+    mock_uploader_filter_builder = mocker.patch.object(
+        mock_service, "build_review_query_filter"
+    )
+    mock_uploader_filter_builder.return_value = Attr("Author").eq(NEW_ODS_CODE)
+    mock_service.query_docs_pending_review_by_custodian_with_limit(
+        ods_code=TEST_ODS_CODE, uploader=NEW_ODS_CODE
+    )
+    mock_uploader_filter_builder.assert_called_with(
+        nhs_number=None, uploader=NEW_ODS_CODE
+    )
+    mock_service.dynamo_service.query_table_single.assert_called_with(
+        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
+        search_key="Custodian",
+        search_condition=TEST_ODS_CODE,
+        index_name="CustodianIndex",
+        limit=TEST_QUERY_LIMIT,
+        start_key=None,
+        query_filter=mock_uploader_filter_builder.return_value,
+    )
+
+
+def test_query_review_documents_by_custodian_handles_filtering_by_nhs_number_and_uploader(
+    mock_service, mocker
+):
+    mock_uploader_filter_builder = mocker.patch.object(
+        mock_service, "build_review_query_filter"
+    )
+    mock_uploader_filter_builder.return_value = Attr("Author").eq(NEW_ODS_CODE) & Attr(
+        "NhsNumber"
+    ).eq(TEST_NHS_NUMBER)
+    mock_service.query_docs_pending_review_by_custodian_with_limit(
+        ods_code=TEST_ODS_CODE, uploader=NEW_ODS_CODE, nhs_number=TEST_NHS_NUMBER
+    )
+    mock_uploader_filter_builder.assert_called_with(
+        nhs_number=TEST_NHS_NUMBER, uploader=NEW_ODS_CODE
+    )
+    mock_service.dynamo_service.query_table_single.assert_called_with(
+        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
+        search_key="Custodian",
+        search_condition=TEST_ODS_CODE,
+        index_name="CustodianIndex",
+        limit=TEST_QUERY_LIMIT,
+        start_key=None,
+        query_filter=mock_uploader_filter_builder.return_value,
     )

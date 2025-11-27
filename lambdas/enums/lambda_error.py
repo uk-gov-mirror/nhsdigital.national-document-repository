@@ -60,7 +60,6 @@ class LambdaError(Enum):
         "fhir_coding": UKCoreSpineError.VALIDATION_ERROR,
     }
 
-
     """
          Errors for /DocumentReference
     """
@@ -68,22 +67,22 @@ class LambdaError(Enum):
         "err_code": "DR_4001",
         "message": "Missing event body",
         "fhir_coding": FhirIssueCoding.REQUIRED,
-        }
+    }
     DocRefPayload = {
         "err_code": "DR_4002",
         "message": "Invalid json in body",
         "fhir_coding": FhirIssueCoding.INVALID,
-        }
+    }
     DocRefProps = {
         "err_code": "DR_4003",
         "message": "Request body missing some properties",
-        "fhircoding": FhirIssueCoding.REQUIRED
+        "fhircoding": FhirIssueCoding.REQUIRED,
     }
     DocRefInvalidFiles = {
         "err_code": "DR_4004",
         "message": "Invalid files or id",
-        "fhir_coding": FhirIssueCoding.INVALID
-        }
+        "fhir_coding": FhirIssueCoding.INVALID,
+    }
     DocRefNoParse = {
         "err_code": "DR_4005",
         "message": "Failed to parse document upload request data",
@@ -117,7 +116,7 @@ class LambdaError(Enum):
     DocRefUploadInternalError = {
         "err_code": "DR_5002",
         "message": "An error occurred when creating pre-signed url for document reference",
-        "fhir_coding": FhirIssueCoding.EXCEPTION
+        "fhir_coding": FhirIssueCoding.EXCEPTION,
     }
     DocRefPatientSearchInvalid = {
         "err_code": "DR_5003",
@@ -136,12 +135,12 @@ class LambdaError(Enum):
     UpdateDocNHSNumberMismatch = {
         "err_code": "UDR_5005",
         "message": "NHS number did not match",
-        "fhir_coding": FhirIssueCoding.INVARIANT
+        "fhir_coding": FhirIssueCoding.INVARIANT,
     }
     UpdateDocNotLatestVersion = {
         "err_code": "UDR_5006",
         "message": "Document is not the latest version",
-        "fhir_coding": FhirIssueCoding.INVARIANT
+        "fhir_coding": FhirIssueCoding.INVARIANT,
     }
 
     """
@@ -629,4 +628,27 @@ class LambdaError(Enum):
         "err_code": "UE_500",
         "message": "An internal server error occurred",
         "fhir_coding": FhirIssueCoding.EXCEPTION,
+    }
+
+    """
+        Errors for SearchDocumentReviewReference exceptions
+    """
+    DocumentReviewDB = {
+        "err_code": "SDR_5001",
+        "message": RETRIEVE_DOCUMENTS,
+    }
+
+    DocumentReviewValidation = {
+        "err_code": "SDR_5002",
+        "message": "Review document model error",
+    }
+
+    SearchDocumentReviewMissingODS = {
+        "err_code": "SDR_4001",
+        "message": "Missing ODS code in request context",
+    }
+
+    SearchDocumentInvalidQuerystring = {
+        "err_code": "SDR_4002",
+        "message": "Invalid query string passed",
     }

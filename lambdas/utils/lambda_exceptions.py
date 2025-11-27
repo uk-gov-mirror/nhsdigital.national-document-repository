@@ -109,6 +109,9 @@ class UpdateFhirDocumentReferenceException(LambdaException):
     pass
 
 
-class GetDocumentReviewException(LambdaException):
+class DocumentReviewException(LambdaException):
     pass
 
+
+class GetDocumentReviewException(LambdaException):
+    pass

@@ -117,6 +117,9 @@ class AuthoriserService:
             case "/Feedback":
                 deny_resource = False
 
+            case "/DocumentReview":
+                deny_resource = False
+
             case "/DocumentStatus":
                 deny_resource = (
                     not patient_access_is_allowed or is_user_gp_clinical or is_user_pcse
