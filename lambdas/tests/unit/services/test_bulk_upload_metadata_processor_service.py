@@ -8,9 +8,8 @@ from unittest.mock import call
 import pytest
 from botocore.exceptions import ClientError
 from enums.upload_status import UploadStatus
-from freezegun import freeze_time
-
 from enums.virus_scan_result import VirusScanResult
+from freezegun import freeze_time
 from models.staging_metadata import (
     METADATA_FILENAME,
     BulkUploadQueueMetadata,
@@ -35,7 +34,7 @@ from utils.exceptions import (
     BulkUploadMetadataException,
     InvalidFileNameException,
     LGInvalidFilesException,
-    VirusScanNoResultException, VirusScanFailedException,
+    VirusScanFailedException,
 )
 
 METADATA_FILE_DIR = "tests/unit/helpers/data/bulk_upload"
@@ -616,6 +615,93 @@ def test_validate_and_correct_filename_sad_path(
     assert result == "corrected/path/file_corrected.pdf"
 
 
+@freeze_time("2025-02-03T10:00:00")
+def test_create_expedite_sqs_metadata_builds_expected_structure(test_service):
+    ods_code = "A12345"
+    key = f"expedite/{ods_code}/1of1_1234567890_record.pdf"
+
+    result = test_service.create_expedite_sqs_metadata(key)
+
+    assert result.nhs_number == "1234567890"
+    assert len(result.files) == 1
+    item = result.files[0]
+    assert item.file_path == key
+    assert item.stored_file_name == key
+    assert item.gp_practice_code == ods_code
+    assert item.scan_date == "2025-02-03"
+
+
+@freeze_time("2025-02-03T10:00:00")
+def test_handle_expedite_event_happy_path_sends_sqs(test_service, mocker):
+    ods = "A12345"
+    key = f"expedite/{ods}/1of1_1234567890_record.pdf"
+    event = {"detail": {"object": {"key": key}}}
+
+    mocker.patch.object(BulkUploadMetadataProcessorService, "enforce_virus_scanner")
+    mocker.patch.object(BulkUploadMetadataProcessorService, "check_file_status")
+    mocked_send = mocker.patch.object(
+        BulkUploadMetadataProcessorService, "send_metadata_to_fifo_sqs"
+    )
+
+    test_service.handle_expedite_event(event)
+
+    mocked_send.assert_called_once()
+    args, _ = mocked_send.call_args
+    assert len(args) == 1
+    sqs_payload_list = args[0]
+    sqs_payload = sqs_payload_list[0]
+    assert sqs_payload.nhs_number == "1234567890"
+    assert len(sqs_payload.files) == 1
+    file_item = sqs_payload.files[0]
+    assert file_item.file_path == key
+    assert file_item.stored_file_name == key
+    assert file_item.gp_practice_code == ods
+    assert file_item.scan_date == "2025-02-03"
+
+
+def test_handle_expedite_event_invalid_directory_raises(test_service, mocker):
+    mocked_send = mocker.patch.object(
+        BulkUploadMetadataProcessorService, "send_metadata_to_fifo_sqs"
+    )
+    bad_key = "notexpedite/A12345/1234567890_record.pdf"
+    event = {"detail": {"object": {"key": bad_key}}}
+
+    with pytest.raises(BulkUploadMetadataException) as exc:
+        test_service.handle_expedite_event(event)
+
+    assert "Unexpected directory or file location" in str(exc.value)
+    mocked_send.assert_not_called()
+
+
+def test_handle_expedite_event_missing_key_raises(test_service, mocker):
+    mocked_send = mocker.patch.object(
+        BulkUploadMetadataProcessorService, "send_metadata_to_fifo_sqs"
+    )
+    event = {"detail": {}}
+
+    with pytest.raises(BulkUploadMetadataException) as exc:
+        test_service.handle_expedite_event(event)
+
+    assert "Failed due to missing key" in str(exc.value)
+    mocked_send.assert_not_called()
+
+
+def test_handle_expedite_event_rejects_non_1of1(test_service, mocker):
+    mocker.patch.object(BulkUploadMetadataProcessorService, "enforce_virus_scanner")
+    mocker.patch.object(BulkUploadMetadataProcessorService, "check_file_status")
+    mocked_send = mocker.patch.object(
+        BulkUploadMetadataProcessorService, "send_metadata_to_fifo_sqs"
+    )
+    key = "expedite/A12345/2of3_1234567890_record.pdf"
+    event = {"detail": {"object": {"key": key}}}
+
+    with pytest.raises(BulkUploadMetadataException) as exc:
+        test_service.handle_expedite_event(event)
+
+    assert "not being a 1of1" in str(exc.value)
+    mocked_send.assert_not_called()
+
+
 @pytest.fixture
 def mock_csv_content():
     header = "FILEPATH,PAGE COUNT,GP-PRACTICE-CODE,NHS-NO,SECTION,SUB-SECTION,SCAN-DATE,SCAN-ID,USER-ID,UPLOAD"
@@ -864,10 +950,34 @@ def test_no_remapping_logic(
     ]
 
 
+@freeze_time("2025-02-03T10:00:00")
+def test_validate_expedite_file_happy_path_returns_expected_tuple(test_service):
+    ods_code = "A12345"
+    key = f"expedite/{ods_code}/1of1_1234567890_record.pdf"
+
+    nhs_number, file_name, extracted_ods, scan_date = (
+        test_service.validate_expedite_file(key)
+    )
+
+    assert nhs_number == "1234567890"
+    assert file_name == key
+    assert extracted_ods == ods_code
+    assert scan_date == "2025-02-03"
+
+
+def test_validate_expedite_file_rejects_non_1of1(test_service):
+    key = "expedite/A12345/2of3_1234567890_record.pdf"
+    with pytest.raises(BulkUploadMetadataException):
+        test_service.validate_expedite_file(key)
+
+
 def test_handle_expedite_event_calls_enforce_for_expedite_key(mocker, test_service):
     encoded_key = urllib.parse.quote_plus("expedite/folder/some file.pdf")
     event = {"detail": {"object": {"key": encoded_key}}}
 
+    mocker.patch.object(
+        BulkUploadMetadataProcessorService, "create_expedite_sqs_metadata"
+    )
     mocked_enforce = mocker.patch.object(test_service, "enforce_virus_scanner")
     mocked_check_status = mocker.patch.object(test_service, "check_file_status")
 
@@ -1010,6 +1120,7 @@ def test_enforce_virus_scanner_re_raises_unexpected_client_error(mocker, test_se
         test_service.enforce_virus_scanner(file_key)
 
     mock_scan.assert_not_called()
+
 
 def test_check_file_status_clean_does_nothing(mocker, test_service, caplog):
     file_key = "expedite/folder/file.pdf"

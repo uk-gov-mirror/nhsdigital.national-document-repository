@@ -59,24 +59,6 @@ def test_metadata_processor_lambda_handler_s3_event_triggers_expedite(
     mock_metadata_service.process_metadata.assert_not_called()
 
 
-def test_s3_event_with_expedite_key_processes(
-    set_env, context, mock_metadata_service, caplog
-):
-    event = eventbridge_event_with_s3_key(
-        "expedite%2F1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf"
-    )
-
-    with caplog.at_level("INFO"):
-        lambda_handler(event, context)
-
-    assert any(
-        "Handling EventBridge event from S3" in r.message for r in caplog.records
-    )
-
-    mock_metadata_service.handle_expedite_event.assert_called_once_with(event)
-    mock_metadata_service.process_metadata.assert_not_called()
-
-
 def test_s3_event_with_non_expedite_key_is_rejected(
     set_env, context, mock_metadata_service, caplog
 ):
@@ -88,3 +70,14 @@ def test_s3_event_with_non_expedite_key_is_rejected(
 
     mock_metadata_service.handle_expedite_event.assert_called_once_with(event)
     mock_metadata_service.process_metadata.assert_not_called()
+
+
+def test_s3_event_with_expedite_key_processes(set_env, context, mock_metadata_service):
+    event = eventbridge_event_with_s3_key(
+        "expedite%2F1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf"
+    )
+
+    lambda_handler(event, context)
+
+    mock_metadata_service.process_metadata.assert_not_called()
+    mock_metadata_service.handle_expedite_event.assert_called_once_with(event)

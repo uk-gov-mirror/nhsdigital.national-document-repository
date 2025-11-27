@@ -5,10 +5,10 @@ import tempfile
 import urllib.parse
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 
 import pydantic
 from botocore.exceptions import ClientError
-
 from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
 from enums.upload_status import UploadStatus
 from enums.virus_scan_result import VirusScanResult
@@ -41,6 +41,7 @@ from utils.exceptions import (
     LGInvalidFilesException,
     VirusScanFailedException,
 )
+from utils.filename_utils import extract_nhs_number_from_bulk_upload_file_name
 from utils.lloyd_george_validator import validate_file_name
 from utils.utilities import get_virus_scan_service
 
@@ -98,7 +99,6 @@ class BulkUploadMetadataProcessorService:
             logger.info("Finished parsing metadata")
 
             self.send_metadata_to_fifo_sqs(staging_metadata_list)
-            logger.info("Sent bulk upload metadata to SQS queue")
 
             self.copy_metadata_to_dated_folder()
             self.clear_temp_storage()
@@ -195,6 +195,21 @@ class BulkUploadMetadataProcessorService:
             **file.model_dump(), stored_file_name=stored_file_name
         )
 
+    def create_expedite_sqs_metadata(self, key) -> StagingSqsMetadata:
+        """Build a single-patient SQS metadata payload for an expedite upload."""
+        nhs_number, file_path, ods_code, scan_date = self.validate_expedite_file(key)
+        return StagingSqsMetadata(
+            nhs_number=nhs_number,
+            files=[
+                BulkUploadQueueMetadata(
+                    file_path=file_path,
+                    stored_file_name=file_path,
+                    gp_practice_code=ods_code,
+                    scan_date=scan_date,
+                )
+            ],
+        )
+
     @staticmethod
     def extract_patient_info(file_metadata: MetadataFile) -> tuple[str, str]:
         """Extract key patient identifiers."""
@@ -209,6 +224,55 @@ class BulkUploadMetadataProcessorService:
             return self.metadata_formatter_service.validate_record_filename(
                 file_metadata.file_path
             )
+
+    def validate_expedite_file(self, s3_object_key: str):
+        """Validate and extract fields from an expedite S3 key.
+        This ensures the file represents a single document (1of1) and derives
+        the key fields required to build SQS metadata."""
+        file_path = os.path.basename(s3_object_key)
+
+        if not file_path.startswith("1of1"):
+            failure_msg = (
+                "Failed processing expedite event due to file not being a 1of1"
+            )
+            logger.error(failure_msg)
+            raise BulkUploadMetadataException(failure_msg)
+
+        nhs_number = extract_nhs_number_from_bulk_upload_file_name(file_path)[0]
+        file_name = self.metadata_formatter_service.validate_record_filename(
+            s3_object_key
+        )
+        ods_code = Path(s3_object_key).parent.name
+        scan_date = datetime.now().strftime("%Y-%m-%d")
+        return nhs_number, file_name, ods_code, scan_date
+
+    def handle_expedite_event(self, event):
+        """Process S3 EventBridge expedite uploads: enforce virus scan, ensure 1of1, extract identifiers
+        and send metadata to SQS."""
+        try:
+            unparsed_s3_object_key = event["detail"]["object"]["key"]
+            s3_object_key = urllib.parse.unquote_plus(
+                unparsed_s3_object_key, encoding="utf-8"
+            )
+
+            if s3_object_key.startswith("expedite/"):
+                logger.info("Processing file from expedite folder")
+
+                self.enforce_virus_scanner(s3_object_key)
+                self.check_file_status(s3_object_key)
+
+                sqs_metadata = [self.create_expedite_sqs_metadata(s3_object_key)]
+
+                self.send_metadata_to_fifo_sqs(sqs_metadata)
+                logger.info("Successfully processed expedite event")
+            else:
+                failure_msg = f"Unexpected directory or file location received from EventBridge: {s3_object_key}"
+                logger.error(failure_msg)
+                raise BulkUploadMetadataException(failure_msg)
+        except KeyError as e:
+            failure_msg = f"Failed due to missing key: {str(e)}"
+            logger.error(failure_msg)
+            raise BulkUploadMetadataException(failure_msg)
 
     def handle_invalid_filename(
         self,
@@ -241,6 +305,7 @@ class BulkUploadMetadataProcessorService:
                 nhs_number=nhs_number,
                 group_id=f"bulk_upload_{nhs_number}",
             )
+        logger.info("Sent bulk upload metadata to sqs queue")
 
     def copy_metadata_to_dated_folder(self):
         """Copy processed metadata CSV into a dated archive folder in S3."""
@@ -277,7 +342,7 @@ class BulkUploadMetadataProcessorService:
 
         try:
             result = self.s3_repo.check_file_tag_status_on_staging_bucket(file_key)
-            if(result != ""):
+            if result != "":
                 logger.info("The file has been scanned before")
                 return
             logger.info(f"Virus scan tag missing for {file_key}.")
@@ -292,27 +357,6 @@ class BulkUploadMetadataProcessorService:
                 )
             else:
                 raise
-
-    def handle_expedite_event(self, event):
-        try:
-            key_string = event["detail"]["object"]["key"]
-            key = urllib.parse.unquote_plus(key_string, encoding="utf-8")
-
-            if key.startswith("expedite/"):
-                logger.info("Processing file from expedite folder")
-
-                self.enforce_virus_scanner(key)
-                self.check_file_status(key)
-
-                return  # To be added upon by ticket PRMP-540
-            else:
-                failure_msg = f"Unexpected directory or file location received from EventBridge: {key_string}"
-                logger.error(failure_msg)
-                raise BulkUploadMetadataException(failure_msg)
-        except KeyError as e:
-            failure_msg = f"Failed due to missing key: {str(e)}"
-            logger.error(failure_msg)
-            raise BulkUploadMetadataException(failure_msg)
 
 
 def get_formatter_service(raw_pre_format_type):
