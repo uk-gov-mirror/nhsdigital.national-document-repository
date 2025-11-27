@@ -1,16 +1,10 @@
 # national-document-repository
 
-## Lamda Function Intro
+## Links
 
-Our Lambda function readme can be found [here](lambdas/README.md)
-
-## React User Interface Intro
-
-Our React User Interface readme can be found [here](app/README.md)
-
-## End-to-End Tests Intro
-
-Our E2E test readme can be found [here](lambdas/tests/e2e/README.md). We have E2E tests for our FHIR endpoints and APIM setup.
+- [Lambda function README.md](lambdas/README.md).
+- [React User Interface README.md](app/README.md).
+- [E2E test README.md](lambdas/tests/e2e/README.md) (we have E2E tests for our FHIR endpoints and APIM setup).
 
 ## Installation
 

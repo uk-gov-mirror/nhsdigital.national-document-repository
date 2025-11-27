@@ -9,7 +9,7 @@ There are 2 suites which separately test
 
 as well as APIM E2E tests `lambdas/tests/e2e/apim/`.
 
-### 🔐 AWS Authentication
+## 🔐 AWS Authentication
 
 You must be authenticated with AWS to run the api tests. Use the following commands with a configured profile set up in ~/.aws/config to authenticate:
 
@@ -97,13 +97,13 @@ Before running the APIM E2E tests, you must generate a **Proxygen access token**
 
 You can generate a temporary token using the `pytest-nhsd-apim` plugin
 
-```
+```shell
 proxygen pytest-nhsd-apim get-token
 ```
 
 Once generated, export the token to your shell environment so it's available during test execution. For example, in your `.zshrc` or `.bashrc` file:
 
-```
+```shell
 export APIGEE_ACCESS_TOKEN=your_token_here
 ```
 
@@ -117,7 +117,7 @@ make test-apim-e2e
 
 This command validates APIM functionality for the National Document Repository FHIR R4 API using the following configuration:
 
-```
+```shell
 cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/apim -vv \
   --api-name=national-document-repository_FHIR_R4 \
   --proxy-name=national-document-repository--internal-dev--national-document-repository_FHIR_R4
@@ -133,6 +133,6 @@ cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/apim -vv \
 - Environment Configuration: Make sure your test environment is properly configured with access to APIM and any required secrets or credentials.
 
   - You can test your proxygen set up via `proxygen instance list` and expect to see `national-document-repository_FHIR_R4` listed.
-    For more information on proxygen credentials see: https://nhsd-confluence.digital.nhs.uk/pages/viewpage.action?spaceKey=APM&title=Proxygen+CLI+user+guide
+    For more information on proxygen credentials see: <https://nhsd-confluence.digital.nhs.uk/pages/viewpage.action?spaceKey=APM&title=Proxygen+CLI+user+guide>
 
 - Dependencies: These tests rely on other services being up and running (e.g. backend API, databases). Ensure all dependencies are available before running the tests.

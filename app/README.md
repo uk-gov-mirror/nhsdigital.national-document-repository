@@ -1,22 +1,14 @@
-## National Document Repository User Interface
+# National Document Repository User Interface
 
-### Intro
+## Intro
 
 The National Document Repository user interface (UI) has been developed with React. This is a developer's guide to run the UI and tools locally.
 
-## Table Of Contents
+## Requirements
 
-1. [Setup](#setup)
-2. [Running Locally](#running-locally)
-3. [Testing](#testing)
-4. [Accessibility](#accessibility)
-5. [Design](#design)
-
-### Requirements
-
--   Node: Version 24.x
--   NPM: this should come installed with Node but if not version 11.4.1 or greater is recommended.
--   Browser: Of your choice, although Chrome has better development tools.
+- Node: Version 24.x
+- NPM: this should come installed with Node but if not version 11.4.1 or greater is recommended.
+- Browser: Of your choice, although Chrome has better development tools.
 
 ## Setup
 
@@ -46,7 +38,7 @@ Once the packages have been installed, you can then run the app through the foll
 make start
 ```
 
-Once everything is up and running you should see a prompt in the CLI that the app is running on http://localhost:xxxx, where xxxx is the value of PORT specified in `.env` file. You should now be able to visit the site in a browser of your choice.
+Once everything is up and running you should see a prompt in the CLI that the app is running on <http://localhost:xxxx>, where xxxx is the value of PORT specified in `.env` file. You should now be able to visit the site in a browser of your choice.
 
 ## Testing
 
@@ -82,10 +74,10 @@ This will open a new Chromium window with the options to either run the E2E test
 
 ## Accessibility
 
--   [WAVE Chrome extension](https://chrome.google.com/webstore/detail/wave-evaluation-tool/jbbplnpkjmmeebjpijfedlgcdilocofh)
--   Use a screen reader
--   Use keyboard navigation
--   Use NHS components rather than custom styling
+- [WAVE Chrome extension](https://chrome.google.com/webstore/detail/wave-evaluation-tool/jbbplnpkjmmeebjpijfedlgcdilocofh)
+- Use a screen reader
+- Use keyboard navigation
+- Use NHS components rather than custom styling
 
 ## Design
 
