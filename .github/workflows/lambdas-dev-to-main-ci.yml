@@ -27,6 +27,7 @@ permissions:
 
 jobs:
   check_packages:
+    if: github.event_name == 'pull_request'
     uses: ./.github/workflows/base-lambdas-check-packages.yml
     with:
       environment: development
