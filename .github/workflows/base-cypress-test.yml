@@ -57,6 +57,9 @@ jobs:
           npm install --legacy-peer-deps
         working-directory: ./app
 
+      - name: Copy main.html to index.html for serve compatibility
+        run: cp ./app/build/main.html ./app/build/index.html
+
       - name: Cypress run
         uses: cypress-io/github-action@v6
         with:
