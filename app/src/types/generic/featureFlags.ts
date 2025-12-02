@@ -3,6 +3,7 @@ export type FeatureFlags = {
     uploadLambdaEnabled: boolean;
     uploadArfWorkflowEnabled: boolean;
     uploadDocumentIteration2Enabled?: boolean;
+    uploadDocumentIteration3Enabled?: boolean;
 };
 
 export const defaultFeatureFlags: FeatureFlags = {
@@ -10,4 +11,5 @@ export const defaultFeatureFlags: FeatureFlags = {
     uploadLambdaEnabled: false,
     uploadArfWorkflowEnabled: false,
     uploadDocumentIteration2Enabled: false,
+    uploadDocumentIteration3Enabled: false,
 };

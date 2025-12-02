@@ -111,6 +111,10 @@ export const childRoutes = [
         parent: PATIENT_ACCESS_AUDIT,
     },
     {
+        route: routeChildren.DOCUMENT_UPLOAD_SELECT_FILES,
+        parent: DOCUMENT_UPLOAD,
+    },
+    {
         route: routeChildren.DOCUMENT_UPLOAD_SELECT_ORDER,
         parent: DOCUMENT_UPLOAD,
     },

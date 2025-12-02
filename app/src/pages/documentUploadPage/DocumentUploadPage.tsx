@@ -1,6 +1,6 @@
 import { AxiosError } from 'axios';
-import { useEffect, useRef, useState } from 'react';
-import { Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
+import { Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import DocumentSelectFileErrorsPage from '../../components/blocks/_documentUpload/documentSelectFileErrorsPage/DocumentSelectFileErrorsPage';
 import DocumentSelectOrderStage from '../../components/blocks/_documentUpload/documentSelectOrderStage/DocumentSelectOrderStage';
@@ -43,6 +43,10 @@ import {
     DOCUMENT_UPLOAD_STATE,
     UploadDocument,
 } from '../../types/pages/UploadDocumentsPage/types';
+import documentTypesConfig from '../../config/documentTypesConfig.json';
+import { Card } from 'nhsuk-react-components';
+import { ReactComponent as RightCircleIcon } from '../../styles/right-chevron-circle.svg';
+import PatientSummary from '../../components/generic/patientSummary/PatientSummary';
 
 type LocationState = {
     journey?: JourneyType;
@@ -83,6 +87,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
     const config = useConfig();
     const interval = useRef<number>(0);
     const filesErrorPageRef = useRef(false);
+    const [documentType, setDocumentType] = useState<DOCUMENT_TYPE>(DOCUMENT_TYPE.LLOYD_GEORGE);
 
     const UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS = 5000;
     const MAX_POLLING_TIME = 120000;
@@ -364,16 +369,30 @@ const DocumentUploadPage = (): React.JSX.Element => {
         return <></>;
     }
 
+    const getIndexElement = (): React.JSX.Element => {
+        return config.featureFlags.uploadDocumentIteration3Enabled ? (
+            <DocumentUploadIndex setDocumentType={setDocumentType} />
+        ) : (
+            <DocumentSelectStage
+                documents={documents}
+                setDocuments={setDocuments}
+                documentType={documentType}
+                filesErrorRef={filesErrorPageRef}
+            />
+        );
+    };
+
     return (
         <div>
             <Routes>
+                <Route index element={getIndexElement()} />
                 <Route
-                    index
+                    path={getLastURLPath(routeChildren.DOCUMENT_UPLOAD_SELECT_FILES) + '/*'}
                     element={
                         <DocumentSelectStage
                             documents={documents}
                             setDocuments={setDocuments}
-                            documentType={DOCUMENT_TYPE.LLOYD_GEORGE}
+                            documentType={documentType}
                             filesErrorRef={filesErrorPageRef}
                         />
                     }
@@ -429,3 +448,50 @@ const DocumentUploadPage = (): React.JSX.Element => {
 };
 
 export default DocumentUploadPage;
+
+type DocumentUploadIndexProps = {
+    setDocumentType: Dispatch<SetStateAction<DOCUMENT_TYPE>>;
+};
+const DocumentUploadIndex = ({ setDocumentType }: DocumentUploadIndexProps): React.JSX.Element => {
+    const navigate = useNavigate();
+
+    const documentTypeSelected = (documentType: DOCUMENT_TYPE): void => {
+        setDocumentType(documentType);
+        navigate(routeChildren.DOCUMENT_UPLOAD_SELECT_FILES);
+    };
+
+    return (
+        <>
+            <h1 data-testid="page-title">Choose a document type to upload</h1>
+
+            <PatientSummary oneLine />
+
+            <Card.Group>
+                {documentTypesConfig.map((documentConfig) => (
+                    <Card.GroupItem width="one-half" key={documentConfig.snomed_code}>
+                        <Card clickable cardType="primary">
+                            <Card.Content>
+                                <Card.Heading className="nhsuk-heading-m">
+                                    <Card.Link
+                                        data-testid={`upload-${documentConfig.snomed_code}-link`}
+                                        onClick={(): void =>
+                                            documentTypeSelected(
+                                                documentConfig.snomed_code as DOCUMENT_TYPE,
+                                            )
+                                        }
+                                    >
+                                        {documentConfig.content.upload_title}
+                                    </Card.Link>
+                                </Card.Heading>
+                                <Card.Description>
+                                    {documentConfig.content.upload_description}
+                                </Card.Description>
+                                <RightCircleIcon />
+                            </Card.Content>
+                        </Card>
+                    </Card.GroupItem>
+                ))}
+            </Card.Group>
+        </>
+    );
+};

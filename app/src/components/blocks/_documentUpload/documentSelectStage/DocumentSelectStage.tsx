@@ -298,7 +298,7 @@ const DocumentSelectStage = ({
                 ></ErrorBox>
             )}
 
-            <h1>{pageTitle()}</h1>
+            <h1 data-testid="page-title">{pageTitle()}</h1>
 
             <div className="nhsuk-inset-text">
                 <p>Make sure that all files uploaded are for this patient only:</p>

@@ -21,8 +21,8 @@ export type DOCUMENT_TYPE_CONFIG = {
     canBeDiscarded: boolean;
     stitched: boolean;
     acceptedFileTypes: string[];
-    content: { key: string, value: string }[];
-}
+    content: { [key: string]: string };
+};
 
 export const getDocumentTypeLabel = (docType: DOCUMENT_TYPE): string => {
     switch (docType) {

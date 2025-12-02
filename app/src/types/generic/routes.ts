@@ -44,6 +44,7 @@ export enum routeChildren {
     REPORT_DOWNLOAD_COMPLETE = '/create-report/complete',
     PATIENT_ACCESS_AUDIT_DECEASED = '/patient/access-audit/deceased',
 
+    DOCUMENT_UPLOAD_SELECT_FILES = '/patient/document-upload/select-files',
     DOCUMENT_UPLOAD_SELECT_ORDER = '/patient/document-upload/select-order',
     DOCUMENT_UPLOAD_REMOVE_ALL = '/patient/document-upload/remove-all',
     DOCUMENT_UPLOAD_CONFIRMATION = '/patient/document-upload/confirmation',

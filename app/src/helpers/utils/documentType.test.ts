@@ -14,8 +14,8 @@ vi.mock('../../config/lloydGeorgeConfig.json', () => ({
         canBeDiscarded: false,
         stitched: true,
         acceptedFileTypes: ['pdf'],
-        content: [{ key: 'test', value: 'test' }]
-    }
+        content: { test: 'test' },
+    },
 }));
 
 vi.mock('../../config/electronicHealthRecordConfig.json', () => ({
@@ -30,8 +30,8 @@ vi.mock('../../config/electronicHealthRecordConfig.json', () => ({
         canBeDiscarded: true,
         stitched: false,
         acceptedFileTypes: ['xml', 'json'],
-        content: [{ key: 'ehr', value: 'data' }]
-    }
+        content: { ehr: 'data' },
+    },
 }));
 
 vi.mock('../../config/electronicHealthRecordAttachmentsConfig.json', () => ({
@@ -46,8 +46,8 @@ vi.mock('../../config/electronicHealthRecordAttachmentsConfig.json', () => ({
         canBeDiscarded: true,
         stitched: false,
         acceptedFileTypes: ['pdf', 'jpg', 'png'],
-        content: [{ key: 'attachment', value: 'file' }]
-    }
+        content: { attachment: 'file' },
+    },
 }));
 
 describe('documentType', () => {
@@ -61,11 +61,15 @@ describe('documentType', () => {
         });
 
         it('should return correct label for EHR_ATTACHMENTS', () => {
-            expect(getDocumentTypeLabel(DOCUMENT_TYPE.EHR_ATTACHMENTS)).toBe('Electronic health record attachments');
+            expect(getDocumentTypeLabel(DOCUMENT_TYPE.EHR_ATTACHMENTS)).toBe(
+                'Electronic health record attachments',
+            );
         });
 
         it('should return correct label for LETTERS_AND_DOCS', () => {
-            expect(getDocumentTypeLabel(DOCUMENT_TYPE.LETTERS_AND_DOCS)).toBe('Patient letters and documents');
+            expect(getDocumentTypeLabel(DOCUMENT_TYPE.LETTERS_AND_DOCS)).toBe(
+                'Patient letters and documents',
+            );
         });
 
         it('should return empty string for unknown document type', () => {
@@ -96,13 +100,15 @@ describe('documentType', () => {
         });
 
         it('should throw error for unsupported document type', () => {
-            expect(() => getConfigForDocType(DOCUMENT_TYPE.LETTERS_AND_DOCS))
-                .toThrow('No config found for document type: 16521000000104');
+            expect(() => getConfigForDocType(DOCUMENT_TYPE.LETTERS_AND_DOCS)).toThrow(
+                'No config found for document type: 16521000000104',
+            );
         });
 
         it('should throw error for unknown document type', () => {
-            expect(() => getConfigForDocType('unknown' as DOCUMENT_TYPE))
-                .toThrow('No config found for document type: unknown');
+            expect(() => getConfigForDocType('unknown' as DOCUMENT_TYPE)).toThrow(
+                'No config found for document type: unknown',
+            );
         });
     });
 });
