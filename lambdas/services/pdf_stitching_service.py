@@ -45,7 +45,7 @@ class PdfStitchingService:
         self.document_service = DocumentService()
         self.sqs_service = SQSService()
         self.multipart_references: list[DocumentReference] = []
-        self.stitched_reference: DocumentReference = None
+        self.stitched_reference: DocumentReference | None = None
 
     def retrieve_multipart_references(
         self, nhs_number: str, doc_type: SupportedDocumentTypes
@@ -101,7 +101,7 @@ class PdfStitchingService:
                 stitch_file_size=sys.getsizeof(stitching_data_stream),
             )
             self.upload_stitched_file(stitching_data_stream=stitching_data_stream)
-            self.update_stitched_reference()
+            self.update_stitched_reference_with_version_id()
             self.migrate_multipart_references()
             self.write_stitching_reference()
             self.publish_nrl_message(
@@ -130,10 +130,9 @@ class PdfStitchingService:
             deep=True,
         )
 
-    def update_stitched_reference(self):
+    def update_stitched_reference_with_version_id(self):
         self.stitched_reference.s3_version_id = self.s3_service.get_head_object(
-            self.target_bucket, 
-            self.stitched_reference.s3_file_key
+            self.target_bucket, self.stitched_reference.s3_file_key
         ).get("VersionId")
 
     def process_stitching(self, s3_object_keys: list[str]) -> BytesIO:
@@ -377,6 +376,6 @@ class PdfStitchingService:
             except (InvalidMessageException, Exception) as e:
                 logger.error(f"Error sending batch to SQS: {str(e)}")
             # 1 batch is 10 messages
-            # we can send up to 300 messages a second
-            # a 0.1s delay means 10 batches, so 100 messages
+            # we can send up to 300 messages a second.
+            # a 0.1 s delay means 10 batches, so 100 messages
             time.sleep(0.1)
