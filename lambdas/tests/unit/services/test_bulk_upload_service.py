@@ -42,6 +42,7 @@ from tests.unit.utils.test_unicode_utils import (
     NAME_WITH_ACCENT_NFC_FORM,
     NAME_WITH_ACCENT_NFD_FORM,
 )
+from unit.helpers.data.s3_responses import MOCK_COPY_OBJECT_RESPONSE
 from utils.exceptions import (
     BulkUploadException,
     DocumentInfectedException,
@@ -712,8 +713,8 @@ def test_handle_sqs_message_rollback_transaction_when_validation_pass_but_file_t
 
     # simulate a client error occur when copying the 3rd file
     repo_under_test.bulk_upload_s3_repository.copy_to_lg_bucket.side_effect = [
-        None,
-        None,
+        MOCK_COPY_OBJECT_RESPONSE,
+        MOCK_COPY_OBJECT_RESPONSE,
         mock_client_error,
     ]
 
