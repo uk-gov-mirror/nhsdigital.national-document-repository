@@ -52,10 +52,13 @@ class UploadDocumentReferenceService:
         try:
             object_parts = object_key.split("/")
             document_key = object_parts[-1]
+            nhs_number = None
+            if len(object_parts) > 1:
+                nhs_number = object_parts[-2]
             self._get_infrastructure_for_document_key(object_parts)
 
             preliminary_document_reference = self._fetch_preliminary_document_reference(
-                document_key
+                document_key, nhs_number
             )
             if not preliminary_document_reference:
                 return
@@ -87,14 +90,27 @@ class UploadDocumentReferenceService:
             raise InvalidDocTypeException(400, LambdaError.DocTypeDB)
 
     def _fetch_preliminary_document_reference(
-        self, document_key: str
+        self, document_key: str, nhs_number: str | None = None
     ) -> Optional[DocumentReference]:
         """Fetch document reference from the database"""
         try:
+            if self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
+                search_key = "ID"
+                search_condition = document_key
+            else:
+                if not nhs_number:
+                    logger.error(
+                        f"Failed to process object key with ID: {document_key}"
+                    )
+                    raise FileProcessingException(400, LambdaError.DocRefInvalidFiles)
+
+                search_key = ["NhsNumber", "ID"]
+                search_condition = [nhs_number, document_key]
+
             documents = self.document_service.fetch_documents_from_table(
+                search_key=search_key,
+                search_condition=search_condition,
                 table_name=self.table_name,
-                search_condition=document_key,
-                search_key="ID",
                 query_filter=PreliminaryStatus,
             )
 
@@ -428,7 +444,7 @@ class UploadDocumentReferenceService:
         """Update the DynamoDB table with document status and virus scan results"""
         try:
             logger.info("Updating dynamo db table")
-
+            update_key = None
             update_fields = {
                 "virus_scanner_result",
                 "doc_status",
@@ -439,9 +455,14 @@ class UploadDocumentReferenceService:
             }
             if self.doc_type.code == SnomedCodes.PATIENT_DATA.value.code:
                 update_fields.add("s3_file_key")
+                update_key = {
+                    DocumentReferenceMetadataFields.NHS_NUMBER.value: document.nhs_number,
+                    DocumentReferenceMetadataFields.ID.value: document.id,
+                }
 
             self.document_service.update_document(
                 table_name=self.table_name,
+                update_key=update_key,
                 document=document,
                 update_fields_name=update_fields,
             )

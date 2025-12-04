@@ -1,16 +1,17 @@
 import json
 
+from _pytest import monkeypatch
 import pytest
+from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from tests.unit.conftest import (
-    MOCK_LG_TABLE_NAME,
-    MOCK_PDM_TABLE_NAME,
     TEST_CURRENT_GP_ODS,
     TEST_DOCUMENT_LOCATION,
     TEST_FILE_KEY,
     TEST_NHS_NUMBER,
     TEST_UUID,
+    WORKSPACE,
 )
 from tests.unit.helpers.data.dynamo.dynamo_stream import (
     MOCK_OLD_IMAGE_EVENT,
@@ -168,16 +169,17 @@ def test_parse_dynamo_record_raises_value_error(test_json_string):
 
 
 @pytest.mark.parametrize(
-    "doc_type, expected_table",
+    "doc_type, expected_suffix",
     [
-        (SnomedCodes.LLOYD_GEORGE.value, MOCK_LG_TABLE_NAME),
-        (SnomedCodes.PATIENT_DATA.value, MOCK_PDM_TABLE_NAME),
+        (SnomedCodes.LLOYD_GEORGE.value, "LloydGeorgeReferenceMetadata"),
+        (SnomedCodes.PATIENT_DATA.value, "COREDocumentMetadata"),
     ],
 )
-def test_dynamo_table_mapping(set_env, doc_type, expected_table):
-    table_router = DocTypeTableRouter()
-    table = table_router.resolve(doc_type)
-    assert table == expected_table
+def test_dynamo_table_mapping(set_env, doc_type, expected_suffix):
+    router = DocTypeTableRouter()
+    table = router.resolve(doc_type)
+
+    assert table == f"{WORKSPACE}_{expected_suffix}"
 
 
 @pytest.mark.parametrize(

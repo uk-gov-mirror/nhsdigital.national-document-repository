@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # Set environment variables for ndr-dev
-export PDM_METADATA_TABLE="ndr-dev_PDMDocumentMetadata"
-export PDM_S3_BUCKET="ndr-dev-pdm-document-store"
+export AWS_WORKSPACE="ndr-dev"
 
 echo "APIM Environment variables set for WORKSPACE ndr-dev"
 

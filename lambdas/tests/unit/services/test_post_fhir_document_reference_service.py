@@ -2,6 +2,7 @@ import json
 
 import pytest
 from botocore.exceptions import ClientError
+from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCode, SnomedCodes
@@ -452,7 +453,7 @@ def test_get_dynamo_table_for_patient_data_doc_type(mock_service):
     patient_data_code = SnomedCodes.PATIENT_DATA.value
 
     result = mock_service._get_dynamo_table_for_doc_type(patient_data_code)
-    assert result == MOCK_PDM_TABLE_NAME
+    assert result == str(DynamoTables.CORE)
 
 
 def test_get_dynamo_table_for_unsupported_doc_type(mock_service):
@@ -646,7 +647,7 @@ def test_get_dynamo_table_for_lloyd_george_doc_type(mock_service):
 
     result = mock_service._get_dynamo_table_for_doc_type(lg_code)
 
-    assert result == MOCK_LG_TABLE_NAME
+    assert result == str(DynamoTables.LLOYD_GEORGE)
 
 
 def test_process_fhir_document_reference_with_malformed_json(mock_service):
@@ -834,7 +835,7 @@ def test_s3_file_key_for_pdm(mock_service, mocker):
         f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000009"
         in result.s3_upload_key
     )
-    assert (f"9000000009/{result.id}" in result.s3_file_key)
+    assert f"9000000009/{result.id}" in result.s3_file_key
     assert result.sub_folder == f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}"
 
 
@@ -872,7 +873,7 @@ def test_s3_file_key_for_lg(mock_service, mocker):
     )
 
     assert "user_upload/9000000009" in result.s3_upload_key
-    assert (f"9000000009/{result.id}" in result.s3_file_key)
+    assert f"9000000009/{result.id}" in result.s3_file_key
     assert result.sub_folder == "user_upload"
 
 

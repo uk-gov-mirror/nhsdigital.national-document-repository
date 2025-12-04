@@ -68,11 +68,10 @@ In order to execute the E2E tests without mTLS (i.e. `make test-api-e2e`) you wi
 
 | Environment Variable | Description                                                                                                                       |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `NDR_API_KEY`        | The API key required to authenticate requests to the NDR API. API Gateway → API Keys for associated env e.g. ndr-dev_apim-api-key |
-| `NDR_API_ENDPOINT`   | The URI string used to connect to the NDR API.                                                                                    |
-| `NDR_S3_BUCKET`      | The name of the Store e.g. ndr-dev-lloyd-george-store.                                                                            |
-| `NDR_DYNAMO_STORE`   | The name of the Reference Data Store e.g. ndr-dev_LloydGeorgeReferenceMetadata.                                                   |
-| `MOCK_CIS2_KEY`      | The value of the Mock CIS2 Key. Found in Parameter Store: /auth/password/MOCK_KEY                                                 |
+| `NDR_API_KEY`          | The API key required to authenticate requests to the NDR API. API Gateway → API Keys for associated env e.g. ndr-dev_apim-api-key |
+| `NDR_API_ENDPOINT`     | The URI string used to connect to the NDR API.                                                                                    |
+| `AWS_WORKSPACE`      | The workspace that is being tested.                                                                                               |
+| `MOCK_CIS2_KEY`        | The value of the Mock CIS2 Key. Found in Parameter Store: /auth/password/MOCK_KEY                                                 |
 
 After updating your shell config, reload it:
 

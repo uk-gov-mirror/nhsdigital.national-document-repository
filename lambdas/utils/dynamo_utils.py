@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 import inflection
 from enums.dynamo_filter import AttributeOperator
+from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from utils.audit_logging_setup import LoggingService
@@ -158,16 +159,21 @@ def parse_dynamo_record(dynamodb_record: Dict[str, Any]) -> Dict[str, Any]:
 
 class DocTypeTableRouter:
     def __init__(self):
-        self.lg_dynamo_table = os.getenv("LLOYD_GEORGE_DYNAMODB_NAME")
-        self.pdm_dynamo_table = os.getenv("PDM_DYNAMODB_NAME")
+        self._define_tables()
         self.mapping = {
             SnomedCodes.LLOYD_GEORGE.value.code: self.lg_dynamo_table,
-            SnomedCodes.PATIENT_DATA.value.code: self.pdm_dynamo_table,
+            SnomedCodes.PATIENT_DATA.value.code: self.core_dynamo_table,
         }
+
+    def _define_tables(self):
+        self.lg_dynamo_table = DynamoTables.LLOYD_GEORGE
+        self.pdm_dynamo_table = DynamoTables.PDM
+        self.core_dynamo_table = DynamoTables.CORE
 
     def resolve(self, doc_type: SnomedCode) -> str:
         try:
-            return self.mapping[doc_type.code]
+            table = self.mapping[doc_type.code]
+            return str(table)
         except KeyError:
             logger.error(
                 f"SNOMED code {doc_type.code} - {doc_type.display_name} is not supported"

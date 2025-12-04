@@ -3,27 +3,25 @@ set -euo pipefail
 
 # Check for required argument
 if [[ "$#" -ne 1 ]]; then
-    echo "Usage: $0 <WORKSPACE>"
-    exit 1
+  echo "Usage: $0 <WORKSPACE>"
+  exit 1
 fi
 
 WORKSPACE="$1"
 
 # Set domain
 if [[ "$WORKSPACE" = "ndr-test" || "$WORKSPACE" = "pre-prod" ]]; then
-    DOMAIN="national-document-repository.nhs.uk"
+  DOMAIN="national-document-repository.nhs.uk"
 else
-    DOMAIN="access-request-fulfilment.patient-deductions.nhs.uk"
+  DOMAIN="access-request-fulfilment.patient-deductions.nhs.uk"
 fi
 
 # Set environment variables
-export PDM_METADATA_TABLE="${WORKSPACE}_PDMDocumentMetadata"
-export PDM_S3_BUCKET="${WORKSPACE}-pdm-document-store"
+export AWS_WORKSPACE="${WORKSPACE}"
 export MTLS_ENDPOINT="mtls.${WORKSPACE}.${DOMAIN}"
 
 # Ensure Client certificates in place
-if ! make download-api-certs WORKSPACE="${WORKSPACE}"
-then
+if ! make download-api-certs WORKSPACE="${WORKSPACE}"; then
   echo "Execution of 'make download-api-certs WORKSPACE=${WORKSPACE}' failed, exiting"
   exit 1
 fi

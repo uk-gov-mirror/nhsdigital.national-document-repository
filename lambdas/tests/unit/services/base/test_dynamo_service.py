@@ -2,7 +2,7 @@ import copy
 from unittest.mock import call
 
 import pytest
-from boto3.dynamodb.conditions import Attr, Key
+from boto3.dynamodb.conditions import Attr, Equals, Key, And
 from botocore.exceptions import ClientError
 from enums.dynamo_filter import AttributeOperator
 from enums.metadata_field_names import DocumentReferenceMetadataFields
@@ -1109,3 +1109,67 @@ def test_build_update_transaction_item_empty_condition_fields(mock_service):
     assert update_item["ConditionExpression"] == ""
     assert update_item["TableName"] == table_name
     assert update_item["Key"] == document_key
+
+
+@pytest.mark.parametrize(
+    ["search_key", "search_condition", "expected"],
+    [
+        ("pk", "foobar", [{"name": "pk", "value": "foobar"}]),
+        (
+            ["pk", "sk"],
+            ["foobar", "barfoo"],
+            [{"name": "pk", "value": "foobar"}, {"name": "sk", "value": "barfoo"}],
+        ),
+        (
+            ["gsi_pk", "gsi_sk"],
+            ["gsi_foo", "gsi_bar"],
+            [
+                {"name": "gsi_pk", "value": "gsi_foo"},
+                {"name": "gsi_sk", "value": "gsi_bar"},
+            ],
+        ),
+    ],
+)
+def test_build_key_condition(mock_service, search_key, search_condition, expected):
+    key_condition = mock_service.build_key_condition(
+        search_key=search_key, search_condition=search_condition
+    )
+    if isinstance(key_condition, Equals):
+        attr_key, attr_value = key_condition._values
+
+        assert attr_key.name == expected[0]["name"]
+        assert attr_value == expected[0]["value"]
+    else:
+        assert isinstance(key_condition, And)
+        for idx, c in enumerate(key_condition._values):
+            assert isinstance(c, Equals)
+            assert c._values[0].name == expected[idx]["name"]
+            assert c._values[1] == expected[idx]["value"]
+
+
+@pytest.mark.parametrize(
+    ["search_key", "search_condition"],
+    [
+        (["pk", "sk"], "foobar"),
+        (
+            "pk",
+            ["foobar", "barfoo"],
+        ),
+        (
+            ["pk", "sk"],
+            ["foo", "bar", "foobar"],
+        ),
+        (
+            ["pk", "sk"],
+            ["foo"],
+        ),
+    ],
+)
+def test_build_key_condition_non_matching_list_lengths(
+    mock_service, search_key, search_condition
+):
+
+    with pytest.raises(DynamoServiceException):
+        mock_service.build_key_condition(
+            search_key=search_key, search_condition=search_condition
+        )

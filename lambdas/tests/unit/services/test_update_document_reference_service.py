@@ -307,4 +307,3 @@ def test_fail_early_if_there_is_no_document_reference_to_update(
 
     mock_process_fhir_document_reference.assert_not_called()
     mock_getting_patient_info_from_pds.assert_not_called()
-

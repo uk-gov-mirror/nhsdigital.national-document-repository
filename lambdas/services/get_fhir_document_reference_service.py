@@ -1,4 +1,5 @@
 import base64
+from operator import index
 import os
 
 from enums.file_size import FileSize
@@ -33,7 +34,12 @@ class GetFhirDocumentReferenceService:
     def handle_get_document_reference_request(self, snomed_code, document_id):
         doc_type = SnomedCodes.find_by_code(snomed_code)
         dynamo_table = self._get_dynamo_table_for_doc_type(doc_type)
-        document_reference = self.get_document_references(document_id, dynamo_table)
+        if doc_type != SnomedCodes.PATIENT_DATA.value:
+            document_reference = self.get_document_references(document_id, dynamo_table)
+        else:
+            document_reference = self.get_core_document_references(
+                document_id=document_id, snomed_code=snomed_code, table=dynamo_table
+            )
 
         return document_reference
 
@@ -47,10 +53,35 @@ class GetFhirDocumentReferenceService:
             raise GetFhirDocumentReferenceException(400, LambdaError.DocTypeInvalid)
 
     def get_document_references(self, document_id: str, table) -> DocumentReference:
+        return self.fetch_documents(
+            search_key="ID", search_condition=document_id, table=table
+        )
+
+    def get_core_document_references(
+        self, document_id: str, snomed_code: str, table
+    ) -> DocumentReference:
+        index_name = "idx_gsi_snomed_code"
+        search_key = ["DocumentSnomedCodeType", "ID"]
+        search_condition = [snomed_code, document_id]
+        return self.fetch_documents(
+            search_key=search_key,
+            search_condition=search_condition,
+            index_name=index_name,
+            table=table,
+        )
+
+    def fetch_documents(
+        self,
+        search_key: str | list[str],
+        search_condition: str | list[str],
+        table,
+        index_name: str | None = None,
+    ) -> DocumentReference:
         documents = self.document_service.fetch_documents_from_table(
             table_name=table,
-            search_condition=document_id,
-            search_key="ID",
+            search_condition=search_condition,
+            search_key=search_key,
+            index_name=index_name,
             query_filter=CurrentStatusFile,
         )
         if len(documents) > 0:

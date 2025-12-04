@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from botocore.exceptions import ClientError
+from enums.infrastructure import DynamoTables
 from enums.virus_scan_result import VirusScanResult
 from lambdas.enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
@@ -13,6 +14,7 @@ from tests.unit.conftest import (
     MOCK_STAGING_STORE_BUCKET,
     MOCK_PDM_TABLE_NAME,
     MOCK_PDM_BUCKET,
+    WORKSPACE,
 )
 from utils.common_query_filters import (
     FinalOrPreliminaryAndNotSuperseded,
@@ -159,17 +161,20 @@ def test_fetch_preliminary_document_reference_success(
 ):
     """Test successful document reference fetching"""
     document_key = "test-doc-id"
+    nhs_number = "12345"
     pdm_service.document_service.fetch_documents_from_table.return_value = [
         mock_pdm_document_reference
     ]
 
-    result = pdm_service._fetch_preliminary_document_reference(document_key)
+    result = pdm_service._fetch_preliminary_document_reference(
+        document_key=document_key, nhs_number=nhs_number
+    )
 
     assert result == mock_pdm_document_reference
     pdm_service.document_service.fetch_documents_from_table.assert_called_once_with(
         table_name=MOCK_PDM_TABLE_NAME,
-        search_condition=document_key,
-        search_key="ID",
+        search_condition=[nhs_number, document_key],
+        search_key=["NhsNumber", "ID"],
         query_filter=PreliminaryStatus,
     )
 
@@ -177,11 +182,24 @@ def test_fetch_preliminary_document_reference_success(
 def test_fetch_preliminary_document_reference_no_documents_found(pdm_service):
     """Test handling when no documents are found"""
     document_key = "test-doc-id"
+    nhs_number = "12345"
     pdm_service.document_service.fetch_documents_from_table.return_value = []
 
-    result = pdm_service._fetch_preliminary_document_reference(document_key)
+    result = pdm_service._fetch_preliminary_document_reference(
+        document_key=document_key, nhs_number=nhs_number
+    )
 
     assert result is None
+
+
+def test_fetch_preliminary_document_reference_no_nhs_number(pdm_service):
+    """Test handling when no documents are found"""
+    document_key = "test-doc-id"
+    nhs_number = None
+    with pytest.raises(FileProcessingException):
+        pdm_service._fetch_preliminary_document_reference(
+            document_key=document_key, nhs_number=nhs_number
+        )
 
 
 def test_fetch_preliminary_document_reference_multiple_documents_warning(
@@ -189,13 +207,16 @@ def test_fetch_preliminary_document_reference_multiple_documents_warning(
 ):
     """Test handling when multiple documents are found"""
     document_key = "test-doc-id"
+    nhs_number = "12345"
     mock_doc_2 = Mock(spec=DocumentReference)
     pdm_service.document_service.fetch_documents_from_table.return_value = [
         mock_document_reference,
         mock_doc_2,
     ]
 
-    result = pdm_service._fetch_preliminary_document_reference(document_key)
+    result = pdm_service._fetch_preliminary_document_reference(
+        document_key=document_key, nhs_number=nhs_number
+    )
 
     assert result == mock_document_reference
 
@@ -203,19 +224,22 @@ def test_fetch_preliminary_document_reference_multiple_documents_warning(
 def test_fetch_preliminary_document_reference_exception(pdm_service):
     """Test handling of exceptions during document fetching"""
     document_key = "test-doc-id"
+    nhs_number = "12345"
     pdm_service.document_service.fetch_documents_from_table.side_effect = (
         ClientError({"error": "test error message"}, "test"),
     )
 
     with pytest.raises(DocumentServiceException):
-        pdm_service._fetch_preliminary_document_reference(document_key)
+        pdm_service._fetch_preliminary_document_reference(
+            document_key=document_key, nhs_number=nhs_number
+        )
 
 
 def test__process_preliminary_document_reference_clean_virus_scan(
     pdm_service, mock_pdm_document_reference, mocker
 ):
     """Test processing document reference with a clean virus scan"""
-    object_key = "staging/test-doc-id"
+    object_key = "12345/test-doc-id"
 
     mocker.patch.object(
         pdm_service, "_perform_virus_scan", return_value=VirusScanResult.CLEAN
@@ -412,6 +436,7 @@ def test_update_dynamo_table_clean_scan_result(
 
     pdm_service.document_service.update_document.assert_called_once_with(
         table_name=MOCK_PDM_TABLE_NAME,
+        update_key={"NhsNumber": "9000000001", "ID": "test-doc-id"},
         document=mock_pdm_document_reference,
         update_fields_name={
             "virus_scanner_result",
@@ -490,7 +515,7 @@ def test_get_infrastructure_for_document_key_pdm(service):
     service._get_infrastructure_for_document_key(
         object_parts=["fhir_upload", SnomedCodes.PATIENT_DATA.value.code, "1234"]
     )
-    assert service.table_name == MOCK_PDM_TABLE_NAME
+    assert service.table_name == str(DynamoTables.CORE)
     assert service.destination_bucket_name == MOCK_PDM_BUCKET
 
 
@@ -549,7 +574,7 @@ def test_get_infra_invalid_doc_type(monkeypatch, service):
         ),
         (
             f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/staging/test-doc-123",
-            MOCK_PDM_TABLE_NAME,
+            "dev_COREDocumentMetadata",
             MOCK_PDM_BUCKET,
             SnomedCodes.PATIENT_DATA.value,
         ),
@@ -561,14 +586,18 @@ def test_get_infra_invalid_doc_type(monkeypatch, service):
         ),
         (
             f"fhir_upload/{SnomedCodes.LLOYD_GEORGE.value.code}/staging/test-doc-123",
-            MOCK_LG_TABLE_NAME,
+            "dev_LloydGeorgeReferenceMetadata",
             MOCK_LG_BUCKET,
             SnomedCodes.LLOYD_GEORGE.value,
         ),
     ],
 )
 def test_document_type_extraction_from_object_key(
-    service, object_key, expected_table, expected_s3_bucket, expected_doctype
+    service,
+    object_key,
+    expected_table,
+    expected_s3_bucket,
+    expected_doctype,
 ):
     """Test extraction of a document key from various object key formats"""
     service.handle_upload_document_reference_request(object_key)

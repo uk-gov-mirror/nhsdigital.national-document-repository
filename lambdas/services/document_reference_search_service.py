@@ -4,6 +4,7 @@ from json import JSONDecodeError
 
 from botocore.exceptions import ClientError
 from enums.dynamo_filter import AttributeOperator
+from enums.infrastructure import DynamoTables, MAP_MTLS_TO_DYNAMO
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.mtls import MtlsCommonNames
@@ -76,7 +77,8 @@ class DocumentReferenceSearchService(DocumentService):
 
         if not common_name or common_name not in MtlsCommonNames:
             return table_list
-        return [t for t in table_list if common_name.value.lower() in t.lower()]
+
+        return [str(MAP_MTLS_TO_DYNAMO[common_name])]
 
     def _search_tables_for_documents(
         self,
@@ -94,9 +96,17 @@ class DocumentReferenceSearchService(DocumentService):
                 filters, upload_completed=check_upload_completed
             )
 
-            documents = self.fetch_documents_from_table_with_nhs_number(
-                nhs_number, table_name, query_filter=filter_expression
-            )
+            if "coredocumentmetadata" not in table_name.lower():
+                documents = self.fetch_documents_from_table_with_nhs_number(
+                    nhs_number, table_name, query_filter=filter_expression
+                )
+            else:
+                documents = self.fetch_documents_from_table(
+                    search_condition=nhs_number,
+                    search_key="NhsNumber",
+                    table_name=table_name,
+                    query_filter=filter_expression,
+                )
 
             if check_upload_completed:
                 self._validate_upload_status(documents)

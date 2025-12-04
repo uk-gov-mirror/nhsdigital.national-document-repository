@@ -4,6 +4,7 @@ import json
 from io import BytesIO
 
 import pytest
+from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes, SnomedCode
 from services.get_fhir_document_reference_service import GetFhirDocumentReferenceService
@@ -71,7 +72,7 @@ def test_get_dynamo_table_for_lloyd_george_doc_type(patched_service):
 
     result = patched_service._get_dynamo_table_for_doc_type(lg_code)
 
-    assert result == MOCK_LG_TABLE_NAME
+    assert result == str(DynamoTables.LLOYD_GEORGE)
 
 
 def test_get_presigned_url(patched_service, mocker):

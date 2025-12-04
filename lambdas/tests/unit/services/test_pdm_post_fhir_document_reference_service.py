@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCode, SnomedCodes
@@ -222,7 +223,7 @@ def test_get_dynamo_table_for_patient_data_doc_type(mock_service):
     patient_data_code = SnomedCodes.PATIENT_DATA.value
 
     result = mock_service._get_dynamo_table_for_doc_type(patient_data_code)
-    assert result == MOCK_PDM_TABLE_NAME
+    assert result == str(DynamoTables.CORE)
 
 
 def test_get_dynamo_table_for_unsupported_doc_type(mock_service):
@@ -243,7 +244,7 @@ def test_get_dynamo_table_for_lloyd_george_doc_type(mock_service):
 
     result = mock_service._get_dynamo_table_for_doc_type(lg_code)
 
-    assert result == MOCK_LG_TABLE_NAME
+    assert result == str(DynamoTables.LLOYD_GEORGE)
 
 
 def test_process_mtls_fhir_document_reference_with_binary(

@@ -12,17 +12,26 @@ from services.base.s3_service import S3Service
 class DataHelper:
     def __init__(
         self,
-        dynamo_table_env: str,
-        s3_bucket_env: str,
+        table_name: str,
+        bucket_name: str,
         snomed_code: str,
         record_type: str,
     ):
-        self.dynamo_table = os.environ.get(dynamo_table_env) or ""
-        self.s3_bucket = os.environ.get(s3_bucket_env) or ""
+        self.workspace = os.environ.get("AWS_WORKSPACE", "")
+        self.dynamo_table = None
+        self.s3_bucket = None
         self.snomed_code = snomed_code
         self.record_type = record_type
         self.dynamo_service = DynamoDBService()
         self.s3_service = S3Service()
+
+        self.build_env(table_name, bucket_name)
+
+    def build_env(self, table_name, bucket_name):
+        if not self.workspace:
+            raise ValueError("WORKSPACE environment variable is missing or empty.")
+        self.dynamo_table = f"{self.workspace}_{table_name}"
+        self.s3_bucket = f"{self.workspace}-{bucket_name}"
 
     def build_record(
         self, nhs_number="9912003071", data=None, doc_status=None, size=None
@@ -137,18 +146,34 @@ class DataHelper:
 class PdmDataHelper(DataHelper):
     def __init__(self):
         super().__init__(
-            "PDM_METADATA_TABLE",
-            "PDM_S3_BUCKET",
+            "COREDocumentMetadata",
+            "pdm-document-store",
             SnomedCodes.PATIENT_DATA.value.code,
             "pdm_record",
+        )
+
+    def retrieve_document_reference(self, record):
+        return self.dynamo_service.get_item(
+            table_name=self.dynamo_table,
+            key={"NhsNumber": record["nhs_number"], "ID": record["id"]},
+        )
+
+    def tidyup(self, record):
+        self.dynamo_service.delete_item(
+            table_name=self.dynamo_table,
+            key={"NhsNumber": record["nhs_number"], "ID": record["id"]},
+        )
+        self.s3_service.delete_object(
+            self.s3_bucket,
+            f"{record['nhs_number']}/{record['id']}",
         )
 
 
 class LloydGeorgeDataHelper(DataHelper):
     def __init__(self):
         super().__init__(
-            "NDR_DYNAMO_STORE",
-            "NDR_S3_BUCKET",
+            "LloydGeorgeReferenceMetadata",
+            "lloyd-george-store",
             SnomedCodes.LLOYD_GEORGE.value.code,
             "Lloyd_George_Record",
         )

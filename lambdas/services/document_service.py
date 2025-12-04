@@ -76,8 +76,8 @@ class DocumentService:
 
     def fetch_documents_from_table(
         self,
-        search_condition: str,
-        search_key: str,
+        search_condition: str | list[str],
+        search_key: str | list[str],
         index_name: str | None = None,
         query_filter: Attr | ConditionBase = None,
         table_name: str | None = None,
@@ -208,15 +208,18 @@ class DocumentService:
     def update_document(
         self,
         table_name: str | None = None,
+        update_key: dict[str, str] | None = None,
         document: BaseModel = None,
         update_fields_name: set[str] | None = None,
     ):
         """Update document in specified or configured table."""
         table_name = table_name or self.table_name
+        if not update_key:
+            update_key = {DocumentReferenceMetadataFields.ID.value: document.id}
 
         self.dynamo_service.update_item(
             table_name=table_name,
-            key_pair={DocumentReferenceMetadataFields.ID.value: document.id},
+            key_pair=update_key,
             updated_fields=document.model_dump(
                 exclude_none=True, by_alias=True, include=update_fields_name
             ),

@@ -1,7 +1,9 @@
 import time
 from typing import Optional, Sequence
+from functools import reduce
 
 import boto3
+import operator
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
 from botocore.exceptions import ClientError
 from utils.audit_logging_setup import LoggingService
@@ -36,11 +38,31 @@ class DynamoDBService:
             logger.error(str(e), {"Result": "Unable to connect to DB"})
             raise e
 
+    def build_key_condition(
+        self, search_key: str | list[str], search_condition: str | list[str]
+    ):
+        if isinstance(search_key, str) and isinstance(search_condition, str):
+            return Key(search_key).eq(search_condition)
+
+        if isinstance(search_key, list) and isinstance(search_condition, list):
+            if len(search_key) != len(search_condition):
+                logger.error(
+                    "search_key and search_condition lists must be the same length"
+                )
+                raise DynamoServiceException("search condition lengths do not match.")
+
+            conditions = [Key(k).eq(v) for k, v in zip(search_key, search_condition)]
+
+            return reduce(operator.and_, conditions)
+
+        logger.error(f"Unusable key conditions for DynamoDB: {search_key}")
+        raise DynamoServiceException("Incorrect key conditions for DynamoDB")
+
     def query_table_single(
         self,
         table_name: str,
-        search_key: str,
-        search_condition: str,
+        search_key: str | list[str],
+        search_condition: str | list[str],
         index_name: str | None = None,
         requested_fields: list[str] | None = None,
         query_filter: Attr | ConditionBase | None = None,
@@ -66,9 +88,10 @@ class DynamoDBService:
         try:
             table = self.get_table(table_name)
 
-            query_params: dict = {
-                "KeyConditionExpression": Key(search_key).eq(search_condition),
-            }
+            expr = self.build_key_condition(
+                search_key=search_key, search_condition=search_condition
+            )
+            query_params: dict = {"KeyConditionExpression": expr}
 
             if index_name:
                 query_params["IndexName"] = index_name
@@ -94,8 +117,8 @@ class DynamoDBService:
     def query_table(
         self,
         table_name: str,
-        search_key: str,
-        search_condition: str,
+        search_key: str | list[str],
+        search_condition: str | list[str],
         index_name: str | None = None,
         requested_fields: list[str] | None = None,
         query_filter: Attr | ConditionBase | None = None,

@@ -237,7 +237,11 @@ def test_update_document(mock_service, mock_dynamo_service):
         updated_fields={"DocStatus": "final"},
     )
 
-    mock_service.update_document(MOCK_TABLE_NAME, test_doc_ref, test_update_fields)
+    mock_service.update_document(
+        table_name=MOCK_TABLE_NAME,
+        document=test_doc_ref,
+        update_fields_name=test_update_fields,
+    )
 
     mock_dynamo_service.update_item.assert_has_calls([update_item_call])
 
@@ -430,7 +434,12 @@ def test_get_batch_document_references_by_id_client_error(
     ],
 )
 def test_get_item_success(
-    mock_service, mock_dynamo_service, document_id, table_name, file_name, expected_table
+    mock_service,
+    mock_dynamo_service,
+    document_id,
+    table_name,
+    file_name,
+    expected_table,
 ):
     """Test successful retrieval of a document with default or custom table."""
     mock_dynamo_response = {
@@ -490,11 +499,21 @@ def test_get_item_returns_none(
     "document_id,table_name,file_name,expected_table",
     [
         ("review-doc-id", None, "test.pdf", MOCK_LG_TABLE_NAME),
-        ("custom-review-doc", "custom-review-table", "custom.pdf", "custom-review-table"),
+        (
+            "custom-review-doc",
+            "custom-review-table",
+            "custom.pdf",
+            "custom-review-table",
+        ),
     ],
 )
 def test_get_item_with_custom_model_class(
-    mock_service, mock_dynamo_service, document_id, table_name, file_name, expected_table
+    mock_service,
+    mock_dynamo_service,
+    document_id,
+    table_name,
+    file_name,
+    expected_table,
 ):
     """Test retrieval using a custom model class with default or custom table."""
 
@@ -537,5 +556,3 @@ def test_get_item_with_custom_model_class(
     assert isinstance(result, DocumentUploadReviewReference)
     assert result.id == document_id
     assert result.nhs_number == TEST_NHS_NUMBER
-
-

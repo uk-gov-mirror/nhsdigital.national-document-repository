@@ -67,7 +67,7 @@ def mock_filter_builder(mocker):
                     },
                 },
             },
-            ["test_pdm_dynamoDB_table"],
+            ["dev_COREDocumentMetadata"],
         ),
         ({}, ["test_pdm_dynamoDB_table", "test_lg_dynamoDB_table"]),
     ],
