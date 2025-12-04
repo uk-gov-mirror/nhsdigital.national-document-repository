@@ -38,11 +38,11 @@ from tests.unit.helpers.data.pds.pds_patient_response import (
     PDS_PATIENT_DECEASED_INFORMAL,
     PDS_PATIENT_RESTRICTED,
 )
+from tests.unit.helpers.data.s3_responses import MOCK_COPY_OBJECT_RESPONSE
 from tests.unit.utils.test_unicode_utils import (
     NAME_WITH_ACCENT_NFC_FORM,
     NAME_WITH_ACCENT_NFD_FORM,
 )
-from unit.helpers.data.s3_responses import MOCK_COPY_OBJECT_RESPONSE
 from utils.exceptions import (
     BulkUploadException,
     DocumentInfectedException,
@@ -418,7 +418,7 @@ def test_handle_sqs_message_calls_report_upload_failure_when_lg_file_name_invali
         TEST_STAGING_METADATA_WITH_INVALID_FILENAME,
         UploadStatus.FAILED,
         str(mocked_error),
-        "Y12345"
+        "Y12345",
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
