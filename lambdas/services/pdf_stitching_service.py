@@ -101,6 +101,7 @@ class PdfStitchingService:
                 stitch_file_size=sys.getsizeof(stitching_data_stream),
             )
             self.upload_stitched_file(stitching_data_stream=stitching_data_stream)
+            self.update_stitched_reference()
             self.migrate_multipart_references()
             self.write_stitching_reference()
             self.publish_nrl_message(
@@ -128,6 +129,12 @@ class PdfStitchingService:
             },
             deep=True,
         )
+
+    def update_stitched_reference(self):
+        self.stitched_reference.s3_version_id = self.s3_service.get_head_object(
+            self.target_bucket, 
+            self.stitched_reference.s3_file_key
+        ).get("VersionId")
 
     def process_stitching(self, s3_object_keys: list[str]) -> BytesIO:
         pdf_writer = PdfWriter()

@@ -126,7 +126,7 @@ class DocumentReference(BaseModel):
     raw_request: str | None = None
     s3_bucket_name: str = Field(exclude=True, default=None)
     s3_file_key: str = Field(default=None)
-    s3_version_id: Optional[str] = Field(default=None, exclude=True)
+    s3_version_id: Optional[str] = Field(default=None, alias="S3VersionID")
     s3_upload_key: str = Field(default=None, exclude=True)
     status: Literal["current", "superseded", "entered-in-error"] = Field(
         default="current"

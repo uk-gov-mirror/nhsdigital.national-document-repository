@@ -229,6 +229,7 @@ class UploadDocumentReferenceService:
                     "file_size",
                     "uploaded",
                     "uploading",
+                    "s3_version_id",
                 },
             )
 
