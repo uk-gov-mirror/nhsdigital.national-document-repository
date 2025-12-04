@@ -848,6 +848,9 @@ def test_create_lg_records_and_copy_files(set_env, mocker, mock_uuid, repo_under
     repo_under_test.convert_to_document_reference = mocker.MagicMock(
         return_value=test_document_reference
     )
+    repo_under_test.bulk_upload_s3_repository.copy_to_lg_bucket = mocker.MagicMock(
+        return_value=MOCK_COPY_OBJECT_RESPONSE
+    )
     TEST_STAGING_METADATA.retries = 0
     repo_under_test.resolve_source_file_path(TEST_STAGING_METADATA)
 
@@ -865,6 +868,10 @@ def test_create_lg_records_and_copy_files(set_env, mocker, mock_uuid, repo_under
             dest_file_key=expected_dest_file_key,
         )
         assert test_document_reference.uploaded.__eq__(True)
+        assert (
+            test_document_reference.s3_version_id
+            == MOCK_COPY_OBJECT_RESPONSE["VersionId"]
+        )
     assert repo_under_test.bulk_upload_s3_repository.copy_to_lg_bucket.call_count == 3
     repo_under_test.dynamo_repository.create_record_in_lg_dynamo_table.assert_any_call(
         test_document_reference
