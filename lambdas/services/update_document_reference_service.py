@@ -44,7 +44,7 @@ class UpdateDocumentReferenceService:
     ):
         # check if doc_ref_id exists and fail early
         existing_doc = self.document_service.fetch_documents_from_table(
-            table=SupportedDocumentTypes.LG.get_dynamodb_table_name(),
+            table_name=SupportedDocumentTypes.LG.get_dynamodb_table_name(),
             search_condition=doc_ref_id,
             search_key="ID",
             query_filter=CurrentStatusFile,
