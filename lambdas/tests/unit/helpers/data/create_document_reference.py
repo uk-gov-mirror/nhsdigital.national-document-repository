@@ -29,19 +29,19 @@ MOCK_EVENT_BODY = {
                 {
                     "fileName": f"1of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
                     "contentType": "application/pdf",
-                    "docType": "LG",
+                    "docType": "16521000000101",
                     "clientId": "uuid4",
                 },
                 {
                     "fileName": f"2of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
                     "contentType": "application/pdf",
-                    "docType": "LG",
+                    "docType": "16521000000101",
                     "clientId": "uuid5",
                 },
                 {
                     "fileName": f"3of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
                     "contentType": "application/pdf",
-                    "docType": "LG",
+                    "docType": "16521000000101",
                     "clientId": "uuid6",
                 },
             ]
@@ -53,21 +53,21 @@ LG_FILE_LIST = [
     {
         "fileName": f"1of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
         "contentType": "application/pdf",
-        "docType": "LG",
+        "docType": "16521000000101",
         "clientId": "uuid1",
         "versionId": "1"
     },
     {
         "fileName": f"2of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
         "contentType": "application/pdf",
-        "docType": "LG",
+        "docType": "16521000000101",
         "clientId": "uuid2",
         "versionId": "2"
     },
     {
         "fileName": f"3of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
         "contentType": "application/pdf",
-        "docType": "LG",
+        "docType": "16521000000101",
         "clientId": "uuid3",
         "versionId": "3"
     },
@@ -76,7 +76,7 @@ LG_FILE_LIST = [
 LG_FILE = {
     "fileName": f"1of1_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
     "contentType": "application/pdf",
-    "docType": "LG",
+    "docType": "16521000000101",
     "clientId": "uuid1",
     "versionId": "1"
 }
@@ -85,7 +85,7 @@ PARSED_LG_FILE_LIST = [
     UploadRequestDocument(
         file_name=f"{i}of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
         content_type="application/pdf",
-        doc_type="LG",
+        doc_type="16521000000101",
         client_id=f"uuid{i}",
         version_id=f"{i}"
     )
@@ -115,7 +115,7 @@ LG_MOCK_BAD_FILE_TYPE_EVENT_BODY = {
                 {
                     "fileName": f"1of1_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
                     "contentType": "text/plain",
-                    "docType": "LG",
+                    "docType": "16521000000101",
                     "clientId": "uuid1",
                 }
             ]
@@ -134,7 +134,7 @@ LG_MOCK_BAD_FILE_NAME_EVENT_BODY = {
                 {
                     "fileName": f"1of1_BAD_NAME_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
                     "contentType": "application/pdf",
-                    "docType": "LG",
+                    "docType": "16521000000101",
                     "clientId": "uuid1",
                 }
             ]
@@ -153,7 +153,7 @@ LG_MOCK_MISSING_FILES_EVENT_BODY = {
                 {
                     "fileName": f"1of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
                     "contentType": "application/pdf",
-                    "docType": "LG",
+                    "docType": "16521000000101",
                     "clientId": "uuid1",
                 }
             ]
@@ -172,13 +172,13 @@ LG_MOCK_DUPLICATE_FILES_EVENT_BODY = {
                 {
                     "fileName": f"1of2_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
                     "contentType": "application/pdf",
-                    "docType": "LG",
+                    "docType": "16521000000101",
                     "clientId": "uuid1",
                 },
                 {
                     "fileName": f"1of2_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
                     "contentType": "application/pdf",
-                    "docType": "LG",
+                    "docType": "16521000000101",
                     "clientId": "uuid2",
                 },
             ]

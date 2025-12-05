@@ -1,0 +1,11 @@
+.document-search-results {
+    #available-files-table-title {
+        .table-column-header, .nhsuk-table-responsive__heading {
+            word-break: keep-all;
+        }
+
+        .filename-value {
+            word-break: break-word;
+        }
+    }
+}

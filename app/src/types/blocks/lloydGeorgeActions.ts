@@ -5,6 +5,7 @@ import { LG_RECORD_STAGE } from './lloydGeorgeStages';
 export enum RECORD_ACTION {
     UPDATE = 0,
     DOWNLOAD = 1,
+    DELETE = 2,
 }
 
 type ActionRoute = routeChildren | routes;
@@ -23,7 +24,7 @@ export type LGRecordActionLink = {
 export const lloydGeorgeRecordLinks: Array<LGRecordActionLink> = [
     {
         label: 'Remove record',
-        key: 'delete-all-files-link',
+        key: 'delete-files-link',
         type: RECORD_ACTION.UPDATE,
         unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
         href: routeChildren.LLOYD_GEORGE_DELETE,
@@ -31,7 +32,7 @@ export const lloydGeorgeRecordLinks: Array<LGRecordActionLink> = [
     },
     {
         label: 'Download record',
-        key: 'download-all-files-link',
+        key: 'download-files-link',
         type: RECORD_ACTION.DOWNLOAD,
         unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
         href: routeChildren.LLOYD_GEORGE_DOWNLOAD,

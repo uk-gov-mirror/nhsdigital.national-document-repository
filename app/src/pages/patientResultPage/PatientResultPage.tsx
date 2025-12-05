@@ -10,6 +10,7 @@ import useRole from '../../helpers/hooks/useRole';
 import usePatient from '../../helpers/hooks/usePatient';
 import useTitle from '../../helpers/hooks/useTitle';
 import PatientSummary from '../../components/generic/patientSummary/PatientSummary';
+import useConfig from '../../helpers/hooks/useConfig';
 
 const PatientResultPage = (): React.JSX.Element => {
     const role = useRole();
@@ -18,11 +19,12 @@ const PatientResultPage = (): React.JSX.Element => {
     const navigate = useNavigate();
     const [inputError, setInputError] = useState('');
     const { handleSubmit } = useForm();
+    const { featureFlags } = useConfig();
 
     const submit = (): void => {
         if (userIsPCSE) {
             // Make PDS and Dynamo document store search request to download documents from patient
-            navigate(routes.ARF_OVERVIEW);
+            navigate(routes.PATIENT_DOCUMENTS);
         } else {
             // Make PDS patient search request to upload documents to patient
             if (typeof patientDetails?.active === 'undefined') {
@@ -36,13 +38,18 @@ const PatientResultPage = (): React.JSX.Element => {
             }
 
             if (patientDetails?.active) {
-                navigate(routes.LLOYD_GEORGE);
+                navigate(
+                    featureFlags.uploadDocumentIteration3Enabled
+                        ? routes.PATIENT_DOCUMENTS
+                        : routes.LLOYD_GEORGE,
+                );
                 return;
             }
 
             navigate(routes.SEARCH_PATIENT);
         }
     };
+
     const showDeceasedWarning = patientDetails?.deceased && !userIsPCSE;
     const showWarning =
         patientDetails?.superseded || patientDetails?.restricted || showDeceasedWarning;

@@ -1,5 +1,4 @@
 import {
-    DOCUMENT_TYPE,
     DOCUMENT_UPLOAD_STATE,
     UploadDocument,
     DOCUMENT_UPLOAD_STATE as documentUploadStates,
@@ -19,6 +18,7 @@ import {
     DeceasedAccessAuditReasons,
     PatientAccessAudit,
 } from '../../types/generic/accessAudit';
+import { DOCUMENT_TYPE } from '../utils/documentType';
 
 const buildUserAuth = (userAuthOverride?: Partial<UserAuth>): UserAuth => {
     const auth: UserAuth = {
@@ -78,7 +78,7 @@ const buildDocument = (
         state: uploadStatus ?? documentUploadStates.SUCCEEDED,
         progress: 0,
         id: uuidv4(),
-        docType: docType ?? DOCUMENT_TYPE.ARF,
+        docType: docType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
         attempts: 0,
         versionId: '1',
     };
@@ -114,6 +114,8 @@ const buildSearchResult = (searchResultOverride?: Partial<SearchResult>): Search
         id: '1234qwer-241ewewr',
         fileSize: 224,
         version: '1',
+        documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+        contentType: 'application/pdf',
         ...searchResultOverride,
     };
     return result;

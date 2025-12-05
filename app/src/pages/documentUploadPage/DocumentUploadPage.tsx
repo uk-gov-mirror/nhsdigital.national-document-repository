@@ -32,14 +32,9 @@ import {
     useEnhancedNavigate,
 } from '../../helpers/utils/urlManipulations';
 import { routeChildren, routes } from '../../types/generic/routes';
-import {
-    DocumentStatusResult,
-    S3UploadFields,
-    UploadSession,
-} from '../../types/generic/uploadResult';
+import { DocumentStatusResult, UploadSession } from '../../types/generic/uploadResult';
 import {
     DOCUMENT_STATUS,
-    DOCUMENT_TYPE,
     DOCUMENT_UPLOAD_STATE,
     UploadDocument,
 } from '../../types/pages/UploadDocumentsPage/types';
@@ -47,6 +42,7 @@ import documentTypesConfig from '../../config/documentTypesConfig.json';
 import { Card } from 'nhsuk-react-components';
 import { ReactComponent as RightCircleIcon } from '../../styles/right-chevron-circle.svg';
 import PatientSummary from '../../components/generic/patientSummary/PatientSummary';
+import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
 
 type LocationState = {
     journey?: JourneyType;
@@ -208,11 +204,8 @@ const DocumentUploadPage = (): React.JSX.Element => {
         const session: UploadSession = {};
         documents.forEach((doc) => {
             session[doc.id] = {
-                url: 'https://example.com',
-                fields: {
-                    key: `https://example.com/${uuidv4()}`,
-                } as S3UploadFields,
-            };
+                url: 'https://dusafgdswgfew4-staging-bulk-store.s3.eu-west-2.amazonaws.com/user_upload/9730153817/91b73c0f-b5b0-49f1-acbe-b0a5752dc3df?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAXYSUA44V5SE2IC6U%2F20251028%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20251028T162320Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Security-Token=FwoGZXIvYXdzEBoaDCqX56UT2MdBQk7ztCLIAWXO7781OXoLLc3gJN9UQcAZlaoEhwJl5FQfKuJvn32DAPwYhbS80rb0JGIYmF8rIqj7TKbNOfaw4t%2Bq5NUO%2FEDQLxRbSpl8%2B078%2Ba9d2pY5XbPH3u6D0nW9mzNVREwg1%2Bt02HnWp9YLdREyDO4is9Fj5P3SQRh6DydzLx3in%2BZzzwVK8prxGG%2BBYRn5cQVOKcQCtAR7NMhHhTz9GeFQxU6X5YNalZdZdRJoFmdkxkpdoFeoIozs2Kg6plZhnqbWpFIrV3GvmYTDKPfbg8gGMi2c6f%2F9IJpIscXn0RfQZYA8lr02VHjBtez0LgzKcGVXYsE666uclkspOgBxpgo%3D&X-Amz-Signature=fdf6e3d7522ab4fe80156510d1318c430d4a44170fb98924cdc231117b5eafb8',
+            } as any;
         });
 
         return session;

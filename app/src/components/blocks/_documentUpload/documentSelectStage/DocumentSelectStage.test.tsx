@@ -12,9 +12,10 @@ import { PDF_PARSING_ERROR_TYPE } from '../../../../helpers/utils/fileUploadErro
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { routeChildren, routes } from '../../../../types/generic/routes';
-import { DOCUMENT_TYPE, UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
+import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
 import DocumentSelectStage, { Props } from './DocumentSelectStage';
 import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPatientFullName';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('react-router-dom', async () => {

@@ -7,13 +7,13 @@ import DocumentSelectFileErrorsPage from './DocumentSelectFileErrorsPage';
 import {
     UploadDocument,
     DOCUMENT_UPLOAD_STATE,
-    DOCUMENT_TYPE,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import {
     fileUploadErrorMessages,
     UPLOAD_FILE_ERROR_TYPE,
 } from '../../../../helpers/utils/fileUploadErrorMessages';
 import { routes } from '../../../../types/generic/routes';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 const createFailedDocument = (name: string, error: UPLOAD_FILE_ERROR_TYPE): UploadDocument => ({
     id: `${name}-id`,

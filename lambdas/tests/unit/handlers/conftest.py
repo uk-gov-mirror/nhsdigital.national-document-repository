@@ -37,7 +37,7 @@ def valid_id_post_event_with_auth_header():
 def valid_id_and_both_doctype_event():
     api_gateway_proxy_event = {
         "httpMethod": "GET",
-        "queryStringParameters": {"patientId": "9000000009", "docType": "LG,ARF"},
+        "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101,ARF"},
     }
     return api_gateway_proxy_event
 
@@ -55,7 +55,7 @@ def valid_id_and_arf_doctype_event():
 def valid_id_and_lg_doctype_event():
     api_gateway_proxy_event = {
         "httpMethod": "GET",
-        "queryStringParameters": {"patientId": "9000000009", "docType": "LG"},
+        "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101"},
     }
     return api_gateway_proxy_event
 
@@ -64,7 +64,7 @@ def valid_id_and_lg_doctype_event():
 def valid_id_and_lg_doctype_delete_event():
     api_gateway_proxy_event = {
         "httpMethod": "DELETE",
-        "queryStringParameters": {"patientId": "9000000009", "docType": "LG"},
+        "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101"},
     }
     return api_gateway_proxy_event
 
@@ -128,6 +128,24 @@ def mock_upload_document_iteration2_disabled(mocker):
     mock_function.side_effect = [
         {"uploadLambdaEnabled": True},
         {"uploadDocumentIteration2Enabled": False},
+    ]
+    yield mock_function
+
+@pytest.fixture
+def mock_upload_document_iteration3_enabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_function.side_effect = [
+        {"uploadLambdaEnabled": True},
+        {"uploadDocumentIteration3Enabled": True},
+    ]
+    yield mock_function
+
+@pytest.fixture
+def mock_upload_document_iteration3_disabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_function.side_effect = [
+        {"uploadLambdaEnabled": True},
+        {"uploadDocumentIteration3Enabled": False},
     ]
     yield mock_function
 

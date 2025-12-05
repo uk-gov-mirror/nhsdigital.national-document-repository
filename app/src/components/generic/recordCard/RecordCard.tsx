@@ -4,10 +4,11 @@ import PdfViewer from '../pdfViewer/PdfViewer';
 import { LGRecordActionLink } from '../../../types/blocks/lloydGeorgeActions';
 import { LG_RECORD_STAGE } from '../../../types/blocks/lloydGeorgeStages';
 import RecordMenuCard from '../recordMenuCard/RecordMenuCard';
+import Spinner from '../spinner/Spinner';
 
 export type Props = {
     heading: string;
-    fullScreenHandler: (clicked: true) => void;
+    fullScreenHandler: () => void;
     detailsElement: ReactNode;
     isFullScreen: boolean;
     pdfObjectUrl: string;
@@ -27,7 +28,18 @@ const RecordCard = ({
     showMenu = false,
 }: Props): React.JSX.Element => {
     const Record = (): React.JSX.Element => {
-        return pdfObjectUrl ? <PdfViewer fileUrl={pdfObjectUrl} /> : <></>;
+        switch (pdfObjectUrl) {
+            case '':
+            case null:
+            case undefined:
+                return <></>;
+
+            case 'loading':
+                return <Spinner status="Loading document..." />;
+
+            default:
+                return <PdfViewer fileUrl={pdfObjectUrl} />;
+        }
     };
 
     const RecordLayout = ({ children }: { children: ReactNode }): React.JSX.Element => {
@@ -56,9 +68,7 @@ const RecordCard = ({
                             <button
                                 className="lloydgeorge_record-stage_pdf-content-button link-button clickable full-screen"
                                 data-testid="full-screen-btn"
-                                onClick={(): void => {
-                                    fullScreenHandler(true);
-                                }}
+                                onClick={fullScreenHandler}
                             >
                                 View in full screen
                             </button>

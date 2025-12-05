@@ -32,6 +32,8 @@ EXPECTED_RESPONSE = {
     "id": "3d8683b9-1665-40d2-8499-6e8302d507ff",
     "fileSize": MOCK_FILE_SIZE,
     "version": "1",
+    "contentType": "application/pdf",
+    "documentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,
 }
 
 

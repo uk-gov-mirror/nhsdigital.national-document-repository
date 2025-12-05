@@ -3,7 +3,6 @@ import { buildLgSearchResult, buildPatientDetails } from '../../../../helpers/te
 import DeleteSubmitStage, { Props } from './DeleteSubmitStage';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import userEvent from '@testing-library/user-event';
-import { DOCUMENT_TYPE } from '../../../../types/pages/UploadDocumentsPage/types';
 import axios from 'axios';
 import useRole from '../../../../helpers/hooks/useRole';
 import { REPOSITORY_ROLE, authorisedRoles } from '../../../../types/generic/authRole';
@@ -15,6 +14,8 @@ import * as ReactRouter from 'react-router-dom';
 import waitForSeconds from '../../../../helpers/utils/waitForSeconds';
 import { afterEach, beforeEach, describe, expect, it, vi, Mock, Mocked } from 'vitest';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import useConfig from '../../../../helpers/hooks/useConfig';
 
 vi.mock('../../../../helpers/hooks/useConfig');
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
@@ -28,10 +29,10 @@ vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockedUseNavigate,
+        useNavigate: (): Mock => mockedUseNavigate,
     };
 });
-Date.now = () => new Date('2020-01-01T00:00:00.000Z').getTime();
+Date.now = (): number => new Date('2020-01-01T00:00:00.000Z').getTime();
 
 let history: MemoryHistory = createMemoryHistory({
     initialEntries: ['/'],
@@ -43,7 +44,7 @@ const mockedAxios = axios as Mocked<typeof axios>;
 const mockedUsePatient = usePatient as Mock;
 const mockResetDocState = vi.fn();
 const mockPatientDetails = buildPatientDetails();
-const mockLgSearchResult = buildLgSearchResult();
+const mockuseConfig = useConfig as Mock;
 
 const mockSetStage = vi.fn();
 
@@ -55,6 +56,11 @@ describe('DeleteSubmitStage', () => {
         });
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockedUsePatient.mockReturnValue(mockPatientDetails);
+        mockuseConfig.mockReturnValue({
+            featureFlags: {
+                uploadDocumentIteration3Enabled: false,
+            },
+        });
     });
 
     afterEach(() => {
@@ -124,7 +130,7 @@ describe('DeleteSubmitStage', () => {
             await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
             await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.ARF_OVERVIEW);
+                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.PATIENT_DOCUMENTS);
             });
         });
 
@@ -156,7 +162,7 @@ describe('DeleteSubmitStage', () => {
 
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith(
-                    routeChildren.LLOYD_GEORGE_DELETE_COMPLETE,
+                    routeChildren.DOCUMENT_DELETE_COMPLETE,
                 );
             });
         });
@@ -193,7 +199,9 @@ describe('DeleteSubmitStage', () => {
             await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
             await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(routeChildren.ARF_DELETE_COMPLETE);
+                expect(mockedUseNavigate).toHaveBeenCalledWith(
+                    routeChildren.DOCUMENT_DELETE_COMPLETE,
+                );
             });
         });
 
@@ -331,42 +339,40 @@ describe('DeleteSubmitStage', () => {
             expect(results).toHaveNoViolations();
         });
     });
-});
 
-describe('Navigation', () => {
-    it('navigates to session expire page when API call returns 403', async () => {
-        const errorResponse = {
-            response: {
-                status: 403,
-                message: 'Forbidden',
-            },
-        };
-        mockedAxios.delete.mockImplementation(() => Promise.reject(errorResponse));
-        mockedUseRole.mockReturnValue(REPOSITORY_ROLE.PCSE);
+    describe('Navigation', () => {
+        it('navigates to session expire page when API call returns 403', async () => {
+            const errorResponse = {
+                response: {
+                    status: 403,
+                    message: 'Forbidden',
+                },
+            };
+            mockedAxios.delete.mockImplementation(() => Promise.reject(errorResponse));
+            mockedUseRole.mockReturnValue(REPOSITORY_ROLE.PCSE);
 
-        renderComponent(DOCUMENT_TYPE.ALL, history);
+            renderComponent(DOCUMENT_TYPE.ALL, history);
 
-        expect(screen.getByRole('radio', { name: 'Yes' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+            expect(screen.getByRole('radio', { name: 'Yes' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
 
-        await userEvent.click(screen.getByRole('radio', { name: 'Yes' }));
-        await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+            await userEvent.click(screen.getByRole('radio', { name: 'Yes' }));
+            await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-        await waitFor(() => {
-            expect(mockedUseNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
+            });
         });
     });
 });
 
-const renderComponent = (docType: DOCUMENT_TYPE, history: MemoryHistory) => {
+const renderComponent = (docType: DOCUMENT_TYPE, history: MemoryHistory): void => {
     const props: Omit<Props, 'setStage' | 'setDownloadStage'> = {
-        numberOfFiles: mockLgSearchResult.numberOfFiles,
         docType,
-        recordType: docType.toString(),
         resetDocState: mockResetDocState,
     };
 
-    return render(
+    render(
         <ReactRouter.Router navigator={history} location={history.location}>
             <DeleteSubmitStage {...props} />,
         </ReactRouter.Router>,

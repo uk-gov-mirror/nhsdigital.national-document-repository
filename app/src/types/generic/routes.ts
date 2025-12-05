@@ -17,8 +17,8 @@ export enum routes {
     VERIFY_PATIENT = '/patient/verify',
     LLOYD_GEORGE = '/patient/lloyd-george-record',
     LLOYD_GEORGE_WILDCARD = '/patient/lloyd-george-record/*',
-    ARF_OVERVIEW = '/patient/arf',
-    ARF_OVERVIEW_WILDCARD = '/patient/arf/*',
+    PATIENT_DOCUMENTS = '/patient/documents',
+    PATIENT_DOCUMENTS_WILDCARD = '/patient/documents/*',
     FEEDBACK_CONFIRMATION = '/feedback/confirmation',
     REPORT_DOWNLOAD = '/create-report',
     REPORT_DOWNLOAD_WILDCARD = '/create-report/*',
@@ -27,6 +27,7 @@ export enum routes {
 
     DOCUMENT_UPLOAD = '/patient/document-upload',
     DOCUMENT_UPLOAD_WILDCARD = '/patient/document-upload/*',
+
     MOCK_LOGIN = 'Auth/MockLogin',
 }
 
@@ -38,9 +39,6 @@ export enum routeChildren {
     LLOYD_GEORGE_DELETE = '/patient/lloyd-george-record/delete',
     LLOYD_GEORGE_DELETE_CONFIRMATION = '/patient/lloyd-george-record/delete/confirmation',
     LLOYD_GEORGE_DELETE_COMPLETE = '/patient/lloyd-george-record/delete/complete',
-    ARF_DELETE = '/patient/arf/delete',
-    ARF_DELETE_CONFIRMATION = '/patient/arf/delete/confirmation',
-    ARF_DELETE_COMPLETE = '/patient/arf/delete/complete',
     REPORT_DOWNLOAD_COMPLETE = '/create-report/complete',
     PATIENT_ACCESS_AUDIT_DECEASED = '/patient/access-audit/deceased',
 
@@ -52,6 +50,11 @@ export enum routeChildren {
     DOCUMENT_UPLOAD_COMPLETED = '/patient/document-upload/completed',
     DOCUMENT_UPLOAD_INFECTED = '/patient/document-upload/infected',
     DOCUMENT_UPLOAD_FILE_ERRORS = '/patient/document-upload/file-errors',
+
+    DOCUMENT_VIEW = '/patient/documents/view',
+    DOCUMENT_DELETE = '/patient/documents/delete',
+    DOCUMENT_DELETE_CONFIRMATION = '/patient/documents/delete/confirmation',
+    DOCUMENT_DELETE_COMPLETE = '/patient/documents/delete/complete',
 }
 
 export enum ROUTE_TYPE {

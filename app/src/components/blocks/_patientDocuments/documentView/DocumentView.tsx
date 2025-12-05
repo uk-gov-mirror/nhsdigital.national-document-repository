@@ -1,0 +1,262 @@
+import { routeChildren, routes } from '../../../../types/generic/routes';
+import useTitle from '../../../../helpers/hooks/useTitle';
+import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
+import { DOCUMENT_TYPE, getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
+import { getFormattedDate } from '../../../../helpers/utils/formatDate';
+import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
+import {
+    getRecordActionLinksAllowedForRole,
+    LGRecordActionLink,
+    lloydGeorgeRecordLinks,
+    RECORD_ACTION,
+} from '../../../../types/blocks/lloydGeorgeActions';
+import { createSearchParams, NavigateOptions, To, useNavigate } from 'react-router-dom';
+import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
+import RecordCard from '../../../generic/recordCard/RecordCard';
+import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
+import RecordMenuCard from '../../../generic/recordMenuCard/RecordMenuCard';
+import { Button, ChevronLeftIcon } from 'nhsuk-react-components';
+import BackButton from '../../../generic/backButton/BackButton';
+import usePatient from '../../../../helpers/hooks/usePatient';
+import { useEffect } from 'react';
+import useRole from '../../../../helpers/hooks/useRole';
+
+type Props = {
+    documentReference: DocumentReference | null;
+    removeDocuments: (docType: DOCUMENT_TYPE) => void;
+};
+
+const DocumentView = ({
+    documentReference,
+    removeDocuments,
+}: Readonly<Props>): React.JSX.Element => {
+    const [session, setUserSession] = useSessionContext();
+    const role = useRole();
+    const navigate = useNavigate();
+    const showMenu = role === REPOSITORY_ROLE.GP_ADMIN && !session.isFullscreen;
+    const patientDetails = usePatient();
+
+    const pageHeader = 'Lloyd George records';
+    useTitle({ pageTitle: pageHeader });
+
+    // Handle fullscreen changes from browser events
+    useEffect(() => {
+        const handleFullscreenChange = (): void => {
+            const isCurrentlyFullscreen = document.fullscreenElement !== null;
+            // Only update if the state has actually changed to avoid unnecessary re-renders
+            if (session.isFullscreen !== isCurrentlyFullscreen) {
+                setUserSession({
+                    ...session,
+                    isFullscreen: isCurrentlyFullscreen,
+                });
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, [session, setUserSession]);
+
+    if (!documentReference) {
+        navigate(routes.PATIENT_DOCUMENTS);
+        return <></>;
+    }
+
+    const details = (): React.JSX.Element => {
+        return (
+            <div className="lloydgeorge_record-details">
+                <div className="lloydgeorge_record-details_details">
+                    <div className="lloydgeorge_record-details_details--last-updated mt-3">
+                        Filename: {documentReference.fileName}
+                    </div>
+                    <div className="lloydgeorge_record-details_details--last-updated mt-3">
+                        Last updated: {getFormattedDate(new Date(documentReference.created))}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const downloadClicked = (): void => {
+        if (documentReference.url) {
+            const anchor = document.createElement('a');
+            anchor.href = documentReference.url;
+            anchor.download = documentReference.fileName;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+        }
+    };
+
+    const removeClicked = (): void => {
+        disableFullscreen();
+        removeDocuments(documentReference.documentSnomedCodeType);
+    };
+
+    const getCardLinks = (): Array<LGRecordActionLink> => {
+        if (session.isFullscreen) {
+            return [];
+        }
+
+        const links = getRecordActionLinksAllowedForRole({
+            role,
+            hasRecordInStorage: true,
+            inputLinks: lloydGeorgeRecordLinks,
+        });
+
+        return links.map((link) => {
+            return {
+                ...link,
+                href:
+                    link.type === RECORD_ACTION.DELETE ? routeChildren.DOCUMENT_DELETE : undefined,
+                onClick: link.type === RECORD_ACTION.DOWNLOAD ? downloadClicked : removeClicked,
+            };
+        });
+    };
+
+    const getPdfObjectUrl = (): string => {
+        if (documentReference.contentType !== 'application/pdf') {
+            return '';
+        }
+
+        return documentReference.url ? documentReference.url : 'loading';
+    };
+
+    const enableFullscreen = (): void => {
+        if (document.fullscreenEnabled) {
+            document.documentElement.requestFullscreen?.();
+        }
+    };
+
+    const disableFullscreen = (): void => {
+        if (document.fullscreenElement !== null) {
+            document.exitFullscreen?.();
+        }
+    };
+
+    const handleAddFilesClick = async (): Promise<void> => {
+        if (!patientDetails?.nhsNumber) {
+            navigate(routes.SERVER_ERROR);
+            return;
+        }
+
+        const fileName = documentReference.fileName;
+        const documentId = documentReference.id;
+        const versionId = documentReference.version;
+
+        const response = await fetch(documentReference.url!);
+        const blob = await response.blob();
+
+        const to: To = {
+            pathname: routes.DOCUMENT_UPLOAD,
+            search: createSearchParams({ journey: 'update' }).toString(),
+        };
+        const options: NavigateOptions = {
+            state: {
+                journey: 'update',
+                existingDocuments: [{ fileName, blob, documentId, versionId }],
+            },
+        };
+        navigate(to, options);
+    };
+
+    const getRecordCard = (): React.JSX.Element => {
+        const card = (
+            <RecordCard
+                heading={getDocumentTypeLabel(documentReference.documentSnomedCodeType)}
+                fullScreenHandler={enableFullscreen}
+                detailsElement={details()}
+                isFullScreen={session.isFullscreen!}
+                recordLinks={getCardLinks()}
+                pdfObjectUrl={getPdfObjectUrl()}
+                showMenu={showMenu}
+            />
+        );
+        return session.isFullscreen ? (
+            card
+        ) : (
+            <div className="lloydgeorge_record-stage_flex">
+                <div
+                    data-testid="record-card-container"
+                    className={`lloydgeorge_record-stage_flex-row lloydgeorge_record-stage_flex-row${showMenu ? '--menu' : '--upload'}`}
+                >
+                    {card}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="lloydgeorge_record-stage">
+            {session.isFullscreen && (
+                <div className="header">
+                    <div className="header-items">
+                        <Button
+                            reverse
+                            data-testid="back-link"
+                            className="exit-fullscreen-button"
+                            onClick={disableFullscreen}
+                        >
+                            <ChevronLeftIcon className="mr-2" />
+                            Exit full screen
+                        </Button>
+                        <h1 className="title">{pageHeader}</h1>
+                        <a
+                            className="sign-out-link"
+                            href={routes.LOGOUT}
+                            onClick={disableFullscreen}
+                        >
+                            Sign out
+                        </a>
+                    </div>
+                </div>
+            )}
+
+            <div className="main-content">
+                <div className="top-info">
+                    {!session.isFullscreen && (
+                        <>
+                            <BackButton
+                                dataTestid="go-back-button"
+                                toLocation={routes.PATIENT_DOCUMENTS}
+                                backLinkText="Go back"
+                            />
+                            <h1>{pageHeader}</h1>
+                        </>
+                    )}
+
+                    <PatientSummary showDeceasedTag oneLine={session.isFullscreen}>
+                        <PatientSummary.Child item={PatientInfo.FULL_NAME} />
+                        <PatientSummary.Child item={PatientInfo.NHS_NUMBER} />
+                        <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
+                    </PatientSummary>
+
+                    {session.isFullscreen && (
+                        <RecordMenuCard
+                            recordLinks={getCardLinks()}
+                            setStage={(): void => {}}
+                            showMenu={showMenu}
+                        />
+                    )}
+
+                    {!session.isFullscreen &&
+                        documentReference.documentSnomedCodeType === DOCUMENT_TYPE.LLOYD_GEORGE && (
+                            <>
+                                <h2 className="title">Add Files</h2>
+                                <p>You can add more files to this patient's record.</p>
+                                <Button onClick={handleAddFilesClick} data-testid="add-files-btn">
+                                    Add Files
+                                </Button>
+                            </>
+                        )}
+                </div>
+
+                {getRecordCard()}
+            </div>
+        </div>
+    );
+};
+
+export default DocumentView;

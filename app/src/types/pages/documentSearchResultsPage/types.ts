@@ -1,3 +1,5 @@
+import { SearchResult } from '../../generic/searchResult';
+
 export enum SUBMISSION_STATE {
     INITIAL = 'INITIAL',
     PENDING = 'PENDING',
@@ -12,3 +14,8 @@ export enum SEARCH_AND_DOWNLOAD_STATE {
     SEARCH_SUCCEEDED = 'SEARCH_SUCCEEDED',
     DOWNLOAD_SELECTED = 'DOWNLOAD_SELECTED',
 }
+
+export type DocumentReference = SearchResult & {
+    url?: string | null;
+    isPdf?: boolean;
+};

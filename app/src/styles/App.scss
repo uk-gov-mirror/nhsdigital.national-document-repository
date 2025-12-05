@@ -301,9 +301,6 @@ $hunit: '%';
             margin-bottom: 0;
 
             &-content {
-                @extend .nhsuk-body-s;
-                position: relative;
-
                 &-label {
                     font-weight: 700;
                     font-size: 1.5rem;
@@ -1311,3 +1308,5 @@ progress:not(.continuous-progress-bar) {
         }
     }
 }
+
+@import '../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults.scss'

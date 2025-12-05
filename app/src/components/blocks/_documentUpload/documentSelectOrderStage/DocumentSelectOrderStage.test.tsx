@@ -2,7 +2,6 @@ import { render, waitFor, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DocumentSelectOrderStage from './DocumentSelectOrderStage';
 import {
-    DOCUMENT_TYPE,
     DOCUMENT_UPLOAD_STATE,
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
@@ -10,6 +9,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { fileUploadErrorMessages } from '../../../../helpers/utils/fileUploadErrorMessages';
 import { buildLgFile } from '../../../../helpers/test/testBuilders';
 import { Mock } from 'vitest';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 const mockNavigate = vi.fn();
 const mockSetDocuments = vi.fn();

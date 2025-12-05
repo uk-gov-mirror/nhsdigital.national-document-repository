@@ -10,12 +10,12 @@ describe('getUserRecordActionLinks', () => {
             const expectedOutput = expect.arrayContaining([
                 expect.objectContaining({
                     label: 'Remove record',
-                    key: 'delete-all-files-link',
+                    key: 'delete-files-link',
                     type: RECORD_ACTION.UPDATE,
                 }),
                 expect.objectContaining({
                     label: 'Download record',
-                    key: 'download-all-files-link',
+                    key: 'download-files-link',
                     type: RECORD_ACTION.DOWNLOAD,
                 }),
             ]);

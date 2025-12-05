@@ -1,3 +1,5 @@
+import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
+
 export type SearchResult = {
     fileName: string;
     created: string;
@@ -5,4 +7,6 @@ export type SearchResult = {
     id: string;
     fileSize: number;
     version: string;
+    documentSnomedCodeType: DOCUMENT_TYPE;
+    contentType: string;
 };

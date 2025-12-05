@@ -11,7 +11,6 @@ import { AxiosError } from 'axios';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
 import ProgressBar from '../../../generic/progressBar/ProgressBar';
-import { DOCUMENT_TYPE } from '../../../../types/pages/UploadDocumentsPage/types';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import LloydGeorgeSelectSearchResults from '../lloydGeorgeSelectSearchResults/LloydGeorgeSelectSearchResults';
 import PatientSummary from '../../../generic/patientSummary/PatientSummary';
@@ -20,6 +19,7 @@ import { buildSearchResult } from '../../../../helpers/test/testBuilders';
 import { getLastURLPath } from '../../../../helpers/utils/urlManipulations';
 import LgDownloadComplete from '../lloydGeorgeDownloadComplete/LloydGeorgeDownloadComplete';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 export type Props = {
     numberOfFiles: number;

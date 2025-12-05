@@ -1,5 +1,6 @@
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { UPLOAD_FILE_ERROR_TYPE } from '../../../helpers/utils/fileUploadErrorMessages';
+import { DOCUMENT_TYPE } from '../../../helpers/utils/documentType';
 export type SetUploadStage = Dispatch<SetStateAction<UPLOAD_STAGE>>;
 export type SetUploadDocuments = Dispatch<SetStateAction<Array<UploadDocument>>>;
 
@@ -7,12 +8,6 @@ export enum UPLOAD_STAGE {
     Selecting = 0,
     Uploading = 1,
     Complete = 2,
-}
-
-export enum DOCUMENT_TYPE {
-    LLOYD_GEORGE = 'LG',
-    ARF = 'ARF',
-    ALL = 'LG,ARF',
 }
 
 export enum DOCUMENT_UPLOAD_STATE {

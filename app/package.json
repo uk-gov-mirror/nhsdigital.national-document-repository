@@ -7,6 +7,7 @@
         "build": "tsc --noEmit && vite build",
         "serve": "vite preview",
         "build-env-check": "node ./react-build-env-checker.js && vite build",
+        "lint": "eslint \"src/**/*.+(ts|tsx|js)\"",
         "test": "vitest",
         "test-all": "vitest --run",
         "test-all:coverage": "vitest --run --coverage src",

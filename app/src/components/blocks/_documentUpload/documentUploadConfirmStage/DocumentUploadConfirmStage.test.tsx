@@ -5,7 +5,6 @@ import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import {
-    DOCUMENT_TYPE,
     DOCUMENT_UPLOAD_STATE,
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
@@ -14,6 +13,7 @@ import { MemoryHistory, createMemoryHistory } from 'history';
 import userEvent from '@testing-library/user-event';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPatientFullName';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('../../../../helpers/hooks/usePatient');

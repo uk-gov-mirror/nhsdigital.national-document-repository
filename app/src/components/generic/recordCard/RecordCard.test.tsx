@@ -152,7 +152,7 @@ describe('RecordCard Component', () => {
 
             await userEvent.click(screen.getByTestId('full-screen-btn'));
 
-            expect(mockFullScreenHandler).toHaveBeenCalledWith(true);
+            expect(mockFullScreenHandler).toHaveBeenCalled();
         });
     });
 });

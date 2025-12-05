@@ -17,8 +17,6 @@ const patient = {
 const baseUrl = Cypress.config('baseUrl');
 const patientVerifyUrl = '/patient/verify';
 const lloydGeorgeViewUrl = '/patient/lloyd-george-record';
-const arfDownloadUrl = '/patient/arf';
-const forbiddenRoutes = [arfDownloadUrl];
 
 describe('GP Clinical user role has access to the expected GP_CLINICAL workflow paths', () => {
     context(`GP Clinical role has access to expected routes`, () => {
@@ -48,22 +46,6 @@ describe('GP Clinical user role has access to the expected GP_CLINICAL workflow 
 
             cy.url().should('include', 'lloyd-george-record');
             cy.url().should('eq', baseUrl + lloydGeorgeViewUrl);
-        });
-    });
-});
-
-describe('GP Clinical user role cannot access expected forbidden routes', () => {
-    context('GP Clinical role has no access to forbidden routes', () => {
-        forbiddenRoutes.forEach((forbiddenRoute) => {
-            it(
-                'GP Clinical role cannot access route ' + forbiddenRoute,
-                { tags: 'regression' },
-                () => {
-                    cy.login(Roles.GP_CLINICAL);
-                    cy.visit(forbiddenRoute);
-                    cy.url().should('include', 'unauthorised');
-                },
-            );
         });
     });
 });

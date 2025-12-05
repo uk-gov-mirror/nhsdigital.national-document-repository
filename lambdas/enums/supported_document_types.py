@@ -1,6 +1,7 @@
 import os
 from enum import StrEnum
 
+from enums.snomed_codes import SnomedCodes
 from utils.audit_logging_setup import LoggingService
 
 logger = LoggingService(__name__)
@@ -8,7 +9,7 @@ logger = LoggingService(__name__)
 
 class SupportedDocumentTypes(StrEnum):
     ARF = "ARF"
-    LG = "LG"
+    LG = SnomedCodes.LLOYD_GEORGE.value.code
 
     @staticmethod
     def list():
@@ -19,11 +20,11 @@ class SupportedDocumentTypes(StrEnum):
         Get the dynamodb table name related to a specific doc_type
 
         example usage:
-            SupportedDocumentTypes.ARF.get_dynamodb_table_name()
-            (returns "ndr*_DocumentReferenceMetadata")
+            SupportedDocumentTypes.LG.get_dynamodb_table_name()
+            (returns "ndr*_LloydGeorgeDocumentReferenceMetadata")
 
         result:
-            "ndr*_DocumentReferenceMetadata"
+            "ndr*_LloydGeorgeDocumentReferenceMetadata"
 
         Eventually we could replace all os.environ["XXX_DYNAMODB_NAME"] calls with this method,
         so that the logic of resolving table names are controlled in one place.

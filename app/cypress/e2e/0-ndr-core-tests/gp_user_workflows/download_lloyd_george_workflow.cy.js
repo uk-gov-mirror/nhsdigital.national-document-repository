@@ -128,7 +128,7 @@ describe('GP Workflow: View Lloyd George record', () => {
         cy.get('#verify-submit').click();
         cy.wait('@stitchJobCompleted', { timeout: 20000 });
 
-        cy.getByTestId('download-all-files-link').click();
+        cy.getByTestId('download-files-link').click();
     };
 
     context('Download Lloyd George document', () => {
@@ -153,8 +153,8 @@ describe('GP Workflow: View Lloyd George record', () => {
                 cy.wait('@stitchJobCompleted', { timeout: 20000 });
                 cy.title().should('eq', lloydGeorgeRecordPageTitle);
 
-                cy.getByTestId('download-all-files-link', { timeout: 20000 }).should('exist');
-                cy.getByTestId('download-all-files-link').click();
+                cy.getByTestId('download-files-link', { timeout: 20000 }).should('exist');
+                cy.getByTestId('download-files-link').click();
 
                 // Select documents page
                 cy.title().should('eq', downloadPageTitle);
@@ -270,8 +270,8 @@ describe('GP Workflow: View Lloyd George record', () => {
                 cy.wait('@stitchJobCompleted', { timeout: 20000 });
                 cy.title().should('eq', lloydGeorgeRecordPageTitle);
 
-                cy.getByTestId('download-all-files-link').should('exist');
-                cy.getByTestId('download-all-files-link').click();
+                cy.getByTestId('download-files-link').should('exist');
+                cy.getByTestId('download-files-link').click();
 
                 // Select documents page
                 cy.title().should('eq', downloadPageTitle);
@@ -384,7 +384,7 @@ describe('GP Workflow: View Lloyd George record', () => {
                 cy.get('#verify-submit').click();
                 cy.wait('@stitchJobPostEmpty', { timeout: 20000 });
 
-                cy.getByTestId('download-all-files-link').should('not.exist');
+                cy.getByTestId('download-files-link').should('not.exist');
             },
         );
 
@@ -399,7 +399,7 @@ describe('GP Workflow: View Lloyd George record', () => {
                 cy.get('#verify-submit').click();
                 cy.wait('@stitchJobCompleted', { timeout: 20000 });
 
-                cy.getByTestId('download-all-files-link').should('not.exist');
+                cy.getByTestId('download-files-link').should('not.exist');
             },
         );
 
@@ -418,8 +418,8 @@ describe('GP Workflow: View Lloyd George record', () => {
                 cy.get('#verify-submit').click();
                 cy.wait('@stitchJobCompleted', { timeout: 20000 });
 
-                cy.getByTestId('download-all-files-link').should('exist');
-                cy.getByTestId('download-all-files-link').click();
+                cy.getByTestId('download-files-link').should('exist');
+                cy.getByTestId('download-files-link').click();
 
                 cy.wait('@documentManifest');
 

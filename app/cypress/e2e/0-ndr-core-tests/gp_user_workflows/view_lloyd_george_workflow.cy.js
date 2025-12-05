@@ -2,6 +2,7 @@ import viewLloydGeorgePayload from '../../../fixtures/requests/GET_LloydGeorgeSt
 import searchPatientPayload from '../../../fixtures/requests/GET_SearchPatient.json';
 import { Roles, roleName } from '../../../support/roles';
 import { formatNhsNumber } from '../../../../src/helpers/utils/formatNhsNumber';
+import { DOCUMENT_TYPE } from '../../../../src/helpers/utils/documentType';
 
 const baseUrl = Cypress.config('baseUrl');
 const gpRoles = [Roles.GP_ADMIN, Roles.GP_CLINICAL];
@@ -279,8 +280,8 @@ describe('GP Workflow: View Lloyd George record', () => {
                 cy.get('#verify-submit').click();
                 cy.wait('@stitchJobCompleted', { timeout: 20000 });
 
-                cy.getByTestId('delete-all-files-link').should('exist');
-                cy.getByTestId('delete-all-files-link').click();
+                cy.getByTestId('delete-files-link').should('exist');
+                cy.getByTestId('delete-files-link').click();
 
                 cy.wait('@searchDocs');
                 // assert delete confirmation page is as expected
@@ -294,7 +295,7 @@ describe('GP Workflow: View Lloyd George record', () => {
 
                 cy.intercept(
                     'DELETE',
-                    `/DocumentDelete?patientId=${searchPatientPayload.nhsNumber}&docType=LG`,
+                    `/DocumentDelete?patientId=${searchPatientPayload.nhsNumber}&docType=${DOCUMENT_TYPE.LLOYD_GEORGE}`,
                     {
                         statusCode: 200,
                         body: 'Success',
@@ -349,8 +350,8 @@ describe('GP Workflow: View Lloyd George record', () => {
                 cy.get('#verify-submit').click();
                 cy.wait('@stitchJobCompleted', { timeout: 20000 });
 
-                cy.getByTestId('delete-all-files-link').should('exist');
-                cy.getByTestId('delete-all-files-link').click();
+                cy.getByTestId('delete-files-link').should('exist');
+                cy.getByTestId('delete-files-link').click();
 
                 // cancel delete
                 cy.wait('@searchDocs');
@@ -384,7 +385,7 @@ describe('GP Workflow: View Lloyd George record', () => {
 
                 cy.intercept(
                     'DELETE',
-                    `/DocumentDelete?patientId=${searchPatientPayload.nhsNumber}&docType=LG`,
+                    `/DocumentDelete?patientId=${searchPatientPayload.nhsNumber}&docType=${DOCUMENT_TYPE.LLOYD_GEORGE}`,
                     {
                         statusCode: 500,
                         body: 'Failed to delete documents',
@@ -394,8 +395,8 @@ describe('GP Workflow: View Lloyd George record', () => {
                 cy.get('#verify-submit').click();
                 cy.wait('@stitchJobCompleted', { timeout: 20000 });
 
-                cy.getByTestId('delete-all-files-link').should('exist');
-                cy.getByTestId('delete-all-files-link').click();
+                cy.getByTestId('delete-files-link').should('exist');
+                cy.getByTestId('delete-files-link').click();
 
                 cy.wait('@searchDocs');
 
@@ -423,7 +424,7 @@ describe('GP Workflow: View Lloyd George record', () => {
                 cy.get('#verify-submit').click();
                 cy.wait('@lloydGeorgeStitch', { timeout: 20000 });
 
-                cy.getByTestId('download-all-files-link').should('not.exist');
+                cy.getByTestId('download-files-link').should('not.exist');
             },
         );
 
@@ -437,7 +438,7 @@ describe('GP Workflow: View Lloyd George record', () => {
                 cy.get('#verify-submit').click();
                 cy.wait('@stitchJobCompleted', { timeout: 20000 });
 
-                cy.getByTestId('download-all-files-link').should('not.exist');
+                cy.getByTestId('download-files-link').should('not.exist');
             },
         );
     });

@@ -9,10 +9,10 @@ import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPatientFullName';
 import {
-    DOCUMENT_TYPE,
     DOCUMENT_UPLOAD_STATE,
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 const mockNavigate = vi.fn();
 vi.mock('../../../../helpers/hooks/usePatient');

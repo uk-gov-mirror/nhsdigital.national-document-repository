@@ -1,6 +1,5 @@
 import { render, waitFor, screen } from '@testing-library/react';
 import {
-    DOCUMENT_TYPE,
     DOCUMENT_UPLOAD_STATE,
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
@@ -8,6 +7,7 @@ import DocumentUploadingStage from './DocumentUploadingStage';
 import { buildLgFile } from '../../../../helpers/test/testBuilders';
 import { MemoryRouter } from 'react-router-dom';
 import { routes } from '../../../../types/generic/routes';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 const mockStartUpload = vi.fn();
 const mockedNavigate = vi.fn();

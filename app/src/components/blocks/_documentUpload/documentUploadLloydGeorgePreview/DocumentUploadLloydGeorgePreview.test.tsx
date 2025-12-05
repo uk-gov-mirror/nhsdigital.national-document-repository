@@ -1,11 +1,11 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import {
     UploadDocument,
-    DOCUMENT_TYPE,
     DOCUMENT_UPLOAD_STATE,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import DocumentUploadLloydGeorgePreview from './DocumentUploadLloydGeorgePreview';
 import getMergedPdfBlob from '../../../../helpers/utils/pdfMerger';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 const mockNavigate = vi.fn();
 

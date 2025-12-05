@@ -7,7 +7,6 @@ import {
 } from '../test/testBuilders';
 import {
     DOCUMENT_STATUS,
-    DOCUMENT_TYPE,
     DOCUMENT_UPLOAD_STATE,
 } from '../../types/pages/UploadDocumentsPage/types';
 import uploadDocuments, {
@@ -19,6 +18,7 @@ import { describe, expect, it, Mocked, vi, beforeEach } from 'vitest';
 import { DocumentStatusResult } from '../../types/generic/uploadResult';
 import { endpoints } from '../../types/generic/endpoints';
 import { v4 as uuidv4 } from 'uuid';
+import { DOCUMENT_TYPE } from '../utils/documentType';
 
 vi.mock('axios');
 
@@ -59,7 +59,7 @@ describe('uploadDocuments', () => {
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1);
         expect(mockedAxios.post).toHaveBeenCalledWith(
-            baseUrl + endpoints.DOCUMENT_UPLOAD,
+            baseUrl + endpoints.DOCUMENT_REFERENCE,
             expect.any(String),
             {
                 headers: baseHeaders,
@@ -100,7 +100,7 @@ describe('uploadDocuments', () => {
 
         expect(mockedAxios.put).toHaveBeenCalledTimes(1);
         expect(mockedAxios.put).toHaveBeenCalledWith(
-            baseUrl + endpoints.DOCUMENT_UPLOAD + `/${documentReferenceId}`,
+            baseUrl + endpoints.DOCUMENT_REFERENCE + `/${documentReferenceId}`,
             expect.any(String),
             {
                 headers: baseHeaders,
@@ -330,7 +330,7 @@ describe('uploadDocuments', () => {
         });
 
         expect(mockedAxios.post).toHaveBeenCalledWith(
-            baseUrl + endpoints.DOCUMENT_UPLOAD,
+            baseUrl + endpoints.DOCUMENT_REFERENCE,
             expect.any(String),
             expect.any(Object),
         );

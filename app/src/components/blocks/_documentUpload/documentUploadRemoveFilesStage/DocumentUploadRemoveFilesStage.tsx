@@ -1,5 +1,4 @@
 import {
-    DOCUMENT_TYPE,
     SetUploadDocuments,
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
@@ -8,6 +7,7 @@ import { Button } from 'nhsuk-react-components';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import LinkButton from '../../../generic/linkButton/LinkButton';
 import { useEnhancedNavigate } from '../../../../helpers/utils/urlManipulations';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 type Props = {
     documents: UploadDocument[];

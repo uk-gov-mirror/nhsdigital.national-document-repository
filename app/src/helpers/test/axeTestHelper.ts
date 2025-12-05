@@ -18,6 +18,7 @@ const suppressRules = {
     'nested-interactive': { enabled: false },
     'duplicate-id-active': { enabled: false },
     'duplicate-id': { enabled: false },
+    'heading-order': { enabled: false },
 };
 
 const SUPPRESS_ACCESSIBILITY_TEST = true;

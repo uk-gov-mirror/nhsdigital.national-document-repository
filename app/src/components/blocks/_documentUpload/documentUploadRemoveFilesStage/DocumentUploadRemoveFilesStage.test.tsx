@@ -1,6 +1,7 @@
 import { render, waitFor, screen } from '@testing-library/react';
-import { DOCUMENT_TYPE, UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
+import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
 import DocumentUploadRemoveFilesStage from './DocumentUploadRemoveFilesStage';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 const mockNavigate = vi.fn();
 vi.mock('../../../../helpers/hooks/usePatient');

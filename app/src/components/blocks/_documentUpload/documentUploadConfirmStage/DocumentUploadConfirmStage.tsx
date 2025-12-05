@@ -1,12 +1,13 @@
 import { Button, Table } from 'nhsuk-react-components';
 import useTitle from '../../../../helpers/hooks/useTitle';
-import { DOCUMENT_TYPE, UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
+import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
 import BackButton from '../../../generic/backButton/BackButton';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import { useState } from 'react';
 import Pagination from '../../../generic/pagination/Pagination';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
 import { getJourney, useEnhancedNavigate } from '../../../../helpers/utils/urlManipulations';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 type Props = {
     documents: UploadDocument[];

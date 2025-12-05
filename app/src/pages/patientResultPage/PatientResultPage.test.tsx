@@ -8,6 +8,7 @@ import useRole from '../../helpers/hooks/useRole';
 import usePatient from '../../helpers/hooks/usePatient';
 import { runAxeTest } from '../../helpers/test/axeTestHelper';
 import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import useConfig from '../../helpers/hooks/useConfig';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
@@ -16,9 +17,11 @@ vi.mock('react-router-dom', () => ({
 }));
 vi.mock('../../helpers/hooks/useRole');
 vi.mock('../../helpers/hooks/usePatient');
+vi.mock('../../helpers/hooks/useConfig');
 
 const mockedUseRole = useRole as Mock;
 const mockedUsePatient = usePatient as Mock;
+const mockedUseConfig = useConfig as Mock;
 
 const PAGE_HEADER_TEXT = 'Patient details';
 const PAGE_TEXT =
@@ -29,6 +32,15 @@ describe('PatientResultPage', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockedUseRole.mockReturnValue(REPOSITORY_ROLE.PCSE);
+        vi.mocked(useConfig).mockReturnValue({
+            featureFlags: {
+                uploadLambdaEnabled: true,
+                uploadArfWorkflowEnabled: false,
+                uploadLloydGeorgeWorkflowEnabled: true,
+                uploadDocumentIteration3Enabled: false,
+            },
+            mockLocal: {},
+        });
     });
     afterEach(() => {
         vi.clearAllMocks();
@@ -247,7 +259,7 @@ describe('PatientResultPage', () => {
         });
 
         it.each([REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.GP_CLINICAL])(
-            "navigates to Lloyd George Record page after user selects Active patient, when role is '%s'",
+            "navigates to Lloyd George Record page after user selects Active patient, when role is '%s' and uploadDocumentIteration3Enabled is false",
             async (role) => {
                 const patient = buildPatientDetails({ active: true });
                 mockedUseRole.mockReturnValue(role);
@@ -263,6 +275,32 @@ describe('PatientResultPage', () => {
             },
         );
 
+        it.each([REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.GP_CLINICAL])(
+            "navigates to patient documents page after user selects Active patient, when role is '%s' and uploadDocumentIteration3Enabled is true",
+            async (role) => {
+                const patient = buildPatientDetails({ active: true });
+                mockedUseRole.mockReturnValue(role);
+                mockedUsePatient.mockReturnValue(patient);
+                mockedUseConfig.mockReturnValue({
+                    featureFlags: {
+                        uploadLambdaEnabled: true,
+                        uploadArfWorkflowEnabled: false,
+                        uploadLloydGeorgeWorkflowEnabled: true,
+                        uploadDocumentIteration3Enabled: true,
+                    },
+                    mockLocal: {},
+                });
+
+                render(<PatientResultPage />);
+
+                await userEvent.click(screen.getByRole('button', { name: CONFIRM_BUTTON_TEXT }));
+
+                await waitFor(() => {
+                    expect(mockedUseNavigate).toHaveBeenCalledWith(routes.PATIENT_DOCUMENTS);
+                });
+            },
+        );
+
         it('navigates to ARF Download page when user selects Verify patient, when role is PCSE', async () => {
             const role = REPOSITORY_ROLE.PCSE;
             mockedUseRole.mockReturnValue(role);
@@ -272,7 +310,7 @@ describe('PatientResultPage', () => {
             await userEvent.click(screen.getByRole('button', { name: CONFIRM_BUTTON_TEXT }));
 
             await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.ARF_OVERVIEW);
+                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.PATIENT_DOCUMENTS);
             });
         });
 

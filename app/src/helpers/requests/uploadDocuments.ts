@@ -115,7 +115,7 @@ const uploadDocuments = async ({
 
     const gatewayUrl =
         baseUrl +
-        endpoints.DOCUMENT_UPLOAD +
+        endpoints.DOCUMENT_REFERENCE +
         (documentReferenceId ? `/${documentReferenceId}` : '');
 
     try {

@@ -148,43 +148,6 @@ describe('GP Workflow: Patient search and verify', () => {
         );
     });
 
-    // skipped as arf journey is not viable at this point in time
-    it.skip(
-        `Shows patient upload screen when patient search is used as a
-        GP_ADMIN and patient response is inactive`,
-        { tags: 'regression' },
-        () => {
-            setup(Roles.GP_ADMIN);
-            cy.intercept('GET', '/SearchPatient*', {
-                statusCode: 200,
-                body: patient,
-            }).as('search');
-
-            cy.get('#nhs-number-input').click();
-            cy.get('#nhs-number-input').type(testPatient);
-            cy.title().should(
-                'eq',
-                'Search for a patient - Access and store digital patient documents',
-            );
-
-            cy.get('#search-submit').click();
-            cy.wait('@search');
-            cy.title().should('eq', 'Patient details - Access and store digital patient documents');
-
-            cy.url().should('include', 'verify');
-            cy.url().should('eq', baseUrl + routes.patientVerify);
-            cy.get('#gp-message').should('be.visible');
-            cy.get('#gp-message').should(
-                'have.text',
-                'This page displays the current data recorded in the Personal Demographics Service for this patient.',
-            );
-            cy.get('#verify-submit').click();
-
-            cy.url().should('include', 'upload');
-            cy.url().should('eq', baseUrl + routes.arfUpload);
-        },
-    );
-
     it(
         'Does not show the upload documents page when upload patient is verified and inactive as a GP_Clinical',
         { tags: 'regression' },

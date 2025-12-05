@@ -21,6 +21,7 @@ import getLloydGeorgeRecord from '../../helpers/requests/getLloydGeorgeRecord';
 import useBaseAPIHeaders from '../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import { getFormattedDatetime } from '../../helpers/utils/formatDatetime';
+import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
 
 const LloydGeorgeRecordPage = (): React.JSX.Element => {
     const [downloadStage, setDownloadStage] = useState(DOWNLOAD_STAGE.INITIAL);
@@ -138,8 +139,7 @@ const LloydGeorgeRecordPage = (): React.JSX.Element => {
                     element={
                         <RemoveRecordStage
                             setDownloadStage={setDownloadStage}
-                            numberOfFiles={numberOfFiles}
-                            recordType="Lloyd George"
+                            docType={DOCUMENT_TYPE.LLOYD_GEORGE}
                             resetDocState={resetDocState}
                         />
                     }

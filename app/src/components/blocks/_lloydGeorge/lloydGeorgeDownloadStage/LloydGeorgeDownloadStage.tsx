@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Card } from 'nhsuk-react-components';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import getPresignedUrlForZip from '../../../../helpers/requests/getPresignedUrlForZip';
-import { DOCUMENT_TYPE } from '../../../../types/pages/UploadDocumentsPage/types';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import { routeChildren, routes } from '../../../../types/generic/routes';
@@ -12,6 +11,7 @@ import { AxiosError } from 'axios/index';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import useConfig from '../../../../helpers/hooks/useConfig';
 import useTitle from '../../../../helpers/hooks/useTitle';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 const FakeProgress = require('fake-progress');
 

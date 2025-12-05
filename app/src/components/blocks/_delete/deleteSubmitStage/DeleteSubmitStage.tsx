@@ -1,11 +1,10 @@
-import React, { Dispatch, SetStateAction, useState } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 import { FieldValues, useForm } from 'react-hook-form';
 import { Button, Fieldset, Radios, WarningCallout } from 'nhsuk-react-components';
 import deleteAllDocuments, {
     DeleteResponse,
 } from '../../../../helpers/requests/deleteAllDocuments';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
-import { DOCUMENT_TYPE } from '../../../../types/pages/UploadDocumentsPage/types';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import ServiceError from '../../../layout/serviceErrorBox/ServiceErrorBox';
@@ -22,16 +21,15 @@ import { isMock } from '../../../../helpers/utils/isLocal';
 import useConfig from '../../../../helpers/hooks/useConfig';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
-import { getLastURLPath } from '../../../../helpers/utils/urlManipulations';
-import DeleteResultStage from '../deleteResultStage/DeleteResultStage';
 import BackButton from '../../../generic/backButton/BackButton';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
+import { DOCUMENT_TYPE, getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
+import { getLastURLPath } from '../../../../helpers/utils/urlManipulations';
+import DeleteResultStage from '../deleteResultStage/DeleteResultStage';
 
 export type Props = {
     docType: DOCUMENT_TYPE;
-    numberOfFiles: number;
     setDownloadStage?: Dispatch<SetStateAction<DOWNLOAD_STAGE>>;
-    recordType: string;
     resetDocState: () => void;
 };
 
@@ -42,13 +40,11 @@ enum DELETE_DOCUMENTS_OPTION {
 
 type IndexViewProps = {
     docType: DOCUMENT_TYPE;
-    recordType: string;
     resetDocState: () => void;
 };
 
 const DeleteSubmitStageIndexView = ({
     docType,
-    recordType,
     resetDocState,
 }: IndexViewProps): React.JSX.Element => {
     const patientDetails = usePatient();
@@ -70,11 +66,7 @@ const DeleteSubmitStageIndexView = ({
         const onSuccess = (): void => {
             resetDocState();
             setDeletionStage(SUBMISSION_STATE.SUCCEEDED);
-            if (userIsGP) {
-                navigate(routeChildren.LLOYD_GEORGE_DELETE_COMPLETE);
-            } else {
-                navigate(routeChildren.ARF_DELETE_COMPLETE);
-            }
+            navigate(routeChildren.DOCUMENT_DELETE_COMPLETE);
         };
         try {
             setDeletionStage(SUBMISSION_STATE.PENDING);
@@ -107,7 +99,7 @@ const DeleteSubmitStageIndexView = ({
         if (role === REPOSITORY_ROLE.GP_ADMIN) {
             navigate(routes.LLOYD_GEORGE);
         } else if (role === REPOSITORY_ROLE.PCSE) {
-            navigate(routes.ARF_OVERVIEW);
+            navigate(routes.PATIENT_DOCUMENTS);
         }
     };
 
@@ -124,14 +116,16 @@ const DeleteSubmitStageIndexView = ({
         }
     };
 
-    const pageTitle = `You are removing the ${recordType} record of`;
+    const pageTitle = `You are removing the ${getDocumentTypeLabel(docType) ?? 'records'} of`;
     useTitle({ pageTitle });
 
     return (
         <>
             <BackButton
                 toLocation={
-                    role !== REPOSITORY_ROLE.PCSE ? routes.LLOYD_GEORGE : routes.ARF_OVERVIEW
+                    config.featureFlags.uploadDocumentIteration3Enabled
+                        ? routes.PATIENT_DOCUMENTS
+                        : routes.LLOYD_GEORGE
                 }
                 backLinkText="Go back"
             />
@@ -230,14 +224,9 @@ const DeleteSubmitStageIndexView = ({
 
 const DeleteSubmitStage = ({
     docType,
-    numberOfFiles,
     setDownloadStage,
-    recordType,
     resetDocState,
 }: Props): React.JSX.Element => {
-    const pageTitle = `You are removing the ${recordType} record of:`;
-    useTitle({ pageTitle });
-
     return (
         <>
             <Routes>
@@ -246,34 +235,30 @@ const DeleteSubmitStage = ({
                     element={
                         <DeleteSubmitStageIndexView
                             docType={docType}
-                            recordType={recordType}
                             resetDocState={resetDocState}
                         />
                     }
                 />
                 <Route
-                    path={getLastURLPath(routeChildren.ARF_DELETE_CONFIRMATION)}
+                    path={getLastURLPath(routeChildren.DOCUMENT_DELETE_CONFIRMATION)}
                     element={
                         <DeleteSubmitStage
                             docType={docType}
-                            numberOfFiles={numberOfFiles}
-                            recordType={recordType}
+                            setDownloadStage={setDownloadStage}
                             resetDocState={resetDocState}
                         />
                     }
-                ></Route>
+                />
                 <Route
-                    path={getLastURLPath(routeChildren.ARF_DELETE_COMPLETE)}
+                    path={getLastURLPath(routeChildren.DOCUMENT_DELETE_COMPLETE)}
                     element={
-                        <DeleteResultStage
-                            numberOfFiles={numberOfFiles}
-                            setDownloadStage={setDownloadStage}
-                        />
+                        <DeleteResultStage docType={docType} setDownloadStage={setDownloadStage} />
                     }
-                ></Route>
+                />
             </Routes>
             <Outlet />
         </>
     );
 };
+
 export default DeleteSubmitStage;

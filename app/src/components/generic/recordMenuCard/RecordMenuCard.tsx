@@ -60,7 +60,13 @@ const LinkSection = ({ actionLinks, setStage }: SubSectionProps): React.JSX.Elem
     return (
         <>
             {actionLinks.map((link) => (
-                <LinkItem key={link.key} link={link} setStage={setStage} onClick={link.onClick} />
+                <LinkItem
+                    key={link.key}
+                    data-testid={link.key}
+                    link={link}
+                    setStage={setStage}
+                    onClick={link.onClick}
+                />
             ))}
         </>
     );

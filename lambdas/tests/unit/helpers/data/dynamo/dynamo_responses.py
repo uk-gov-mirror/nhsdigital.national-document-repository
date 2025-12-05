@@ -13,6 +13,7 @@ MOCK_SEARCH_RESPONSE = {
             "Uploaded": "True",
             "Uploading": "False",
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
+            "DocumentSnomedCodeType": "16521000000101",
         },
         {
             "ID": "4d8683b9-1665-40d2-8499-6e8302d507ff",
@@ -27,6 +28,7 @@ MOCK_SEARCH_RESPONSE = {
             "Uploaded": "True",
             "Uploading": "False",
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
+            "DocumentSnomedCodeType": "16521000000101",
         },
         {
             "ID": "5d8683b9-1665-40d2-8499-6e8302d507ff",
@@ -41,6 +43,7 @@ MOCK_SEARCH_RESPONSE = {
             "Uploaded": "True",
             "Uploading": "False",
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
+            "DocumentSnomedCodeType": "16521000000101",
         },
     ],
     "Count": 3,

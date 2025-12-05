@@ -25,6 +25,7 @@ import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import { AxiosError } from 'axios';
 import { SearchResult } from '../../../../types/generic/searchResult';
 import { isMock } from '../../../../helpers/utils/isLocal';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 export type Props = {
     downloadStage: DOWNLOAD_STAGE;
@@ -57,20 +58,21 @@ const LloydGeorgeViewRecordStage = ({
 
     const hasRecordInStorage = downloadStage === DOWNLOAD_STAGE.SUCCEEDED;
 
-    const setFullScreen = (isFullscreen: boolean): void => {
-        if (isFullscreen) {
-            if (document.fullscreenEnabled) {
-                document.documentElement.requestFullscreen?.();
-            }
-        } else if (document.fullscreenElement !== null) {
+    const enableFullscreen = (): void => {
+        if (document.fullscreenEnabled) {
+            document.documentElement.requestFullscreen?.();
+        }
+    };
+
+    const disableFullscreen = (): void => {
+        if (document.fullscreenElement !== null) {
             document.exitFullscreen?.();
         }
-        // Note: Let the fullscreen event handlers manage the session state to avoid race conditions
     };
 
     let recordLinksToShow = getUserRecordActionLinks({ role, hasRecordInStorage }).map((link) => {
         link.onClick = (): void => {
-            setFullScreen(false);
+            disableFullscreen();
         };
 
         return link;
@@ -166,6 +168,8 @@ const LloydGeorgeViewRecordStage = ({
                         created: new Date().toISOString(),
                         fileSize: 12345,
                         virusScannerResult: 'clean',
+                        documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                        contentType: 'application/pdf',
                     },
                 ]);
             } else if (error.response?.status === 403) {
@@ -185,9 +189,7 @@ const LloydGeorgeViewRecordStage = ({
                             reverse
                             data-testid="back-link"
                             className="exit-fullscreen-button"
-                            onClick={(): void => {
-                                setFullScreen(false);
-                            }}
+                            onClick={disableFullscreen}
                         >
                             <ChevronLeftIcon className="mr-2" />
                             Exit full screen
@@ -196,9 +198,7 @@ const LloydGeorgeViewRecordStage = ({
                         <a
                             className="sign-out-link"
                             href={routes.LOGOUT}
-                            onClick={(): void => {
-                                setFullScreen(false);
-                            }}
+                            onClick={disableFullscreen}
                         >
                             Sign out
                         </a>
@@ -257,7 +257,7 @@ const LloydGeorgeViewRecordStage = ({
                         >
                             <RecordCard
                                 heading="Lloyd George record"
-                                fullScreenHandler={setFullScreen}
+                                fullScreenHandler={enableFullscreen}
                                 detailsElement={<RecordDetails {...recordDetailsProps} />}
                                 isFullScreen={session.isFullscreen!}
                                 pdfObjectUrl={hasRecordInStorage ? pdfObjectUrl : ''}
@@ -270,7 +270,7 @@ const LloydGeorgeViewRecordStage = ({
                 ) : (
                     <RecordCard
                         heading="Lloyd George record"
-                        fullScreenHandler={setFullScreen}
+                        fullScreenHandler={enableFullscreen}
                         detailsElement={<RecordDetails {...recordDetailsProps} />}
                         isFullScreen={session.isFullscreen!}
                         pdfObjectUrl={hasRecordInStorage ? pdfObjectUrl : ''}

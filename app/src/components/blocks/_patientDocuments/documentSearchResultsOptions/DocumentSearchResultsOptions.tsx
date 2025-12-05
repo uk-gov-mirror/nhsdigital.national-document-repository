@@ -7,9 +7,9 @@ import getPresignedUrlForZip from '../../../../helpers/requests/getPresignedUrlF
 import { AxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
-import { DOCUMENT_TYPE } from '../../../../types/pages/UploadDocumentsPage/types';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 type Props = {
     nhsNumber: string;
@@ -81,18 +81,13 @@ const DocumentSearchResultsOptions = (props: Props): React.JSX.Element => {
     };
 
     const deleteAllDocuments = (): void => {
-        navigate(routeChildren.ARF_DELETE_CONFIRMATION);
+        navigate(routeChildren.DOCUMENT_DELETE);
     };
 
     return (
         <>
-            <div
-                id="download-status"
-                aria-live="polite"
-                role="status"
-                className="nhsuk-u-visually-hidden"
-            >
-                {statusMessage}
+            <div id="download-status" aria-live="polite" className="nhsuk-u-visually-hidden">
+                <output>{statusMessage}</output>
             </div>
             <div className="search-result-spinner-div">
                 {props.downloadState === SUBMISSION_STATE.PENDING ? (
@@ -102,7 +97,7 @@ const DocumentSearchResultsOptions = (props: Props): React.JSX.Element => {
                         disabled={true}
                     />
                 ) : (
-                    <Button type="button" id="download-documents" onClick={downloadAll}>
+                    <Button type="button" id="download-documents" data-testid="download-documents" onClick={downloadAll}>
                         Download all documents
                     </Button>
                 )}

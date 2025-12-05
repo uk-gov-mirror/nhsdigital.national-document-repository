@@ -18,30 +18,30 @@ import { isMock } from '../../../../helpers/utils/isLocal';
 import { buildSearchResult } from '../../../../helpers/test/testBuilders';
 import { getLastURLPath } from '../../../../helpers/utils/urlManipulations';
 import DeleteSubmitStage from '../deleteSubmitStage/DeleteSubmitStage';
-import { DOCUMENT_TYPE } from '../../../../types/pages/UploadDocumentsPage/types';
 import DeleteResultStage from '../deleteResultStage/DeleteResultStage';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import PatientSummary from '../../../generic/patientSummary/PatientSummary';
 import BackButton from '../../../generic/backButton/BackButton';
 import useRole from '../../../../helpers/hooks/useRole';
 import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
+import { DOCUMENT_TYPE, getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
+import useConfig from '../../../../helpers/hooks/useConfig';
 
 export type Props = {
-    numberOfFiles: number;
-    recordType: string;
+    docType: DOCUMENT_TYPE;
     setDownloadStage: Dispatch<SetStateAction<DOWNLOAD_STAGE>>;
     resetDocState: () => void;
 };
 
 const RemoveRecordStage = ({
-    numberOfFiles,
-    recordType,
+    docType,
     setDownloadStage,
     resetDocState,
 }: Props): React.JSX.Element => {
     useTitle({ pageTitle: 'Remove record' });
     const patientDetails = usePatient();
     const [submissionState, setSubmissionState] = useState(SUBMISSION_STATE.PENDING);
+    const config = useConfig();
 
     const role = useRole();
 
@@ -65,6 +65,7 @@ const RemoveRecordStage = ({
                     nhsNumber,
                     baseUrl,
                     baseHeaders,
+                    docType,
                 });
                 onSuccess(results ?? []);
             } catch (e) {
@@ -97,10 +98,24 @@ const RemoveRecordStage = ({
 
     const hasDocuments = !!searchResults.length && !!patientDetails;
 
+    const pageHeader = (): string => {
+        if (config.featureFlags.uploadDocumentIteration3Enabled) {
+            return getDocumentTypeLabel(docType) || 'patient record';
+        }
+
+        return 'Lloyd George record';
+    };
+
+    const getDeleteConfirmationPath = (): string => {
+        return config.featureFlags.uploadDocumentIteration3Enabled
+            ? routeChildren.DOCUMENT_DELETE_CONFIRMATION
+            : routeChildren.LLOYD_GEORGE_DELETE_CONFIRMATION;
+    };
+
     const PageIndexView = (): React.JSX.Element => (
         <>
             <BackButton />
-            <h1>Remove this {recordType} record</h1>
+            <h1>Remove {pageHeader()}</h1>
 
             {role !== REPOSITORY_ROLE.PCSE && (
                 <WarningCallout>
@@ -131,7 +146,7 @@ const RemoveRecordStage = ({
                 <>
                     {hasDocuments ? (
                         <>
-                            <Table caption="List of files in record" id="current-documents-table">
+                            <Table caption="List of files to remove" id="current-documents-table">
                                 <Table.Head>
                                     <Table.Row>
                                         <Table.Cell>Filename</Table.Cell>
@@ -172,7 +187,7 @@ const RemoveRecordStage = ({
                         <Button
                             data-testid="remove-btn"
                             onClick={(): void => {
-                                navigate(routeChildren.LLOYD_GEORGE_DELETE_CONFIRMATION);
+                                navigate(getDeleteConfirmationPath());
                             }}
                         >
                             Remove all files
@@ -188,34 +203,13 @@ const RemoveRecordStage = ({
             <Routes>
                 <Route index element={PageIndexView()}></Route>
                 <Route
-                    path={getLastURLPath(routeChildren.LLOYD_GEORGE_DELETE_CONFIRMATION)}
-                    element={
-                        <DeleteSubmitStage
-                            docType={DOCUMENT_TYPE.LLOYD_GEORGE}
-                            numberOfFiles={numberOfFiles}
-                            recordType="Lloyd George"
-                            resetDocState={resetDocState}
-                        />
-                    }
-                ></Route>
-                <Route
-                    path={getLastURLPath(routeChildren.ARF_DELETE_CONFIRMATION)}
-                    element={
-                        <DeleteSubmitStage
-                            docType={DOCUMENT_TYPE.LLOYD_GEORGE}
-                            numberOfFiles={numberOfFiles}
-                            recordType="Lloyd George"
-                            resetDocState={resetDocState}
-                        />
-                    }
+                    path={getLastURLPath(routeChildren.LLOYD_GEORGE_DELETE_CONFIRMATION) + '/*'}
+                    element={<DeleteSubmitStage docType={docType} resetDocState={resetDocState} />}
                 ></Route>
                 <Route
                     path={getLastURLPath(routeChildren.LLOYD_GEORGE_DELETE_COMPLETE)}
                     element={
-                        <DeleteResultStage
-                            numberOfFiles={numberOfFiles}
-                            setDownloadStage={setDownloadStage}
-                        />
+                        <DeleteResultStage docType={docType} setDownloadStage={setDownloadStage} />
                     }
                 ></Route>
             </Routes>

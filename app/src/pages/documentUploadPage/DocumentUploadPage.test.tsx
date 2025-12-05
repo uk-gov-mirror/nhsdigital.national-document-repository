@@ -28,7 +28,6 @@ import { routeChildren, routes } from '../../types/generic/routes';
 import { DocumentStatusResult } from '../../types/generic/uploadResult';
 import userEvent from '@testing-library/user-event';
 import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
-import { DOCUMENT_TYPE as OLD_DOCUMENT_TYPE } from '../../types/pages/UploadDocumentsPage/types';
 
 vi.mock('axios');
 vi.mock('../../helpers/hooks/useConfig');
@@ -255,7 +254,7 @@ describe('DocumentUploadPage', (): void => {
                     journey: 'update',
                     existingDocuments: [
                         {
-                            docType: OLD_DOCUMENT_TYPE.LLOYD_GEORGE,
+                            docType: DOCUMENT_TYPE.LLOYD_GEORGE,
                             blob: mockBlob,
                             fileName: 'test.pdf',
                             documentId: 'doc-123',
@@ -280,7 +279,7 @@ describe('DocumentUploadPage', (): void => {
             const testDocument = buildDocument(
                 testFile,
                 DOCUMENT_UPLOAD_STATE.SELECTED,
-                OLD_DOCUMENT_TYPE.LLOYD_GEORGE,
+                DOCUMENT_TYPE.LLOYD_GEORGE,
             );
             const mockUploadSession = buildUploadSession([testDocument]);
 
@@ -297,7 +296,7 @@ describe('DocumentUploadPage', (): void => {
             const testDocument = buildDocument(
                 testFile,
                 DOCUMENT_UPLOAD_STATE.UPLOADING,
-                OLD_DOCUMENT_TYPE.LLOYD_GEORGE,
+                DOCUMENT_TYPE.LLOYD_GEORGE,
             );
 
             testDocument.ref = 'test-ref-123';

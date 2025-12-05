@@ -1,11 +1,11 @@
 import { PatientDetails } from '../../types/generic/patientDetails';
 import { buildPatientDetails } from './testBuilders';
 import {
-    DOCUMENT_TYPE,
     DOCUMENT_UPLOAD_STATE as documentUploadStates,
     UploadDocument,
 } from '../../types/pages/UploadDocumentsPage/types';
 import { v4 as uuidv4 } from 'uuid';
+import { DOCUMENT_TYPE } from '../utils/documentType';
 
 type PdsNameMatchingTestCase = {
     patientDetails: PatientDetails;

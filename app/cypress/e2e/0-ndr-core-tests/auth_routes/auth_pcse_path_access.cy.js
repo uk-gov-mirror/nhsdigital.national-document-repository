@@ -1,5 +1,6 @@
 import { Roles } from '../../../support/roles';
 import { routes } from '../../../support/routes';
+import { DOCUMENT_TYPE } from '../../../../src/helpers/utils/documentType';
 
 const testPatient = '9000000009';
 const patient = {
@@ -16,7 +17,7 @@ const patient = {
 
 const baseUrl = Cypress.config('baseUrl');
 const lloydGeorgeViewUrl = '/patient/lloyd-george-record';
-const arfDownloadUrl = '/patient/arf';
+const documentsUrl = '/patient/documents';
 
 const forbiddenRoutes = [lloydGeorgeViewUrl];
 
@@ -27,6 +28,11 @@ describe('PCSE user role has access to the expected GP_ADMIN workflow paths', ()
                 statusCode: 200,
                 body: patient,
             }).as('search');
+
+            cy.intercept('GET', '/SearchDocumentReferences*', {
+                statusCode: 200,
+                body: [],
+            }).as('documentSearch');
 
             cy.login(Roles.PCSE);
 
@@ -40,7 +46,9 @@ describe('PCSE user role has access to the expected GP_ADMIN workflow paths', ()
             cy.wait('@search');
 
             cy.get('#verify-submit').click();
-            cy.url().should('eq', baseUrl + arfDownloadUrl);
+
+            cy.wait('@documentSearch');
+            cy.url().should('eq', baseUrl + documentsUrl);
         });
     });
 });

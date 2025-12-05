@@ -6,10 +6,10 @@ from utils.document_type_utils import extract_document_type_to_enum
 @pytest.mark.parametrize(
     "value",
     [
-        "LG, ARF",
-        "ARF,LG",
-        " ARF, LG",
-        "LG , ARF",
+        "16521000000101, ARF",
+        "ARF,16521000000101",
+        " ARF, 16521000000101",
+        "16521000000101 , ARF",
     ],
 )
 def test_extract_document_type_both(value):
@@ -23,8 +23,8 @@ def test_extract_document_type_both(value):
 @pytest.mark.parametrize(
     "value",
     [
-        "LG ",
-        " LG",
+        "16521000000101 ",
+        " 16521000000101",
     ],
 )
 def test_extract_document_type_lg(value):
@@ -56,11 +56,11 @@ def test_extract_document_type_arf(value):
         ("ARF", [SupportedDocumentTypes.ARF]),
         ("ARF ", [SupportedDocumentTypes.ARF]),
         (" ARF", [SupportedDocumentTypes.ARF]),
-        ("LG", [SupportedDocumentTypes.LG]),
-        ("LG ", [SupportedDocumentTypes.LG]),
-        (" LG", [SupportedDocumentTypes.LG]),
-        (" ARF, LG ", [SupportedDocumentTypes.ARF, SupportedDocumentTypes.LG]),
-        (" LG  , ARF ", [SupportedDocumentTypes.LG, SupportedDocumentTypes.ARF]),
+        ("16521000000101", [SupportedDocumentTypes.LG]),
+        ("16521000000101 ", [SupportedDocumentTypes.LG]),
+        (" 16521000000101", [SupportedDocumentTypes.LG]),
+        (" ARF, 16521000000101 ", [SupportedDocumentTypes.ARF, SupportedDocumentTypes.LG]),
+        (" 16521000000101  , ARF ", [SupportedDocumentTypes.LG, SupportedDocumentTypes.ARF]),
     ],
 )
 def test_extract_document_type_as_enum(value, expected):

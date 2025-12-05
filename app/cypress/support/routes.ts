@@ -5,6 +5,5 @@ export enum routes {
     createReport = '/create-report',
     createReportComplete = '/create-report/complete',
     lloydGeorgeView = '/patient/lloyd-george-record',
-    arfUpload = '/patient/arf/upload',
     sessionExpired = '/session-expired',
 }

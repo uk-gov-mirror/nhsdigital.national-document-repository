@@ -10,27 +10,34 @@ import usePatient from '../../../../helpers/hooks/usePatient';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import useConfig from '../../../../helpers/hooks/useConfig';
 
 const mockNavigate = vi.fn();
 
 vi.mock('../../../../helpers/hooks/useRole');
 vi.mock('../../../../helpers/hooks/usePatient');
+vi.mock('../../../../helpers/hooks/useConfig');
 vi.mock('react-router-dom', () => ({
-    Link: (props: LinkProps) => <a {...props} role="link" />,
-    useNavigate: () => mockNavigate,
+    Link: (props: LinkProps): React.JSX.Element => <a {...props} role="link" />,
+    useNavigate: (): Mock => mockNavigate,
 }));
 
 const mockedUseRole = useRole as Mock;
 const mockedUsePatient = usePatient as Mock;
+const mockedUseConfig = useConfig as Mock;
 
 const mockPatientDetails = buildPatientDetails();
-const mockLgSearchResult = buildLgSearchResult();
 const mockSetDownloadStage = vi.fn();
 
 describe('DeleteResultStage', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockedUsePatient.mockReturnValue(mockPatientDetails);
+        mockedUseConfig.mockReturnValue({
+            featureFlags: {
+                uploadDocumentIteration3Enabled: true,
+            },
+        });
     });
     afterEach(() => {
         vi.clearAllMocks();
@@ -41,19 +48,13 @@ describe('DeleteResultStage', () => {
             "renders the page with Lloyd George patient details when user role is '%s'",
             async (role) => {
                 const patientName = `${mockPatientDetails.givenName} ${mockPatientDetails.familyName}`;
-                const numberOfFiles = mockLgSearchResult.numberOfFiles;
 
                 mockedUseRole.mockReturnValue(role);
-                render(
-                    <DeleteResultStage
-                        numberOfFiles={numberOfFiles}
-                        setDownloadStage={mockSetDownloadStage}
-                    />,
-                );
+                render(<DeleteResultStage setDownloadStage={mockSetDownloadStage} />);
 
                 await waitFor(async () => {
                     expect(
-                        screen.getByText('You have permanently removed the record of:'),
+                        screen.getByText(`You have permanently removed the records of:`),
                     ).toBeInTheDocument();
                 });
 
@@ -71,19 +72,13 @@ describe('DeleteResultStage', () => {
         );
         it('renders the page with ARF patient details, when user role is PCSE', async () => {
             const patientName = `${mockPatientDetails.givenName} ${mockPatientDetails.familyName}`;
-            const numberOfFiles = 1;
 
             mockedUseRole.mockReturnValue(REPOSITORY_ROLE.PCSE);
-            render(
-                <DeleteResultStage
-                    numberOfFiles={numberOfFiles}
-                    setDownloadStage={mockSetDownloadStage}
-                />,
-            );
+            render(<DeleteResultStage setDownloadStage={mockSetDownloadStage} />);
 
             await waitFor(async () => {
                 expect(
-                    screen.getByText('You have permanently removed the record of:'),
+                    screen.getByText('You have permanently removed the records of:'),
                 ).toBeInTheDocument();
             });
 
@@ -97,19 +92,13 @@ describe('DeleteResultStage', () => {
         it.each([REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.GP_CLINICAL])(
             "renders the return to Lloyd George Record button, when user role is '%s'",
             async (role) => {
-                const numberOfFiles = mockLgSearchResult.numberOfFiles;
                 mockedUseRole.mockReturnValue(role);
 
-                render(
-                    <DeleteResultStage
-                        numberOfFiles={numberOfFiles}
-                        setDownloadStage={mockSetDownloadStage}
-                    />,
-                );
+                render(<DeleteResultStage setDownloadStage={mockSetDownloadStage} />);
 
                 await waitFor(async () => {
                     expect(
-                        screen.getByText('You have permanently removed the record of:'),
+                        screen.getByText('You have permanently removed the records of:'),
                     ).toBeInTheDocument();
                 });
 
@@ -122,19 +111,13 @@ describe('DeleteResultStage', () => {
         );
 
         it('does not render the return to Lloyd George Record button, when user role is PCSE', async () => {
-            const numberOfFiles = mockLgSearchResult.numberOfFiles;
             mockedUseRole.mockReturnValue(REPOSITORY_ROLE.PCSE);
 
-            render(
-                <DeleteResultStage
-                    numberOfFiles={numberOfFiles}
-                    setDownloadStage={mockSetDownloadStage}
-                />,
-            );
+            render(<DeleteResultStage setDownloadStage={mockSetDownloadStage} />);
 
             await waitFor(async () => {
                 expect(
-                    screen.getByText('You have permanently removed the record of:'),
+                    screen.getByText('You have permanently removed the records of:'),
                 ).toBeInTheDocument();
             });
 
@@ -146,19 +129,13 @@ describe('DeleteResultStage', () => {
         });
 
         it('renders the Start Again button, when user role is PCSE', async () => {
-            const numberOfFiles = 7;
             mockedUseRole.mockReturnValue(REPOSITORY_ROLE.PCSE);
 
-            render(
-                <DeleteResultStage
-                    numberOfFiles={numberOfFiles}
-                    setDownloadStage={mockSetDownloadStage}
-                />,
-            );
+            render(<DeleteResultStage setDownloadStage={mockSetDownloadStage} />);
 
             await waitFor(async () => {
                 expect(
-                    screen.getByText('You have permanently removed the record of:'),
+                    screen.getByText('You have permanently removed the records of:'),
                 ).toBeInTheDocument();
             });
 
@@ -172,19 +149,13 @@ describe('DeleteResultStage', () => {
         it.each([REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.GP_CLINICAL])(
             "does not render the Start Again button, when user role is '%s'",
             async (role) => {
-                const numberOfFiles = 7;
                 mockedUseRole.mockReturnValue(role);
 
-                render(
-                    <DeleteResultStage
-                        numberOfFiles={numberOfFiles}
-                        setDownloadStage={mockSetDownloadStage}
-                    />,
-                );
+                render(<DeleteResultStage setDownloadStage={mockSetDownloadStage} />);
 
                 await waitFor(async () => {
                     expect(
-                        screen.getByText('You have permanently removed the record of:'),
+                        screen.getByText('You have permanently removed the records of:'),
                     ).toBeInTheDocument();
                 });
 
@@ -201,7 +172,7 @@ describe('DeleteResultStage', () => {
         const roles = [REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.PCSE];
         it.each(roles)('pass accessibility checks for role %s', async (role) => {
             mockedUseRole.mockReturnValue(role);
-            render(<DeleteResultStage numberOfFiles={3} setDownloadStage={mockSetDownloadStage} />);
+            render(<DeleteResultStage setDownloadStage={mockSetDownloadStage} />);
 
             const results = await runAxeTest(document.body);
             expect(results).toHaveNoViolations();
@@ -212,19 +183,13 @@ describe('DeleteResultStage', () => {
         it.each([REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.GP_CLINICAL])(
             "navigates to the Lloyd George view page when return button is clicked, when user role is '%s'",
             async (role) => {
-                const numberOfFiles = mockLgSearchResult.numberOfFiles;
                 mockedUseRole.mockReturnValue(role);
 
-                render(
-                    <DeleteResultStage
-                        numberOfFiles={numberOfFiles}
-                        setDownloadStage={mockSetDownloadStage}
-                    />,
-                );
+                render(<DeleteResultStage setDownloadStage={mockSetDownloadStage} />);
 
                 await waitFor(async () => {
                     expect(
-                        screen.getByText('You have permanently removed the record of:'),
+                        screen.getByText('You have permanently removed the records of:'),
                     ).toBeInTheDocument();
                 });
 
@@ -235,26 +200,20 @@ describe('DeleteResultStage', () => {
                 );
 
                 await waitFor(() => {
-                    expect(mockNavigate).toHaveBeenCalledWith(routes.LLOYD_GEORGE);
+                    expect(mockNavigate).toHaveBeenCalledWith(routes.PATIENT_DOCUMENTS);
                 });
                 expect(mockSetDownloadStage).toHaveBeenCalledWith(DOWNLOAD_STAGE.REFRESH);
             },
         );
 
         it('navigates to Home page when link is clicked when user role is PCSE', async () => {
-            const numberOfFiles = 7;
             mockedUseRole.mockReturnValue(REPOSITORY_ROLE.PCSE);
 
-            render(
-                <DeleteResultStage
-                    numberOfFiles={numberOfFiles}
-                    setDownloadStage={mockSetDownloadStage}
-                />,
-            );
+            render(<DeleteResultStage setDownloadStage={mockSetDownloadStage} />);
 
             await waitFor(async () => {
                 expect(
-                    screen.getByText('You have permanently removed the record of:'),
+                    screen.getByText('You have permanently removed the records of:'),
                 ).toBeInTheDocument();
             });
 

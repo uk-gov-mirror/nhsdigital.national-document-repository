@@ -9,7 +9,7 @@ import UnauthorisedPage from '../pages/unauthorisedPage/UnauthorisedPage';
 import LogoutPage from '../pages/logoutPage/LogoutPage';
 import PatientSearchPage from '../pages/patientSearchPage/PatientSearchPage';
 import PatientResultPage from '../pages/patientResultPage/PatientResultPage';
-import ArfSearchResultsPage from '../pages/documentSearchResultsPage/DocumentSearchResultsPage';
+import PatientDocumentSearchResultsPage from '../pages/documentSearchResultsPage/DocumentSearchResultsPage';
 import LloydGeorgeRecordPage from '../pages/lloydGeorgeRecordPage/LloydGeorgeRecordPage';
 import AuthGuard from './guards/authGuard/AuthGuard';
 import PatientGuard from './guards/patientGuard/PatientGuard';
@@ -46,8 +46,8 @@ const {
     PRIVACY_POLICY,
     LLOYD_GEORGE,
     LLOYD_GEORGE_WILDCARD,
-    ARF_OVERVIEW,
-    ARF_OVERVIEW_WILDCARD,
+    PATIENT_DOCUMENTS,
+    PATIENT_DOCUMENTS_WILDCARD,
     REPORT_DOWNLOAD,
     REPORT_DOWNLOAD_WILDCARD,
     PATIENT_ACCESS_AUDIT,
@@ -91,16 +91,20 @@ export const childRoutes = [
         parent: LLOYD_GEORGE,
     },
     {
-        route: routeChildren.ARF_DELETE,
-        parent: ARF_OVERVIEW,
+        route: routeChildren.DOCUMENT_VIEW,
+        parent: PATIENT_DOCUMENTS,
     },
     {
-        route: routeChildren.ARF_DELETE_CONFIRMATION,
-        parent: ARF_OVERVIEW,
+        route: routeChildren.DOCUMENT_DELETE,
+        parent: PATIENT_DOCUMENTS,
     },
     {
-        route: routeChildren.ARF_DELETE_COMPLETE,
-        parent: ARF_OVERVIEW,
+        route: routeChildren.DOCUMENT_DELETE_CONFIRMATION,
+        parent: PATIENT_DOCUMENTS,
+    },
+    {
+        route: routeChildren.DOCUMENT_DELETE_COMPLETE,
+        parent: PATIENT_DOCUMENTS,
     },
     {
         route: routeChildren.REPORT_DOWNLOAD_COMPLETE,
@@ -239,15 +243,13 @@ export const routeMap: Routes = {
         type: ROUTE_TYPE.PATIENT,
         unauthorized: [REPOSITORY_ROLE.PCSE],
     },
-    [ARF_OVERVIEW]: {
-        page: <ArfSearchResultsPage />,
+    [PATIENT_DOCUMENTS]: {
+        page: <PatientDocumentSearchResultsPage />,
         type: ROUTE_TYPE.PATIENT,
-        unauthorized: [REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.GP_CLINICAL],
     },
-    [ARF_OVERVIEW_WILDCARD]: {
-        page: <ArfSearchResultsPage />,
+    [PATIENT_DOCUMENTS_WILDCARD]: {
+        page: <PatientDocumentSearchResultsPage />,
         type: ROUTE_TYPE.PATIENT,
-        unauthorized: [REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.GP_CLINICAL],
     },
     [PATIENT_ACCESS_AUDIT]: {
         page: <PatientAccessAuditPage />,

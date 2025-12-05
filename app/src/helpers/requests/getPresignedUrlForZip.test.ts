@@ -4,9 +4,9 @@ import getPresignedUrlForZip, { pollForPresignedUrl, requestJobId } from './getP
 import { endpoints } from '../../types/generic/endpoints';
 import { JOB_STATUS, PollingResponse } from '../../types/generic/downloadManifestJobStatus';
 import waitForSeconds from '../utils/waitForSeconds';
-import { DOCUMENT_TYPE } from '../../types/pages/UploadDocumentsPage/types';
 import { DownloadManifestError } from '../../types/generic/errors';
 import { describe, expect, it, vi, Mocked, MockedFunction, afterEach } from 'vitest';
+import { DOCUMENT_TYPE } from '../utils/documentType';
 
 vi.mock('axios');
 vi.mock('../utils/waitForSeconds', () => ({
@@ -190,7 +190,7 @@ describe('requestJobId', () => {
 
         const postRequestParams = mockedAxios.post.mock.calls[0][2]?.params;
         expect(postRequestParams).toEqual({
-            docType: 'LG',
+            docType: '16521000000101',
             docReferences,
             patientId: nhsNumber,
         });

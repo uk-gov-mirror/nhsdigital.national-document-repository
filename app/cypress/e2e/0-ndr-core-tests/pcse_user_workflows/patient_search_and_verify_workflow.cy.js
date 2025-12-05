@@ -5,7 +5,7 @@ describe('PCSE Workflow: patient search and verify', () => {
     const baseUrl = Cypress.config('baseUrl');
 
     const patientVerifyUrl = '/patient/verify';
-    const arfDownloadUrl = '/patient/arf';
+    const documentsUrl = '/patient/documents';
 
     const homeUrl = '/';
     const patient = {
@@ -35,13 +35,20 @@ describe('PCSE Workflow: patient search and verify', () => {
                 body: patient,
             }).as('search');
 
+            cy.intercept('GET', '/SearchDocumentReferences*', {
+                statusCode: 200,
+                body: [],
+            }).as('documentSearch');
+
             cy.get('#nhs-number-input').click();
             cy.get('#nhs-number-input').type(testPatient);
             cy.get('#search-submit').click();
             cy.wait('@search');
             cy.get('#verify-submit').click();
 
-            cy.url().should('eq', baseUrl + arfDownloadUrl);
+            cy.wait('@documentSearch');
+
+            cy.url().should('eq', baseUrl + documentsUrl);
         },
     );
 

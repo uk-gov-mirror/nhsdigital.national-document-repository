@@ -21,7 +21,7 @@ TEST_METADATA_FIELDS = [
 def valid_id_and_both_doctype_post_event():
     api_gateway_proxy_event = {
         "httpMethod": "POST",
-        "queryStringParameters": {"patientId": TEST_NHS_NUMBER, "docType": "LG,ARF"},
+        "queryStringParameters": {"patientId": TEST_NHS_NUMBER, "docType": "16521000000101,ARF"},
         "multiValueQueryStringParameters": {},
     }
     return api_gateway_proxy_event
@@ -41,7 +41,7 @@ def valid_id_and_arf_doctype_post_event():
 def valid_id_and_lg_doctype_post_event():
     api_gateway_proxy_event = {
         "httpMethod": "POST",
-        "queryStringParameters": {"patientId": TEST_NHS_NUMBER, "docType": "LG"},
+        "queryStringParameters": {"patientId": TEST_NHS_NUMBER, "docType": "16521000000101"},
         "multiValueQueryStringParameters": {},
     }
     return api_gateway_proxy_event
@@ -63,7 +63,7 @@ def valid_id_and_lg_doctype_post_event_with_doc_references():
         "httpMethod": "POST",
         "queryStringParameters": {
             "patientId": TEST_NHS_NUMBER,
-            "docType": "LG",
+            "docType": "16521000000101",
         },
         "multiValueQueryStringParameters": {
             "docReferences": ["test-doc-ref", "test-doc-ref2"],

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { AuthHeaders } from '../../types/blocks/authHeaders';
-import { DOCUMENT_TYPE } from '../../types/pages/UploadDocumentsPage/types';
+import { DOCUMENT_TYPE } from '../utils/documentType';
 
 type Args = {
     docType: DOCUMENT_TYPE;

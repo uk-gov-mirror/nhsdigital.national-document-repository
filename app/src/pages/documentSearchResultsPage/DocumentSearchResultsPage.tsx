@@ -1,27 +1,37 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { SearchResult } from '../../types/generic/searchResult';
-import DocumentSearchResults from '../../components/blocks/_arf/documentSearchResults/DocumentSearchResults';
+import DocumentSearchResults from '../../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults';
 import { Outlet, Route, Routes, useNavigate } from 'react-router-dom';
 import { routeChildren, routes } from '../../types/generic/routes';
-import { SUBMISSION_STATE } from '../../types/pages/documentSearchResultsPage/types';
-import ProgressBar from '../../components/generic/progressBar/ProgressBar';
+import {
+    DocumentReference,
+    SUBMISSION_STATE,
+} from '../../types/pages/documentSearchResultsPage/types';
 import ServiceError from '../../components/layout/serviceErrorBox/ServiceErrorBox';
-import DocumentSearchResultsOptions from '../../components/blocks/_arf/documentSearchResultsOptions/DocumentSearchResultsOptions';
-import { AxiosError } from 'axios';
+import DocumentSearchResultsOptions from '../../components/blocks/_patientDocuments/documentSearchResultsOptions/DocumentSearchResultsOptions';
+import axios, { AxiosError } from 'axios';
 import getDocumentSearchResults from '../../helpers/requests/getDocumentSearchResults';
 import useBaseAPIHeaders from '../../helpers/hooks/useBaseAPIHeaders';
-import DeleteSubmitStage from '../../components/blocks/_delete/deleteSubmitStage/DeleteSubmitStage';
-import { DOCUMENT_TYPE } from '../../types/pages/UploadDocumentsPage/types';
 import usePatient from '../../helpers/hooks/usePatient';
 import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import ErrorBox from '../../components/layout/errorBox/ErrorBox';
 import { errorToParams } from '../../helpers/utils/errorToParams';
 import useTitle from '../../helpers/hooks/useTitle';
 import { getLastURLPath } from '../../helpers/utils/urlManipulations';
-import PatientSummary from '../../components/generic/patientSummary/PatientSummary';
+import PatientSummary, {
+    PatientInfo,
+} from '../../components/generic/patientSummary/PatientSummary';
 import { isMock } from '../../helpers/utils/isLocal';
 import useConfig from '../../helpers/hooks/useConfig';
 import { buildSearchResult } from '../../helpers/test/testBuilders';
+import { useSessionContext } from '../../providers/sessionProvider/SessionProvider';
+import { REPOSITORY_ROLE } from '../../types/generic/authRole';
+import DocumentView from '../../components/blocks/_patientDocuments/documentView/DocumentView';
+import getDocument, { GetDocumentResponse } from '../../helpers/requests/getDocument';
+import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
+import BackButton from '../../components/generic/backButton/BackButton';
+import ProgressBar from '../../components/generic/progressBar/ProgressBar';
+import DeleteSubmitStage from '../../components/blocks/_delete/deleteSubmitStage/DeleteSubmitStage';
 
 const DocumentSearchResultsPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
@@ -30,11 +40,14 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
     const [searchResults, setSearchResults] = useState<Array<SearchResult>>([]);
     const [submissionState, setSubmissionState] = useState(SUBMISSION_STATE.INITIAL);
     const [downloadState, setDownloadState] = useState(SUBMISSION_STATE.INITIAL);
+    const [documentReference, setDocumentReference] = useState<DocumentReference | null>(null);
     const navigate = useNavigate();
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
     const config = useConfig();
     const mounted = useRef(false);
+    const activeSearchResult = useRef<SearchResult | null>(null);
+    const [removeDocType, setRemoveDocType] = useState<DOCUMENT_TYPE | undefined>(undefined);
 
     useEffect(() => {
         const onPageLoad = async (): Promise<void> => {
@@ -52,18 +65,31 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
             } catch (e) {
                 const error = e as AxiosError;
                 if (isMock(error)) {
-                    if (config.mockLocal.uploading) {
-                        setSubmissionState(SUBMISSION_STATE.BLOCKED);
-                    } else if (config.mockLocal.recordUploaded) {
-                        setSearchResults([buildSearchResult(), buildSearchResult()]);
+                    if (config.mockLocal.recordUploaded) {
+                        setSearchResults([
+                            buildSearchResult({
+                                documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                                fileName: 'Scanned paper notes.pdf',
+                            }),
+                            buildSearchResult({
+                                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                                fileName: 'Electronic health record.pdf',
+                            }),
+                            buildSearchResult({
+                                documentSnomedCodeType: DOCUMENT_TYPE.EHR_ATTACHMENTS,
+                                fileName: 'EHR Attachments.zip',
+                                contentType: 'application/zip',
+                            }),
+                        ]);
+                        setSubmissionState(SUBMISSION_STATE.SUCCEEDED);
+                    } else {
+                        setSearchResults([]);
                         setSubmissionState(SUBMISSION_STATE.SUCCEEDED);
                     }
                 } else if (error.response?.status === 403) {
                     navigate(routes.SESSION_EXPIRED);
                 } else if (error.response?.status && error.response?.status >= 500) {
                     navigate(routes.SERVER_ERROR + errorToParams(error));
-                } else if (error.response?.status === 423) {
-                    setSubmissionState(SUBMISSION_STATE.BLOCKED);
                 } else {
                     setSubmissionState(SUBMISSION_STATE.FAILED);
                 }
@@ -74,8 +100,63 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
             void onPageLoad();
         }
     }, [nhsNumber, navigate, baseUrl, baseHeaders, config]);
-    const pageHeader = 'Manage this Lloyd George record';
-    useTitle({ pageTitle: pageHeader });
+
+    const onViewDocument = (documentItem: SearchResult): void => {
+        activeSearchResult.current = documentItem;
+        setDocumentReference({
+            isPdf: documentItem.contentType === 'application/pdf',
+            ...documentItem,
+        });
+        navigate(routeChildren.DOCUMENT_VIEW);
+        
+        void loadDocument(documentItem.id);
+    };
+
+    const loadDocument = async (documentId: string): Promise<void> => {
+        try {
+            const documentResponse = await getDocument({
+                nhsNumber: patientDetails!.nhsNumber,
+                baseUrl,
+                baseHeaders,
+                documentId,
+            });
+
+            await handleViewDocSuccess(documentResponse);
+        } catch (e) {
+            const error = e as AxiosError;
+            if (isMock(error)) {
+                await handleViewDocSuccess({
+                    url: '/dev/testFile.pdf',
+                    contentType: activeSearchResult.current?.contentType || 'application/pdf',
+                });
+            } else if (error.response?.status === 403) {
+                navigate(routes.SESSION_EXPIRED);
+            } else {
+                navigate(routes.SERVER_ERROR + errorToParams(error));
+            }
+        }
+    };
+
+    const handleViewDocSuccess = async (documentResponse: GetDocumentResponse): Promise<void> => {
+        setDocumentReference({
+            url: await getObjectUrl(documentResponse.url),
+            isPdf: documentResponse.contentType === 'application/pdf',
+            ...activeSearchResult.current,
+        } as DocumentReference);
+    };
+
+    const getObjectUrl = async (cloudFrontUrl: string): Promise<string> => {
+        const { data } = await axios.get(cloudFrontUrl, {
+            responseType: 'blob',
+        });
+
+        return URL.createObjectURL(data);
+    };
+
+    const removeDocuments = (docType: DOCUMENT_TYPE): void => {
+        setRemoveDocType(docType);
+        navigate(routeChildren.DOCUMENT_DELETE);
+    };
 
     return (
         <>
@@ -90,18 +171,27 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                                 downloadState={downloadState}
                                 setDownloadState={setDownloadState}
                                 searchResults={searchResults}
-                                pageHeader={pageHeader}
+                                onViewDocument={onViewDocument}
                             />
                         }
                     />
                     <Route
-                        path={getLastURLPath(routeChildren.ARF_DELETE) + '/*'}
+                        path={getLastURLPath(routeChildren.DOCUMENT_VIEW) + '/*'}
+                        element={
+                            <DocumentView
+                                documentReference={documentReference}
+                                removeDocuments={removeDocuments}
+                            />
+                        }
+                    />
+                    <Route
+                        path={getLastURLPath(routeChildren.DOCUMENT_DELETE) + '/*'}
                         element={
                             <DeleteSubmitStage
-                                recordType="Lloyd George"
-                                numberOfFiles={searchResults.length}
-                                docType={DOCUMENT_TYPE.ALL}
-                                resetDocState={(): null => null}
+                                docType={removeDocType ?? DOCUMENT_TYPE.ALL}
+                                resetDocState={(): void => {
+                                    mounted.current = false;
+                                }}
                             />
                         }
                     />
@@ -118,8 +208,8 @@ type PageIndexArgs = {
     downloadState: SUBMISSION_STATE;
     setDownloadState: Dispatch<SetStateAction<SUBMISSION_STATE>>;
     searchResults: SearchResult[];
-    pageHeader: string;
     nhsNumber: string;
+    onViewDocument: (document: SearchResult) => void;
 };
 const DocumentSearchResultsPageIndex = ({
     submissionState,
@@ -127,49 +217,88 @@ const DocumentSearchResultsPageIndex = ({
     searchResults,
     nhsNumber,
     setDownloadState,
+    onViewDocument,
 }: PageIndexArgs): React.JSX.Element => {
-    const pageHeader = 'Manage this Lloyd George record';
+    const [session] = useSessionContext();
+    const patientDetails = usePatient();
+    const navigate = useNavigate();
+
+    const role = session.auth?.role;
+
+    const canViewFiles =
+        session.auth?.role === REPOSITORY_ROLE.GP_ADMIN ||
+        session.auth?.role === REPOSITORY_ROLE.GP_CLINICAL;
+        
+    const pageHeader = canViewFiles ? 'Lloyd George records' : 'Manage Lloyd George records';
     useTitle({ pageTitle: pageHeader });
+
+    const SearchResults = (): React.JSX.Element => {
+        if (
+            submissionState === SUBMISSION_STATE.INITIAL ||
+            submissionState === SUBMISSION_STATE.PENDING
+        ) {
+            return <ProgressBar status="Loading..." className="loading-bar" />;
+        }
+
+        if (searchResults.length && nhsNumber) {
+            return (
+                <>
+                    <DocumentSearchResults
+                        searchResults={searchResults}
+                        onViewDocument={onViewDocument}
+                    />
+
+                    {role === REPOSITORY_ROLE.PCSE && (
+                        <DocumentSearchResultsOptions
+                            nhsNumber={nhsNumber}
+                            downloadState={downloadState}
+                            updateDownloadState={setDownloadState}
+                        />
+                    )}
+                </>
+            );
+        }
+
+        return (
+            <p>
+                <strong id="no-files-message">
+                    There are no documents available for this patient.
+                </strong>
+            </p>
+        );
+    };
+
+    if (!session.auth) {
+        navigate(routes.UNAUTHORISED);
+        return <></>;
+    }
 
     return (
         <>
-            <h1 id="download-page-title">{pageHeader}</h1>
+            <BackButton
+                dataTestid="go-back-button"
+                toLocation={
+                    patientDetails?.deceased && role !== REPOSITORY_ROLE.PCSE
+                        ? routeChildren.PATIENT_ACCESS_AUDIT_DECEASED
+                        : routes.VERIFY_PATIENT
+                }
+                backLinkText="Go back"
+            />
+
+            <h1 id="records-page-title" data-testid="page-title">
+                {pageHeader}
+            </h1>
 
             {(submissionState === SUBMISSION_STATE.FAILED ||
                 downloadState === SUBMISSION_STATE.FAILED) && <ServiceError />}
 
-            <PatientSummary showDeceasedTag />
+            <PatientSummary showDeceasedTag>
+                <PatientSummary.Child item={PatientInfo.FULL_NAME} />
+                <PatientSummary.Child item={PatientInfo.NHS_NUMBER} />
+                <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
+            </PatientSummary>
 
-            {submissionState === SUBMISSION_STATE.PENDING && (
-                <ProgressBar status="Loading..."></ProgressBar>
-            )}
-            {submissionState === SUBMISSION_STATE.BLOCKED && (
-                <p>
-                    There are already files being uploaded for this patient, please try again in a
-                    few minutes.
-                </p>
-            )}
-
-            {submissionState === SUBMISSION_STATE.SUCCEEDED && (
-                <>
-                    {searchResults.length && nhsNumber ? (
-                        <>
-                            <DocumentSearchResults searchResults={searchResults} />
-                            <DocumentSearchResultsOptions
-                                nhsNumber={nhsNumber}
-                                downloadState={downloadState}
-                                updateDownloadState={setDownloadState}
-                            />
-                        </>
-                    ) : (
-                        <p>
-                            <strong id="no-files-message">
-                                There are no documents available for this patient.
-                            </strong>
-                        </p>
-                    )}
-                </>
-            )}
+            <SearchResults />
 
             {downloadState === SUBMISSION_STATE.FAILED && (
                 <ErrorBox

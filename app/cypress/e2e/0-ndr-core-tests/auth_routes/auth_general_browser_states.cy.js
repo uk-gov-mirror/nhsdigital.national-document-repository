@@ -50,7 +50,7 @@ describe('Authentication & Authorisation', () => {
             routes.home,
             routes.patientSearch,
             '/patient/verify',
-            '/patient/arf',
+            '/patient/documents',
             '/patient/lloyd-george-record',
             routes.createReport,
             routes.createReportComplete,

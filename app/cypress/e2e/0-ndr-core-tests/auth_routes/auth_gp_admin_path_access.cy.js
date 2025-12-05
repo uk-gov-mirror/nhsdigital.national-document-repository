@@ -17,9 +17,6 @@ const patient = {
 const baseUrl = Cypress.config('baseUrl');
 const patientVerifyUrl = '/patient/verify';
 const lloydGeorgeViewUrl = '/patient/lloyd-george-record';
-const arfDownloadUrl = '/patient/arf';
-
-const forbiddenRoutes = [arfDownloadUrl];
 
 describe('GP Admin user role has access to the expected GP_ADMIN workflow paths', () => {
     context('GP Admin role has access to expected routes', () => {
@@ -49,22 +46,6 @@ describe('GP Admin user role has access to the expected GP_ADMIN workflow paths'
 
             cy.url().should('include', 'lloyd-george-record');
             cy.url().should('eq', baseUrl + lloydGeorgeViewUrl);
-        });
-    });
-});
-
-describe('GP Admin user role cannot access expected forbidden routes', () => {
-    context('GP Admin role has no access to forbidden routes', () => {
-        forbiddenRoutes.forEach((forbiddenRoute) => {
-            it(
-                'GP Admin role cannot access route ' + forbiddenRoute,
-                { tags: 'regression' },
-                () => {
-                    cy.login(Roles.GP_ADMIN);
-                    cy.visit(forbiddenRoute);
-                    cy.url().should('include', 'unauthorised');
-                },
-            );
         });
     });
 });

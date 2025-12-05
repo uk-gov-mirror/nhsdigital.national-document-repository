@@ -9,6 +9,7 @@ from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCodes
+from enums.supported_document_types import SupportedDocumentTypes
 from models.document_reference import DocumentReference
 from models.fhir.R4.bundle import Bundle, BundleEntry
 from models.fhir.R4.fhir_document_reference import Attachment, DocumentReferenceInfo
@@ -183,6 +184,8 @@ class DocumentReferenceSearchService(DocumentService):
                 "virus_scanner_result",
                 "file_size",
                 "version",
+                "content_type",
+                "document_snomed_code_type",
             },
         )
         return document_formatted

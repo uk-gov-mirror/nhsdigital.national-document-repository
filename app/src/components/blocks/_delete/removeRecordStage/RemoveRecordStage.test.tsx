@@ -8,17 +8,20 @@ import { MemoryHistory, createMemoryHistory } from 'history';
 import * as ReactRouter from 'react-router-dom';
 import waitForSeconds from '../../../../helpers/utils/waitForSeconds';
 import { afterEach, beforeEach, describe, expect, it, vi, Mock, Mocked } from 'vitest';
+import { DOCUMENT_TYPE, getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
+import useConfig from '../../../../helpers/hooks/useConfig';
 
 vi.mock('axios');
-Date.now = () => new Date('2020-01-01T00:00:00.000Z').getTime();
+Date.now = (): number => new Date('2020-01-01T00:00:00.000Z').getTime();
 vi.mock('react-router-dom', async () => ({
     ...(await vi.importActual('react-router-dom')),
-    useNavigate: () => mockUseNavigate,
+    useNavigate: (): Mock => mockUseNavigate,
 }));
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('../../../../helpers/hooks/useRole');
+vi.mock('../../../../helpers/hooks/useConfig');
 
 const mockedAxios = axios as Mocked<typeof axios>;
 const mockUseNavigate = vi.fn();
@@ -26,10 +29,10 @@ const mockUsePatient = usePatient as Mock;
 const mockPatientDetails = buildPatientDetails();
 const mockDownloadStage = vi.fn();
 const mockResetDocState = vi.fn();
+const mockUseConfig = useConfig as Mock;
 
 const testFileName1 = 'John_1';
 const testFileName2 = 'John_2';
-const numberOfFiles = 7;
 const searchResults = [
     buildSearchResult({ fileName: testFileName1 }),
     buildSearchResult({ fileName: testFileName2 }),
@@ -48,17 +51,26 @@ describe('RemoveRecordStage', () => {
         });
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockUsePatient.mockReturnValue(mockPatientDetails);
+        mockUseConfig.mockReturnValue({
+            featureFlags: {
+                uploadDocumentIteration3Enabled: true,
+            },
+        });
     });
     afterEach(() => {
         vi.clearAllMocks();
     });
     describe('Render', () => {
-        it('renders the component', () => {
+        it.each([
+            DOCUMENT_TYPE.LLOYD_GEORGE,
+            DOCUMENT_TYPE.EHR,
+            DOCUMENT_TYPE.EHR_ATTACHMENTS,
+            DOCUMENT_TYPE.LETTERS_AND_DOCS,
+        ])('renders the component for %s', (docType) => {
             mockedAxios.get.mockImplementation(() => waitForSeconds(0));
-            const recordType = 'Test Record';
-            renderComponent(history, numberOfFiles, recordType);
+            renderComponent(history, docType);
             expect(
-                screen.getByRole('heading', { name: 'Remove this ' + recordType + ' record' }),
+                screen.getByRole('heading', { name: 'Remove ' + getDocumentTypeLabel(docType) }),
             ).toBeInTheDocument();
             expect(
                 screen.getByText(
@@ -70,13 +82,13 @@ describe('RemoveRecordStage', () => {
 
         it('show progress bar when file search pending', () => {
             mockedAxios.get.mockImplementation(() => waitForSeconds(0));
-            const recordType = 'Test Record';
-            renderComponent(history, numberOfFiles, recordType);
+            const recordType = DOCUMENT_TYPE.LLOYD_GEORGE;
+            renderComponent(history, recordType);
             expect(screen.getByRole('progressbar', { name: 'Loading...' })).toBeInTheDocument();
         });
 
         it('show service error when file search failed', async () => {
-            const recordType = 'Test Record';
+            const recordType = DOCUMENT_TYPE.LLOYD_GEORGE;
             const errorResponse = {
                 response: {
                     status: 400,
@@ -84,7 +96,7 @@ describe('RemoveRecordStage', () => {
                 },
             };
             mockedAxios.get.mockImplementation(() => Promise.reject(errorResponse));
-            renderComponent(history, numberOfFiles, recordType);
+            renderComponent(history, recordType);
             expect(screen.getByRole('progressbar', { name: 'Loading...' })).toBeInTheDocument();
             await waitFor(() => {
                 expect(
@@ -97,9 +109,9 @@ describe('RemoveRecordStage', () => {
         });
 
         it('show results when when file search succeeded', async () => {
-            const recordType = 'Test Record';
+            const recordType = DOCUMENT_TYPE.LLOYD_GEORGE;
             mockedAxios.get.mockImplementation(() => Promise.resolve({ data: searchResults }));
-            renderComponent(history, numberOfFiles, recordType);
+            renderComponent(history, recordType);
             expect(screen.getByRole('progressbar', { name: 'Loading...' })).toBeInTheDocument();
             await waitFor(() => {
                 expect(
@@ -114,7 +126,7 @@ describe('RemoveRecordStage', () => {
 
     describe('Navigate', () => {
         it('navigates to server error page when search 500', async () => {
-            const recordType = 'Test Record';
+            const recordType = DOCUMENT_TYPE.LLOYD_GEORGE;
             const errorResponse = {
                 response: {
                     status: 500,
@@ -122,7 +134,7 @@ describe('RemoveRecordStage', () => {
                 },
             };
             mockedAxios.get.mockImplementation(() => Promise.reject(errorResponse));
-            renderComponent(history, numberOfFiles, recordType);
+            renderComponent(history, recordType);
             expect(screen.getByRole('progressbar', { name: 'Loading...' })).toBeInTheDocument();
             const mockedShortcode = '?encodedError=WyJTUF8xMDAxIiwiMTU3NzgzNjgwMCJd';
             await waitFor(() => {
@@ -131,7 +143,7 @@ describe('RemoveRecordStage', () => {
         });
 
         it('navigates to session expired page when search 403', async () => {
-            const recordType = 'Test Record';
+            const recordType = DOCUMENT_TYPE.LLOYD_GEORGE;
             const errorResponse = {
                 response: {
                     status: 403,
@@ -139,7 +151,7 @@ describe('RemoveRecordStage', () => {
                 },
             };
             mockedAxios.get.mockImplementation(() => Promise.reject(errorResponse));
-            renderComponent(history, numberOfFiles, recordType);
+            renderComponent(history, recordType);
             expect(screen.getByRole('progressbar', { name: 'Loading...' })).toBeInTheDocument();
             await waitFor(() => {
                 expect(mockUseNavigate).toBeCalledWith(routes.SESSION_EXPIRED);
@@ -148,12 +160,11 @@ describe('RemoveRecordStage', () => {
     });
 });
 
-const renderComponent = (history: MemoryHistory, numberOfFiles: number, recordType: string) => {
-    return render(
+const renderComponent = (history: MemoryHistory, recordType: DOCUMENT_TYPE): void => {
+    render(
         <ReactRouter.Router navigator={history} location={history.location}>
             <RemoveRecordStage
-                numberOfFiles={numberOfFiles}
-                recordType={recordType}
+                docType={recordType}
                 setDownloadStage={mockDownloadStage}
                 resetDocState={mockResetDocState}
             />

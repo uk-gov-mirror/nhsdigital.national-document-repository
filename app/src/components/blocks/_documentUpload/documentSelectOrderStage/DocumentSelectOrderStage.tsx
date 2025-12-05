@@ -13,7 +13,6 @@ import { routeChildren, routes } from '../../../../types/generic/routes';
 import { SelectRef } from '../../../../types/generic/selectRef';
 import { ErrorMessageListItem } from '../../../../types/pages/genericPageErrors';
 import {
-    DOCUMENT_TYPE,
     SetUploadDocuments,
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
@@ -22,6 +21,7 @@ import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/Pat
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import DocumentUploadLloydGeorgePreview from '../documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 type Props = {
     documents: UploadDocument[];

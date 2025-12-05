@@ -3,7 +3,7 @@ import { endpoints } from '../../types/generic/endpoints';
 import { SearchResult } from '../../types/generic/searchResult';
 
 import axios, { AxiosError } from 'axios';
-import { DOCUMENT_TYPE } from '../../types/pages/UploadDocumentsPage/types';
+import { DOCUMENT_TYPE } from '../utils/documentType';
 
 type Args = {
     nhsNumber: string;

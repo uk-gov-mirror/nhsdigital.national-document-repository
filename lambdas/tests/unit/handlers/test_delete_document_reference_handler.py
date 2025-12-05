@@ -26,19 +26,19 @@ def mock_handle_delete(mocker):
     [
         {
             "httpMethod": "GET",
-            "queryStringParameters": {"patientId": "9000000009", "docType": "LG,ARF"},
+            "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101,ARF"},
         },
         {
             "httpMethod": "GET",
-            "queryStringParameters": {"patientId": "9000000009", "docType": "ARF,LG"},
+            "queryStringParameters": {"patientId": "9000000009", "docType": "ARF,16521000000101"},
         },
         {
             "httpMethod": "GET",
-            "queryStringParameters": {"patientId": "9000000009", "docType": "LG , ARF"},
+            "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101 , ARF"},
         },
         {
             "httpMethod": "GET",
-            "queryStringParameters": {"patientId": "9000000009", "docType": "ARF, LG"},
+            "queryStringParameters": {"patientId": "9000000009", "docType": "ARF, 16521000000101"},
         },
     ],
 )

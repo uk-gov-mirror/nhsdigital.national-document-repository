@@ -12,7 +12,6 @@ import {
 import formatFileSize from '../../../../helpers/utils/formatFileSize';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import {
-    DOCUMENT_TYPE,
     DOCUMENT_UPLOAD_STATE,
     FileInputEvent,
     SetUploadDocuments,
@@ -24,6 +23,7 @@ import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/Pat
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import { ErrorMessageListItem } from '../../../../types/pages/genericPageErrors';
 import { getJourney, useEnhancedNavigate } from '../../../../helpers/utils/urlManipulations';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 export type Props = {
     setDocuments: SetUploadDocuments;
