@@ -60,8 +60,7 @@ class GetDocumentReviewService:
                     )
                     file_detail.presigned_url = presigned_url
 
-            document_review = document_review_item.model_dump(
-                by_alias=True,
+            document_review = document_review_item.model_dump_camel_case(
                 include={
                     "id": True,
                     "upload_date": True,

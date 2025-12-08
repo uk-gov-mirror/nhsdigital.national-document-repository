@@ -60,49 +60,49 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         [
             {
                 "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]["ID"],
-                "review_reason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
+                "reviewReason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
                     "ReviewReason"
                 ],
-                "nhs_number": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
+                "nhsNumber": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
                     "NhsNumber"
                 ],
-                "document_snomed_code_type": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
+                "documentSnomedCodeType": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
                     "Items"
                 ][0]["DocumentSnomedCodeType"],
                 "author": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]["Author"],
-                "upload_date": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
+                "uploadDate": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
                     "UploadDate"
                 ],
             },
             {
                 "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1]["ID"],
-                "review_reason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
+                "reviewReason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
                     "ReviewReason"
                 ],
-                "nhs_number": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
+                "nhsNumber": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
                     "NhsNumber"
                 ],
-                "document_snomed_code_type": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
+                "documentSnomedCodeType": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
                     "Items"
                 ][1]["DocumentSnomedCodeType"],
                 "author": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1]["Author"],
-                "upload_date": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
+                "uploadDate": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
                     "UploadDate"
                 ],
             },
             {
                 "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2]["ID"],
-                "review_reason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
+                "reviewReason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
                     "ReviewReason"
                 ],
-                "nhs_number": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
+                "nhsNumber": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
                     "NhsNumber"
                 ],
-                "document_snomed_code_type": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
+                "documentSnomedCodeType": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
                     "Items"
                 ][2]["DocumentSnomedCodeType"],
                 "author": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2]["Author"],
-                "upload_date": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
+                "uploadDate": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
                     "UploadDate"
                 ],
             },

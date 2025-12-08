@@ -91,20 +91,20 @@ def test_get_document_review_success(mock_service, mock_document_review, mocker)
         patient_id=TEST_NHS_NUMBER, document_id=TEST_DOCUMENT_ID
     )
     assert result is not None
-    assert result["ID"] == TEST_DOCUMENT_ID
-    assert result["UploadDate"] == 1699000000
-    assert result["DocumentSnomedCodeType"] == SnomedCodes.LLOYD_GEORGE.value.code
-    assert len(result["Files"]) == 2
+    assert result["id"] == TEST_DOCUMENT_ID
+    assert result["uploadDate"] == 1699000000
+    assert result["documentSnomedCodeType"] == SnomedCodes.LLOYD_GEORGE.value.code
+    assert len(result["files"]) == 2
 
-    assert "Author" not in result
-    assert "Custodian" not in result
-    assert "ReviewStatus" not in result
-    assert "NhsNumber" not in result
+    assert "author" not in result
+    assert "custodian" not in result
+    assert "reviewStatus" not in result
+    assert "nhsNumber" not in result
 
-    assert result["Files"][0]["FileName"] == "file1.pdf"
-    assert result["Files"][0]["PresignedUrl"].startswith(TEST_CLOUDFRONT_URL)
-    assert result["Files"][1]["FileName"] == "file2.pdf"
-    assert result["Files"][1]["PresignedUrl"].startswith(TEST_CLOUDFRONT_URL)
+    assert result["files"][0]["fileName"] == "file1.pdf"
+    assert result["files"][0]["presignedUrl"].startswith(TEST_CLOUDFRONT_URL)
+    assert result["files"][1]["fileName"] == "file2.pdf"
+    assert result["files"][1]["presignedUrl"].startswith(TEST_CLOUDFRONT_URL)
 
     mock_service.document_review_service.get_item.assert_called_once_with(
         TEST_DOCUMENT_ID

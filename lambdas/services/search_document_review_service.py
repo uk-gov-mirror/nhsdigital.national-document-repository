@@ -34,7 +34,7 @@ class SearchDocumentReviewService:
                 uploader=params.get("uploader", None),
             )
             output_refs = [
-                reference.model_dump(
+                reference.model_dump_camel_case(
                     exclude_none=True,
                     include={
                         "id",
