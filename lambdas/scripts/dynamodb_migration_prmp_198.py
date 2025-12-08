@@ -1,5 +1,7 @@
 import os
+import boto3
 from typing import Callable, Iterable
+from boto3.dynamodb.conditions import Key, Attr
 
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
@@ -46,6 +48,9 @@ class AuthorMigration(MigrationBase):
                 message="Entries missing for segment worker", segment_id=None
             )
 
+        # Build lookup once using the entries we're migrating
+        self.bulk_upload_lookup = self.build_bulk_upload_lookup(entries)
+
         return [("Author", self.get_update_author_items)]
 
     def get_update_author_items(self, entry: dict) -> dict | None:
@@ -65,9 +70,6 @@ class AuthorMigration(MigrationBase):
                 f"[Author] Skipping {nhs_number}: Deleted field not empty ({deleted_value})."
             )
             return None
-
-        if self.bulk_upload_lookup is None:
-            self.bulk_upload_lookup = self.build_bulk_upload_lookup()
 
         bulk_upload_row = self.bulk_upload_lookup.get(nhs_number)
         if not bulk_upload_row:
@@ -89,27 +91,56 @@ class AuthorMigration(MigrationBase):
 
         return {"Author": new_author}
 
-    def build_bulk_upload_lookup(self) -> dict[str, dict]:
+    def build_bulk_upload_lookup(self, entries: Iterable[dict]) -> dict[str, dict]:
         """
         Creates a lookup of the most recent completed bulk upload reports by NHS number.
+        Uses GSI queries instead of scanning the entire table.
+        Extracts unique NHS numbers from the provided entries.
         """
         self.logger.info("Building bulk upload lookup from BulkUploadReport table...")
-        bulk_reports = self.dynamo_service.scan_whole_table(
-            self.bulk_upload_report_table
-        )
+
+        # Extract unique NHS numbers from the entries being migrated
+        unique_nhs_numbers = set()
+        for entry in entries:
+            nhs = entry.get("NhsNumber")
+            if nhs:
+                unique_nhs_numbers.add(nhs)
+        
+        self.logger.info(f"Found {len(unique_nhs_numbers)} unique NHS numbers to query")
+
+        if not unique_nhs_numbers:
+            self.logger.warning("No NHS numbers found in entries")
+            return {}
+
         lookup: dict[str, dict] = {}
 
-        for row in bulk_reports:
-            nhs = row.get("NhsNumber")
-            status = row.get("UploadStatus")
-            timestamp = row.get("Timestamp")
+        # Query BulkUploadReport table for each NHS number using GSI
+        for nhs_number in unique_nhs_numbers:
+            try:
+                items = self.dynamo_service.query_table(
+                    table_name=self.bulk_upload_report_table,
+                    search_key="NhsNumber",
+                    search_condition=nhs_number,
+                    index_name="NhsNumberIndex",  
+                )
+                
+                # Find the most recent completed upload for this NHS number
+                for row in items:
+                    status = row.get("UploadStatus")
+                    timestamp = row.get("Timestamp")
 
-            if not nhs or status != "complete" or not timestamp:
+                    if status != "complete" or not timestamp:
+                        continue
+
+                    stored = lookup.get(nhs_number)
+                    if not stored or int(timestamp) > int(stored.get("Timestamp", 0)):
+                        lookup[nhs_number] = row
+
+            except Exception as e:
+                self.logger.warning(
+                    f"Failed to query bulk uploads for NHS number {nhs_number}: {str(e)}"
+                )
                 continue
-
-            stored = lookup.get(nhs)
-            if not stored or int(timestamp) > int(stored.get("Timestamp", 0)):
-                lookup[nhs] = row
 
         self.logger.info(f"Loaded {len(lookup)} completed bulk upload entries.")
         return lookup
