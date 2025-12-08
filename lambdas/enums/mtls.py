@@ -16,6 +16,7 @@ class MtlsCommonNames(StrEnum):
             cls.PDM: [
                 "ndrclient.main.int.pdm.national.nhs.uk",
                 "client.dev.ndr.national.nhs.uk",
+                "client.preprod.ndr.national.nhs.uk"
             ]
         }
 
