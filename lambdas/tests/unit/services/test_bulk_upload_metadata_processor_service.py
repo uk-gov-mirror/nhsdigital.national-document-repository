@@ -640,7 +640,7 @@ def test_handle_expedite_event_happy_path_sends_sqs(test_service, mocker):
     mocker.patch.object(BulkUploadMetadataProcessorService, "enforce_virus_scanner")
     mocker.patch.object(BulkUploadMetadataProcessorService, "check_file_status")
     mocked_send = mocker.patch.object(
-        BulkUploadMetadataProcessorService, "send_metadata_to_fifo_sqs"
+        BulkUploadMetadataProcessorService, "send_metadata_to_expedite_sqs"
     )
 
     test_service.handle_expedite_event(event)
@@ -648,8 +648,7 @@ def test_handle_expedite_event_happy_path_sends_sqs(test_service, mocker):
     mocked_send.assert_called_once()
     args, _ = mocked_send.call_args
     assert len(args) == 1
-    sqs_payload_list = args[0]
-    sqs_payload = sqs_payload_list[0]
+    sqs_payload = args[0]
     assert sqs_payload.nhs_number == "1234567890"
     assert len(sqs_payload.files) == 1
     file_item = sqs_payload.files[0]

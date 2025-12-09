@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 import urllib.parse
+import uuid
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -58,6 +59,7 @@ class BulkUploadMetadataProcessorService:
     ):
         self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
         self.metadata_queue_url = os.getenv("METADATA_SQS_QUEUE_URL")
+        self.expedite_queue_url = os.getenv("EXPEDITE_SQS_QUEUE_URL")
         self.s3_service = S3Service()
         self.sqs_service = SQSService()
         self.dynamo_repository = BulkUploadDynamoRepository()
@@ -261,9 +263,9 @@ class BulkUploadMetadataProcessorService:
                 self.enforce_virus_scanner(s3_object_key)
                 self.check_file_status(s3_object_key)
 
-                sqs_metadata = [self.create_expedite_sqs_metadata(s3_object_key)]
+                sqs_metadata = self.create_expedite_sqs_metadata(s3_object_key)
 
-                self.send_metadata_to_fifo_sqs(sqs_metadata)
+                self.send_metadata_to_expedite_sqs(sqs_metadata)
                 logger.info("Successfully processed expedite event")
             else:
                 failure_msg = f"Unexpected directory or file location received from EventBridge: {s3_object_key}"
@@ -306,6 +308,20 @@ class BulkUploadMetadataProcessorService:
                 group_id=f"bulk_upload_{nhs_number}",
             )
         logger.info("Sent bulk upload metadata to sqs queue")
+
+    def send_metadata_to_expedite_sqs(
+        self, staging_sqs_metadata: StagingSqsMetadata
+    ) -> None:
+        """Send validated metadata entries to SQS expedite queue."""
+        sqs_group_id = f"bulk_upload_{uuid.uuid4()}"
+        nhs_number = staging_sqs_metadata.nhs_number
+        logger.info(f"Sending metadata for patientId: {nhs_number}")
+        self.sqs_service.send_message_with_nhs_number_attr_fifo(
+            queue_url=self.expedite_queue_url,
+            message_body=staging_sqs_metadata.model_dump_json(by_alias=True),
+            nhs_number=nhs_number,
+            group_id=sqs_group_id,
+        )
 
     def copy_metadata_to_dated_folder(self):
         """Copy processed metadata CSV into a dated archive folder in S3."""
