@@ -116,7 +116,16 @@ class S3Service:
         source_file_key: str,
         dest_bucket: str,
         dest_file_key: str,
+        if_none_match: str | None = None,
     ):
+        if if_none_match is not None:
+            return self.client.copy_object(
+                Bucket=dest_bucket,
+                Key=dest_file_key,
+                CopySource={"Bucket": source_bucket, "Key": source_file_key},
+                IfNoneMatch=if_none_match,
+                StorageClass="INTELLIGENT_TIERING",
+            )
         return self.client.copy_object(
             Bucket=dest_bucket,
             Key=dest_file_key,
@@ -124,11 +133,15 @@ class S3Service:
             StorageClass="INTELLIGENT_TIERING",
         )
 
-    def delete_object(self, s3_bucket_name: str, file_key: str, version_id: str | None = None):
+    def delete_object(
+        self, s3_bucket_name: str, file_key: str, version_id: str | None = None
+    ):
         if version_id is None:
             return self.client.delete_object(Bucket=s3_bucket_name, Key=file_key)
-        
-        return self.client.delete_object(Bucket=s3_bucket_name, Key=file_key, VersionId=version_id)
+
+        return self.client.delete_object(
+            Bucket=s3_bucket_name, Key=file_key, VersionId=version_id
+        )
 
     def create_object_tag(
         self, s3_bucket_name: str, file_key: str, tag_key: str, tag_value: str

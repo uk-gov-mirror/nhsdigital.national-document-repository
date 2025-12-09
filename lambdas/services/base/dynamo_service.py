@@ -164,11 +164,27 @@ class DynamoDBService:
 
         return items
 
-    def create_item(self, table_name, item):
+    def create_item(self, table_name, item, key_name: str | None = None):
+        """
+        Put an item into the specified DynamoDB table with a condition on the existence of the key.
+        Args:
+            table_name: Name of the DynamoDB table
+            item: The item to be inserted (as a dictionary)
+            key_name: The name of the key field to check existance for conditional put
+        Returns:
+            Response from the DynamoDB put_item operation
+        Raises:
+            ClientError: For AWS service errors (DynamoDB)
+        """
         try:
             table = self.get_table(table_name)
             logger.info(f"Writing item to table: {table_name}")
-            table.put_item(Item=item)
+            if key_name:
+                return table.put_item(
+                    Item=item, ConditionExpression=f"attribute_not_exists({key_name})"
+                )
+            else:
+                return table.put_item(Item=item)
         except ClientError as e:
             logger.error(
                 str(e), {"Result": f"Unable to write item to table: {table_name}"}

@@ -17,11 +17,13 @@ logger = LoggingService(__name__)
 
 class DocumentUploadReviewService(DocumentService):
     """Service for handling DocumentUploadReviewReference operations."""
+
     DEFAULT_QUERY_LIMIT = 50
+
     def __init__(self):
         super().__init__()
         self._table_name = os.environ.get("DOCUMENT_REVIEW_DYNAMODB_NAME")
-        self._s3_bucket = os.environ.get("DOCUMENT_REVIEW_S3_BUCKET_NAME")
+        self._s3_bucket = os.environ.get("PENDING_REVIEW_BUCKET_NAME")
 
     @property
     def table_name(self) -> str:

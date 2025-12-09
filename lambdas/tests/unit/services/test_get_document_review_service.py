@@ -12,7 +12,7 @@ from models.document_review import (
 from services.get_document_review_service import GetDocumentReviewService
 from tests.unit.conftest import (
     MOCK_DOCUMENT_REVIEW_BUCKET,
-    MOCK_EDGE_TABLE,
+    MOCK_EDGE_REFERENCE_TABLE,
     TEST_NHS_NUMBER,
 )
 from utils.exceptions import DynamoServiceException
@@ -210,7 +210,7 @@ def test_create_cloudfront_presigned_url(mock_service, mock_uuid, mocker):
     call_args = (
         mock_service.document_review_service.dynamo_service.create_item.call_args
     )
-    assert call_args[0][0] == MOCK_EDGE_TABLE
+    assert call_args[0][0] == MOCK_EDGE_REFERENCE_TABLE
     assert call_args[0][1]["ID"] == f"review/{mock_uuid}"
     assert call_args[0][1]["presignedUrl"] == TEST_PRESIGNED_URL_1
     assert "TTL" in call_args[0][1]

@@ -44,7 +44,7 @@ class DocumentUploadReviewReference(BaseModel):
     ttl: int | None = Field(
         alias=str(DocumentReferenceMetadataFields.TTL.value), default=None
     )
-    document_reference_id: str = Field(default=None)
+    document_reference_id: str | None = Field(default=None)
     document_snomed_code_type: str = Field(default=SnomedCodes.LLOYD_GEORGE.value.code)
 
     def model_dump_camel_case(self, *args, **kwargs):
