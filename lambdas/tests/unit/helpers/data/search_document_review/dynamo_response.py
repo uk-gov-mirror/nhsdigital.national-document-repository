@@ -13,6 +13,7 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
     "Items": [
         {
             "ID": "3d8683b9-1665-40d2-8499-6e8302d507ff",
+            "Version": 1,
             "Files": [
                 {
                     "FileLocation": f"s3://{MOCK_STAGING_STORE_BUCKET}/{TEST_NHS_NUMBER}/test-key-123",
@@ -34,6 +35,7 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
         },
         {
             "ID": "4d8683b9-1665-40d2-8499-6e8302d507ff",
+            "Version": 2,
             "Files": [
                 {
                     "FileLocation": f"s3://{MOCK_STAGING_STORE_BUCKET}/{TEST_NHS_NUMBER}/test-key-123",
@@ -55,6 +57,7 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
         },
         {
             "ID": "5d8683b9-1665-40d2-8499-6e8302d507ff",
+            "Version": 3,
             "Files": [
                 {
                     "FileLocation": f"s3://{MOCK_STAGING_STORE_BUCKET}/{TEST_NHS_NUMBER}/test-key-123",

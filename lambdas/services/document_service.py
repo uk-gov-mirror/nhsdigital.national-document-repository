@@ -106,15 +106,17 @@ class DocumentService:
         return documents
 
     def get_item(
-        self,
-        document_id: str,
-        table_name: str = None,
-        model_class: type[BaseModel] = None,
+            self,
+            document_id: str,
+            sort_key: dict = None,
+            table_name: str = None,
+            model_class: type[BaseModel] = None,
     ) -> Optional[BaseModel]:
-        """Fetch a single document by ID from specified or configured table.
+        """Fetch a single document by ID from a specified or configured table.
 
         Args:
             document_id: The document ID to retrieve.
+            sort_key: Optional sort key, defaults to None.
             table_name: Optional table name, defaults to self.table_name.
             model_class: Optional model class, defaults to self.model_class.
 
@@ -123,10 +125,12 @@ class DocumentService:
         """
         table_to_use = table_name or self.table_name
         model_to_use = model_class or self.model_class
-
+        document_key = {"ID": document_id}
+        if sort_key:
+            document_key.update(sort_key)
         try:
             response = self.dynamo_service.get_item(
-                table_name=table_to_use, key={"ID": document_id}
+                table_name=table_to_use, key=document_key
             )
 
             if "Item" not in response:
@@ -137,7 +141,6 @@ class DocumentService:
             return document
 
         except ValidationError as e:
-            logger.error(f"Validation error on document: {response.get('Item')}")
             logger.error(f"{e}")
             return None
 
@@ -146,6 +149,7 @@ class DocumentService:
     ) -> list[str]:
         """Get unique NHS numbers for patients with given ODS code."""
         table_name = table_name or self.table_name
+
         documents = self.fetch_documents_from_table(
             index_name="OdsCodeIndex",
             search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
@@ -211,19 +215,32 @@ class DocumentService:
         update_key: dict[str, str] | None = None,
         document: BaseModel = None,
         update_fields_name: set[str] | None = None,
+        condition_expression: str | Attr | ConditionBase = None,
+        expression_attribute_values: dict = None,
     ):
         """Update document in specified or configured table."""
         table_name = table_name or self.table_name
-        if not update_key:
-            update_key = {DocumentReferenceMetadataFields.ID.value: document.id}
 
-        self.dynamo_service.update_item(
-            table_name=table_name,
-            key_pair=update_key,
-            updated_fields=document.model_dump(
+        update_kwargs = {
+            "table_name": table_name,
+            "updated_fields": document.model_dump(
                 exclude_none=True, by_alias=True, include=update_fields_name
             ),
-        )
+        }
+        if update_key:
+            update_kwargs["key_pair"] = update_key
+        else:
+            update_kwargs["key_pair"] = {
+                DocumentReferenceMetadataFields.ID.value: document.id
+            }
+
+        if condition_expression:
+            update_kwargs["condition_expression"] = condition_expression
+
+        if expression_attribute_values:
+            update_kwargs["expression_attribute_values"] = expression_attribute_values
+
+        return self.dynamo_service.update_item(**update_kwargs)
 
     def hard_delete_metadata_records(
         self, table_name: str, document_references: list[BaseModel]

@@ -6,4 +6,3 @@ class DocumentReviewQuerystringParameters(StrEnum):
     NEXT_PAGE_TOKEN = "nextPageToken"
     UPLOADER = "uploader"
     NHS_NUMBER = "nhsNumber"
-

@@ -14,7 +14,6 @@ from utils.lambda_exceptions import DocumentReviewException
 
 TEST_QUERY_LIMIT = "20"
 TEST_LAST_EVALUATED_KEY = {"id": TEST_UUID, "UploadDate": 0}
-TEST_ENCODED_START_KEY = ""
 TEST_ENCODED_START_KEY = base64.b64encode(
     json.dumps(TEST_LAST_EVALUATED_KEY).encode("ascii")
 ).decode("utf-8")
@@ -60,6 +59,7 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         [
             {
                 "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]["ID"],
+                "version": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]["Version"],
                 "reviewReason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
                     "ReviewReason"
                 ],
@@ -76,6 +76,7 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
             },
             {
                 "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1]["ID"],
+                "version": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1]["Version"],
                 "reviewReason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
                     "ReviewReason"
                 ],
@@ -92,6 +93,7 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
             },
             {
                 "id": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2]["ID"],
+                "version": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2]["Version"],
                 "reviewReason": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
                     "ReviewReason"
                 ],

@@ -487,6 +487,33 @@ class LambdaError(Enum):
         "fhir_coding": UKCoreSpineError.ACCESS_DENIED,
     }
     """
+    Errors for document review lambda
+    """
+    DocumentReviewNotFound = {
+        "err_code": "DRV_4041",
+        "message": "Document review not found",
+        "fhir_coding": UKCoreSpineError.RESOURCE_NOT_FOUND,
+    }
+    DocumentReviewGeneralError = {
+        "err_code": "DRV_4002",
+        "message": "An error occurred while fetching the document review",
+        "fhir_coding": FhirIssueCoding.EXCEPTION,
+    }
+    UpdateDocStatusUnavailable = {
+        "err_code": "DRV_4003",
+        "message": "This Document is not available for review update",
+        "fhir_coding": FhirIssueCoding.FORBIDDEN,
+    }
+    DocumentReviewInvalidBody = {
+        "err_code": "DRV_4004",
+        "message": "Invalid request body",
+    }
+    DocumentReviewInvalidNhsNumber = {
+        "err_code": "DRV_4005",
+        "message": "The NHS number provided is invalid",
+    }
+
+    """
        Errors for get ods report lambda 
     """
     NoDataFound = {

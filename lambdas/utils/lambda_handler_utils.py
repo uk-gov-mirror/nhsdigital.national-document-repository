@@ -6,7 +6,7 @@ from utils.lambda_header_utils import validate_common_name_in_mtls
 from utils.lambda_exceptions import (
     GetFhirDocumentReferenceException,
     DocumentRefSearchException,
-    DocumentRefException,
+    DocumentRefException, DocumentReviewException,
 )
 
 logger = LoggingService(__name__)
@@ -36,3 +36,21 @@ def extract_bearer_token(event, context):
 
         return bearer_token
     return None
+
+
+def validate_review_path_parameters(event):
+    path_parameters = event.get("pathParameters", {})
+    document_id = path_parameters.get("id")
+    document_version = path_parameters.get("version")
+    if not document_id or not document_version:
+        raise DocumentReviewException(
+            400, LambdaError.DocumentReferenceMissingParameters
+        )
+    try:
+        document_version = int(document_version)
+    except ValueError:
+        logger.error(f"Invalid document version: {document_version}")
+        raise DocumentReviewException(
+            400, LambdaError.DocumentReferenceMissingParameters
+        )
+    return document_id, document_version

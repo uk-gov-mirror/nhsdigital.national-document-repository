@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest.mock import call
 
 import pytest
+from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 from enums.document_retention import DocumentRetentionDays
 from enums.dynamo_filter import AttributeOperator
@@ -246,6 +247,51 @@ def test_update_document(mock_service, mock_dynamo_service):
     mock_dynamo_service.update_item.assert_has_calls([update_item_call])
 
 
+def test_update_document_with_custom_key_pair(mock_service, mock_dynamo_service):
+    test_doc_ref = DocumentReference.model_validate(MOCK_DOCUMENT)
+
+    test_update_fields = {"doc_status"}
+    custom_key_pair = {"ID": test_doc_ref.id, "NhsNumber": test_doc_ref.nhs_number}
+
+    update_item_call = call(
+        table_name=MOCK_TABLE_NAME,
+        key_pair=custom_key_pair,
+        updated_fields={"DocStatus": "final"},
+    )
+
+    mock_service.update_document(
+        MOCK_TABLE_NAME, custom_key_pair, test_doc_ref, test_update_fields,
+    )
+
+    mock_dynamo_service.update_item.assert_has_calls([update_item_call])
+
+
+def test_update_document_with_condition_expression(mock_service, mock_dynamo_service):
+    test_doc_ref = DocumentReference.model_validate(MOCK_DOCUMENT)
+
+    test_update_fields = {"doc_status"}
+    condition_expr = Attr("Uploaded").eq(False)
+    expression_attr_values = {":uploaded": False}
+
+    update_item_call = call(
+        table_name=MOCK_TABLE_NAME,
+        key_pair={"ID": test_doc_ref.id},
+        updated_fields={"DocStatus": "final"},
+        condition_expression=condition_expr,
+        expression_attribute_values=expression_attr_values,
+    )
+
+    mock_service.update_document(
+        table_name=MOCK_TABLE_NAME,
+        document=test_doc_ref,
+        update_fields_name=test_update_fields,
+        condition_expression=condition_expr,
+        expression_attribute_values=expression_attr_values,
+    )
+
+    mock_dynamo_service.update_item.assert_has_calls([update_item_call])
+
+
 def test_hard_delete_metadata_records(mock_service, mock_dynamo_service):
     test_doc_refs = [
         DocumentReference.model_validate(mock_document)
@@ -430,7 +476,7 @@ def test_get_batch_document_references_by_id_client_error(
     "document_id,table_name,file_name,expected_table",
     [
         ("test-doc-id-123", None, "test-file.pdf", MOCK_LG_TABLE_NAME),
-        ("test-doc-id-456", MOCK_ARF_TABLE_NAME, "arf-file.pdf", MOCK_ARF_TABLE_NAME),
+        ("test-doc-id-456", MOCK_TABLE_NAME, "lg-file.pdf", MOCK_TABLE_NAME),
     ],
 )
 def test_get_item_success(
@@ -470,18 +516,17 @@ def test_get_item_success(
 
 
 @pytest.mark.parametrize(
-    "document_id,mock_response,expected_log",
+    "document_id,mock_response",
     [
-        ("non-existent-doc", {}, "No document found for document_id: non-existent-doc"),
+        ("non-existent-doc", {}, ),
         (
             "invalid-doc",
             {"Item": {"ID": "invalid-doc", "InvalidField": "invalid-value"}},
-            "Validation error on document:",
         ),
     ],
 )
 def test_get_item_returns_none(
-    mock_service, mock_dynamo_service, caplog, document_id, mock_response, expected_log
+    mock_service, mock_dynamo_service, document_id, mock_response,
 ):
     """Test get_item returns None for not found or invalid documents."""
     mock_dynamo_service.get_item.return_value = mock_response
@@ -492,7 +537,6 @@ def test_get_item_returns_none(
         table_name=MOCK_LG_TABLE_NAME, key={"ID": document_id}
     )
     assert result is None
-    assert expected_log in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -515,11 +559,11 @@ def test_get_item_with_custom_model_class(
     file_name,
     expected_table,
 ):
-    """Test retrieval using a custom model class with default or custom table."""
 
     mock_dynamo_response = {
         "Item": {
             "ID": document_id,
+
             "Author": "Y12345",
             "Custodian": "Y12345",
             "ReviewStatus": "PENDING_REVIEW",
@@ -556,3 +600,14 @@ def test_get_item_with_custom_model_class(
     assert isinstance(result, DocumentUploadReviewReference)
     assert result.id == document_id
     assert result.nhs_number == TEST_NHS_NUMBER
+
+
+def test_get_item_document_id_with_sort_key(mock_service, mock_dynamo_service):
+    document_id = "test-doc-id-123"
+    sort_key = {"sort-key-name": "test-sort-value"}
+
+    mock_service.get_item(document_id, sort_key)
+
+    mock_dynamo_service.get_item.assert_called_once_with(
+        table_name=MOCK_LG_TABLE_NAME, key={"ID": document_id, **sort_key}
+    )

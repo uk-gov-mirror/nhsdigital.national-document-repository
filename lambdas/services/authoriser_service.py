@@ -97,7 +97,9 @@ class AuthoriserService:
 
             case doc_ref if re.match(doc_ref_pattern, doc_ref):
                 deny_resource = True
-                if (is_user_gp_admin or is_user_gp_clinical) and patient_access_is_allowed:
+                if (
+                    is_user_gp_admin or is_user_gp_clinical
+                ) and patient_access_is_allowed:
                     deny_resource = False
                 if patient_access_is_allowed and access_to_deceased_patient:
                     deny_resource = True
@@ -125,9 +127,7 @@ class AuthoriserService:
                     not patient_access_is_allowed or is_user_gp_clinical or is_user_pcse
                 )
             case path if path.startswith("/DocumentReview/"):
-                deny_resource = (
-                    not patient_access_is_allowed
-                )
+                deny_resource = not patient_access_is_allowed
 
             case "/UploadState":
                 deny_resource = (

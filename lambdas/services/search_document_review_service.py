@@ -38,6 +38,7 @@ class SearchDocumentReviewService:
                     exclude_none=True,
                     include={
                         "id",
+                        "version",
                         "nhs_number",
                         "review_reason",
                         "document_snomed_code_type",

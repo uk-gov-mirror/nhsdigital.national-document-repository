@@ -1,7 +1,6 @@
 import os
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
 
 from enums.lambda_error import LambdaError
 from services.base.s3_service import S3Service
@@ -26,12 +25,15 @@ class GetDocumentReviewService:
         self.cloudfront_table_name = os.environ.get("EDGE_REFERENCE_TABLE")
         self.cloudfront_url = os.environ.get("CLOUDFRONT_URL")
 
-    def get_document_review(self, patient_id: str, document_id: str) -> Optional[dict]:
+    def get_document_review(
+        self, patient_id: str, document_id: str, document_version: int
+    ) -> dict | None:
         """Retrieve a document review for a given patient and document.
 
         Args:
             patient_id: The patient ID (NHS number).
             document_id: The document ID to retrieve.
+            document_version: The document version to retrieve.
 
         Returns:
             Dictionary containing the document review details, or None if not found.
@@ -41,7 +43,11 @@ class GetDocumentReviewService:
                 f"Fetching document review for patient_id: {patient_id}, document_id: {document_id}"
             )
 
-            document_review_item = self.document_review_service.get_item(document_id)
+            document_review_item = (
+                self.document_review_service.get_document_review_by_id(
+                    document_id=document_id, document_version=document_version
+                )
+            )
 
             if not document_review_item:
                 logger.info(f"No document review found for document_id: {document_id}")
@@ -63,6 +69,7 @@ class GetDocumentReviewService:
             document_review = document_review_item.model_dump_camel_case(
                 include={
                     "id": True,
+                    "version": True,
                     "upload_date": True,
                     "files": {"__all__": {"file_name": True, "presigned_url": True}},
                     "document_snomed_code_type": True,

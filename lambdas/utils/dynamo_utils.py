@@ -95,18 +95,20 @@ def create_expression_attribute_values(attribute_field_values: dict) -> dict:
     return expression_attribute_values
 
 
-def create_expression_value_placeholder(value: str) -> str:
+def create_expression_value_placeholder(value: str, suffix: str = "") -> str:
     """
     Creates a placeholder value for an expression attribute name
         :param value: Value to change into a placeholder
+        :param suffix: Optional suffix to add before "_val" (e.g. "_condition")
 
-    example usage:
+    Example usage:
         placeholder = create_expression_value_placeholder("VirusScanResult")
-
-    result:
-        ":VirusScanResult_val"
+        # Result: ":VirusScanResult_val"
+        placeholder = create_expression_value_placeholder("VirusScanResult", "_condition")
+        # Result: ":VirusScanResult_condition_val"
     """
-    return f":{inflection.camelize(value, uppercase_first_letter=True)}_val"
+    camelized = inflection.camelize(value, uppercase_first_letter=True)
+    return f":{camelized}{suffix}_val"
 
 
 def create_expression_attribute_placeholder(value: str) -> str:
@@ -155,6 +157,172 @@ def parse_dynamo_record(dynamodb_record: Dict[str, Any]) -> Dict[str, Any]:
             case _:
                 raise ValueError(f"Unsupported DynamoDB type for key {key}: {value}")
     return result
+
+
+def build_mixed_condition_expression(
+    conditions: list[dict[str, Any]],
+    join_operator: str = "AND",
+    suffix: str = "_condition",
+) -> tuple[str, dict[str, str], dict[str, Any]]:
+    """
+    Build a condition expression with mixed operators and conditions.
+
+    Args:
+        conditions: List of condition dictionaries, each with:
+                   - "field": field name
+                   - "operator": comparison operator or "attribute_exists"/"attribute_not_exists"
+                   - "value": value to compare (not needed for existence checks)
+                   Example: [
+                       {"field": "DocStatus", "operator": "=", "value": "final"},
+                       {"field": "Deleted", "operator": "attribute_not_exists"}
+                   ]
+        join_operator: Logical operator to join conditions (default: "AND")
+        suffix: Suffix to add to value placeholders (default: "_condition")
+
+    Returns:
+        Tuple of (condition_expression, expression_attribute_names, expression_attribute_values)
+    """
+    condition_expressions = []
+    condition_attribute_names = {}
+    condition_attribute_values = {}
+
+    for condition in conditions:
+        field_name = condition["field"]
+        operator = condition["operator"]
+        field_value = condition.get("value")
+
+        condition_placeholder = create_expression_attribute_placeholder(field_name)
+        condition_attribute_names[condition_placeholder] = field_name
+
+        if operator in ["attribute_exists", "attribute_not_exists"]:
+            condition_expressions.append(f"{operator}({condition_placeholder})")
+        else:
+            condition_value_placeholder = create_expression_value_placeholder(
+                field_name, suffix
+            )
+            condition_expressions.append(
+                f"{condition_placeholder} {operator} {condition_value_placeholder}"
+            )
+            condition_attribute_values[condition_value_placeholder] = field_value
+
+    condition_expression = f" {join_operator} ".join(condition_expressions)
+
+    return condition_expression, condition_attribute_names, condition_attribute_values
+
+
+def build_general_transaction_item(
+    table_name: str,
+    action: str,
+    key: dict | None = None,
+    item: dict | None = None,
+    update_expression: str | None = None,
+    condition_expression: str | None = None,
+    expression_attribute_names: dict | None = None,
+    expression_attribute_values: dict | None = None,
+) -> dict[str, dict[str, Any]]:
+    """
+    Build a general DynamoDB transaction item for any action type.
+    All expressions and attributes must be pre-formatted.
+
+    Args:
+        table_name: The name of the DynamoDB table
+        action: Transaction action type ('Put', 'Update', 'Delete', 'ConditionCheck')
+        key: The primary key of the item (required for Update, Delete, ConditionCheck)
+        item: The complete item to put (required for Put)
+        update_expression: Pre-formatted update expression (optional for Update)
+        condition_expression: Pre-formatted condition expression (optional)
+        expression_attribute_names: Pre-formatted expression attribute names (optional)
+        expression_attribute_values: Pre-formatted expression attribute values (optional)
+
+    Returns:
+        A transaction item dict ready for transact_write_items
+
+    Raises:
+        ValueError: If required parameters are missing for the specified action
+    """
+    action = action.capitalize()
+
+    if action not in ["Put", "Update", "Delete", "Conditioncheck"]:
+        raise ValueError(
+            f"Invalid action: {action}. Must be one of: Put, Update, Delete, ConditionCheck"
+        )
+
+    transaction_item: dict[str, dict[str, Any]] = {action: {"TableName": table_name}}
+
+    if action == "Put":
+        if item is None:
+            raise ValueError("'item' is required for Put action")
+        transaction_item[action]["Item"] = item
+
+    elif action == "Update":
+        if key is None:
+            raise ValueError("'key' is required for Update action")
+        transaction_item[action]["Key"] = key
+        if update_expression:
+            transaction_item[action]["UpdateExpression"] = update_expression
+
+    elif action in ["Delete", "Conditioncheck"]:
+        if key is None:
+            raise ValueError(f"'key' is required for {action} action")
+        transaction_item[action]["Key"] = key
+
+    if condition_expression:
+        transaction_item[action]["ConditionExpression"] = condition_expression
+
+    if expression_attribute_names:
+        transaction_item[action][
+            "ExpressionAttributeNames"
+        ] = expression_attribute_names
+
+    if expression_attribute_values:
+        transaction_item[action][
+            "ExpressionAttributeValues"
+        ] = expression_attribute_values
+
+    return transaction_item
+
+
+def build_transaction_item(
+    table_name: str,
+    action: str,
+    key: dict | None = None,
+    item: dict | None = None,
+    update_fields: dict | None = None,
+    conditions: list[dict] | None = None,
+    condition_join_operator: str = "AND",
+) -> dict:
+    update_expression = None
+    condition_expression = None
+    expression_attribute_names = {}
+    expression_attribute_values = {}
+
+    if action.lower() == "update" and update_fields:
+        field_names = list(update_fields.keys())
+        update_expression = create_update_expression(field_names)
+        _, update_attr_names = create_expressions(field_names)
+        update_attr_values = create_expression_attribute_values(update_fields)
+
+        expression_attribute_names.update(update_attr_names)
+        expression_attribute_values.update(update_attr_values)
+
+    if conditions:
+        condition_expr, condition_attr_names, condition_attr_values = (
+            build_mixed_condition_expression(conditions, condition_join_operator)
+        )
+        condition_expression = condition_expr
+        expression_attribute_names.update(condition_attr_names)
+        expression_attribute_values.update(condition_attr_values)
+
+    return build_general_transaction_item(
+        table_name=table_name,
+        action=action,
+        key=key,
+        item=item,
+        update_expression=update_expression,
+        condition_expression=condition_expression,
+        expression_attribute_names=expression_attribute_names or None,
+        expression_attribute_values=expression_attribute_values or None,
+    )
 
 
 class DocTypeTableRouter:

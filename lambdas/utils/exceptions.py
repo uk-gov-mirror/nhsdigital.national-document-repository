@@ -50,6 +50,10 @@ class DocumentServiceException(Exception):
     pass
 
 
+class DocumentReviewException(Exception):
+    pass
+
+
 class MissingEnvVarException(Exception):
     pass
 
@@ -64,7 +68,6 @@ class FileProcessingException(Exception):
 
 class LGFileTypeException(ValueError):
     """One or more of the files do not match the required file type."""
-
     pass
 
 

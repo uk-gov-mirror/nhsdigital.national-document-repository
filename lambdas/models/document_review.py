@@ -3,8 +3,10 @@ import uuid
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_pascal, to_camel
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic.alias_generators import to_camel, to_pascal
+from utils.exceptions import InvalidNhsNumberException
+from utils.utilities import validate_nhs_number
 
 
 class DocumentReviewFileDetails(BaseModel):
@@ -41,10 +43,8 @@ class DocumentUploadReviewReference(BaseModel):
     upload_date: int
     files: list[DocumentReviewFileDetails] = Field(min_length=1)
     nhs_number: str
-    ttl: int | None = Field(
-        alias=str(DocumentReferenceMetadataFields.TTL.value), default=None
-    )
-    document_reference_id: str | None = Field(default=None)
+    version: int = Field(default=1)
+    document_reference_id: str = Field(default=None)
     document_snomed_code_type: str = Field(default=SnomedCodes.LLOYD_GEORGE.value.code)
 
     def model_dump_camel_case(self, *args, **kwargs):
@@ -67,3 +67,62 @@ class DocumentUploadReviewReference(BaseModel):
             camel_case_dict[to_camel(key)] = value
 
         return camel_case_dict
+
+class PatchDocumentReviewRequest(BaseModel):
+    model_config = ConfigDict(
+        validate_by_alias=True,
+        populate_by_name=True,
+        alias_generator=to_camel,
+        use_enum_values=True,
+    )
+
+    review_status: DocumentReviewStatus = Field(..., description="Review outcome")
+    document_reference_id: str | None = Field(
+        default=None,
+        description="Document reference ID (required when status is APPROVED)",
+    )
+    nhs_number: str | None = Field(
+        default=None,
+        description="New NHS number (required when status is REASSIGNED)",
+    )
+
+    @model_validator(mode="after")
+    def validate_document_reference_id(self):
+        """Ensure document_reference_id is provided when review_status is APPROVED."""
+        if (
+            self.review_status == DocumentReviewStatus.APPROVED
+            and not self.document_reference_id
+        ):
+            raise ValueError(
+                "document_reference_id is required when review_status is APPROVED"
+            )
+        elif (
+            self.review_status != DocumentReviewStatus.APPROVED
+            and self.document_reference_id
+        ):
+            raise ValueError(
+                "document_reference_id is not required when review_status is not APPROVED"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_reassign_nhs_number(self):
+        """
+        Validate the reassignment of the NHS number after the input data model has been populated.
+
+        Checks whether the `reassigned_nhs_number` field has been provided and is valid when the
+        `review_status` reflects a reassigned state. Raises an error if validation fails.
+        """
+        if (
+            self.review_status == DocumentReviewStatus.REASSIGNED
+            and not self.nhs_number
+        ):
+            raise ValueError(
+                "reassigned_nhs_number is required when review_status is REASSIGNED or REASSIGNED_PATIENT_UNKNOWN"
+            )
+        elif self.review_status == DocumentReviewStatus.REASSIGNED and self.nhs_number:
+            try:
+                validate_nhs_number(self.nhs_number)
+            except InvalidNhsNumberException:
+                raise ValueError("Invalid NHS number")
+        return self

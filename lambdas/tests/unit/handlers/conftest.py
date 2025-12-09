@@ -1,4 +1,5 @@
 import pytest
+
 from enums.feature_flags import FeatureFlags
 from services.feature_flags_service import FeatureFlagService
 
@@ -166,4 +167,3 @@ def mock_upload_document_iteration_3_enabled(mocker):
         FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: True
     }
     yield mock_feature_flag
-

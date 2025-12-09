@@ -2,6 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 from boto3.dynamodb.conditions import Attr
+from botocore.exceptions import ClientError
+from enums.document_review_status import DocumentReviewStatus
+from enums.metadata_field_names import DocumentReferenceMetadataFields
 from models.document_review import DocumentUploadReviewReference
 from services.document_upload_review_service import DocumentUploadReviewService
 from tests.unit.conftest import (
@@ -9,6 +12,7 @@ from tests.unit.conftest import (
     MOCK_DOCUMENT_REVIEW_TABLE,
     TEST_NHS_NUMBER,
 )
+from utils.exceptions import DocumentReviewException
 
 TEST_ODS_CODE = "Y12345"
 NEW_ODS_CODE = "Z98765"
@@ -18,14 +22,9 @@ TEST_QUERY_LIMIT = 50
 @pytest.fixture
 def mock_service(set_env, mocker):
     """Fixture to create a DocumentUploadReviewService with mocked dependencies."""
-
-    mocker.patch(
-        "services.document_upload_review_service.DocumentService.__init__",
-        return_value=None,
-    )
+    mocker.patch("services.document_service.S3Service")
+    mocker.patch("services.document_service.DynamoDBService")
     service = DocumentUploadReviewService()
-    service.s3_service = MagicMock()
-    service.dynamo_service = MagicMock()
     yield service
 
 
@@ -36,10 +35,23 @@ def mock_document_review_references():
     for i in range(3):
         review = MagicMock(spec=DocumentUploadReviewReference)
         review.id = f"review-id-{i}"
+        review.version = i
         review.nhs_number = TEST_NHS_NUMBER
         review.custodian = TEST_ODS_CODE
         reviews.append(review)
     return reviews
+
+
+@pytest.fixture
+def mock_review_update():
+    """Fixture to create a mock review update object."""
+    review_update = MagicMock(spec=DocumentUploadReviewReference)
+    review_update.id = "test-review-id"
+    review_update.version = 1
+    review_update.nhs_number = TEST_NHS_NUMBER
+    review_update.review_status = DocumentReviewStatus.APPROVED
+    review_update.document_reference_id = "test-doc-ref-id"
+    return review_update
 
 
 def test_table_name(mock_service):
@@ -79,7 +91,9 @@ def test_update_document_review_custodian_updates_all_documents(
     # Verify update_document was called with the correct parameters
     for review in mock_document_review_references:
         mock_update_document.assert_any_call(
-            document=review, update_fields_name={"custodian"}
+            document=review,
+            update_fields_name={"custodian"},
+            update_key={"ID": review.id, "Version": review.version},
         )
 
 
@@ -125,10 +139,8 @@ def test_update_document_review_custodian_mixed_custodians(
         mock_document_review_references, NEW_ODS_CODE
     )
 
-    # Verify that update_document was only called twice (for the 2 documents that needed updating)
     assert mock_update_document.call_count == 2
 
-    # Verify all documents now have the new custodian
     for review in mock_document_review_references:
         assert review.custodian == NEW_ODS_CODE
 
@@ -144,25 +156,273 @@ def test_update_document_review_custodian_logging(
         mock_document_review_references, NEW_ODS_CODE
     )
 
-    # Verify logging was called for each document
     assert mock_logger.info.call_count == 3
     mock_logger.info.assert_any_call("Updating document review custodian...")
 
 
 def test_update_document_review_custodian_single_document(mock_service, mocker):
-    """Test update_document_review_custodian with a single document."""
     mock_update_document = mocker.patch.object(mock_service, "update_document")
 
     single_review = MagicMock(spec=DocumentUploadReviewReference)
     single_review.id = "single-review-id"
+    single_review.version = 1
     single_review.custodian = TEST_ODS_CODE
 
     mock_service.update_document_review_custodian([single_review], NEW_ODS_CODE)
 
     assert single_review.custodian == NEW_ODS_CODE
     mock_update_document.assert_called_once_with(
-        document=single_review, update_fields_name={"custodian"}
+        document=single_review,
+        update_fields_name={"custodian"},
+        update_key={"ID": single_review.id, "Version": single_review.version},
     )
+
+
+def test_get_document_review_by_id(
+    mock_service, mock_document_review_references, mocker
+):
+    mock_get_item = mocker.patch.object(mock_service, "get_item")
+    mock_get_item.side_effect = mock_document_review_references
+
+    mock_review = mock_service.get_document_review_by_id("review-id-0", 34)
+
+    assert mock_review == mock_document_review_references[0]
+    mock_get_item.assert_called_once_with("review-id-0", {"Version": 34})
+
+
+def test_update_document_review_for_patient_success(
+    mock_service, mock_review_update, mocker
+):
+    mock_update_document = mocker.patch.object(mock_service, "update_document")
+    mock_update_document.return_value = {"Attributes": {"ID": "test-review-id"}}
+
+    field_names = {"review_status", "document_reference_id"}
+
+    result = mock_service.update_document_review_for_patient(
+        review_update=mock_review_update,
+        field_names=field_names,
+        condition_expression="test condition expression",
+    )
+
+    mock_update_document.assert_called_once()
+    call_args = mock_update_document.call_args
+
+    assert call_args.kwargs["document"] == mock_review_update
+    assert call_args.kwargs["update_fields_name"] == field_names
+
+    condition_expr = call_args.kwargs["condition_expression"]
+    assert condition_expr == "test condition expression"
+
+    assert result == {"Attributes": {"ID": "test-review-id"}}
+
+
+def test_update_document_review_for_patient_builds_correct_condition_expression(
+    mock_service, mock_review_update, mocker
+):
+    mock_update_document = mocker.patch.object(mock_service, "update_document")
+
+    field_names = {"review_status"}
+
+    mock_service.update_pending_review_status(
+        review_update=mock_review_update,
+        field_names=field_names,
+    )
+
+    call_args = mock_update_document.call_args
+    condition_expr = call_args.kwargs["condition_expression"]
+
+    expected_condition = (
+        Attr(DocumentReferenceMetadataFields.ID.value).exists()
+        & Attr("NhsNumber").eq(mock_review_update.nhs_number)
+        & Attr("ReviewStatus").eq(DocumentReviewStatus.PENDING_REVIEW)
+    )
+
+    assert condition_expr == expected_condition
+    assert call_args.kwargs["update_fields_name"] == field_names
+    assert call_args.kwargs["document"] == mock_review_update
+    assert call_args.kwargs["update_key"] == {
+        "ID": mock_review_update.id,
+        "Version": mock_review_update.version,
+    }
+
+
+def test_update_document_review_for_patient_conditional_check_failed(
+    mock_service, mock_review_update, mocker
+):
+    client_error = ClientError(
+        {"Error": {"Code": "ConditionalCheckFailedException"}}, "UpdateItem"
+    )
+    mock_update_document = mocker.patch.object(mock_service, "update_document")
+    mock_update_document.side_effect = client_error
+
+    field_names = {"review_status"}
+
+    with pytest.raises(DocumentReviewException):
+        mock_service.update_approved_pending_review_status(
+            review_update=mock_review_update,
+            field_names=field_names,
+        )
+
+    call_args = mock_update_document.call_args
+    condition_expr = call_args.kwargs["condition_expression"]
+
+    expected_condition = (
+        Attr(DocumentReferenceMetadataFields.ID.value).exists()
+        & Attr("NhsNumber").eq(mock_review_update.nhs_number)
+        & Attr("ReviewStatus").eq(DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS)
+    )
+
+    assert condition_expr == expected_condition
+    assert call_args.kwargs["update_fields_name"] == field_names
+    assert call_args.kwargs["document"] == mock_review_update
+    assert call_args.kwargs["update_key"] == {
+        "ID": mock_review_update.id,
+        "Version": mock_review_update.version,
+    }
+
+
+def test_update_document_review_for_patient_other_client_error(
+    mock_service, mock_review_update, mocker
+):
+    client_error = ClientError(
+        {"Error": {"Code": "ResourceNotFoundException", "Message": "Table not found"}},
+        "UpdateItem",
+    )
+    mock_update_document = mocker.patch.object(mock_service, "update_document")
+    mock_update_document.side_effect = client_error
+
+    field_names = {"review_status"}
+
+    with pytest.raises(DocumentReviewException):
+        mock_service.update_approved_pending_review_status(
+            review_update=mock_review_update,
+            field_names=field_names,
+        )
+
+
+def test_update_document_review_with_transaction_builds_correct_items(
+    mock_service, mock_review_update, mocker
+):
+    """Test that transaction items are built correctly for new and existing reviews."""
+    mock_transact_write = mocker.patch.object(
+        mock_service.dynamo_service, "transact_write_items"
+    )
+    mock_transact_item_builder = mocker.patch(
+        "services.document_upload_review_service.build_transaction_item"
+    )
+    new_review = MagicMock(spec=DocumentUploadReviewReference)
+    new_review.id = "new-review-id"
+    new_review.version = 2
+
+    existing_review = mock_review_update
+    existing_review.custodian = TEST_ODS_CODE
+
+    mock_service.update_document_review_with_transaction(new_review, existing_review)
+
+    new_review.model_dump.assert_called_with(
+        exclude_none=True, by_alias=True, exclude={"version", "id"}
+    )
+
+    existing_review.model_dump.assert_called_with(
+        exclude_none=True,
+        by_alias=True,
+        include={"review_status", "review_date", "reviewer"},
+    )
+
+    mock_transact_write.assert_called_once()
+    assert mock_transact_item_builder.call_count == 2
+    call_args = mock_transact_write.call_args[0][0]
+    assert len(call_args) == 2
+
+    first_call = mock_transact_item_builder.call_args_list[0]
+    assert first_call.kwargs["conditions"] == [
+        {"field": "ID", "operator": "attribute_not_exists"}
+    ]
+    # Verify second call (existing review) has proper conditions
+    second_call = mock_transact_item_builder.call_args_list[1]
+    expected_conditions = [
+        {
+            "field": "ReviewStatus",
+            "operator": "=",
+            "value": DocumentReviewStatus.PENDING_REVIEW,
+        },
+        {"field": "NhsNumber", "operator": "=", "value": TEST_NHS_NUMBER},
+        {"field": "Custodian", "operator": "=", "value": TEST_ODS_CODE},
+    ]
+    assert second_call.kwargs["conditions"] == expected_conditions
+
+
+def test_delete_document_review_files_success(mock_service, mocker):
+    mock_delete_object = mocker.patch.object(mock_service.s3_service, "delete_object")
+
+    document_review = MagicMock(spec=DocumentUploadReviewReference)
+    mock_file_1 = MagicMock()
+    mock_file_1.file_name = "file1.pdf"
+    mock_file_1.file_location = "s3://test-bucket/folder/file1.pdf"
+
+    mock_file_2 = MagicMock()
+    mock_file_2.file_name = "file2.pdf"
+    mock_file_2.file_location = "s3://test-bucket/folder/file2.pdf"
+
+    document_review.files = [mock_file_1, mock_file_2]
+
+    mock_service.delete_document_review_files(document_review)
+
+    assert mock_delete_object.call_count == 2
+    mock_delete_object.assert_any_call("test-bucket", "folder/file1.pdf")
+    mock_delete_object.assert_any_call("test-bucket", "folder/file2.pdf")
+
+
+def test_delete_document_review_files_handles_s3_error(mock_service, mocker):
+    mock_delete_object = mocker.patch.object(mock_service.s3_service, "delete_object")
+
+    client_error = ClientError(
+        {"Error": {"Code": "NoSuchKey", "Message": "Object not found"}},
+        "DeleteObject",
+    )
+    mock_delete_object.side_effect = [client_error, None]
+
+    document_review = MagicMock(spec=DocumentUploadReviewReference)
+    mock_file_1 = MagicMock()
+    mock_file_1.file_name = "file1.pdf"
+    mock_file_1.file_location = "s3://test-bucket/folder/file1.pdf"
+
+    mock_file_2 = MagicMock()
+    mock_file_2.file_name = "file2.pdf"
+    mock_file_2.file_location = "s3://test-bucket/folder/file2.pdf"
+
+    document_review.files = [mock_file_1, mock_file_2]
+
+    mock_service.delete_document_review_files(document_review)
+
+    assert mock_delete_object.call_count == 2
+
+
+def test_update_document_review_with_transaction_transaction_cancelled(
+    mock_service, mock_review_update, mocker
+):
+    """Test handling of TransactionCanceledException."""
+    client_error = ClientError(
+        {"Error": {"Code": "TransactionCanceledException"}}, "TransactWriteItems"
+    )
+    mock_transact_write = mocker.patch.object(
+        mock_service.dynamo_service, "transact_write_items"
+    )
+    mock_transact_write.side_effect = client_error
+
+    new_review = MagicMock(spec=DocumentUploadReviewReference)
+    new_review.id = "new-review-id"
+    new_review.version = 2
+
+    existing_review = mock_review_update
+    existing_review.custodian = TEST_ODS_CODE
+
+    with pytest.raises(DocumentReviewException) as exc_info:
+        mock_service.update_document_review_with_transaction(
+            new_review, existing_review
+        )
+
+    assert "Failed to update document review" in str(exc_info.value)
 
 
 def test_build_review_query_filter_creates_filter_from_nhs_number(mock_service):

@@ -1,11 +1,11 @@
 import json
 
-from _pytest import monkeypatch
 import pytest
 from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from tests.unit.conftest import (
+    MOCK_TABLE_NAME,
     TEST_CURRENT_GP_ODS,
     TEST_DOCUMENT_LOCATION,
     TEST_FILE_KEY,
@@ -19,6 +19,9 @@ from tests.unit.helpers.data.dynamo.dynamo_stream import (
 )
 from utils.dynamo_utils import (
     DocTypeTableRouter,
+    build_general_transaction_item,
+    build_mixed_condition_expression,
+    build_transaction_item,
     create_expression_attribute_placeholder,
     create_expression_attribute_values,
     create_expression_value_placeholder,
@@ -195,3 +198,334 @@ def test_dynamo_table_mapping_fails(set_env, doc_type):
 
     assert excinfo.value.status_code == 400
     assert excinfo.value.error == LambdaError.DocTypeDB
+
+
+def test_create_expression_value_placeholder_with_suffix():
+    test_value = "VirusScannerResult"
+    expected = ":VirusScannerResult_condition_val"
+
+    actual = create_expression_value_placeholder(test_value, "_condition")
+
+    assert actual == expected
+
+
+def test_create_expression_value_placeholder_with_empty_suffix():
+    test_value = "VirusScannerResult"
+    expected = ":VirusScannerResult_val"
+
+    actual = create_expression_value_placeholder(test_value, "")
+
+    assert actual == expected
+
+
+def test_build_mixed_condition_expression_single_condition():
+    conditions = [{"field": "DocStatus", "operator": "=", "value": "final"}]
+    expected_expr = "#DocStatus_attr = :DocStatus_condition_val"
+    expected_names = {"#DocStatus_attr": "DocStatus"}
+    expected_values = {":DocStatus_condition_val": "final"}
+
+    actual_expr, actual_names, actual_values = build_mixed_condition_expression(
+        conditions
+    )
+
+    assert actual_expr == expected_expr
+    assert actual_names == expected_names
+    assert actual_values == expected_values
+
+
+def test_build_mixed_condition_expression_mixed_operators():
+    conditions = [
+        {"field": "DocStatus", "operator": "=", "value": "final"},
+        {"field": "Deleted", "operator": "attribute_not_exists"},
+        {"field": "Version", "operator": ">", "value": 0},
+    ]
+    expected_names = {
+        "#DocStatus_attr": "DocStatus",
+        "#Deleted_attr": "Deleted",
+        "#Version_attr": "Version",
+    }
+    expected_values = {":DocStatus_condition_val": "final", ":Version_condition_val": 0}
+
+    actual_expr, actual_names, actual_values = build_mixed_condition_expression(
+        conditions
+    )
+
+    assert "#DocStatus_attr = :DocStatus_condition_val" in actual_expr
+    assert "attribute_not_exists(#Deleted_attr)" in actual_expr
+    assert "#Version_attr > :Version_condition_val" in actual_expr
+    assert " AND " in actual_expr
+    assert actual_names == expected_names
+    assert actual_values == expected_values
+
+
+def test_build_mixed_condition_expression_with_custom_suffix():
+    conditions = [{"field": "Status", "operator": "=", "value": "active"}]
+    expected_expr = "#Status_attr = :Status_update_val"
+    expected_names = {"#Status_attr": "Status"}
+    expected_values = {":Status_update_val": "active"}
+
+    actual_expr, actual_names, actual_values = build_mixed_condition_expression(
+        conditions, suffix="_update"
+    )
+
+    assert actual_expr == expected_expr
+    assert actual_names == expected_names
+    assert actual_values == expected_values
+
+
+def test_build_general_transaction_item_put_action():
+    table_name = MOCK_TABLE_NAME
+    item = {"ID": "test_id", "FileName": "test.pdf", "Status": "active"}
+
+    result = build_general_transaction_item(
+        table_name=table_name, action="Put", item=item
+    )
+
+    assert "Put" in result
+    put_item = result["Put"]
+    assert put_item["TableName"] == table_name
+    assert put_item["Item"] == item
+    assert "ConditionExpression" not in put_item
+
+
+def test_build_general_transaction_item_put_with_condition():
+    table_name = MOCK_TABLE_NAME
+    item = {"ID": "test_id", "FileName": "test.pdf"}
+    conditions = [
+        {"field": "Version", "operator": "=", "value": 5},
+        {"field": "Deleted", "operator": "attribute_not_exists"},
+        {"field": "Status", "operator": "<>", "value": "archived"},
+    ]
+
+    condition_expr, attr_names, attr_values = build_mixed_condition_expression(
+        conditions
+    )
+
+    result = build_general_transaction_item(
+        table_name=table_name,
+        action="Put",
+        item=item,
+        condition_expression=condition_expr,
+        expression_attribute_names=attr_names,
+        expression_attribute_values=attr_values,
+    )
+
+    assert "Put" in result
+    put_item = result["Put"]
+    assert put_item["TableName"] == table_name
+    assert put_item["Item"] == item
+
+    condition_expr = put_item["ConditionExpression"]
+    assert "#Version_attr = :Version_condition_val" in condition_expr
+    assert "attribute_not_exists(#Deleted_attr)" in condition_expr
+    assert "#Status_attr <> :Status_condition_val" in condition_expr
+    assert " AND " in condition_expr
+
+    assert put_item["ExpressionAttributeNames"]["#Version_attr"] == "Version"
+    assert put_item["ExpressionAttributeNames"]["#Deleted_attr"] == "Deleted"
+    assert put_item["ExpressionAttributeNames"]["#Status_attr"] == "Status"
+
+    assert put_item["ExpressionAttributeValues"][":Version_condition_val"] == 5
+    assert put_item["ExpressionAttributeValues"][":Status_condition_val"] == "archived"
+
+
+def test_build_general_transaction_item_update_action():
+    table_name = MOCK_TABLE_NAME
+    key = {"ID": "test_id"}
+    update_fields = {"FileName": "updated.pdf", "Status": "completed"}
+
+    field_names = list(update_fields.keys())
+    update_expr = create_update_expression(field_names)
+    _, attr_names = create_expressions(field_names)
+    attr_values = create_expression_attribute_values(update_fields)
+
+    result = build_general_transaction_item(
+        table_name=table_name,
+        action="Update",
+        key=key,
+        update_expression=update_expr,
+        expression_attribute_names=attr_names,
+        expression_attribute_values=attr_values,
+    )
+
+    assert "Update" in result
+    update_item = result["Update"]
+    assert update_item["TableName"] == table_name
+    assert update_item["Key"] == key
+    assert "SET" in update_item["UpdateExpression"]
+    assert "#FileName_attr" in update_item["UpdateExpression"]
+    assert "#Status_attr" in update_item["UpdateExpression"]
+    assert update_item["ExpressionAttributeNames"]["#FileName_attr"] == "FileName"
+    assert update_item["ExpressionAttributeNames"]["#Status_attr"] == "Status"
+    assert update_item["ExpressionAttributeValues"][":FileName_val"] == "updated.pdf"
+    assert update_item["ExpressionAttributeValues"][":Status_val"] == "completed"
+
+
+def test_build_general_transaction_item_update_with_condition():
+    """Test Update action with both update expression and condition"""
+    table_name = MOCK_TABLE_NAME
+    key = {"ID": "test_id"}
+    update_fields = {"Status": "completed"}
+    conditions = [{"field": "Status", "operator": "=", "value": "pending"}]
+
+    field_names = list(update_fields.keys())
+    update_expr = create_update_expression(field_names)
+    _, update_attr_names = create_expressions(field_names)
+    update_attr_values = create_expression_attribute_values(update_fields)
+
+    condition_expr, condition_attr_names, condition_attr_values = (
+        build_mixed_condition_expression(conditions)
+    )
+
+    merged_names = {**update_attr_names, **condition_attr_names}
+    merged_values = {**update_attr_values, **condition_attr_values}
+
+    result = build_general_transaction_item(
+        table_name=table_name,
+        action="Update",
+        key=key,
+        update_expression=update_expr,
+        condition_expression=condition_expr,
+        expression_attribute_names=merged_names,
+        expression_attribute_values=merged_values,
+    )
+
+    assert "Update" in result
+    update_item = result["Update"]
+    assert update_item["ConditionExpression"] == condition_expr
+    assert ":Status_val" in str(update_item["ExpressionAttributeValues"])
+    assert ":Status_condition_val" in str(update_item["ExpressionAttributeValues"])
+
+
+def test_build_general_transaction_item_delete_with_condition():
+    """Test Delete action with condition expression"""
+    table_name = MOCK_TABLE_NAME
+    key = {"ID": "test_id"}
+    conditions = [{"field": "Status", "operator": "=", "value": "archived"}]
+
+    condition_expr, attr_names, attr_values = build_mixed_condition_expression(
+        conditions
+    )
+
+    result = build_general_transaction_item(
+        table_name=table_name,
+        action="Delete",
+        key=key,
+        condition_expression=condition_expr,
+        expression_attribute_names=attr_names,
+        expression_attribute_values=attr_values,
+    )
+
+    assert "Delete" in result
+    delete_item = result["Delete"]
+    assert delete_item["ConditionExpression"] == condition_expr
+    assert delete_item["ExpressionAttributeNames"] == attr_names
+    assert delete_item["ExpressionAttributeValues"] == attr_values
+
+
+def test_build_general_transaction_item_put_without_item():
+    table_name = MOCK_TABLE_NAME
+
+    with pytest.raises(ValueError):
+        build_general_transaction_item(table_name=table_name, action="Put")
+
+
+def test_build_general_transaction_item_update_without_key():
+    table_name = MOCK_TABLE_NAME
+    update_fields = {"Status": "completed"}
+
+    field_names = list(update_fields.keys())
+    update_expr = create_update_expression(field_names)
+    _, attr_names = create_expressions(field_names)
+    attr_values = create_expression_attribute_values(update_fields)
+
+    with pytest.raises(ValueError):
+        build_general_transaction_item(
+            table_name=table_name,
+            action="Update",
+            update_expression=update_expr,
+            expression_attribute_names=attr_names,
+            expression_attribute_values=attr_values,
+        )
+
+
+def test_build_transaction_item_put_action():
+    table_name = MOCK_TABLE_NAME
+    item = {"ID": "test_id", "Name": "Test Name", "Status": "active"}
+
+    result = build_transaction_item(table_name=table_name, action="Put", item=item)
+
+    assert "Put" in result
+    put_item = result["Put"]
+    assert put_item["TableName"] == table_name
+    assert put_item["Item"] == item
+    assert "ConditionExpression" not in put_item
+
+
+def test_build_transaction_item_update_with_fields_and_conditions():
+    """Test Update action with both update fields and conditions"""
+    table_name = MOCK_TABLE_NAME
+    key = {"ID": "test_id"}
+    update_fields = {"Status": "completed", "LastUpdated": 1234567890}
+    conditions = [
+        {"field": "Status", "operator": "=", "value": "pending"},
+        {"field": "Deleted", "operator": "attribute_not_exists"},
+    ]
+
+    result = build_transaction_item(
+        table_name=table_name,
+        action="Update",
+        key=key,
+        update_fields=update_fields,
+        conditions=conditions,
+        condition_join_operator="AND",
+    )
+
+    assert "Update" in result
+    update_item = result["Update"]
+    assert update_item["TableName"] == table_name
+    assert update_item["Key"] == key
+    assert "UpdateExpression" in update_item
+    assert "SET" in update_item["UpdateExpression"]
+    assert "#Status_attr" in update_item["UpdateExpression"]
+    assert "#LastUpdated_attr" in update_item["UpdateExpression"]
+    assert "ConditionExpression" in update_item
+    assert "attribute_not_exists" in update_item["ConditionExpression"]
+    assert update_item["ExpressionAttributeNames"]["#Status_attr"] == "Status"
+    assert update_item["ExpressionAttributeNames"]["#Deleted_attr"] == "Deleted"
+    assert update_item["ExpressionAttributeValues"][":Status_val"] == "completed"
+    assert (
+        update_item["ExpressionAttributeValues"][":Status_condition_val"] == "pending"
+    )
+
+
+def test_build_transaction_item_delete_with_conditions():
+    table_name = MOCK_TABLE_NAME
+    key = {"ID": "test_id"}
+    conditions = [
+        {"field": "Status", "operator": "=", "value": "archived"},
+        {"field": "Expired", "operator": "=", "value": True},
+    ]
+
+    result = build_transaction_item(
+        table_name=table_name,
+        action="Delete",
+        key=key,
+        conditions=conditions,
+        condition_join_operator="OR",
+    )
+
+    assert "Delete" in result
+    delete_item = result["Delete"]
+    assert delete_item["TableName"] == table_name
+    assert delete_item["Key"] == key
+    assert "ConditionExpression" in delete_item
+    assert " OR " in delete_item["ConditionExpression"]
+    assert "#Status_attr" in delete_item["ConditionExpression"]
+    assert "#Expired_attr" in delete_item["ConditionExpression"]
+    assert delete_item["ExpressionAttributeNames"]["#Status_attr"] == "Status"
+    assert delete_item["ExpressionAttributeNames"]["#Expired_attr"] == "Expired"
+    assert (
+        delete_item["ExpressionAttributeValues"][":Status_condition_val"] == "archived"
+    )
+    assert delete_item["ExpressionAttributeValues"][":Expired_condition_val"] is True
