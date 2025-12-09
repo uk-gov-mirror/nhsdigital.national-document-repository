@@ -1167,6 +1167,11 @@ $hunit: '%';
     border-color: black;
 }
 
+.start_page_notification_banner {
+    background-color: #005eb8;
+    border-color: #005eb8;
+}
+
 .download-failed-banner {
     max-width: fit-content;
 }
@@ -1309,4 +1314,4 @@ progress:not(.continuous-progress-bar) {
     }
 }
 
-@import '../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults.scss'
+@import '../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults.scss';

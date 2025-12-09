@@ -10,6 +10,7 @@ import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import TestPanel from '../../components/blocks/testPanel/TestPanel';
 import ServiceDeskLink from '../../components/generic/serviceDeskLink/ServiceDeskLink';
 import useTitle from '../../helpers/hooks/useTitle';
+import NotificationBanner from '../../components/layout/notificationBanner/NotificationBanner';
 
 const StartPage = (): React.JSX.Element => {
     const navigate = useNavigate();
@@ -26,11 +27,36 @@ const StartPage = (): React.JSX.Element => {
         }
     };
 
+    const nhsServiceDeskLink = <ServiceDeskLink />;
+    const nationalServiceDeskEmail = (
+        <a href="mailto:ssd.nationalservicedesk@nhs.net">ssd.nationalservicedesk@nhs.net</a>
+    );
+
     const pageHeader = 'Access and store digital patient documents';
     useTitle({ pageTitle: pageHeader });
 
     return !isLoading ? (
         <>
+            <NotificationBanner
+                title="Important"
+                className="start_page_notification_banner"
+                dataTestId="start_page_notification_banner"
+                scrollToRef={null}
+            >
+                <span>
+                    <p>
+                        <b>
+                            There will be reduced support for this service between 24 December 2025
+                            and 2 January 2026
+                        </b>
+                    </p>
+                    <p>
+                        If there is a problem with this service between these dates, contact the{' '}
+                        {nhsServiceDeskLink} on 0300 303 5035, or email {nationalServiceDeskEmail}.
+                    </p>
+                </span>
+            </NotificationBanner>
+
             <h1>{pageHeader}</h1>
             <p>
                 This service gives you access to Lloyd George digital health records. You may have

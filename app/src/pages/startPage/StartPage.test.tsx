@@ -51,12 +51,12 @@ describe('StartPage', () => {
         );
         expect(downloadOdsReport).toHaveLength(2);
 
-        expect(screen.getByText(/Contact the/i)).toBeInTheDocument();
-        expect(
-            screen.getByRole('link', {
-                name: /NHS National Service Desk/i,
-            }),
-        ).toBeInTheDocument();
+        const contact = screen.getAllByText(/Contact the/i);
+        expect(contact.length).toBe(2);
+        const contactLinks = screen.getAllByRole('link', {
+            name: /NHS National Service Desk/i,
+        });
+        expect(contactLinks.length).toBe(2);
         expect(
             screen.getByText(/if there is an issue with this service or call 0300 303 5035\./i),
         ).toBeInTheDocument();
@@ -65,19 +65,20 @@ describe('StartPage', () => {
     it('renders a service link that takes you to service help-desk in a new tab', () => {
         render(<StartPage />);
 
-        expect(screen.getByText(/Contact the/i)).toBeInTheDocument();
-        const nationalServiceDeskLink = screen.getByRole('link', {
+        const contactTexts = screen.getAllByText(/Contact the/i);
+        expect(contactTexts.length).toBe(2);
+        const nationalServiceDeskLink = screen.getAllByRole('link', {
             name: /NHS National Service Desk/i,
         });
         expect(
             screen.getByText(/if there is an issue with this service or call 0300 303 5035/i),
         ).toBeInTheDocument();
 
-        expect(nationalServiceDeskLink).toHaveAttribute(
+        expect(nationalServiceDeskLink[1]).toHaveAttribute(
             'href',
             'https://digital.nhs.uk/about-nhs-digital/contact-us#nhs-digital-service-desks',
         );
-        expect(nationalServiceDeskLink).toHaveAttribute('target', '_blank');
+        expect(nationalServiceDeskLink[1]).toHaveAttribute('target', '_blank');
     });
 
     it('pass accessibility checks', async () => {
