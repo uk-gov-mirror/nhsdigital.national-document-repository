@@ -19,4 +19,6 @@ export enum endpoints {
 
     ODS_REPORT = '/OdsReport',
     MOCK_LOGIN = 'Auth/MockLogin',
+
+    DOCUMENT_REVIEW = '/DocumentReview',
 }
