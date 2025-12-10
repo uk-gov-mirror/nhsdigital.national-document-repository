@@ -13,7 +13,6 @@ from models.fhir.R4.base_models import (
 )
 from pydantic import BaseModel, Field
 from utils.exceptions import FhirDocumentReferenceException
-
 from utils.ods_utils import PCSE_ODS_CODE
 
 # Constants
@@ -134,8 +133,7 @@ class DocumentReference(BaseModel):
         if (
             self.subject
             and self.subject.identifier
-            and self.subject.identifier.system
-            == "https://fhir.nhs.uk/Id/nhs-number"
+            and self.subject.identifier.system == "https://fhir.nhs.uk/Id/nhs-number"
         ):
             return self.subject.identifier.value
         else:
@@ -267,10 +265,12 @@ class DocumentReferenceInfo(BaseModel):
                     "ods-organization-code", document.custodian or self.custodian
                 )
             ),
-            meta=Meta(versionId=document.version)
+            meta=Meta(versionId=document.version),
         )
 
-    def create_fhir_document_reference_object_basic(self, original_id: str, original_version) -> DocumentReference:
+    def create_fhir_document_reference_object_basic(
+        self, original_id: str, original_version
+    ) -> DocumentReference:
         return DocumentReference(
             resourceType="DocumentReference",
             id=f"{original_id}",
@@ -286,5 +286,5 @@ class DocumentReferenceInfo(BaseModel):
                     )
                 )
             ],
-            meta=Meta(versionId=original_version)
+            meta=Meta(versionId=original_version),
         )

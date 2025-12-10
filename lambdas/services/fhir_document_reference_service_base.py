@@ -1,34 +1,37 @@
 import base64
-import io
 import binascii
+import io
 import os
 
-from utils.audit_logging_setup import LoggingService
-from services.base.s3_service import S3Service
-from services.base.dynamo_service import DynamoDBService
-from models.document_reference import DocumentReference
 from botocore.exceptions import ClientError
+from enums.lambda_error import LambdaError
+from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.snomed_codes import SnomedCode, SnomedCodes
+from models.document_reference import DocumentReference
+from models.fhir.R4.fhir_document_reference import SNOMED_URL, Attachment
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
-from utils.utilities import create_reference_id, get_pds_service, validate_nhs_number
-from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
-from utils.ods_utils import PCSE_ODS_CODE
-from models.fhir.R4.fhir_document_reference import SNOMED_URL
-from utils.common_query_filters import CurrentStatusFile
+from models.fhir.R4.fhir_document_reference import DocumentReferenceInfo
 from models.pds_models import PatientDetails
+from services.base.dynamo_service import DynamoDBService
+from services.base.s3_service import S3Service
+from services.document_service import DocumentService
+from utils.audit_logging_setup import LoggingService
+from utils.common_query_filters import CurrentStatusFile
+from utils.dynamo_utils import DocTypeTableRouter
 from utils.exceptions import (
+    FhirDocumentReferenceException,
     InvalidResourceIdException,
     PatientNotFoundException,
     PdsErrorException,
-    FhirDocumentReferenceException
 )
-from services.document_service import DocumentService
-from models.fhir.R4.fhir_document_reference import Attachment
-from models.fhir.R4.fhir_document_reference import DocumentReferenceInfo
+from utils.lambda_exceptions import DocumentRefException, InvalidDocTypeException
+from utils.ods_utils import PCSE_ODS_CODE
+from utils.utilities import create_reference_id, get_pds_service, validate_nhs_number
 
 logger = LoggingService(__name__)
+
 
 class FhirDocumentReferenceServiceBase:
     def __init__(self):
@@ -37,6 +40,7 @@ class FhirDocumentReferenceServiceBase:
         self.dynamo_service = DynamoDBService()
         self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
         self.document_service = DocumentService()
+        self.doc_router = DocTypeTableRouter()
 
     def _store_binary_in_s3(
         self, document_reference: DocumentReference, binary_content: bytes
@@ -60,10 +64,14 @@ class FhirDocumentReferenceServiceBase:
             raise FhirDocumentReferenceException(f"File too large to process: {str(e)}")
         except ClientError as e:
             logger.error(f"Failed to store binary in S3: {str(e)}")
-            raise FhirDocumentReferenceException(f"Failed to store binary in S3: {str(e)}")
+            raise FhirDocumentReferenceException(
+                f"Failed to store binary in S3: {str(e)}"
+            )
         except (OSError, IOError) as e:
             logger.error(f"I/O error when processing binary content: {str(e)}")
-            raise FhirDocumentReferenceException(f"I/O error when processing binary content: {str(e)}")
+            raise FhirDocumentReferenceException(
+                f"I/O error when processing binary content: {str(e)}"
+            )
 
     def _create_s3_presigned_url(self, document_reference: DocumentReference) -> str:
         """Create a pre-signed URL for uploading a file"""
@@ -77,8 +85,10 @@ class FhirDocumentReferenceServiceBase:
             return response
         except ClientError as e:
             logger.error(f"Failed to create pre-signed URL: {str(e)}")
-            raise FhirDocumentReferenceException(f"Failed to create pre-signed URL: {str(e)}")
-    
+            raise FhirDocumentReferenceException(
+                f"Failed to create pre-signed URL: {str(e)}"
+            )
+
     def _create_document_reference(
         self,
         nhs_number: str,
@@ -117,7 +127,7 @@ class FhirDocumentReferenceServiceBase:
         )
 
         return document_reference
-    
+
     def _get_document_reference(self, document_id: str, table) -> DocumentReference:
         documents = self.document_service.fetch_documents_from_table(
             table_name=table,
@@ -129,7 +139,9 @@ class FhirDocumentReferenceServiceBase:
             logger.info("Document found for given id")
             return documents[0]
         else:
-            raise FhirDocumentReferenceException(f"Did not find any documents for document ID {document_id}")
+            raise FhirDocumentReferenceException(
+                f"Did not find any documents for document ID {document_id}"
+            )
 
     def _determine_document_type(self, fhir_doc: FhirDocumentReference) -> SnomedCode:
         """Determine the document type based on SNOMED code in the FHIR document"""
@@ -153,8 +165,10 @@ class FhirDocumentReferenceServiceBase:
             logger.info(f"Successfully created document reference in {table_name}")
         except ClientError as e:
             logger.error(f"Failed to create document reference: {str(e)}")
-            raise FhirDocumentReferenceException(f"Failed to create document reference: {str(e)}")
-        
+            raise FhirDocumentReferenceException(
+                f"Failed to create document reference: {str(e)}"
+            )
+
     def _check_nhs_number_with_pds(self, nhs_number: str) -> PatientDetails:
         try:
             validate_nhs_number(nhs_number)
@@ -166,8 +180,10 @@ class FhirDocumentReferenceServiceBase:
             PdsErrorException,
         ) as e:
             logger.error(f"Error occurred when fetching patient details: {str(e)}")
-            raise FhirDocumentReferenceException(f"Error occurred when fetching patient details: {str(e)}")
-        
+            raise FhirDocumentReferenceException(
+                f"Error occurred when fetching patient details: {str(e)}"
+            )
+
     def _create_fhir_response(
         self,
         document_reference_ndr: DocumentReference,
@@ -208,3 +224,38 @@ class FhirDocumentReferenceServiceBase:
         )
 
         return fhir_document_reference
+
+    def _get_dynamo_table_for_doc_type(self, doc_type: SnomedCode) -> str:
+        try:
+            return self.doc_router.resolve(doc_type)
+        except InvalidDocTypeException:
+            raise DocumentRefException(400, LambdaError.DocTypeDB)
+
+    def _handle_document_save(
+        self,
+        document_reference: DocumentReference,
+        fhir_doc: FhirDocumentReference,
+        dynamo_table: str,
+    ) -> str:
+        binary_content = fhir_doc.content[0].attachment.data
+
+        presigned_url = None
+        # Handle binary content if present, otherwise create a pre-signed URL
+        if binary_content:
+            try:
+                self._store_binary_in_s3(document_reference, binary_content)
+            except FhirDocumentReferenceException:
+                raise DocumentRefException(500, LambdaError.DocRefNoParse)
+        else:
+            # Create a pre-signed URL for uploading
+            try:
+                presigned_url = self._create_s3_presigned_url(document_reference)
+            except FhirDocumentReferenceException:
+                raise DocumentRefException(500, LambdaError.InternalServerError)
+        try:
+            # Save document reference to DynamoDB
+            self._save_document_reference_to_dynamo(dynamo_table, document_reference)
+        except FhirDocumentReferenceException:
+            raise DocumentRefException(500, LambdaError.DocRefUploadInternalError)
+
+        return presigned_url

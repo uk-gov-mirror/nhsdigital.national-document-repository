@@ -1,13 +1,16 @@
+import json
 from datetime import datetime
 
 import pytest
-from botocore.exceptions import ClientError
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
 from freezegun import freeze_time
 from models.document_reference import DocumentReference, UploadRequestDocument
 from services.create_document_reference_service import CreateDocumentReferenceService
 from services.document_service import DocumentService
+from services.fhir_document_reference_service_base import (
+    FhirDocumentReferenceServiceBase,
+)
 from tests.unit.helpers.data.create_document_reference import (
     ARF_FILE_LIST,
     LG_FILE_LIST,
@@ -17,7 +20,6 @@ from tests.unit.helpers.data.create_document_reference import (
 from tests.unit.helpers.data.test_documents import (
     create_test_arf_doc_store_refs,
     create_test_doc_refs,
-    create_test_doc_refs_as_dict,
     create_test_lloyd_george_doc_store_refs,
 )
 from utils.common_query_filters import UploadIncomplete
@@ -25,6 +27,7 @@ from utils.constants.ssm import UPLOAD_PILOT_ODS_ALLOWED_LIST
 from utils.exceptions import PatientNotFoundException
 from utils.lambda_exceptions import DocumentRefException
 from utils.lloyd_george_validator import LGInvalidFilesException
+from utils.request_context import request_context
 
 from lambdas.enums.supported_document_types import SupportedDocumentTypes
 from lambdas.tests.unit.conftest import (
@@ -34,6 +37,7 @@ from lambdas.tests.unit.conftest import (
     MOCK_STAGING_STORE_BUCKET,
     TEST_CURRENT_GP_ODS,
     TEST_NHS_NUMBER,
+    TEST_UUID,
 )
 
 NA_STRING = "Not Test Important"
@@ -54,24 +58,53 @@ MOCK_ALLOWED_ODS_CODES_LIST_PILOT = {
 
 
 @pytest.fixture
-def mock_create_doc_ref_service(mocker, set_env):
-    mocker.patch("services.base.s3_service.IAMService")
-    mocker.patch("services.create_document_reference_service.S3Service")
-    mocker.patch("services.create_document_reference_service.DocumentService")
-    mocker.patch("services.create_document_reference_service.DynamoDBService")
-    mocker.patch("services.create_document_reference_service.DocumentDeletionService")
+def mock_create_doc_ref_service(set_env, mocker):
     mocker.patch("services.create_document_reference_service.SSMService")
-
     create_doc_ref_service = CreateDocumentReferenceService()
     yield create_doc_ref_service
 
 
 @pytest.fixture
-def mock_s3(mocker, mock_create_doc_ref_service):
-    mocker.patch.object(
-        mock_create_doc_ref_service.s3_service, "create_upload_presigned_url"
+def mock_fhir_doc_ref_base_service(mocker, setup_request_context):
+    mock_document_service = mocker.patch(
+        "services.fhir_document_reference_service_base.DocumentService"
     )
-    yield mock_create_doc_ref_service.s3_service
+    mock_s3_service = mocker.patch(
+        "services.fhir_document_reference_service_base.S3Service"
+    )
+    mock_dynamo_service = mocker.patch(
+        "services.fhir_document_reference_service_base.DynamoDBService"
+    )
+    service = FhirDocumentReferenceServiceBase()
+    service.document_service = mock_document_service.return_value
+    service.s3_service = mock_s3_service.return_value
+    service.dynamo_service = mock_dynamo_service.return_value
+    yield service
+
+
+@pytest.fixture
+def setup_request_context():
+    request_context.authorization = {
+        "ndr_session_id": TEST_UUID,
+        "nhs_user_id": "test-user-id",
+        "selected_organisation": {"org_ods_code": "test-ods-code"},
+    }
+    yield
+    request_context.authorization = {}
+
+
+@pytest.fixture()
+def mock_process_fhir_document_reference(mocker):
+    yield mocker.patch(
+        "services.post_fhir_document_reference_service.PostFhirDocumentReferenceService.process_fhir_document_reference",
+        return_value=json.dumps(
+            {
+                "content": [
+                    {"attachment": {"url": "https://test-bucket.s3.amazonaws.com/"}}
+                ]
+            }
+        ),
+    )
 
 
 @pytest.fixture()
@@ -83,11 +116,6 @@ def mock_ssm(mocker, mock_create_doc_ref_service):
 @pytest.fixture()
 def mock_create_document_reference(mock_create_doc_ref_service, mocker):
     yield mocker.patch.object(mock_create_doc_ref_service, "create_document_reference")
-
-
-@pytest.fixture()
-def mock_prepare_pre_signed_url(mock_create_doc_ref_service, mocker):
-    yield mocker.patch.object(mock_create_doc_ref_service, "prepare_pre_signed_url")
 
 
 @pytest.fixture()
@@ -108,15 +136,10 @@ def mock_check_existing_lloyd_george_records_and_remove_failed_upload(
 
 
 @pytest.fixture()
-def mock_create_reference_in_dynamodb(mock_create_doc_ref_service, mocker):
-    yield mocker.patch.object(
-        mock_create_doc_ref_service, "create_reference_in_dynamodb"
+def mock_validate_lg_files_for_access_and_store(mocker):
+    yield mocker.patch(
+        "services.create_document_reference_service.validate_lg_files_for_access_and_store"
     )
-
-
-@pytest.fixture()
-def mock_validate_lg_files_for_access_and_store(mocker, mock_getting_patient_info_from_pds):
-    yield mocker.patch("services.create_document_reference_service.validate_lg_files_for_access_and_store")
 
 
 @pytest.fixture()
@@ -128,9 +151,11 @@ def mock_getting_patient_info_from_pds(mocker, mock_pds_patient):
 
 
 @pytest.fixture
-def mock_fetch_document(mocker, mock_create_doc_ref_service):
+def mock_fetch_available_document_references_by_type(
+    mocker, mock_fhir_doc_ref_base_service
+):
     mock = mocker.patch.object(
-        mock_create_doc_ref_service.document_service,
+        mock_fhir_doc_ref_base_service.document_service,
         "fetch_available_document_references_by_type",
     )
     mock.return_value = []
@@ -138,158 +163,103 @@ def mock_fetch_document(mocker, mock_create_doc_ref_service):
 
 
 @pytest.fixture
-def undo_mocking_for_is_upload_in_process(mock_create_doc_ref_service):
-    mock_create_doc_ref_service.document_service.is_upload_in_process = (
+def undo_mocking_for_is_upload_in_process(mock_fhir_doc_ref_base_service):
+    mock_fhir_doc_ref_base_service.document_service.is_upload_in_process = (
         DocumentService.is_upload_in_process
     )
 
 
 @pytest.fixture
-def get_allowed_list_of_ods_codes_for_upload_pilot(mock_create_doc_ref_service, mocker):
+def mock_get_allowed_list_of_ods_codes_for_upload_pilot(
+    mock_create_doc_ref_service, mocker
+):
     return mocker.patch.object(
         mock_create_doc_ref_service, "get_allowed_list_of_ods_codes_for_upload_pilot"
     )
 
 
 def test_create_document_reference_request_empty_list(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mock_create_document_reference,
-    mock_prepare_pre_signed_url,
-    mock_create_reference_in_dynamodb,
+    mock_process_fhir_document_reference,
+    mock_getting_patient_info_from_pds,
+    setup_request_context,
 ):
     mock_create_doc_ref_service.create_document_reference_request(TEST_NHS_NUMBER, [])
 
+    mock_getting_patient_info_from_pds.assert_not_called()
     mock_create_document_reference.assert_not_called()
-    mock_prepare_pre_signed_url.assert_not_called()
-    mock_create_reference_in_dynamodb.assert_not_called()
+    mock_process_fhir_document_reference.assert_not_called()
 
 
 def test_create_document_reference_request_with_arf_list_happy_path(
-    mock_create_doc_ref_service,
     mocker,
-    mock_create_document_reference,
-    mock_prepare_pre_signed_url,
-    mock_create_reference_in_dynamodb,
+    mock_fhir_doc_ref_base_service,
+    mock_create_doc_ref_service,
+    mock_process_fhir_document_reference,
     mock_validate_lg_files_for_access_and_store,
     undo_mocking_for_is_upload_in_process,
 ):
-    document_references = []
-    side_effects = []
+    mock_presigned_url_response = "https://test-bucket.s3.amazonaws.com/"
 
-    for (
-        index,
-        file,
-    ) in enumerate(ARF_FILE_LIST):
-        document_references.append(
-            DocumentReference(
-                nhs_number=TEST_NHS_NUMBER,
-                s3_bucket_name=NA_STRING,
-                id=NA_STRING,
-                content_type=NA_STRING,
-                file_name=file["fileName"],
-                doc_type=SupportedDocumentTypes.ARF,
-            )
-        )
-        side_effects.append(
-            document_references[index],
-        )
-
-    mock_create_document_reference.side_effect = side_effects
-
-    mock_create_doc_ref_service.create_document_reference_request(
+    url_references = mock_create_doc_ref_service.create_document_reference_request(
         TEST_NHS_NUMBER, ARF_FILE_LIST
     )
+    expected_response = {
+        "uuid1": mock_presigned_url_response,
+        "uuid2": mock_presigned_url_response,
+        "uuid3": mock_presigned_url_response,
+    }
+    assert url_references == expected_response
 
-    mock_create_document_reference.assert_has_calls(
-        [
-            mocker.call(TEST_NHS_NUMBER, "", validated_doc, None)
-            for validated_doc in PARSED_ARF_FILE_LIST
-        ],
-        any_order=True,
-    )
-
-    mock_prepare_pre_signed_url.assert_has_calls(
-        [mocker.call(document_reference) for document_reference in document_references],
-        any_order=True,
-    )
-
-    mock_create_reference_in_dynamodb.assert_called_once()
     mock_validate_lg_files_for_access_and_store.assert_not_called()
 
 
 def test_create_document_reference_request_with_lg_list_happy_path(
-    mock_create_doc_ref_service,
     mocker,
-    mock_create_document_reference,
-    mock_prepare_pre_signed_url,
-    mock_create_reference_in_dynamodb,
-    mock_validate_lg_files_for_access_and_store,
+    mock_fhir_doc_ref_base_service,
+    mock_create_doc_ref_service,
+    mock_process_fhir_document_reference,
+    mock_getting_patient_info_from_pds,
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_check_existing_lloyd_george_records_and_remove_failed_upload,
-    mock_fetch_document,
-    mock_pds_patient,
-    get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_fetch_available_document_references_by_type,
+    mock_validate_lg_files_for_access_and_store,
 ):
-    document_references = []
-    side_effects = []
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
+        TEST_CURRENT_GP_ODS
+    ]
+    mock_presigned_url_response = "https://test-bucket.s3.amazonaws.com/"
 
-    for (
-        index,
-        file,
-    ) in enumerate(LG_FILE_LIST):
-        document_references.append(
-            DocumentReference(
-                nhs_number=TEST_NHS_NUMBER,
-                s3_bucket_name=NA_STRING,
-                id=NA_STRING,
-                content_type=NA_STRING,
-                file_name=file["fileName"],
-                doc_type=SupportedDocumentTypes.LG,
-                document_snomed_code_type=SnomedCodes.LLOYD_GEORGE.value.code,
-            )
-        )
-        side_effects.append(document_references[index])
-
-    mock_create_document_reference.side_effect = side_effects
-    get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [TEST_CURRENT_GP_ODS]
-
-    mock_create_doc_ref_service.create_document_reference_request(
+    url_references = mock_create_doc_ref_service.create_document_reference_request(
         TEST_NHS_NUMBER, LG_FILE_LIST
     )
+    expected_response = {
+        "uuid1": mock_presigned_url_response,
+        "uuid2": mock_presigned_url_response,
+        "uuid3": mock_presigned_url_response,
+    }
+    assert url_references == expected_response
 
-    mock_create_document_reference.assert_has_calls(
-        [
-            mocker.call(
-                TEST_NHS_NUMBER,
-                TEST_CURRENT_GP_ODS,
-                validated_doc,
-                SnomedCodes.LLOYD_GEORGE.value.code,
-            )
-            for validated_doc in PARSED_LG_FILE_LIST
-        ],
-        any_order=True,
-    )
-    mock_prepare_pre_signed_url.assert_has_calls(
-        [mocker.call(document_reference) for document_reference in document_references],
-        any_order=True,
-    )
-
-    mock_create_reference_in_dynamodb.assert_called_once()
     mock_check_existing_lloyd_george_records_and_remove_failed_upload.assert_called_with(
         TEST_NHS_NUMBER
     )
+    mock_validate_lg_files_for_access_and_store.assert_called_once()
 
 
 @freeze_time("2023-10-30T10:25:00")
 def test_create_document_reference_request_with_both_list(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
+    mock_process_fhir_document_reference,
     mocker,
     mock_create_document_reference,
-    mock_prepare_pre_signed_url,
-    mock_create_reference_in_dynamodb,
+    mock_getting_patient_info_from_pds,
     mock_validate_lg_files_for_access_and_store,
-    mock_fetch_document,
+    mock_fetch_available_document_references_by_type,
     undo_mocking_for_is_upload_in_process,
-    get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
 ):
     files_list = ARF_FILE_LIST + LG_FILE_LIST
     lg_file_names = [file["fileName"] for file in LG_FILE_LIST]
@@ -299,26 +269,20 @@ def test_create_document_reference_request_with_both_list(
         override={"current_gp_ods": TEST_CURRENT_GP_ODS}, file_names=lg_file_names
     )
     arf_doc_refs = create_test_doc_refs(
-        override={"doc_type": "ARF"}, file_names=arf_file_names
+        override={
+            "doc_type": "ARF",
+            "current_gp_ods": TEST_CURRENT_GP_ODS,
+        },
+        file_names=arf_file_names,
     )
     document_references = lg_doc_refs + arf_doc_refs
     prepare_doc_object_mock_return_values = document_references
 
-    lg_dictionaries = create_test_doc_refs_as_dict(
-        override={"current_gp_ods": TEST_CURRENT_GP_ODS},
-        file_names=lg_file_names,
-    )
-    arf_dictionaries = create_test_doc_refs_as_dict(
-        override={"doc_type": "ARF"},
-        file_names=arf_file_names,
-    )
-
     mock_create_document_reference.side_effect = prepare_doc_object_mock_return_values
-    get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [TEST_CURRENT_GP_ODS]
-
-    mock_create_doc_ref_service.create_document_reference_request(
-        TEST_NHS_NUMBER, files_list
-    )
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
+        TEST_CURRENT_GP_ODS
+    ]
+    mock_presigned_url_response = "https://test-bucket.s3.amazonaws.com/"
 
     expected_calls_for_prepare_doc_object = [
         mocker.call(
@@ -330,31 +294,35 @@ def test_create_document_reference_request_with_both_list(
         for validated_doc in PARSED_ARF_FILE_LIST + PARSED_LG_FILE_LIST
     ]
 
+    url_references = mock_create_doc_ref_service.create_document_reference_request(
+        TEST_NHS_NUMBER, files_list
+    )
+
     mock_create_document_reference.assert_has_calls(
         expected_calls_for_prepare_doc_object, any_order=True
     )
-    mock_prepare_pre_signed_url.assert_has_calls(
-        [mocker.call(document_reference) for document_reference in document_references],
-        any_order=True,
-    )
-    mock_create_reference_in_dynamodb.assert_has_calls(
-        [
-            mocker.call(mock_create_doc_ref_service.lg_dynamo_table, lg_dictionaries),
-            mocker.call(mock_create_doc_ref_service.arf_dynamo_table, arf_dictionaries),
-        ]
-    )
+
+    # only 3 uuids because test ARF and LG files have the same clientId
+    expected_response = {
+        "uuid1": mock_presigned_url_response,
+        "uuid2": mock_presigned_url_response,
+        "uuid3": mock_presigned_url_response,
+    }
+    assert url_references == expected_response
+
     mock_validate_lg_files_for_access_and_store.assert_called()
 
 
 def test_create_document_reference_request_raise_error_when_invalid_lg(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mocker,
+    mock_process_fhir_document_reference,
     mock_create_document_reference,
-    mock_prepare_pre_signed_url,
-    mock_create_reference_in_dynamodb,
     mock_validate_lg_files_for_access_and_store,
-    mock_pds_patient,
-    get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_getting_patient_info_from_pds,
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_check_existing_lloyd_george_records_and_remove_failed_upload,
 ):
     document_references = []
     side_effects = []
@@ -377,8 +345,12 @@ def test_create_document_reference_request_raise_error_when_invalid_lg(
         side_effects.append(document_references[index])
 
     mock_create_document_reference.side_effect = side_effects
-    mock_validate_lg_files_for_access_and_store.side_effect = LGInvalidFilesException("test")
-    get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [TEST_CURRENT_GP_ODS]
+    mock_validate_lg_files_for_access_and_store.side_effect = LGInvalidFilesException(
+        "test"
+    )
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
+        TEST_CURRENT_GP_ODS
+    ]
 
     with pytest.raises(DocumentRefException):
         mock_create_doc_ref_service.create_document_reference_request(
@@ -397,19 +369,12 @@ def test_create_document_reference_request_raise_error_when_invalid_lg(
         ],
         any_order=True,
     )
-    mock_prepare_pre_signed_url.assert_has_calls(
-        [mocker.call(document_reference) for document_reference in document_references],
-        any_order=True,
-    )
-
-    mock_create_reference_in_dynamodb.assert_not_called()
 
 
 def test_create_document_reference_failed_to_parse_pds_response(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mock_create_document_reference,
-    mock_prepare_pre_signed_url,
-    mock_create_reference_in_dynamodb,
     mock_getting_patient_info_from_pds,
 ):
 
@@ -426,15 +391,11 @@ def test_create_document_reference_failed_to_parse_pds_response(
     assert exception.message == "Invalid files or id"
 
     mock_create_document_reference.assert_not_called()
-    mock_prepare_pre_signed_url.assert_not_called()
-    mock_create_reference_in_dynamodb.assert_not_called()
 
 
 def test_cdr_nhs_number_not_found_raises_search_patient_exception(
     mock_create_doc_ref_service,
     mock_create_document_reference,
-    mock_prepare_pre_signed_url,
-    mock_create_reference_in_dynamodb,
     mock_getting_patient_info_from_pds,
 ):
     mock_getting_patient_info_from_pds.side_effect = PatientNotFoundException
@@ -450,18 +411,21 @@ def test_cdr_nhs_number_not_found_raises_search_patient_exception(
     assert exception.message == "Patient does not exist for given NHS number"
 
     mock_create_document_reference.assert_not_called()
-    mock_prepare_pre_signed_url.assert_not_called()
-    mock_create_reference_in_dynamodb.assert_not_called()
 
 
 def test_cdr_non_pdf_file_raises_exception(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
+    mock_process_fhir_document_reference,
     mock_validate_lg_files_for_access_and_store,
-    mock_create_reference_in_dynamodb,
-    get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_getting_patient_info_from_pds,
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_check_existing_lloyd_george_records_and_remove_failed_upload,
 ):
     mock_validate_lg_files_for_access_and_store.side_effect = LGInvalidFilesException
-    get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [TEST_CURRENT_GP_ODS]
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
+        TEST_CURRENT_GP_ODS
+    ]
 
     with pytest.raises(Exception) as exc_info:
         mock_create_doc_ref_service.create_document_reference_request(
@@ -473,23 +437,27 @@ def test_cdr_non_pdf_file_raises_exception(
     assert exception.status_code == 400
     assert exception.message == "Invalid files or id"
 
-    mock_create_reference_in_dynamodb.assert_not_called()
-
 
 @freeze_time("2023-10-30T10:25:00")
 def test_create_document_reference_request_lg_upload_throw_lambda_error_if_upload_in_progress(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
+    mock_process_fhir_document_reference,
+    mock_getting_patient_info_from_pds,
     mock_validate_lg_files_for_access_and_store,
-    mock_fetch_document,
-    mock_create_reference_in_dynamodb,
-    get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_fetch_available_document_references_by_type,
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
 ):
     two_minutes_ago = 1698661380  # 2023-10-30T10:23:00
     mock_records_upload_in_process = create_test_lloyd_george_doc_store_refs(
         override={"uploaded": False, "uploading": True, "last_updated": two_minutes_ago}
     )
-    mock_fetch_document.return_value = mock_records_upload_in_process
-    get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [TEST_CURRENT_GP_ODS]
+    mock_fetch_available_document_references_by_type.return_value = (
+        mock_records_upload_in_process
+    )
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
+        TEST_CURRENT_GP_ODS
+    ]
 
     with pytest.raises(DocumentRefException) as e:
         mock_create_doc_ref_service.create_document_reference_request(
@@ -497,42 +465,44 @@ def test_create_document_reference_request_lg_upload_throw_lambda_error_if_uploa
         )
     assert e.value == DocumentRefException(423, LambdaError.UploadInProgressError)
 
-    mock_create_reference_in_dynamodb.assert_not_called()
-
 
 def test_create_document_reference_request_lg_upload_throw_lambda_error_if_got_a_full_set_of_uploaded_record(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
+    mock_process_fhir_document_reference,
+    mock_getting_patient_info_from_pds,
     mock_validate_lg_files_for_access_and_store,
-    mock_fetch_document,
-    mock_create_reference_in_dynamodb,
-    get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_fetch_available_document_references_by_type,
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
 ):
-    mock_fetch_document.return_value = create_test_lloyd_george_doc_store_refs()
-    get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [TEST_CURRENT_GP_ODS]
+    mock_fetch_available_document_references_by_type.return_value = (
+        create_test_lloyd_george_doc_store_refs()
+    )
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
+        TEST_CURRENT_GP_ODS
+    ]
 
     with pytest.raises(DocumentRefException) as e:
         mock_create_doc_ref_service.create_document_reference_request(
             TEST_NHS_NUMBER, LG_FILE_LIST
         )
 
-    assert e.value == DocumentRefException(
-        422, LambdaError.DocRefRecordAlreadyInPlace
-    )
-
-    mock_create_reference_in_dynamodb.assert_not_called()
+    assert e.value == DocumentRefException(422, LambdaError.DocRefRecordAlreadyInPlace)
 
 
 def test_check_existing_lloyd_george_records_remove_previous_failed_upload_and_continue(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
-    mock_fetch_document,
+    mock_fetch_available_document_references_by_type,
     mock_remove_records,
     mocker,
-    mock_create_reference_in_dynamodb,
 ):
     mock_doc_refs_of_failed_upload = create_test_lloyd_george_doc_store_refs(
         override={"uploaded": False}
     )
-    mock_fetch_document.return_value = mock_doc_refs_of_failed_upload
+    mock_fetch_available_document_references_by_type.return_value = (
+        mock_doc_refs_of_failed_upload
+    )
     mock_create_doc_ref_service.stop_if_all_records_uploaded = mocker.MagicMock()
     mock_create_doc_ref_service.stop_if_upload_is_in_process = mocker.MagicMock()
 
@@ -546,15 +516,18 @@ def test_check_existing_lloyd_george_records_remove_previous_failed_upload_and_c
 
 @freeze_time("2023-10-30T10:25:00")
 def test_create_document_reference_request_arf_upload_throw_lambda_error_if_upload_in_progress(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
-    mock_fetch_document,
-    mock_create_reference_in_dynamodb,
+    mock_process_fhir_document_reference,
+    mock_fetch_available_document_references_by_type,
 ):
     two_minutes_ago = 1698661380  # 2023-10-30T10:23:00
     mock_records_upload_in_process = create_test_arf_doc_store_refs(
         override={"uploaded": False, "uploading": True, "last_updated": two_minutes_ago}
     )
-    mock_fetch_document.return_value = mock_records_upload_in_process
+    mock_fetch_available_document_references_by_type.return_value = (
+        mock_records_upload_in_process
+    )
 
     with pytest.raises(DocumentRefException) as e:
         mock_create_doc_ref_service.create_document_reference_request(
@@ -562,8 +535,7 @@ def test_create_document_reference_request_arf_upload_throw_lambda_error_if_uplo
         )
     assert e.value == DocumentRefException(423, LambdaError.UploadInProgressError)
 
-    mock_create_reference_in_dynamodb.assert_not_called()
-    mock_fetch_document.assert_called_with(
+    mock_fetch_available_document_references_by_type.assert_called_with(
         doc_type=SupportedDocumentTypes.ARF,
         nhs_number=TEST_NHS_NUMBER,
         query_filter=UploadIncomplete,
@@ -571,16 +543,19 @@ def test_create_document_reference_request_arf_upload_throw_lambda_error_if_uplo
 
 
 def test_create_document_reference_request_arf_upload_remove_previous_failed_upload_and_continue(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
-    mock_fetch_document,
+    mock_process_fhir_document_reference,
+    mock_fetch_available_document_references_by_type,
     mock_remove_records,
-    mock_create_reference_in_dynamodb,
     undo_mocking_for_is_upload_in_process,
 ):
     mock_doc_refs_of_failed_upload = create_test_arf_doc_store_refs(
         override={"uploaded": False}
     )
-    mock_fetch_document.return_value = mock_doc_refs_of_failed_upload
+    mock_fetch_available_document_references_by_type.return_value = (
+        mock_doc_refs_of_failed_upload
+    )
 
     mock_create_doc_ref_service.create_document_reference_request(
         TEST_NHS_NUMBER, ARF_FILE_LIST
@@ -589,8 +564,7 @@ def test_create_document_reference_request_arf_upload_remove_previous_failed_upl
     mock_remove_records.assert_called_with(
         MOCK_ARF_TABLE_NAME, mock_doc_refs_of_failed_upload
     )
-    mock_create_reference_in_dynamodb.assert_called_once()
-    mock_fetch_document.assert_called_with(
+    mock_fetch_available_document_references_by_type.assert_called_with(
         doc_type=SupportedDocumentTypes.ARF,
         nhs_number=TEST_NHS_NUMBER,
         query_filter=UploadIncomplete,
@@ -712,62 +686,14 @@ def test_prepare_doc_object_lg_happy_path(mocker, mock_create_doc_ref_service):
     )
 
 
-def test_prepare_pre_signed_url(mock_create_doc_ref_service, mocker, mock_s3):
-    mock_s3.create_upload_presigned_url.return_value = "test_url"
-    mock_document = mocker.MagicMock()
-    mock_document.file_name = "test_name"
-    expected = "test_url"
-
-    response = mock_create_doc_ref_service.prepare_pre_signed_url(mock_document)
-
-    mock_s3.create_upload_presigned_url.assert_called_once()
-    assert expected == response
-
-
-def test_prepare_pre_signed_url_raise_error(
-    mock_create_doc_ref_service, mocker, mock_s3
-):
-    mock_s3.create_upload_presigned_url.side_effect = ClientError(
-        {"Error": {"Code": "500", "Message": "mocked error"}}, "test"
-    )
-    mock_document = mocker.MagicMock()
-    mock_document.file_name = "test_name"
-    with pytest.raises(DocumentRefException):
-        mock_create_doc_ref_service.prepare_pre_signed_url(mock_document)
-
-    mock_s3.create_upload_presigned_url.assert_called_once()
-
-
-def test_create_reference_in_dynamodb_raise_error(mock_create_doc_ref_service):
-    mock_create_doc_ref_service.dynamo_service.batch_writing.side_effect = ClientError(
-        {"Error": {"Code": "500", "Message": "mocked error"}}, "test"
-    )
-    mock_create_doc_ref_service.arf_documents_dict_format = {"test": "test"}
-    with pytest.raises(DocumentRefException):
-        mock_create_doc_ref_service.create_reference_in_dynamodb("test", ["test"])
-
-    mock_create_doc_ref_service.dynamo_service.batch_writing.assert_called_once()
-
-
-def test_create_reference_in_dynamodb_both_tables(mock_create_doc_ref_service, mocker):
-    mock_create_doc_ref_service.create_reference_in_dynamodb(
-        mock_create_doc_ref_service.arf_dynamo_table, [{"test_arf": "test"}]
-    )
-
-    mock_create_doc_ref_service.dynamo_service.batch_writing.assert_has_calls(
-        [
-            mocker.call(
-                mock_create_doc_ref_service.arf_dynamo_table, [{"test_arf": "test"}]
-            )
-        ]
-    )
-    assert mock_create_doc_ref_service.dynamo_service.batch_writing.call_count == 1
-
-
 def test_check_existing_lloyd_george_records_does_nothing_if_no_record_exist(
-    mock_create_doc_ref_service, mock_fetch_document, mock_remove_records, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_create_doc_ref_service,
+    mock_fetch_available_document_references_by_type,
+    mock_remove_records,
+    mocker,
 ):
-    mock_fetch_document.return_value = []
+    mock_fetch_available_document_references_by_type.return_value = []
 
     assert (
         mock_create_doc_ref_service.check_existing_lloyd_george_records_and_remove_failed_upload(
@@ -780,11 +706,20 @@ def test_check_existing_lloyd_george_records_does_nothing_if_no_record_exist(
 
 @freeze_time("2023-10-30T10:25:00")
 def test_check_existing_lloyd_george_records_throw_error_if_upload_in_progress(
-    mock_create_doc_ref_service, mock_fetch_document, mock_remove_records
+    mock_fhir_doc_ref_base_service,
+    mock_create_doc_ref_service,
+    mock_fetch_available_document_references_by_type,
+    mock_remove_records,
 ):
     two_minutes_ago = 1698661380  # 2023-10-30T10:23:00
-    mock_fetch_document.return_value = create_test_lloyd_george_doc_store_refs(
-        override={"uploaded": False, "uploading": True, "last_updated": two_minutes_ago}
+    mock_fetch_available_document_references_by_type.return_value = (
+        create_test_lloyd_george_doc_store_refs(
+            override={
+                "uploaded": False,
+                "uploading": True,
+                "last_updated": two_minutes_ago,
+            }
+        )
     )
 
     with pytest.raises(Exception) as e:
@@ -800,9 +735,14 @@ def test_check_existing_lloyd_george_records_throw_error_if_upload_in_progress(
 
 
 def test_check_existing_lloyd_george_records_throw_error_if_got_a_full_set_of_uploaded_record(
-    mock_create_doc_ref_service, mock_fetch_document, mock_remove_records
+    mock_fhir_doc_ref_base_service,
+    mock_create_doc_ref_service,
+    mock_fetch_available_document_references_by_type,
+    mock_remove_records,
 ):
-    mock_fetch_document.return_value = create_test_lloyd_george_doc_store_refs()
+    mock_fetch_available_document_references_by_type.return_value = (
+        create_test_lloyd_george_doc_store_refs()
+    )
 
     with pytest.raises(Exception) as e:
         mock_create_doc_ref_service.check_existing_lloyd_george_records_and_remove_failed_upload(
@@ -817,9 +757,15 @@ def test_check_existing_lloyd_george_records_throw_error_if_got_a_full_set_of_up
     mock_remove_records.assert_not_called()
 
 
-def test_remove_records_of_failed_upload(mock_create_doc_ref_service, mocker):
+def test_remove_records_of_failed_upload(
+    mock_fhir_doc_ref_base_service, mock_create_doc_ref_service, mocker
+):
     mock_doc_refs_of_failed_upload = create_test_lloyd_george_doc_store_refs(
         override={"uploaded": False}
+    )
+
+    mock_create_doc_ref_service.post_fhir_doc_ref_service.s3_service = (
+        mocker.MagicMock()
     )
 
     mock_create_doc_ref_service.remove_records_of_failed_upload(
@@ -828,11 +774,11 @@ def test_remove_records_of_failed_upload(mock_create_doc_ref_service, mocker):
     )
     file_keys = [record.s3_file_key for record in mock_doc_refs_of_failed_upload]
 
-    mock_create_doc_ref_service.s3_service.delete_object.assert_has_calls(
+    mock_create_doc_ref_service.post_fhir_doc_ref_service.s3_service.delete_object.assert_has_calls(
         [mocker.call(MOCK_LG_BUCKET, file_key) for file_key in file_keys],
         any_order=True,
     )
-    mock_create_doc_ref_service.document_service.hard_delete_metadata_records.assert_called_with(
+    mock_fhir_doc_ref_base_service.document_service.hard_delete_metadata_records.assert_called_with(
         table_name=MOCK_LG_TABLE_NAME,
         document_references=mock_doc_refs_of_failed_upload,
     )
@@ -842,11 +788,9 @@ def test_ods_code_not_in_pilot_raises_exception(
     mocker,
     mock_create_doc_ref_service,
     mock_create_document_reference,
-    mock_prepare_pre_signed_url,
-    mock_create_reference_in_dynamodb,
-    get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
 ):
-    get_allowed_list_of_ods_codes_for_upload_pilot.return_value = ["PI001"]
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = ["PI001"]
 
     with pytest.raises(DocumentRefException) as exc_info:
         mock_create_doc_ref_service.create_document_reference_request(
@@ -854,8 +798,6 @@ def test_ods_code_not_in_pilot_raises_exception(
         )
 
     mock_create_document_reference.assert_not_called()
-    mock_prepare_pre_signed_url.assert_not_called()
-    mock_create_reference_in_dynamodb.assert_not_called()
 
     exception = exc_info.value
     assert isinstance(exception, DocumentRefException)

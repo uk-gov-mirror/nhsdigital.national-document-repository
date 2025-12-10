@@ -1,21 +1,22 @@
-from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
-from utils.decorators.override_error_check import override_error_check
-from services.feature_flags_service import FeatureFlagService
-from enums.feature_flags import FeatureFlags
-from services.get_document_reference_service import GetDocumentReferenceService
-from utils.decorators.validate_patient_id import validate_patient_id
-from utils.lambda_exceptions import FeatureFlagsException
-from enums.lambda_error import LambdaError
-from utils.lambda_exceptions import GetDocumentRefException
-from utils.lambda_response import ApiGatewayResponse
-from utils.decorators.ensure_env_var import ensure_environment_variables
-from utils.decorators.set_audit_arg import set_request_context_for_logging
-from enums.logging_app_interaction import LoggingAppInteraction
-from utils.audit_logging_setup import LoggingService
-from utils.request_context import request_context
 import json
 
+from enums.feature_flags import FeatureFlags
+from enums.lambda_error import LambdaError
+from enums.logging_app_interaction import LoggingAppInteraction
+from services.feature_flags_service import FeatureFlagService
+from services.get_document_reference_service import GetDocumentReferenceService
+from utils.audit_logging_setup import LoggingService
+from utils.decorators.ensure_env_var import ensure_environment_variables
+from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
+from utils.decorators.override_error_check import override_error_check
+from utils.decorators.set_audit_arg import set_request_context_for_logging
+from utils.decorators.validate_patient_id import validate_patient_id
+from utils.lambda_exceptions import GetDocumentRefException
+from utils.lambda_response import ApiGatewayResponse
+from utils.request_context import request_context
+
 logger = LoggingService(__name__)
+
 
 @validate_patient_id
 @handle_lambda_exceptions
@@ -36,16 +37,20 @@ def lambda_handler(event: dict[str, any], context):
     request_context.app_interaction = LoggingAppInteraction.VIEW_LG_RECORD.value
 
     feature_flag_service = FeatureFlagService()
-    feature_flag_service.validate_feature_flag(FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED)
-    
+    feature_flag_service.validate_feature_flag(
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+    )
+
     logger.info("Starting document fetch by ID process")
 
     try:
         document_id = event["pathParameters"]["id"]
         nhs_number = event["queryStringParameters"]["patientId"]
     except KeyError:
-        raise GetDocumentRefException(400, LambdaError.DocumentReferenceMissingParameters)
-    
+        raise GetDocumentRefException(
+            400, LambdaError.DocumentReferenceMissingParameters
+        )
+
     service = GetDocumentReferenceService()
 
     document_info = service.get_document_url_by_id(document_id, nhs_number)

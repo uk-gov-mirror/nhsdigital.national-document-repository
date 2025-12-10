@@ -4,7 +4,7 @@ from json import JSONDecodeError
 
 from botocore.exceptions import ClientError
 from enums.dynamo_filter import AttributeOperator
-from enums.infrastructure import DynamoTables, MAP_MTLS_TO_DYNAMO
+from enums.infrastructure import MAP_MTLS_TO_DYNAMO
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.mtls import MtlsCommonNames

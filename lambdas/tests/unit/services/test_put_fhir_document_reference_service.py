@@ -7,17 +7,22 @@ from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
 from pydantic import ValidationError
+from services.fhir_document_reference_service_base import (
+    FhirDocumentReferenceServiceBase,
+)
 from services.put_fhir_document_reference_service import PutFhirDocumentReferenceService
-from tests.unit.conftest import APIM_API_URL
+from tests.unit.conftest import APIM_API_URL, TEST_UUID
 from tests.unit.helpers.data.test_documents import (
     create_test_doc_store_refs,
     create_valid_fhir_doc_json,
 )
 from utils.exceptions import FhirDocumentReferenceException
 from utils.lambda_exceptions import (
+    DocumentRefException,
     InvalidDocTypeException,
     UpdateFhirDocumentReferenceException,
 )
+from utils.request_context import request_context
 
 
 @pytest.fixture
@@ -47,6 +52,39 @@ def mock_service(set_env, mocker, valid_nhs_number):
     mocker.patch.object(service, "_check_nhs_number_with_pds")
 
     yield service
+
+
+@pytest.fixture
+def mock_fhir_doc_ref_base_service(mocker, setup_request_context):
+    mock_document_service = mocker.patch(
+        "services.fhir_document_reference_service_base.DocumentService"
+    )
+    mock_s3_service = mocker.patch(
+        "services.fhir_document_reference_service_base.S3Service"
+    )
+    mock_dynamo_service = mocker.patch(
+        "services.fhir_document_reference_service_base.DynamoDBService"
+    )
+    mock_doc_type_table_router = mocker.patch(
+        "services.fhir_document_reference_service_base.DocTypeTableRouter"
+    )
+    service = FhirDocumentReferenceServiceBase()
+    service.document_service = mock_document_service.return_value
+    service.s3_service = mock_s3_service.return_value
+    service.dynamo_service = mock_dynamo_service.return_value
+    service.doc_router = mock_doc_type_table_router.return_value
+    yield service
+
+
+@pytest.fixture
+def setup_request_context():
+    request_context.authorization = {
+        "ndr_session_id": TEST_UUID,
+        "nhs_user_id": "test-user-id",
+        "selected_organisation": {"org_ods_code": "test-ods-code"},
+    }
+    yield
+    request_context.authorization = {}
 
 
 @pytest.fixture
@@ -201,8 +239,12 @@ def test_process_fhir_document_reference_with_pds_error(
     assert excinfo.value.error == LambdaError.DocRefPatientSearchInvalid
 
 
-def test_s3_presigned_url_error(
-    mock_service, valid_fhir_doc_json, valid_doc_ref, valid_nhs_number
+def test_handle_coument_save_failure_on_create_s3_presigned_url(
+    mock_fhir_doc_ref_base_service,
+    mock_service,
+    valid_fhir_doc_json,
+    valid_doc_ref,
+    valid_nhs_number,
 ):
     """Test handling of S3 presigned URL error."""
     mock_service._create_s3_presigned_url.side_effect = FhirDocumentReferenceException()
@@ -213,17 +255,21 @@ def test_s3_presigned_url_error(
     mock_service._create_document_reference.return_value = valid_doc_ref
     mock_service._get_document_reference.return_value = document
 
-    with pytest.raises(UpdateFhirDocumentReferenceException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
 
     assert excinfo.value.status_code == 500
     assert excinfo.value.error == LambdaError.InternalServerError
 
 
-def test_s3_upload_error(
-    mock_service, valid_fhir_doc_with_binary, valid_doc_ref, valid_nhs_number
+def test_handle_document_save_failure_on_store_binary_in_s3(
+    mock_fhir_doc_ref_base_service,
+    mock_service,
+    valid_fhir_doc_with_binary,
+    valid_doc_ref,
+    valid_nhs_number,
 ):
-    """Test handling of S3 upload error."""
+    """Test handling of S3 binary upload error."""
     mock_service._store_binary_in_s3.side_effect = FhirDocumentReferenceException()
 
     document = create_test_doc_store_refs()[0]
@@ -232,7 +278,7 @@ def test_s3_upload_error(
     mock_service._create_document_reference.return_value = valid_doc_ref
     mock_service._get_document_reference.return_value = document
 
-    with pytest.raises(UpdateFhirDocumentReferenceException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference(valid_fhir_doc_with_binary)
 
     assert excinfo.value.status_code == 500
@@ -371,7 +417,7 @@ def test_get_document_reference_error(mock_service, valid_fhir_doc_json):
 
 
 def test_save_document_reference_to_dynamo_error(
-    mock_service, valid_fhir_doc_json, valid_nhs_number
+    mock_fhir_doc_ref_base_service, mock_service, valid_fhir_doc_json, valid_nhs_number
 ):
     """test handling errors from save_document_reference_to_dynamo"""
     document = create_test_doc_store_refs()[0]
@@ -382,7 +428,7 @@ def test_save_document_reference_to_dynamo_error(
         FhirDocumentReferenceException()
     )
 
-    with pytest.raises(UpdateFhirDocumentReferenceException) as excinfo:
+    with pytest.raises(DocumentRefException) as excinfo:
         mock_service.process_fhir_document_reference(valid_fhir_doc_json)
 
     assert excinfo.value.status_code == 500

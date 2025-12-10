@@ -149,41 +149,6 @@ class PutFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
 
         return document_reference
 
-    def _handle_document_save(
-        self,
-        document_reference: DocumentReference,
-        fhir_doc: FhirDocumentReference,
-        dynamo_table: str,
-    ) -> str:
-        binary_content = fhir_doc.content[0].attachment.data
-
-        presigned_url = None
-        # Handle binary content if present, otherwise create a pre-signed URL
-        if binary_content:
-            try:
-                self._store_binary_in_s3(document_reference, binary_content)
-            except FhirDocumentReferenceException:
-                raise UpdateFhirDocumentReferenceException(
-                    500, LambdaError.DocRefNoParse
-                )
-        else:
-            # Create a pre-signed URL for uploading
-            try:
-                presigned_url = self._create_s3_presigned_url(document_reference)
-            except FhirDocumentReferenceException:
-                raise UpdateFhirDocumentReferenceException(
-                    500, LambdaError.InternalServerError
-                )
-        try:
-            # Save document reference to DynamoDB
-            self._save_document_reference_to_dynamo(dynamo_table, document_reference)
-        except FhirDocumentReferenceException:
-            raise UpdateFhirDocumentReferenceException(
-                500, LambdaError.DocRefUploadInternalError
-            )
-
-        return presigned_url
-
     def _get_dynamo_table_for_doc_type(self, doc_type: SnomedCode) -> str:
         try:
             return self.doc_router.resolve(doc_type)

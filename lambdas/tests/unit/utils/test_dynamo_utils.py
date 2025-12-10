@@ -1,7 +1,6 @@
 import json
 
 import pytest
-from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from tests.unit.conftest import (

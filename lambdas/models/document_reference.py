@@ -45,12 +45,19 @@ class Subject(BaseModel):
     identifier: Identifier
 
 
-class UpdateBody(BaseModel):
+class DocumentReferenceBody(BaseModel):
     model_config = ConfigDict(validate_by_alias=True, alias_generator=to_camel)
     resource_type: str
     subject: Subject
-    content: list[SingleAttachment]
     created: str
+
+
+class UpdateDocumentReferenceBody(DocumentReferenceBody):
+    content: list[SingleAttachment]
+
+
+class CreateDocumentReferenceBody(DocumentReferenceBody):
+    content: list[Attachment]
 
 
 class GenericEventModel(BaseModel):
@@ -62,11 +69,15 @@ class GenericEventModel(BaseModel):
     )
     http_method: str
     query_string_parameters: dict
-    path_parameters: dict
+    path_parameters: dict | None = None
 
 
 class UpdateEventModel(GenericEventModel):
-    body: UpdateBody
+    body: UpdateDocumentReferenceBody
+
+
+class CreateEventModel(GenericEventModel):
+    body: CreateDocumentReferenceBody
 
 
 class UploadDocumentReference(BaseModel):

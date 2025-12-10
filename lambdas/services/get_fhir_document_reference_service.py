@@ -1,5 +1,4 @@
 import base64
-from operator import index
 import os
 
 from enums.file_size import FileSize

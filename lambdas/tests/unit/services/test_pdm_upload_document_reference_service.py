@@ -4,24 +4,21 @@ import pytest
 from botocore.exceptions import ClientError
 from enums.infrastructure import DynamoTables
 from enums.virus_scan_result import VirusScanResult
-from lambdas.enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
 from services.mock_virus_scan_service import MockVirusScanService
 from services.upload_document_reference_service import UploadDocumentReferenceService
 from tests.unit.conftest import (
     MOCK_LG_BUCKET,
     MOCK_LG_TABLE_NAME,
-    MOCK_STAGING_STORE_BUCKET,
-    MOCK_PDM_TABLE_NAME,
     MOCK_PDM_BUCKET,
-    WORKSPACE,
+    MOCK_PDM_TABLE_NAME,
+    MOCK_STAGING_STORE_BUCKET,
 )
-from utils.common_query_filters import (
-    FinalOrPreliminaryAndNotSuperseded,
-    PreliminaryStatus,
-)
+from utils.common_query_filters import PreliminaryStatus
 from utils.exceptions import DocumentServiceException, FileProcessingException
 from utils.lambda_exceptions import InvalidDocTypeException
+
+from lambdas.enums.snomed_codes import SnomedCodes
 
 
 @pytest.fixture

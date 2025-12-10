@@ -1,11 +1,10 @@
 import json
 
-from pydantic import ValidationError
-
 from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from models.document_reference import UpdateEventModel
+from pydantic import ValidationError
 from services.feature_flags_service import FeatureFlagService
 from services.update_document_reference_service import UpdateDocumentReferenceService
 from utils.audit_logging_setup import LoggingService
@@ -17,7 +16,7 @@ from utils.decorators.validate_patient_id import validate_patient_id
 from utils.document_reference_common_validations import (
     normalize_event_body_to_dict,
     process_event_body,
-    validate_matching_patient_ids
+    validate_matching_patient_ids,
 )
 from utils.lambda_exceptions import DocumentRefException
 from utils.lambda_response import ApiGatewayResponse
@@ -46,9 +45,7 @@ def lambda_handler(event, context):
     request_context.app_interaction = LoggingAppInteraction.UPDATE_RECORD.value
 
     feature_flag_service = FeatureFlagService()
-    feature_flag_service.validate_feature_flag(
-        FeatureFlags.UPLOAD_LAMBDA_ENABLED.value
-    )
+    feature_flag_service.validate_feature_flag(FeatureFlags.UPLOAD_LAMBDA_ENABLED.value)
 
     feature_flag_service.validate_feature_flag(
         FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED.value
@@ -56,22 +53,18 @@ def lambda_handler(event, context):
 
     logger.info("Starting document reference update process")
 
-    event_dict = normalize_event_body_to_dict(event)
+    normalize_event_body_to_dict(event)
 
     try:
-        validated_event = UpdateEventModel.model_validate(event_dict)
-        
+        validated_event = UpdateEventModel.model_validate(event)
+
         nhs_number_query = validated_event.query_string_parameters["patientId"]
         doc_ref_id = validated_event.path_parameters["id"]
 
-        nhs_number_body, document = process_event_body(
-            validated_event.model_dump()
-        )
+        nhs_number_body, document = process_event_body(validated_event)
 
-        validate_matching_patient_ids(
-            nhs_number_query, nhs_number_body
-        )
-        
+        validate_matching_patient_ids(nhs_number_query, nhs_number_body)
+
         request_context.patient_nhs_no = nhs_number_query
 
         logger.info("Processed update documents from request")
@@ -86,9 +79,7 @@ def lambda_handler(event, context):
             f"Failed to parse Document Reference: {str(e)}",
             {"Results": "Validation failure during document reference update"},
         )
-        raise DocumentRefException(
-            400, LambdaError.DocRefNoParse
-        )
+        raise DocumentRefException(400, LambdaError.DocRefNoParse)
 
     return ApiGatewayResponse(
         200, json.dumps(url_responses), "PUT"
