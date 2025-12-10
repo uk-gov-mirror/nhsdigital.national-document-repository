@@ -36,6 +36,10 @@ output=json
 
 Make sure your AWS profile has access to the required resources.
 
+## Using the dev container
+
+All of the below make commands can be used in the dev container. To run the below commands you need to append `CONTAINER=true`.
+
 ## 🔧 Available Make Commands
 
 - `make test-fhir-api-e2e WORKSPACE=<workspace>` — Runs the FHIR API E2E tests with mTLS against a given workspace

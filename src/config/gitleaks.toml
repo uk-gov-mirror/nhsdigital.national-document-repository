@@ -1,0 +1,15 @@
+# SEE: https://github.com/gitleaks/gitleaks/#configuration
+title = "PDA Gitleaks config"
+
+[extend]
+useDefault = true # SEE: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+
+[allowlist]
+regexes = [
+  # false positives in tests, skip with regexes
+  '''(?i)skip_wait\s*=\s*true''',
+  '''(?i)conditional\s*=\s*true'''
+]
+paths = [
+    '''poetry.lock''',
+]

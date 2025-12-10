@@ -16,6 +16,9 @@ LAMBDA_LAYER_PYTHON_PATH=python/lib/python$(PYTHON_VERSION)/site-packages
 
 ZIP_BASE_PATH = ./$(LAMBDAS_BUILD_PATH)/$(lambda_name)/tmp
 ZIP_COMMON_FILES = lambdas/utils lambdas/models lambdas/services lambdas/repositories lambdas/enums lambdas/scripts
+CONTAINER ?= false
+
+.PHONY: install clean help format list requirements ruff
 
 default: help
 
@@ -70,33 +73,62 @@ download-api-certs: ## Downloads mTLS certificates (use with dev envs only). Usa
 	./scripts/aws/download-api-certs.sh $(WORKSPACE)
 
 test-api-e2e:
+ifeq ($(CONTAINER), true)
+	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/api --ignore=tests/e2e/api/fhir -vv
+else
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/api --ignore=tests/e2e/api/fhir -vv
+endif
 
-test-fhir-api-e2e: ## Runs FHIR API E2E tests. Usage: make test-fhir-api-e2e WORKSPACE=<workspace>
-	./scripts/test/run-e2e-fhir-api-tests.sh --workspace $(WORKSPACE)
+test-fhir-api-e2e: ## Runs FHIR API E2E tests. Usage: make test-fhir-api-e2e WORKSPACE=<workspace> CONTAINER=<true|false>
+	./scripts/test/run-e2e-fhir-api-tests.sh --workspace $(WORKSPACE) --container $(CONTAINER)
 	rm -rf ./lambdas/mtls_env_certs/$(WORKSPACE)
 
 test-apim-e2e: ## Runs APIM E2E tests for National Document Repository FHIR R4 API against ndr-dev.
-	./scripts/test/run-apim-e2e-tests.sh
+	./scripts/test/run-apim-e2e-tests.sh --container $(CONTAINER)
 
 test-api-e2e-snapshots:
+ifeq ($(CONTAINER), true)
+	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/api --ignore=tests/e2e/api/fhir --snapshot-update
+else
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/api --ignore=tests/e2e/api/fhir --snapshot-update
+endif
 
 test-bulk-upload-e2e:
+ifeq ($(CONTAINER), true)
+	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/bulk_upload -vv
+else
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/bulk_upload -vv
+endif
 
 test-unit:
+ifeq ($(CONTAINER), true)
+	cd ./lambdas && \
+	PYTHONPATH=. poetry run pytest tests/unit ../scripts/github/checklist_validator/tests
+else
 	cd ./lambdas && \
 	PYTHONPATH=.. ./venv/bin/python3 -m pytest tests/unit ../scripts/github/checklist_validator/tests
+endif
 
 test-unit-coverage:
+ifeq ($(CONTAINER), true)
+	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/unit --cov=. --cov-report xml:coverage.xml
+else
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/unit --cov=. --cov-report xml:coverage.xml
+endif
 
 test-unit-coverage-html:
+ifeq ($(CONTAINER), true)
+	cd ./lambdas && poetry run coverage run --source=. --omit="tests/*" -m pytest -v tests/unit && coverage report && coverage html
+else
 	cd ./lambdas && coverage run --source=. --omit="tests/*" -m pytest -v tests/unit && coverage report && coverage html
+endif
 
 test-unit-collect:
+ifeq ($(CONTAINER), true)
+	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/unit --collect-only
+else
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/unit --collect-only
+endif
 
 env:
 	@echo "Removing old venv."
@@ -164,6 +196,23 @@ install-pdfjs:
 	unzip -o -d ./app/public/pdfjs ./app/public/pdfjs/pdfjs.zip
 	rm ./app/public/pdfjs/pdfjs.zip
 
+# Environment tooling targets:
+install-asdf:
+	echo "Setting up ASDF and related dependencies"
+	cut -d ' ' -f1 .tool-versions | xargs -I {} asdf plugin add {} || true
+	asdf install
+
+install-poetry:
+	echo "Installing all poetry dependencies to local environment"
+	poetry install
+
+	echo "Generating 'requirements.txt' files"
+	$(MAKE) requirements
+
+install-dev: install-asdf install-poetry install-cypress
+	git config --unset-all core.hooksPath || true
+	pre-commit install --config src/config/pre-commit.yml --install-hooks
+
 start:
 	npm --prefix ./app start
 
@@ -189,11 +238,13 @@ docker-down:
 	docker-compose -f ./app/docker-compose.yml down
 
 cypress-open:
-	TZ=GMT npm --prefix ./app run cypress
+	xvfb-run -- npm --prefix ./app run cypress
 
 cypress-run:
-	TZ=GMT npm --prefix ./app run cypress-run
+	xvfb-run -- npm --prefix ./app run cypress-run
 
 cypress-report:
-	TZ=GMT npm --prefix ./app run cypress-report
+	xvfb-run -- npm --prefix ./app run cypress-report
 
+install-cypress:
+	npm install --save-dev cypress

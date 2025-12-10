@@ -1,0 +1,57 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "containerEnv": {
+    "AWS_VAULT_BACKEND": "file",
+    "AWS_VAULT_FILE_PASSPHRASE": "default"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2.12.4": {
+      "moby": false,
+      "version": "latest",
+      "dockerDashComposeVersion": "latest"
+    }
+  },
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.asdf:/home/vscode/.asdf/shims:/home/vscode/.local/bin"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.black-formatter",
+        "ms-python.mypy-type-checker",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "4ops.terraform",
+        "maattdd.gitless",
+        "ms-python.python",
+        "rogalmic.bash-debug",
+        "sidp.strict-whitespace",
+        "streetsidesoftware.code-spell-checker",
+        "tamasfe.even-better-toml",
+        "timonwong.shellcheck",
+        "hashicorp.terraform",
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "LittleFoxTeam.vscode-python-test-adapter",
+        "charliermarsh.ruff",
+        "github.vscode-github-actions",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {}
+    }
+  },
+  "mounts": [
+    "source=${env:HOME}${env:USERPROFILE}/.aws,target=/home/vscode/.aws,type=bind",
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.gnupg,target=/home/vscode/.gnupg,type=bind,consistency=cached"
+  ],
+  "postCreateCommand": "HOST_PWD=${localWorkspaceFolder} bash -c '.devcontainer/src/create.sh' ",
+
+"runArgs": [
+  "-e", "DISPLAY",
+  "-v", "/tmp/.X11-unix:/tmp/.X11-unix",
+  "--platform=linux/amd64"
+]
+}

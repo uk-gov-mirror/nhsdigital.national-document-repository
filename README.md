@@ -6,19 +6,60 @@
 - [React User Interface README.md](app/README.md).
 - [E2E test README.md](lambdas/tests/e2e/README.md) (we have E2E tests for our FHIR endpoints and APIM setup).
 
-## Installation
+## Running Locally
+
+The dev container option standardises tools for both python (via poetry) and node via asdf.
+
+> [!WARNING]
+> Once you have the dev container running, you will need to install your git credentials for signing your commits.
+
+<!-- -->
+> If the dev container build errors on docker, check your config at `~/.docker/config.json`, which should have something similar to:
+>
+> ```json
+> {
+>     "auths": {}
+> }
+> ```
+>
+> Remove any lines that mention `desktop`.
+
+### Pre-requisites
+
+The following tools are required for all options:
 
 - [Git](https://git-scm.com/)
+- Docker (e.g. via [Brew](https://formulae.brew.sh/formula/docker))
+
+### Method 1 - Dev container within VS Code (recommended)
+
+> [!IMPORTANT]
+> This **will not work** within a VS Code Workspace.
+
+1. Install the `Dev Containers` VSCode extension.
+1. Press `Ctrl+Shift+P`.
+1. Select `Dev Containers: Rebuild and Reopen in Container`.
+
+### Method 2 - Dev container (not using VS Code)
+
+If you don't use VSCode, run the following commands:
+
+```bash
+npm install -g @devcontainers/cli
+devcontainer build --workspace-folder .
+devcontainer up --workspace-folder .
+devcontainer exec --workspace-folder . bash
+```
+
+### Method 3 - Manual installation
+
 - [Terraform](https://formulae.brew.sh/formula/terraform)
-- [docker](https://formulae.brew.sh/formula/docker)
 - [docker-compose](https://formulae.brew.sh/formula/docker-compose)
 - [AWS CLI](https://aws.amazon.com/cli/)
 - [Awsume](https://formulae.brew.sh/formula/awsume)
 - [ruff](https://formulae.brew.sh/formula/ruff)
 - [Node@24](https://formulae.brew.sh/formula/node@24)
 - [Python@3.11](https://formulae.brew.sh/formula/python@3.11)
-
-_Note: It is recommended to use [Homebrew](https://brew.sh/) to install most of these._
 
 ## Monitoring
 

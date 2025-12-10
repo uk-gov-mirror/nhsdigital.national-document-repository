@@ -1,0 +1,68 @@
+[tool.poetry]
+name = "ndr"
+version = "0.0.1"
+description = "National Document Repository"
+readme = "README.md"
+packages = [
+    { include = "lambdas" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+ruff = "^0.14.4"
+
+[tool.poetry.group.test.dependencies]
+pytest = "7.4.3"
+pytest-cov = "4.1.0"
+pytest-mock = "3.11.1"
+pytest-unordered = "0.6.0"
+requests-mock = "1.11.0"
+freezegun = "1.5.4"
+markupsafe = "2.1.3"
+black = "24.3.0"
+isort = "5.13.0"
+pip-audit = "2.6.1"
+syrupy = "4.9.1"
+
+[tool.poetry.group.edge_lambda.dependencies]
+boto3 = "^1.35.3"
+botocore = "^1.35.3"
+pydantic = "^2.8.2"
+pyjwt = "^2.9.0"
+inflection = "0.5.1"
+
+[tool.poetry.group.alerting_lambda.dependencies]
+PyJWT = "^2.8.0"
+boto3 = "^1.34.128"
+botocore = "^1.34.128"
+inflection = "0.5.1"
+jinja2 = "3.1.6"
+pydantic = "^2.11"
+requests = "2.32.4"
+
+[tool.poetry.group.core_lambda.dependencies]
+PyJWT = "^2.8.0"
+PyYAML = "6.0.1"
+boto3 = "^1.34.128"
+botocore = "^1.34.128"
+charset-normalizer = "3.2.0"
+cryptography = "44.0.1"
+idna = "3.7"
+inflection = "0.5.1"
+jmespath = "1.0.1"
+oauthlib = "3.2.2"
+packaging = "23.0.0"
+pydantic = { version = "^2.11", extras = ["email"] }
+pypdf = "6.4.0"
+requests = "2.32.4"
+responses = "0.23.1"
+types-PyYAML = "6.0.12.11"
+regex = "2023.12.25"
+pikepdf = "8.4.0"
+
+[tool.poetry.group.data_lambda.dependencies]
+polars = "1.31.0"
+
+[tool.poetry.group.reports_lambda.dependencies]
+openpyxl = "^3.1.5"
+reportlab = "^4.3.1"
