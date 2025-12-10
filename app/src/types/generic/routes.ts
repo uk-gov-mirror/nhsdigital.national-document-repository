@@ -29,6 +29,9 @@ export enum routes {
     DOCUMENT_UPLOAD_WILDCARD = '/patient/document-upload/*',
 
     MOCK_LOGIN = 'Auth/MockLogin',
+
+    ADMIN_ROUTE = '/admin',
+    ADMIN_ROUTE_WILDCARD = '/admin/*',
 }
 
 export enum routeChildren {
@@ -55,6 +58,8 @@ export enum routeChildren {
     DOCUMENT_DELETE = '/patient/documents/delete',
     DOCUMENT_DELETE_CONFIRMATION = '/patient/documents/delete/confirmation',
     DOCUMENT_DELETE_COMPLETE = '/patient/documents/delete/complete',
+
+    ADMIN_REVIEW = '/admin/reviews',
 }
 
 export enum ROUTE_TYPE {

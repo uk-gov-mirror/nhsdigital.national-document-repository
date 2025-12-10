@@ -27,6 +27,7 @@ import NonAuthGuard from './guards/notAuthGuard/NonAuthGuard';
 import PatientAccessAuditPage from '../pages/patientAccessAuditPage/PatientAccessAuditPage';
 import MockLoginPage from '../pages/mockLoginPage/MockLoginPage';
 import DocumentUploadPage from '../pages/documentUploadPage/DocumentUploadPage';
+import { AdminRoutesPage } from '../pages/adminRoutesPage/AdminRoutesPage';
 
 const {
     START,
@@ -55,6 +56,8 @@ const {
     MOCK_LOGIN,
     DOCUMENT_UPLOAD,
     DOCUMENT_UPLOAD_WILDCARD,
+    ADMIN_ROUTE,
+    ADMIN_ROUTE_WILDCARD,
 } = routes;
 
 type Routes = {
@@ -146,6 +149,10 @@ export const childRoutes = [
         route: routeChildren.DOCUMENT_UPLOAD_FILE_ERRORS,
         parent: DOCUMENT_UPLOAD,
     },
+    {
+        route: routeChildren.ADMIN_REVIEW,
+        parent: ADMIN_ROUTE,
+    },
 ];
 
 export const routeMap: Routes = {
@@ -225,6 +232,14 @@ export const routeMap: Routes = {
     },
     [REPORT_DOWNLOAD_WILDCARD]: {
         page: <ReportDownloadPage />,
+        type: ROUTE_TYPE.PRIVATE,
+    },
+    [ADMIN_ROUTE]: {
+        page: <AdminRoutesPage />,
+        type: ROUTE_TYPE.PRIVATE,
+    },
+    [ADMIN_ROUTE_WILDCARD]: {
+        page: <AdminRoutesPage />,
         type: ROUTE_TYPE.PRIVATE,
     },
 

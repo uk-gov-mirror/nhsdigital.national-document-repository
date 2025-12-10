@@ -74,6 +74,26 @@ const HomePage = (): React.JSX.Element => {
                         </Card.Content>
                     </Card>
                 </Card.GroupItem>
+                {config.featureFlags.uploadDocumentIteration3Enabled &&
+                    <Card.GroupItem width="one-half">
+                        <Card clickable cardType="primary">
+                            <Card.Content>
+                                <Card.Heading className="nhsuk-heading-m">
+                                    <Card.Link
+                                        data-testid="admin-console-btn"
+                                        href={routes.ADMIN_ROUTE}
+                                    >
+                                        Admin console
+                                    </Card.Link>
+                                </Card.Heading>
+                                <Card.Description>
+                                    Review records and actions for incoming patients
+                                </Card.Description>
+                                <RightCircleIcon />
+                            </Card.Content>
+                        </Card>
+                    </Card.GroupItem>
+                }
             </Card.Group>
         </>
     );
