@@ -164,6 +164,10 @@ def test_create_document_virus(test_data, snapshot_json):
 
     lloyd_george_record["nhs_number"] = "9730154260"
 
+    # Attach EICAR data
+    eicar_string = r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    lloyd_george_record["data"] = base64.b64encode(eicar_string.encode()).decode()
+
     payload = create_upload_payload(lloyd_george_record)
     url = f"https://{API_ENDPOINT}/FhirDocumentReference"
     headers = {"Authorization": "Bearer 123", "X-Api-Key": API_KEY}
@@ -172,27 +176,23 @@ def test_create_document_virus(test_data, snapshot_json):
     upload_response = retrieve_response.json()
     lloyd_george_record["id"] = upload_response["id"].split("~")[1]
     test_data.append(lloyd_george_record)
-    presign_uri = upload_response["content"][0]["attachment"]["url"]
-    del upload_response["content"][0]["attachment"]["url"]
-
-    sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
-    with open(sample_pdf_path, "rb") as f:
-        files = {"file": f}
-        presign_response = requests.put(presign_uri, files=files)
-        assert presign_response.status_code == 200
 
     retrieve_url = (
         f"https://{API_ENDPOINT}/FhirDocumentReference/{upload_response['id']}"
     )
 
+    # Poll until processing/scan completes
     def condition(response_json):
         logging.info(response_json)
-        return response_json.get("docStatus", False) == "cancelled"
+        return response_json.get("docStatus") in (
+        "cancelled",
+        "final",
+        )
 
     raw_retrieve_response = fetch_with_retry(retrieve_url, condition)
     retrieve_response = raw_retrieve_response.json()
 
-    assert upload_response == snapshot_json(exclude=paths("id", "date"))
+    assert upload_response == snapshot_json(exclude=paths("id", "date", "content.0.attachment.url"))
     assert retrieve_response == snapshot_json(exclude=paths("id", "date"))
 
 

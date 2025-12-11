@@ -95,25 +95,25 @@ def test_create_document_virus(test_data):
         "ods": "H81109",
         "nhs_number": "9730154260",
     }
+
+    # Attach EICAR data
+    eicar_string = r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    record["data"] = base64.b64encode(eicar_string.encode()).decode()
     payload = pdm_data_helper.create_upload_payload(record)
 
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 200
-    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    upload_response = raw_upload_response.json()
+    record["id"] = upload_response["id"].split("~")[1]
     test_data.append(record)
 
-    # Presigned upload
-    upload_response = raw_upload_response.json()
-    presign_uri = upload_response["content"][0]["attachment"]["url"]
-    del upload_response["content"][0]["attachment"]["url"]
-    sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
-    with open(sample_pdf_path, "rb") as f:
-        presign_response = requests.put(presign_uri, files={"file": f})
-        assert presign_response.status_code == 200
-
+    # Poll until processing/scan completes
     def condition(response_json):
         logging.info(response_json)
-        return response_json.get("docStatus", False) == "cancelled"
+        return response_json.get("docStatus") in (
+        "cancelled",
+        "final",
+        )
 
     raw_retrieve_response = retrieve_document_with_retry(
         upload_response["id"], condition

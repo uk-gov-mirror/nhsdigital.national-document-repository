@@ -24,6 +24,7 @@ class DataHelper:
         self.record_type = record_type
         self.dynamo_service = DynamoDBService()
         self.s3_service = S3Service()
+        self.apim_url = None
 
         self.build_env(table_name, bucket_name)
 
@@ -32,6 +33,14 @@ class DataHelper:
             raise ValueError("WORKSPACE environment variable is missing or empty.")
         self.dynamo_table = f"{self.workspace}_{table_name}"
         self.s3_bucket = f"{self.workspace}-{bucket_name}"
+
+        apim_map = {
+            "pre-prod": "int.api.service.nhs.uk",
+            "ndr-test": "internal-qa.api.service.nhs.uk",
+            "ndr-dev":  "internal-dev.api.service.nhs.uk",
+            }
+        self.apim_url = apim_map.get(str(self.workspace), "internal-dev.api.service.nhs.uk")
+
 
     def build_record(
         self, nhs_number="9912003071", data=None, doc_status=None, size=None
