@@ -14,7 +14,8 @@
     }
   },
   "remoteEnv": {
-    "PATH": "${containerEnv:PATH}:/home/vscode/.asdf:/home/vscode/.asdf/shims:/home/vscode/.local/bin"
+    "PATH": "${containerEnv:PATH}:/home/vscode/.asdf:/home/vscode/.asdf/shims:/home/vscode/.local/bin",
+    "TERM": "xterm-256color"
   },
   "customizations": {
     "vscode": {
@@ -45,13 +46,16 @@
   "mounts": [
     "source=${env:HOME}${env:USERPROFILE}/.aws,target=/home/vscode/.aws,type=bind",
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.gnupg,target=/home/vscode/.gnupg,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.gnupg,target=/home/vscode/.gnupg,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.devcontainer/config/nvim,target=/home/vscode/.config/nvim,type=bind",
+    "source=${env:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
   ],
   "postCreateCommand": "HOST_PWD=${localWorkspaceFolder} bash -c '.devcontainer/src/create.sh' ",
-
-"runArgs": [
-  "-e", "DISPLAY",
-  "-v", "/tmp/.X11-unix:/tmp/.X11-unix",
-  "--platform=linux/amd64"
-]
+  "runArgs": [
+    "-e",
+    "DISPLAY",
+    "-v",
+    "/tmp/.X11-unix:/tmp/.X11-unix",
+    "--platform=linux/amd64"
+  ]
 }

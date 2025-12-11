@@ -49,6 +49,15 @@ npm install -g @devcontainers/cli
 devcontainer build --workspace-folder .
 devcontainer up --workspace-folder .
 devcontainer exec --workspace-folder . bash
+devcontainer exec --workspace-folder . nvim .
+```
+
+Inside the container you can run the following.
+
+```bash
+nvim
+tmux
+lazygit
 ```
 
 ### Method 3 - Manual installation

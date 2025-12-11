@@ -19,3 +19,6 @@ echo 'export GPG_TTY=$(tty)' | tee -a ~/.bashrc ~/.profile
 # Preserve/append history across subshells
 echo 'shopt -s histappend' | tee -a ~/.bashrc ~/.profile
 echo "PROMPT_COMMAND='history -a'" | tee -a ~/.bashrc ~/.profile
+
+# Add fuzzy find
+echo 'eval "$(fzf --bash)"' | tee -a ~/.bashrc ~/.profile

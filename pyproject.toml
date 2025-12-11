@@ -3,13 +3,12 @@ name = "ndr"
 version = "0.0.1"
 description = "National Document Repository"
 readme = "README.md"
-packages = [
-    { include = "lambdas" },
-]
+packages = [{ include = "lambdas" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
 ruff = "^0.14.4"
+ruff-lsp = "^0.0.62"
 
 [tool.poetry.group.test.dependencies]
 pytest = "7.4.3"

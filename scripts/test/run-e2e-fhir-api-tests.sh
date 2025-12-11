@@ -8,15 +8,15 @@ CONTAINER="venv"
 # Parse optional arguments
 while [[ "$#" -gt 0 ]]; do
   case $1 in
-    --workspace)
-      WORKSPACE="$2"
-      shift
-      ;;
-    --container)
-      CONTAINER="$2"
-      shift
-      ;;
-    *)
+  --workspace)
+    WORKSPACE="$2"
+    shift
+    ;;
+  --container)
+    CONTAINER="$2"
+    shift
+    ;;
+  *)
     echo "Unknown parameter passed: $1"
     exit 1
     ;;
@@ -44,7 +44,7 @@ echo "UNAUTHORISED_CLIENT_KEY_PATH=$UNAUTHORISED_CLIENT_KEY_PATH"
 # Run the tests
 cd ./lambdas
 if [ "$CONTAINER" = "true" ]; then
-    PYTHONPATH=. poetry run pytest tests/e2e/api/fhir -vv
+  PYTHONPATH=. poetry run pytest tests/e2e/api/fhir -vv
 else
-    ./venv/bin/python3 -m pytest tests/e2e/api/fhir -vv
+  ./venv/bin/python3 -m pytest tests/e2e/api/fhir -vv
 fi
