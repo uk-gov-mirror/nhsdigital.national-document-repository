@@ -442,6 +442,7 @@ def test_create_document_reference_with_author(
 
     result = mock_post_fhir_doc_ref_service._create_document_reference(
         nhs_number="9000000009",
+        author="B67890",
         doc_type=doc_type,
         fhir_doc=fhir_doc,
         current_gp_ods="C13579",
@@ -484,6 +485,7 @@ def test_create_document_reference_without_custodian(
 
     result = mock_post_fhir_doc_ref_service._create_document_reference(
         nhs_number="9000000009",
+        author="B67890",
         doc_type=doc_type,
         fhir_doc=fhir_doc,
         current_gp_ods=current_gp_ods,
@@ -491,6 +493,68 @@ def test_create_document_reference_without_custodian(
     )
 
     assert result.custodian == current_gp_ods
+
+
+@pytest.mark.parametrize(
+    "fhir_author,expected_author",
+    [
+        (
+            [
+                Reference(
+                    identifier=Identifier(
+                        system="https://fhir.nhs.uk/Id/ods-organization-code",
+                        value="A12345",
+                    )
+                )
+            ],
+            "A12345",
+        ),
+        (
+            [],
+            None,
+        ),
+        (
+            None,
+            None,
+        ),
+    ],
+)
+def test_extract_author_from_fhir(
+    mock_post_fhir_doc_ref_service, mocker, fhir_author, expected_author
+):
+    """Test _extract_author_from_fhir method when author."""
+    fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
+    fhir_doc.author = fhir_author
+    author = mock_post_fhir_doc_ref_service._extract_author_from_fhir(fhir_doc)
+    assert author == expected_author
+
+
+@pytest.mark.parametrize(
+    "fhir_author",
+    [
+        (
+            [
+                Reference(
+                    identifier=Identifier(
+                        system="https://fhir.nhs.uk/Id/ods-organization-code"
+                    )
+                )
+            ]
+        ),
+        ([Reference(identifier=None)]),
+    ],
+)
+def test_extract_author_from_fhir_raises_error(
+    mock_post_fhir_doc_ref_service, mocker, fhir_author
+):
+    """Test _extract_author_from_fhir method with malformed json returns Validation errors."""
+    fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
+    fhir_doc.author = fhir_author
+    with pytest.raises(DocumentRefException) as excinfo:
+        mock_post_fhir_doc_ref_service._extract_author_from_fhir(fhir_doc)
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
 def test_determine_document_type_with_missing_type(
@@ -586,6 +650,7 @@ def test_s3_file_key_for_lg(
 
     result = mock_post_fhir_doc_ref_service._create_document_reference(
         nhs_number="9000000009",
+        author="B67890",
         doc_type=doc_type,
         fhir_doc=fhir_doc,
         current_gp_ods=current_gp_ods,

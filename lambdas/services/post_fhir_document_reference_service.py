@@ -43,9 +43,10 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
                 fhir_document
             )
 
-            # Extract NHS number from the FHIR document
+            # Extract NHS number and author from the FHIR document
             try:
                 nhs_number = validated_fhir_doc.extract_nhs_number_from_fhir()
+                author = self._extract_author_from_fhir(validated_fhir_doc)
             except FhirDocumentReferenceException:
                 raise DocumentRefException(400, LambdaError.DocRefNoParse)
 
@@ -63,6 +64,7 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             # Create a document reference model
             document_reference = self._create_document_reference(
                 nhs_number,
+                author,
                 doc_type,
                 validated_fhir_doc,
                 patient_details.general_practice_ods,
@@ -81,6 +83,23 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
         except ClientError as e:
             logger.error(f"AWS client error: {str(e)}")
             raise DocumentRefException(500, LambdaError.InternalServerError)
+
+    def _extract_author_from_fhir(self, fhir_doc: FhirDocumentReference) -> str | None:
+        authors = getattr(fhir_doc, "author", None)
+
+        if not authors:
+            return None
+
+        try:
+            identifier = authors[0].identifier
+            if not identifier or identifier.value is None:
+                logger.error("FHIR document validation error: author identifier value")
+                raise DocumentRefException(400, LambdaError.DocRefNoParse)
+
+            return identifier.value
+        except (AttributeError, IndexError) as e:
+            logger.error(f"FHIR document validation error: {str(e)}")
+            raise DocumentRefException(400, LambdaError.DocRefNoParse)
 
     def _determine_document_type(
         self, fhir_doc: FhirDocumentReference, common_name: MtlsCommonNames | None
@@ -109,6 +128,7 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
     def _create_document_reference(
         self,
         nhs_number: str,
+        author: str | None,
         doc_type: SnomedCode,
         fhir_doc: FhirDocumentReference,
         current_gp_ods: str,
@@ -133,7 +153,7 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             current_gp_ods=current_gp_ods,
             custodian=custodian,
             s3_bucket_name=self.staging_bucket_name,
-            author=fhir_doc.author[0].identifier.value,
+            author=author,
             content_type=fhir_doc.content[0].attachment.contentType,
             file_name=fhir_doc.content[0].attachment.title,
             document_snomed_code_type=doc_type.code,

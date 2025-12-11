@@ -116,11 +116,11 @@ class DocumentReference(BaseModel):
         "unknown",
     ] = "final"
     status: Literal["current", "superseded", "entered-in-error"] = "current"
-    type: Optional[CodeableConcept]
+    type: Optional[CodeableConcept] = None
     category: Optional[List[CodeableConcept]] = None
     subject: Optional[Reference]
     date: Optional[str] = None
-    author: Optional[List[Reference]]
+    author: Optional[List[Reference]] = None
     authenticator: Optional[Reference] = None
     custodian: Optional[Reference] = None
     content: List[DocumentReferenceContent]

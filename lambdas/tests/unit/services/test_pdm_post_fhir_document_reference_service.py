@@ -135,6 +135,39 @@ def valid_fhir_doc_json():
 
 
 @pytest.fixture
+def valid_fhir_doc_json_only_required():
+    return json.dumps(
+        {
+            "resourceType": "DocumentReference",
+            "docStatus": "final",
+            "status": "current",
+            "subject": {
+                "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/nhs-number",
+                    "value": "9000000009",
+                }
+            },
+            "custodian": {
+                "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": "A12345",
+                }
+            },
+            "content": [
+                {
+                    "attachment": {
+                        "contentType": "application/pdf",
+                        "language": "en-GB",
+                        "title": "test-file.pdf",
+                        "creation": "2023-01-01T12:00:00Z",
+                    }
+                }
+            ],
+        }
+    )
+
+
+@pytest.fixture
 def valid_mtls_header():
     return {
         "Accept": "text/json",
@@ -243,6 +276,11 @@ def valid_mtls_fhir_doc_with_binary(valid_mtls_fhir_doc_json):
     return json.dumps(doc)
 
 
+@pytest.fixture
+def valid_fhir_doc_object_without_optional(valid_fhir_doc_json_only_required):
+    return FhirDocumentReference.model_validate_json(valid_fhir_doc_json_only_required)
+
+
 def test_get_dynamo_table_for_patient_data_doc_type(
     mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service
 ):
@@ -343,6 +381,7 @@ def test_s3_file_key_for_pdm(
 
     result = mock_post_fhir_doc_ref_service._create_document_reference(
         nhs_number="9000000009",
+        author="B67890",
         doc_type=doc_type,
         fhir_doc=fhir_doc,
         current_gp_ods=current_gp_ods,
@@ -389,6 +428,7 @@ def test_create_pdm_document_reference_with_raw_request(
 
     result = mock_post_fhir_doc_ref_service._create_document_reference(
         nhs_number="9000000009",
+        author="B67890",
         doc_type=doc_type,
         fhir_doc=fhir_doc,
         current_gp_ods="C13579",
@@ -435,6 +475,7 @@ def test_create_lg_document_reference_with_raw_request(
 
     result = mock_post_fhir_doc_ref_service._create_document_reference(
         nhs_number="9000000009",
+        author="B67890",
         doc_type=doc_type,
         fhir_doc=fhir_doc,
         current_gp_ods="C13579",
@@ -447,3 +488,44 @@ def test_create_lg_document_reference_with_raw_request(
     assert result.custodian == "A12345"
     assert result.current_gp_ods == "C13579"
     assert result.author == "B67890"  # Verify author is set
+
+
+def test_create_pdm_document_reference_without_author_or_type(
+    mock_post_fhir_doc_ref_service, mocker
+):
+    """Test _create_document_reference method with raw_request included (LG, should be empty)."""
+
+    fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
+    fhir_doc.content = [
+        DocumentReferenceContent(
+            attachment=Attachment(
+                contentType="application/pdf",
+                title="test-file.pdf",
+                creation="2023-01-01T12:00:00Z",
+            )
+        )
+    ]
+    fhir_doc.custodian = Reference(
+        identifier=Identifier(
+            system="https://fhir.nhs.uk/Id/ods-organization-code", value="A12345"
+        )
+    )
+    fhir_doc.author = []
+    fhir_doc.type = []
+
+    doc_type = SnomedCodes.PATIENT_DATA.value
+    result = mock_post_fhir_doc_ref_service._create_document_reference(
+        nhs_number="9000000009",
+        author=None,
+        doc_type=doc_type,
+        fhir_doc=fhir_doc,
+        current_gp_ods="C13579",
+        raw_fhir_doc=json.dumps({"foo": "bar"}),
+    )
+
+    assert result.raw_request == json.dumps({"foo": "bar"})
+    assert result.nhs_number == "9000000009"
+    assert result.document_snomed_code_type == SnomedCodes.PATIENT_DATA.value.code
+    assert result.custodian == "A12345"
+    assert result.current_gp_ods == "C13579"
+    assert result.author is None

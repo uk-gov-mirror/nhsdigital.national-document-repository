@@ -93,7 +93,7 @@ class DataHelper:
             table_name=self.dynamo_table, key={"ID": record["id"]}
         )
 
-    def create_upload_payload(self, record):
+    def create_upload_payload(self, record, exclude=[], return_json=False):
         """Helper to build DocumentReference payload."""
         payload = {
             "resourceType": "DocumentReference",
@@ -137,8 +137,16 @@ class DataHelper:
                 }
             ],
         }
+
+        for field in exclude:
+            payload.pop(field, None)
+
         if "data" in record:
             payload["content"][0]["attachment"]["data"] = record["data"]
+
+        if return_json:
+            return payload
+
         return json.dumps(payload)
 
     def tidyup(self, record):
