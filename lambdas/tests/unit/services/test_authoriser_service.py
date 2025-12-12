@@ -137,6 +137,7 @@ def test_deny_document_reference_as_gp_admin_or_clinical_returns_false(
         actual = mock_auth_service.deny_access_policy(path, role, "122222222")
         assert actual == expected
 
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -145,7 +146,7 @@ def test_deny_document_reference_as_gp_admin_or_clinical_returns_false(
     ],
 )
 def test_deny_document_reference_as_pcse_returns_true(
-    mock_auth_service: AuthoriserService, 
+    mock_auth_service: AuthoriserService,
     path: str,
 ):
     mock_auth_service.allowed_nhs_numbers.append("122222222")

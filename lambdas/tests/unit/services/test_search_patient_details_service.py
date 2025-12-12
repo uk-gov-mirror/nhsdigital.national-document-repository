@@ -4,6 +4,7 @@ import pytest
 from enums.repository_role import RepositoryRole
 from models.pds_models import PatientDetails
 from services.search_patient_details_service import SearchPatientDetailsService
+from tests.unit.conftest import TEST_UUID
 from utils.exceptions import (
     InvalidResourceIdException,
     PatientNotFoundException,
@@ -11,6 +12,7 @@ from utils.exceptions import (
     UserNotAuthorisedException,
 )
 from utils.lambda_exceptions import SearchPatientException
+from utils.request_context import request_context
 
 USER_VALID_ODS_CODE = "X12345"
 USER_INVALID_ODS_CODE = "X54321"
@@ -52,16 +54,14 @@ def mock_deceased_patient_details():
 
 
 @pytest.fixture
-def mock_upload_lambda_enabled(mocker):
-    mock_flag_service = mocker.MagicMock()
-    mocker.patch(
-        "services.search_patient_details_service.FeatureFlagService",
-        return_value=mock_flag_service,
-    )
-    mock_flag_service.get_feature_flags_by_flag.return_value = {
-        "uploadArfWorkflowEnabled": True
+def setup_request_context():
+    request_context.authorization = {
+        "ndr_session_id": TEST_UUID,
+        "nhs_user_id": "test-user-id",
+        "selected_organisation": {"org_ods_code": "test-ods-code"},
     }
-    yield mock_flag_service
+    yield
+    request_context.authorization = {}
 
 
 @pytest.fixture
@@ -88,7 +88,7 @@ def mock_update_session():
 
 
 @pytest.fixture
-def mock_service(request, mock_upload_lambda_enabled, mocker):
+def mock_service(request, mocker, setup_request_context):
     role, ods_code = (
         request.param
         if hasattr(request, "param")
@@ -291,76 +291,160 @@ def test_handle_search_patient_request_raise_error_when_user_not_authorised(
 
 
 @pytest.mark.parametrize(
-    "user_role, user_ods, patient_ods, patient_active, exception_expected",
+    "user_role, user_ods, patient_ods, patient_active, can_access_not_my_record, exception_expected",
     [
-        # GP_ADMIN tests
+        # GP_ADMIN tests / can access not my record flag true
         (
+            # ods code match, active patient // no exception
             RepositoryRole.GP_ADMIN.value,
             USER_VALID_ODS_CODE,
             USER_VALID_ODS_CODE,
             True,
+            True,
             False,
         ),
         (
+            # ods code mismatch, active patient // no exception
             RepositoryRole.GP_ADMIN.value,
             USER_VALID_ODS_CODE,
             USER_INVALID_ODS_CODE,
             True,
             True,
+            False,
         ),
         (
+            # ods code mismatch, inactive patient // no exception
             RepositoryRole.GP_ADMIN.value,
             USER_VALID_ODS_CODE,
-            USER_VALID_ODS_CODE,
+            USER_INVALID_ODS_CODE,
             False,
+            True,
             False,
         ),
+        # GP_ADMIN tests / can access not my record flag false
         (
+            # ods code match, active patient // no exception
             RepositoryRole.GP_ADMIN.value,
-            USER_VALID_ODS_CODE,
-            USER_VALID_ODS_CODE,
-            False,
-            False,
-        ),
-        # GP_CLINICAL tests
-        (
-            RepositoryRole.GP_CLINICAL.value,
             USER_VALID_ODS_CODE,
             USER_VALID_ODS_CODE,
             True,
             False,
+            False,
         ),
         (
+            # ods code mismatch, active patient // exception
+            RepositoryRole.GP_ADMIN.value,
+            USER_VALID_ODS_CODE,
+            USER_INVALID_ODS_CODE,
+            True,
+            False,
+            True,
+        ),
+        (
+            # ods code mismatch, inactive patient // exception
+            RepositoryRole.GP_ADMIN.value,
+            USER_VALID_ODS_CODE,
+            USER_INVALID_ODS_CODE,
+            False,
+            False,
+            True,
+        ),
+        # GP_CLINICAL tests / can access not my record flag true
+        (
+            # ods code match, active patient // no exception
+            RepositoryRole.GP_CLINICAL.value,
+            USER_VALID_ODS_CODE,
+            USER_VALID_ODS_CODE,
+            True,
+            True,
+            False,
+        ),
+        (
+            # ods code mismatch, active patient // no exception
             RepositoryRole.GP_CLINICAL.value,
             USER_VALID_ODS_CODE,
             USER_INVALID_ODS_CODE,
             True,
             True,
+            False,
         ),
         (
+            # ods code mismatch, inactive patient // no exception
+            RepositoryRole.GP_CLINICAL.value,
+            USER_VALID_ODS_CODE,
+            USER_INVALID_ODS_CODE,
+            False,
+            True,
+            False,
+        ),
+        # GP_CLINICAL tests / can access not my record flag false
+        (
+            # ods code match, active patient // no exception
             RepositoryRole.GP_CLINICAL.value,
             USER_VALID_ODS_CODE,
             USER_VALID_ODS_CODE,
+            True,
+            False,
+            False,
+        ),
+        (
+            # ods code mismatch, active patient // exception
+            RepositoryRole.GP_CLINICAL.value,
+            USER_VALID_ODS_CODE,
+            USER_INVALID_ODS_CODE,
+            True,
             False,
             True,
         ),
-        # PCSE tests
         (
+            # ods code mismatch, inactive patient // exception
+            RepositoryRole.GP_CLINICAL.value,
+            USER_VALID_ODS_CODE,
+            USER_INVALID_ODS_CODE,
+            False,
+            False,
+            True,
+        ),
+        # PCSE tests // can access not my record flag true
+        (
+            # ods mismatch, active patient // exception
             RepositoryRole.PCSE.value,
             USER_VALID_ODS_CODE,
-            USER_VALID_ODS_CODE,
+            USER_INVALID_ODS_CODE,
+            True,
             True,
             True,
         ),
         (
+            # ods mismatch, inactive patient // no exception
             RepositoryRole.PCSE.value,
             USER_VALID_ODS_CODE,
+            USER_INVALID_ODS_CODE,
+            False,
+            True,
+            False,
+        ),
+        # PCSE tests // can access not my record flag false
+        (
+            # ods mismatch, active patient // exception
+            RepositoryRole.PCSE.value,
             USER_VALID_ODS_CODE,
+            USER_INVALID_ODS_CODE,
+            True,
+            False,
+            True,
+        ),
+        (
+            # ods mismatch, inactive patient // no exception
+            RepositoryRole.PCSE.value,
+            USER_VALID_ODS_CODE,
+            USER_INVALID_ODS_CODE,
+            False,
             False,
             False,
         ),
         # Unknown role
-        ("UNKNOWN_ROLE", USER_VALID_ODS_CODE, USER_VALID_ODS_CODE, True, True),
+        ("UNKNOWN_ROLE", USER_VALID_ODS_CODE, USER_VALID_ODS_CODE, True, True, True),
     ],
 )
 def test_check_authorization(
@@ -369,23 +453,21 @@ def test_check_authorization(
     patient_ods,
     patient_active,
     exception_expected,
-    mock_upload_lambda_enabled,
+    can_access_not_my_record,
 ):
     # Arrange
     with patch(
         "services.search_patient_details_service.is_ods_code_active"
     ) as mock_is_active:
         mock_is_active.return_value = patient_active
-
         service = SearchPatientDetailsService(user_role, user_ods)
-
         # Act & Assert
         if exception_expected:
             with pytest.raises(UserNotAuthorisedException):
-                service._check_authorization(patient_ods)
+                service._check_authorization(patient_ods, can_access_not_my_record)
         else:
             # Should not raise exception
-            service._check_authorization(patient_ods)
+            service._check_authorization(patient_ods, can_access_not_my_record)
 
 
 @pytest.mark.parametrize("flag_value", [True, False])

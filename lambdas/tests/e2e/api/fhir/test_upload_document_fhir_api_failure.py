@@ -11,7 +11,6 @@ from lambdas.tests.e2e.api.fhir.conftest import (
     create_mtls_session,
     fetch_with_retry_mtls,
 )
-from lambdas.tests.e2e.conftest import APIM_ENDPOINT, PDM_SNOMED
 from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
@@ -60,7 +59,9 @@ def test_create_document_virus(test_data):
     }
 
     # Attach EICAR data
-    eicar_string = r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    eicar_string = (
+        r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    )
     record["data"] = base64.b64encode(eicar_string.encode()).decode()
     payload = pdm_data_helper.create_upload_payload(record)
 
@@ -74,8 +75,8 @@ def test_create_document_virus(test_data):
     def condition(response_json):
         logging.info(response_json)
         return response_json.get("docStatus") in (
-        "cancelled",
-        "final",
+            "cancelled",
+            "final",
         )
 
     raw_retrieve_response = retrieve_document_with_retry(

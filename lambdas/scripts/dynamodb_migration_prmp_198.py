@@ -1,12 +1,13 @@
 import os
-import boto3
 from typing import Callable, Iterable
-from boto3.dynamodb.conditions import Key, Attr
 
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 from utils.audit_logging_setup import LoggingService
-from utils.exceptions import MigrationUnrecoverableException, MigrationRetryableException
+from utils.exceptions import (
+    MigrationRetryableException,
+    MigrationUnrecoverableException,
+)
 
 
 class AuthorMigration(MigrationBase):
@@ -77,7 +78,8 @@ class AuthorMigration(MigrationBase):
                 f"No completed bulk upload found for NHS number: {nhs_number}"
             )
             raise MigrationUnrecoverableException(
-                message=f"No completed bulk upload found for NHS number: {nhs_number}", item_id=entry.get("ID")
+                message=f"No completed bulk upload found for NHS number: {nhs_number}",
+                item_id=entry.get("ID"),
             )
 
         new_author = bulk_upload_row.get("UploaderOdsCode")
@@ -86,7 +88,8 @@ class AuthorMigration(MigrationBase):
                 f"No uploader ODS code found for NHS number: {nhs_number}"
             )
             raise MigrationUnrecoverableException(
-                message=f"No uploader ODS code found for NHS number: {nhs_number}", item_id=entry.get("ID")
+                message=f"No uploader ODS code found for NHS number: {nhs_number}",
+                item_id=entry.get("ID"),
             )
 
         return {"Author": new_author}
@@ -105,7 +108,7 @@ class AuthorMigration(MigrationBase):
             nhs = entry.get("NhsNumber")
             if nhs:
                 unique_nhs_numbers.add(nhs)
-        
+
         self.logger.info(f"Found {len(unique_nhs_numbers)} unique NHS numbers to query")
 
         if not unique_nhs_numbers:
@@ -121,9 +124,9 @@ class AuthorMigration(MigrationBase):
                     table_name=self.bulk_upload_report_table,
                     search_key="NhsNumber",
                     search_condition=nhs_number,
-                    index_name="NhsNumberIndex",  
+                    index_name="NhsNumberIndex",
                 )
-                
+
                 # Find the most recent completed upload for this NHS number
                 for row in items:
                     status = row.get("UploadStatus")

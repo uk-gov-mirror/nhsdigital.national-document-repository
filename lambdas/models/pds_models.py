@@ -86,6 +86,7 @@ class PatientDetails(BaseModel):
     active: Optional[bool] = None
     deceased: bool = False
     death_notification_status: Optional[DeathNotificationStatus] = None
+    can_manage_record: Optional[bool] = None
 
 
 class Patient(BaseModel):

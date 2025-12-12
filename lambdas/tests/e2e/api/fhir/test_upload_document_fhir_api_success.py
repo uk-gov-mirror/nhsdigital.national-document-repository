@@ -2,9 +2,6 @@ import base64
 import logging
 import os
 
-import pytest
-import requests
-
 from lambdas.tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
     create_mtls_session,

@@ -1,9 +1,7 @@
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.repository_role import RepositoryRole
 from pydantic import ValidationError
 from pydantic_core import PydanticSerializationError
-from services.feature_flags_service import FeatureFlagService
 from services.manage_user_session_access import ManageUserSessionAccess
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import (
@@ -24,9 +22,13 @@ class SearchPatientDetailsService:
         self.user_role = user_role
         self.user_ods_code = user_ods_code
         self.manage_user_session_service = ManageUserSessionAccess()
-        self.feature_flag_service = FeatureFlagService()
 
-    def handle_search_patient_request(self, nhs_number, update_session=True):
+    def handle_search_patient_request(
+        self,
+        nhs_number,
+        update_session=True,
+        can_access_not_my_record=False,
+    ):
         """
         Handle search patient request and return patient details if authorised.
 
@@ -43,15 +45,20 @@ class SearchPatientDetailsService:
         try:
             patient_details = self._fetch_patient_details(nhs_number)
 
+            can_manage_record = patient_details.deceased
+
             if not patient_details.deceased:
-                self._check_authorization(patient_details.general_practice_ods)
+                can_manage_record = self._check_authorization(
+                    patient_details.general_practice_ods, can_access_not_my_record
+                )
 
             logger.info("Searched for patient details", {"Result": "Patient found"})
 
-            if update_session:
+            if update_session and can_manage_record:
                 self._update_session(nhs_number, patient_details.deceased)
 
-            # Return the patient details object directly
+            patient_details.can_manage_record = can_manage_record
+
             return patient_details
 
         except PatientNotFoundException as e:
@@ -86,7 +93,9 @@ class SearchPatientDetailsService:
         pds_service = get_pds_service()
         return pds_service.fetch_patient_details(nhs_number)
 
-    def _check_authorization(self, gp_ods_for_patient):
+    def _check_authorization(
+        self, gp_ods_for_patient, can_access_not_my_record
+    ) -> bool:
         """
         Check if the current user is authorised to view the patient details.
 
@@ -97,33 +106,18 @@ class SearchPatientDetailsService:
             UserNotAuthorisedException: If the user is not authorised
         """
         patient_is_active = is_ods_code_active(gp_ods_for_patient)
-        is_arf_journey_on = self._is_arf_upload_enabled()
+        user_is_data_controller = gp_ods_for_patient == self.user_ods_code
 
         match self.user_role:
-            case RepositoryRole.GP_ADMIN.value:
-                if patient_is_active and gp_ods_for_patient != self.user_ods_code:
-                    raise UserNotAuthorisedException
-                elif not patient_is_active and not is_arf_journey_on:
-                    raise UserNotAuthorisedException
-
-            case RepositoryRole.GP_CLINICAL.value:
-                if not patient_is_active or gp_ods_for_patient != self.user_ods_code:
-                    raise UserNotAuthorisedException
+            case RepositoryRole.GP_ADMIN.value | RepositoryRole.GP_CLINICAL.value:
+                if user_is_data_controller or can_access_not_my_record:
+                    return user_is_data_controller
 
             case RepositoryRole.PCSE.value:
-                if patient_is_active:
-                    raise UserNotAuthorisedException
+                if not patient_is_active:
+                    return True
 
-            case _:
-                raise UserNotAuthorisedException
-
-    def _is_arf_upload_enabled(self):
-        """Check if ARF upload workflow is enabled via feature flags"""
-        upload_flag_name = FeatureFlags.UPLOAD_ARF_WORKFLOW_ENABLED.value
-        upload_lambda_enabled_flag_object = (
-            self.feature_flag_service.get_feature_flags_by_flag(upload_flag_name)
-        )
-        return upload_lambda_enabled_flag_object[upload_flag_name]
+        raise UserNotAuthorisedException
 
     def _update_session(self, nhs_number, is_deceased):
         """Update the user session with permitted search information"""

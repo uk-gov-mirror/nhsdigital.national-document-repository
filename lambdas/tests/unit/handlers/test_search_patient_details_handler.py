@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 from handlers.search_patient_details_handler import lambda_handler
 from models.pds_models import PatientDetails
+from services.feature_flags_service import FeatureFlagService
 from utils.lambda_exceptions import SearchPatientException
 from utils.lambda_response import ApiGatewayResponse
 
@@ -40,12 +41,23 @@ def mocked_context(mocker):
     )
 
 
+@pytest.fixture
+def mock_check_if_ods_code_is_in_pilot(mocker):
+    mock_function = mocker.patch.object(
+        FeatureFlagService, "check_if_ods_code_is_in_pilot"
+    )
+    ods_in_pilot = mock_function.return_value = True
+    yield ods_in_pilot
+
+
 def test_lambda_handler_valid_id_returns_200(
     set_env,
     valid_id_event_with_auth_header,
     context,
     mocker,
     mocked_context,
+    mock_upload_document_iteration_3_enabled,
+    mock_check_if_ods_code_is_in_pilot,
 ):
     patient_details_object = PatientDetails(
         givenName=["Jane"],
@@ -100,7 +112,13 @@ def test_lambda_handler_invalid_id_returns_400(invalid_id_event, context):
 
 
 def test_lambda_handler_valid_id_not_in_pds_returns_404(
-    set_env, valid_id_event_with_auth_header, context, mocker, mocked_context
+    set_env,
+    valid_id_event_with_auth_header,
+    context,
+    mocker,
+    mocked_context,
+    mock_upload_document_iteration_3_enabled,
+    mock_check_if_ods_code_is_in_pilot,
 ):
     mocker.patch(
         "handlers.search_patient_details_handler.SearchPatientDetailsService.handle_search_patient_request",

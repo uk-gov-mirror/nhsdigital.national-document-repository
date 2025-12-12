@@ -72,6 +72,7 @@ class AuthoriserService:
         patient_access_is_allowed = (
             nhs_number in self.allowed_nhs_numbers if nhs_number else False
         )
+
         access_to_deceased_patient = (
             nhs_number in self.deceased_nhs_numbers if nhs_number else False
         )
