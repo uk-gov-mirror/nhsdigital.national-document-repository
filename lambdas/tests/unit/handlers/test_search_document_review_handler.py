@@ -131,8 +131,8 @@ def test_handler_returns_401_response_no_ods_code_in_request_context(
 ):
     body = json.dumps(
         {
-            "message": LambdaError.SearchDocumentReviewMissingODS.value["message"],
-            "err_code": LambdaError.SearchDocumentReviewMissingODS.value["err_code"],
+            "message": LambdaError.DocumentReviewMissingODS.value["message"],
+            "err_code": LambdaError.DocumentReviewMissingODS.value["err_code"],
             "interaction_id": MOCK_INTERACTION_ID,
         }
     )

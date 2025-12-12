@@ -1,13 +1,13 @@
 import pytest
 from enums.lambda_error import LambdaError
-from tests.unit.conftest import TEST_UUID
+from tests.unit.conftest import TEST_UUID, event
 
 from enums.snomed_codes import SnomedCodes
-from utils.lambda_handler_utils import extract_bearer_token
+from utils.lambda_handler_utils import extract_bearer_token, validate_review_path_parameters
 from utils.lambda_exceptions import (
     GetFhirDocumentReferenceException,
     DocumentRefSearchException,
-    DocumentRefException,
+    DocumentRefException, DocumentReviewException,
 )
 
 LG_SNOMED_CODE = SnomedCodes.LLOYD_GEORGE.value.code
@@ -49,6 +49,28 @@ MOCK_MTLS_VALID_EVENT = {
         },
     },
 }
+
+INVALID_REVIEW_EVENTS = [
+    {
+        "httpMethod": "GET"
+    },
+    {
+        "httpMethod": "GET",
+        "pathParameters": {},
+    },
+    {
+        "httpMethod": "GET",
+        "pathParameters": {"id": TEST_UUID},
+    },
+    {
+        "httpMethod": "GET",
+        "pathParameters": {"version": TEST_UUID},
+    },
+    {
+        "httpMethod": "GET",
+        "pathParameters": {"version": "2"},
+    },
+]
 
 
 @pytest.mark.parametrize(
@@ -108,3 +130,22 @@ def test_extract_problem_bearer_token(context, function_name, error_type, header
         extract_bearer_token(event_without_auth, context)
     assert e.value.status_code == 401
     assert e.value.error == LambdaError.DocumentReferenceUnauthorised
+
+
+def test_validate_review_path_parameters_invalid_events():
+
+    for event in INVALID_REVIEW_EVENTS:
+        with pytest.raises(DocumentReviewException) as e:
+            validate_review_path_parameters(event)
+
+        assert e.value.status_code == 400
+        assert e.value.err_code == "NRL_DR_4001"
+
+
+def test_validate_review_path_parameters_valid_events_returns_document_id_and_version():
+    valid_event = {
+        "httpMethod": "GET",
+        "pathParameters": {"id": TEST_UUID, "version": "2"},
+    }
+    actual = validate_review_path_parameters(valid_event)
+    assert actual == (TEST_UUID, 2)

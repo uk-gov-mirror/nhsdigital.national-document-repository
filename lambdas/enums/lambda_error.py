@@ -658,7 +658,7 @@ class LambdaError(Enum):
     }
 
     """
-        Errors for SearchDocumentReviewReference exceptions
+        Errors for DocumentReview exceptions
     """
     DocumentReviewDB = {
         "err_code": "SDR_5001",
@@ -670,8 +670,8 @@ class LambdaError(Enum):
         "message": "Review document model error",
     }
 
-    SearchDocumentReviewMissingODS = {
-        "err_code": "SDR_4001",
+    DocumentReviewMissingODS = {
+        "err_code": "SDR_4011",
         "message": "Missing ODS code in request context",
     }
 
@@ -679,3 +679,14 @@ class LambdaError(Enum):
         "err_code": "SDR_4002",
         "message": "Invalid query string passed",
     }
+
+    DocumentReviewStatusMissingId = {
+        "err_code": "SDR_4003",
+        "message": "Missing path parameters"
+    }
+
+    DocumentReviewForbidden = {
+        "err_code": "SDR_4031",
+        "message": "User is not permitted to review document"
+    }
+

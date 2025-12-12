@@ -11,6 +11,11 @@ from tests.unit.conftest import (
     MOCK_DOCUMENT_REVIEW_BUCKET,
     MOCK_DOCUMENT_REVIEW_TABLE,
     TEST_NHS_NUMBER,
+    TEST_UUID,
+)
+from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_SEARCH_RESPONSE
+from tests.unit.helpers.data.search_document_review.dynamo_response import (
+    MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
 from utils.exceptions import DocumentReviewException
 
@@ -530,3 +535,39 @@ def test_query_review_documents_by_custodian_handles_filtering_by_nhs_number_and
         start_key=None,
         query_filter=mock_uploader_filter_builder.return_value,
     )
+
+
+def test_get_document_returns_review_document(mock_service):
+    mock_service.dynamo_service.get_item.return_value = {
+        "Item": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]
+    }
+    expected = DocumentUploadReviewReference.model_validate(
+        MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]
+    )
+
+    actual = mock_service.get_document(TEST_UUID, 1)
+    mock_service.dynamo_service.get_item.assert_called_with(
+        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
+        key={"ID": TEST_UUID, "Version": 1},
+    )
+
+    assert actual == expected
+
+
+def test_get_document_returns_none_no_documents_found(mock_service):
+    mock_service.dynamo_service.get_item.return_value = {}
+
+    expected = None
+    actual = mock_service.get_document(TEST_UUID, 1)
+
+    assert actual == expected
+
+
+
+def test_get_document_by_id_raises_exception_client_error(mock_service):
+    mock_service.dynamo_service.get_item.side_effect = ClientError(
+        {"Error": {"Code": "500", "Message": "mocked error"}}, "get_item"
+    )
+
+    with pytest.raises(DocumentReviewException):
+        mock_service.get_document(TEST_UUID, 1)

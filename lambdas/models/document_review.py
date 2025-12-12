@@ -53,7 +53,6 @@ class DocumentUploadReviewReference(BaseModel):
 
         return camel_case_model_dump_results
 
-
     def camelize(self, model: dict) -> dict:
         camel_case_dict = {}
         for key, value in model.items():
@@ -67,6 +66,7 @@ class DocumentUploadReviewReference(BaseModel):
             camel_case_dict[to_camel(key)] = value
 
         return camel_case_dict
+
 
 class PatchDocumentReviewRequest(BaseModel):
     model_config = ConfigDict(

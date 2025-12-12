@@ -1,6 +1,7 @@
 import pytest
 from enums.repository_role import RepositoryRole
 from services.authoriser_service import AuthoriserService
+from tests.unit.conftest import TEST_UUID
 from utils.exceptions import AuthorisationException
 
 MOCK_METHOD_ARN_PREFIX = "arn:aws:execute-api:eu-west-2:74747474747474:<<restApiId>/dev"
@@ -121,6 +122,7 @@ def test_deny_access_policy_returns_false_for_nhs_number_in_allowed(
     [
         "/DocumentReference",
         "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7",
+        f"DocumentReview/{TEST_UUID}/1"
     ],
 )
 def test_deny_document_reference_as_gp_admin_or_clinical_returns_false(
@@ -139,7 +141,7 @@ def test_deny_document_reference_as_gp_admin_or_clinical_returns_false(
     "path",
     [
         "/DocumentReference",
-        "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7",
+        "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7"
     ],
 )
 def test_deny_document_reference_as_pcse_returns_true(

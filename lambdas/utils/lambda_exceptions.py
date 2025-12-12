@@ -119,4 +119,3 @@ class GetDocumentReviewException(LambdaException):
 
 class UpdateDocumentReviewException(LambdaException):
     pass
-

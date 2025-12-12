@@ -1,4 +1,6 @@
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
+from utils.exceptions import OdsErrorException
+from utils.request_context import request_context
 
 """
 On PDS, GP ODS codes must be 6 characters long, see the 'epraccur' document here for info:
@@ -21,3 +23,17 @@ def extract_ods_role_code_with_r_prefix_from_role_codes_string(role_codes) -> st
     for role_code in role_codes.split(":"):
         if role_code.startswith("R"):
             return role_code
+
+
+def extract_ods_code_from_request_context() -> str:
+    try:
+        ods_code = request_context.authorization.get("selected_organisation", {}).get(
+            "org_ods_code"
+        )
+        if not ods_code:
+            raise OdsErrorException()
+
+        return ods_code
+
+    except AttributeError:
+        raise OdsErrorException()

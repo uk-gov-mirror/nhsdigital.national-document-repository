@@ -89,6 +89,20 @@ class DocumentUploadReviewService(DocumentService):
                 "Failed to validate document review references"
             )
 
+    def get_document(
+        self, document_id: str, version: int | None
+    ) -> DocumentUploadReviewReference | None:
+        try:
+            sort_key = {"Version": version}
+            response = self.get_item(
+                table_name=self.table_name, document_id=document_id, sort_key=sort_key
+            )
+
+            return response
+        except ClientError as e:
+            logger.error(e)
+            raise DocumentReviewException("500, LambdaError.DocumentReviewDB")
+
     def update_document_review_custodian(
         self,
         patient_documents: list[DocumentUploadReviewReference],

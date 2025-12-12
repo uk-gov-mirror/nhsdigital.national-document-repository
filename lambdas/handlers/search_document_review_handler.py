@@ -81,7 +81,7 @@ def lambda_handler(event, context):
         logger.error(e)
         return ApiGatewayResponse(
             status_code=401,
-            body=LambdaError.SearchDocumentReviewMissingODS.create_error_body(),
+            body=LambdaError.DocumentReviewMissingODS.create_error_body(),
             methods="GET",
         ).create_api_gateway_response()
 
@@ -99,7 +99,7 @@ def get_ods_code_from_request_context():
 
     except AttributeError as e:
         logger.error(e)
-        raise DocumentReviewException(401, LambdaError.SearchDocumentReviewMissingODS)
+        raise DocumentReviewException(401, LambdaError.DocumentReviewMissingODS)
 
 
 def parse_querystring_parameters(event):

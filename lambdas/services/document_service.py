@@ -106,11 +106,11 @@ class DocumentService:
         return documents
 
     def get_item(
-            self,
-            document_id: str,
-            sort_key: dict = None,
-            table_name: str = None,
-            model_class: type[BaseModel] = None,
+        self,
+        document_id: str,
+        sort_key: dict = None,
+        table_name: str = None,
+        model_class: type[BaseModel] = None,
     ) -> Optional[BaseModel]:
         """Fetch a single document by ID from a specified or configured table.
 

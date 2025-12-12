@@ -48,7 +48,7 @@ def validate_review_path_parameters(event):
         )
     try:
         document_version = int(document_version)
-    except ValueError:
+    except (ValueError, AttributeError):
         logger.error(f"Invalid document version: {document_version}")
         raise DocumentReviewException(
             400, LambdaError.DocumentReferenceMissingParameters
