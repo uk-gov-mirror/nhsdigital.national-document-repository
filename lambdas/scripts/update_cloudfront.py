@@ -21,6 +21,12 @@ distribution_id = os.getenv("DISTRIBUTION_ID")
 aws_region = os.getenv("AWS_REGION")
 lambda_arn = os.getenv("LAMBDA_ARN")
 
+LAMBDA_EVENT_TYPES = [
+    "viewer-request",
+    "viewer-response",
+    "origin-request",
+    "origin-response",
+]
 
 def setup_logging():
     logging.basicConfig(
@@ -102,19 +108,17 @@ def invalidate_cloudfront_cache(cloudfront_client):
 
 
 def update_cloudfront_lambda_association(cloudfront_client):
-    """Update the CloudFront distribution with the new Lambda function version."""
     logger.info(
         f"Updating CloudFront distribution: {distribution_id} with Lambda function ARN: {lambda_arn}"
     )
     try:
-        response = cloudfront_client.get_distribution_config(Id=distribution_id)
-        distribution_config = response["DistributionConfig"]
-        etag = response["ETag"]
+        distribution_config, etag = get_distribution_config(cloudfront_client)
 
-        lambda_associations = distribution_config["DefaultCacheBehavior"].get(
+        default_cache_lambda_associations = distribution_config["DefaultCacheBehavior"].get(
             "LambdaFunctionAssociations", {}
         )
-        items = lambda_associations.get("Items", [])
+
+        items = default_cache_lambda_associations.get("Items", [])
 
         if not items:
             logger.error(
@@ -123,23 +127,17 @@ def update_cloudfront_lambda_association(cloudfront_client):
             )
             sys.exit(EXIT_LAMBDA_ASSOC_NOT_FOUND)
 
-        updated = False
-        for item in items:
-            if item["EventType"] in [
-                "viewer-request",
-                "viewer-response",
-                "origin-request",
-                "origin-response",
-            ]:
-                logger.info(
-                    f"Updating LambdaFunctionARN for event type {item['EventType']}"
-                )
-                item["LambdaFunctionARN"] = lambda_arn
-                updated = True
+        updated = update_lambda_associations(items, lambda_arn)
+
+        cache_behaviours = distribution_config["CacheBehaviors"].get("Items", [])
+
+        if cache_behaviours and update_cache_behaviours(cache_behaviours, lambda_arn):
+            updated = True
 
         if not updated:
             logger.warning("No Lambda associations were updated")
             return False
+
 
         cloudfront_client.update_distribution(
             Id=distribution_id, DistributionConfig=distribution_config, IfMatch=etag
@@ -159,6 +157,31 @@ def update_cloudfront_lambda_association(cloudfront_client):
         else:
             logger.error(f"Error updating distribution: {str(e)}")
             sys.exit(EXIT_DISTRIBUTION_UPDATE_FAILED)
+
+def get_distribution_config(cloudfront_client):
+    response = cloudfront_client.get_distribution_config(Id=distribution_id)
+    return response["DistributionConfig"], response["ETag"]
+
+
+def update_lambda_associations(items, new_lambda_arn):
+    updated = False
+    for item in items:
+        if item.get("EventType") in LAMBDA_EVENT_TYPES:
+            logger.info(
+                f"Updating LambdaFunctionARN for event type {item['EventType']}"
+            )
+            item["LambdaFunctionARN"] = new_lambda_arn
+            updated = True
+    return updated
+
+def update_cache_behaviours(cache_behaviours, new_lambda_arn):
+    updated = False
+    for cache_behaviour in cache_behaviours:
+        lambda_associations = cache_behaviour.get("LambdaFunctionAssociations", {})
+        items = lambda_associations.get("Items", [])
+        if update_lambda_associations(items, new_lambda_arn):
+            updated = True
+    return updated
 
 
 def main():
