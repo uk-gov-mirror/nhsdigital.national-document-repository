@@ -186,6 +186,9 @@ class BulkUploadMetadataProcessorService:
             return
 
         sqs_metadata = self.convert_to_sqs_metadata(file_metadata, correct_file_name)
+        sqs_metadata.stored_file_name = (self.practice_directory.rstrip("/")
+                                         + "/" +
+                                         sqs_metadata.stored_file_name.lstrip("/"))
         patients[(nhs_number, ods_code)].append(sqs_metadata)
 
     @staticmethod
