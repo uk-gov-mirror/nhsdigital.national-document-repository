@@ -5,7 +5,7 @@ import { SUBMISSION_STATE } from '../../../../types/pages/documentSearchResultsP
 import { useNavigate } from 'react-router-dom';
 import getPresignedUrlForZip from '../../../../helpers/requests/getPresignedUrlForZip';
 import { AxiosError } from 'axios';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
@@ -17,20 +17,10 @@ type Props = {
     updateDownloadState: (newState: SUBMISSION_STATE) => void;
 };
 
-interface DownloadLinkAttributes {
-    url: string;
-    filename: string;
-}
-
 const DocumentSearchResultsOptions = (props: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
-    const [linkAttributes, setLinkAttributes] = useState<DownloadLinkAttributes>({
-        url: '',
-        filename: '',
-    });
-    const linkRef = useRef<HTMLAnchorElement | null>(null);
     const [statusMessage, setStatusMessage] = useState('');
     useEffect(() => {
         switch (props.downloadState) {
@@ -48,12 +38,6 @@ const DocumentSearchResultsOptions = (props: Props): React.JSX.Element => {
         }
     }, [props.downloadState]);
 
-    useEffect(() => {
-        if (linkRef.current && linkAttributes.url) {
-            linkRef.current.click();
-        }
-    }, [linkAttributes]);
-
     const downloadAll = async (): Promise<void> => {
         props.updateDownloadState(SUBMISSION_STATE.PENDING);
         try {
@@ -66,7 +50,12 @@ const DocumentSearchResultsOptions = (props: Props): React.JSX.Element => {
 
             const filename = `patient-record-${props.nhsNumber}`;
 
-            setLinkAttributes({ url: preSignedUrl, filename: filename });
+            const anchor = document.createElement('a');
+            anchor.href = preSignedUrl;
+            anchor.download = filename;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
 
             props.updateDownloadState(SUBMISSION_STATE.SUCCEEDED);
         } catch (e) {
@@ -101,15 +90,6 @@ const DocumentSearchResultsOptions = (props: Props): React.JSX.Element => {
                         Download all documents
                     </Button>
                 )}
-                <a
-                    hidden
-                    id="download-link"
-                    ref={linkRef}
-                    href={linkAttributes.url}
-                    download={linkAttributes.filename}
-                >
-                    Download Manifest URL
-                </a>
                 <Button
                     className="nhsuk-button nhsuk-button--secondary left-margin"
                     data-testid="delete-all-documents-btn"
