@@ -86,7 +86,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
     const [documentType, setDocumentType] = useState<DOCUMENT_TYPE>(DOCUMENT_TYPE.LLOYD_GEORGE);
 
     const UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS = 5000;
-    const MAX_POLLING_TIME = 120000;
+    const MAX_POLLING_TIME = 600000;
 
     useEffect(() => {
         const journeyParam = getJourney();
