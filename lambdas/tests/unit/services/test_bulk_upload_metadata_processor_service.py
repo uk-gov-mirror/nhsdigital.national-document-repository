@@ -384,7 +384,7 @@ def test_duplicates_csv_to_sqs_metadata(mocker, bulk_upload_service):
     expected = copy.deepcopy(EXPECTED_PARSED_METADATA_2)
     for metadata in expected:
         for file in metadata.files:
-            file.stored_file_name = (
+            file.file_path = (
                 f"test_practice_directory/{file.stored_file_name.lstrip('/')}"
             )
 
@@ -473,11 +473,11 @@ def test_process_metadata_row_success(mocker, test_service):
 
     expected_sqs_metadata = BulkUploadQueueMetadata.model_validate(
         {
-            "file_path": "some/path/file.pdf",
+            "file_path": "test_practice_directory/some/path/file.pdf",
             "nhs_number": "1234567890",
             "gp_practice_code": "Y12345",
             "scan_date": "01/01/2023",
-            "stored_file_name": "test_practice_directory/corrected.pdf",
+            "stored_file_name": "corrected.pdf",
         }
     )
 
@@ -488,7 +488,7 @@ def test_process_metadata_row_adds_to_existing_entry(mocker):
     key = ("1234567890", "Y12345")
     mock_metadata_existing = BulkUploadQueueMetadata.model_validate(
         {
-            "file_path": "/some/path/file1.pdf",
+            "file_path": "test_practice_directory/some/path/file1.pdf",
             "nhs_number": "1234567890",
             "gp_practice_code": "Y12345",
             "scan_date": "01/01/2023",
@@ -530,8 +530,8 @@ def test_process_metadata_row_adds_to_existing_entry(mocker):
     assert len(patients[key]) == 2
     assert patients[key][0] == mock_metadata_existing
     assert isinstance(patients[key][1], BulkUploadQueueMetadata)
-    assert patients[key][1].file_path == "/some/path/file2.pdf"
-    assert patients[key][1].stored_file_name == "test_practice_directory/some/path/file2.pdf"
+    assert patients[key][1].file_path == "test_practice_directory/some/path/file2.pdf"
+    assert patients[key][1].stored_file_name == "/some/path/file2.pdf"
 
 
 def test_extract_patient_info(test_service, base_metadata_file):
@@ -875,10 +875,10 @@ def test_remapping_mandatory_fields(
             nhs_number="123456789",
             files=[
                 BulkUploadQueueMetadata(
-                    file_path="/path/1.pdf",
+                    file_path="test_practice_directory/path/1.pdf",
                     gp_practice_code="Y12345",
                     scan_date="02/01/2023",
-                    stored_file_name="test_practice_directory/path/1.pdf",
+                    stored_file_name="/path/1.pdf",
                 )
             ],
             retries=0,
@@ -945,10 +945,10 @@ def test_no_remapping_logic(
             nhs_number="123456789",
             files=[
                 BulkUploadQueueMetadata(
-                    file_path="/path/1.pdf",
+                    file_path="test_practice_directory/path/1.pdf",
                     gp_practice_code="Y12345",
                     scan_date="02/01/2023",
-                    stored_file_name="test_practice_directory/path/1.pdf",
+                    stored_file_name="/path/1.pdf",
                 )
             ],
             retries=0,
