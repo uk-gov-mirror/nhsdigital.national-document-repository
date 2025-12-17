@@ -20,4 +20,5 @@ class LoggingAppInteraction(Enum):
     UPLOAD_CONFIRMATION = "Upload confirmation"
     UPDATE_UPLOAD_STATE = "Update upload state"
     GET_REVIEW_DOCUMENTS = "Get review documents"
+    SSH_KEY_MANAGEMENT = "SSH Key Management"
     UPDATE_REVIEW = "Update review"

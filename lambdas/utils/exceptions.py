@@ -191,6 +191,10 @@ class MigrationRetryableException(Exception):
         return {"segmentId": self.segment_id, "message": self.message}
 
 
+class SSHKeyManagementException(Exception):
+    pass
+
+
 class ReviewProcessVerifyingException(Exception):
     pass
 
