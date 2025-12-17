@@ -110,7 +110,7 @@ describe('getPresignedUrlForZip', () => {
         });
 
         expect(mockWaitForSeconds).toHaveBeenCalledTimes(3);
-        expect(mockWaitForSeconds).toHaveBeenCalledWith(0);
+        expect(mockWaitForSeconds).toHaveBeenCalledWith(1);
     });
 
     it('throw an error if got pending status for 10 times', async () => {

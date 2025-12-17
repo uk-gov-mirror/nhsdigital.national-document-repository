@@ -6,7 +6,7 @@ import { JOB_STATUS } from '../../types/generic/downloadManifestJobStatus';
 import { isRunningInCypress } from '../utils/isLocal';
 import { StitchRecordError } from '../../types/generic/errors';
 
-export const DELAY_BETWEEN_POLLING_IN_SECONDS = isRunningInCypress() ? 0 : 3;
+export const DELAY_BETWEEN_POLLING_IN_SECONDS = isRunningInCypress() ? 1 : 3;
 
 type Args = {
     nhsNumber: string;

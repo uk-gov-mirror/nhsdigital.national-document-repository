@@ -7,7 +7,7 @@ import { DownloadManifestError } from '../../types/generic/errors';
 import { isRunningInCypress } from '../utils/isLocal';
 import { DOCUMENT_TYPE } from '../utils/documentType';
 
-export const DELAY_BETWEEN_POLLING_IN_SECONDS = isRunningInCypress() ? 0 : 3;
+export const DELAY_BETWEEN_POLLING_IN_SECONDS = isRunningInCypress() ? 1 : 3;
 
 type Args = {
     nhsNumber: string;
