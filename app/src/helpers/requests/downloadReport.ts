@@ -23,6 +23,7 @@ const downloadReport = async ({ report, fileType, baseUrl, baseHeaders }: Args):
             },
             params: {
                 outputFileFormat: fileType,
+                odsReportType: "PATIENT"
             },
         });
 

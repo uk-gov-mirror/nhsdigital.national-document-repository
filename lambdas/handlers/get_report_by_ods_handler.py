@@ -2,6 +2,7 @@ import json
 
 from enums.file_type import FileType
 from enums.logging_app_interaction import LoggingAppInteraction
+from enums.report_type import ReportType
 from services.ods_report_service import OdsReportService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -46,18 +47,42 @@ def handle_api_gateway_request(event):
     if file_type not in FileType.__members__.values():
         file_type = FileType.CSV
 
-    service = OdsReportService()
+    report_type = params.get("odsReportType", "")
+    if report_type == "":
+        raise OdsErrorException("No ODS report type provided")
+
+    if report_type not in ReportType.__members__.values():
+        raise OdsErrorException("Incorrect report type provided")
+
     logger.info(f"Received a request to create a report for ODS code: {ods_code}")
-    pre_signed_url = service.get_nhs_numbers_by_ods(
+    pre_signed_url = create_report(ods_code, file_type, report_type)
+    logger.info("A report has been successfully created.")
+    return ApiGatewayResponse(
+        200, json.dumps({"url": pre_signed_url}), "GET"
+    ).create_api_gateway_response()
+
+
+def create_report(ods_code: str, file_type: FileType, report_type: str):
+    match report_type:
+        case ReportType.PATIENT:
+            return create_patient_report(ods_code, file_type)
+        case ReportType.REVIEW:
+            return create_review_report(ods_code, file_type)
+
+
+def create_patient_report(ods_code: str, file_type: FileType):
+    service = OdsReportService()
+    return service.get_nhs_numbers_by_ods(
         ods_code=ods_code,
         is_pre_signed_needed=True,
         is_upload_to_s3_needed=True,
         file_type_output=file_type,
     )
-    logger.info("A report has been successfully created.")
-    return ApiGatewayResponse(
-        200, json.dumps({"url": pre_signed_url}), "GET"
-    ).create_api_gateway_response()
+
+
+def create_review_report(ods_code: str, file_type: FileType):
+    service = OdsReportService()
+    return service.get_documents_for_review(ods_code, file_type)
 
 
 def handle_manual_trigger(event):

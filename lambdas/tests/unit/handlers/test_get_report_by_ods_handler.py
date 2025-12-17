@@ -26,7 +26,11 @@ def mock_service(mocker):
 def test_lambda_handler_api_gateway_request(
     mock_service, set_env, context, mock_jwt_encode
 ):
-    event = {"httpMethod": "GET", "headers": {"Authorization": "mock_token"}}
+    event = {
+        "httpMethod": "GET",
+        "headers": {"Authorization": "mock_token"},
+        "queryStringParameters": {"odsReportType": "PATIENT"},
+    }
     mock_service.get_nhs_numbers_by_ods.return_value = "example.com/presigned-url"
     expected = ApiGatewayResponse(
         200, json.dumps({"url": "example.com/presigned-url"}), "GET"
@@ -41,6 +45,25 @@ def test_lambda_handler_api_gateway_request(
         is_upload_to_s3_needed=True,
         file_type_output="csv",
     )
+
+
+def test_lambda_handler_gateway_request_review(
+    mock_service, set_env, context, mock_jwt_encode
+):
+    event = {
+        "httpMethod": "GET",
+        "headers": {"Authorization": "mock_token"},
+        "queryStringParameters": {"odsReportType": "REVIEW"},
+    }
+    mock_service.get_documents_for_review.return_value = "example.com/presigned-url"
+    expected = ApiGatewayResponse(
+        200, json.dumps({"url": "example.com/presigned-url"}), "GET"
+    ).create_api_gateway_response()
+
+    result = lambda_handler(event, context)
+    assert result == expected
+
+    mock_service.get_documents_for_review.assert_called_once_with("ODS123", "csv")
 
 
 def test_lambda_handler_manual_trigger(mock_service, set_env, context):
@@ -65,26 +88,46 @@ def test_lambda_handler_manual_trigger(mock_service, set_env, context):
 @pytest.mark.parametrize(
     ["event", "output"],
     [
-        ({"httpMethod": "GET"}, "csv"),
-        ({"httpMethod": "GET", "queryStringParameters": None}, "csv"),
         (
-            {"httpMethod": "GET", "queryStringParameters": {"outputFileFormat": "csv"}},
+            {
+                "httpMethod": "GET",
+                "queryStringParameters": {"odsReportType": "PATIENT"},
+            },
             "csv",
         ),
         (
-            {"httpMethod": "GET", "queryStringParameters": {"outputFileFormat": "pdf"}},
+            {
+                "httpMethod": "GET",
+                "queryStringParameters": {
+                    "outputFileFormat": "csv",
+                    "odsReportType": "PATIENT",
+                },
+            },
+            "csv",
+        ),
+        (
+            {
+                "httpMethod": "GET",
+                "queryStringParameters": {
+                    "outputFileFormat": "pdf",
+                    "odsReportType": "PATIENT",
+                },
+            },
             "pdf",
         ),
         (
             {
                 "httpMethod": "GET",
-                "queryStringParameters": {"outputFileFormat": "xlsx"},
+                "queryStringParameters": {
+                    "outputFileFormat": "xlsx",
+                    "odsReportType": "PATIENT",
+                },
             },
             "xlsx",
         ),
     ],
 )
-def test_handle_api_gateway_request_handles_no_query_string_params(
+def test_handle_api_gateway_request_handles_output_file_format(
     mock_service, event, output
 ):
     request_context.authorization = {
@@ -111,7 +154,7 @@ def test_handle_api_gateway_request_no_ods_code_raises_exception(mock_service):
 
 
 def test_handle_api_gateway_request_invalid_ods_code_raises_exception(mock_service):
-    event = {"httpMethod": "GET"}
+    event = {"httpMethod": "GET", "queryStringParameters": {"odsReportType": "PATIENT"}}
     request_context.authorization = {
         "selected_organisation": {"org_ods_code": "ODS123"}
     }
@@ -120,6 +163,29 @@ def test_handle_api_gateway_request_invalid_ods_code_raises_exception(mock_servi
     )
 
     with pytest.raises(OdsErrorException, match="Invalid ODS code format"):
+        handle_api_gateway_request(event)
+
+
+def test_handle_api_gateway_request_missing_report_type_raises_exception(
+    mock_jwt_encode,
+):
+    event = {
+        "httpMethod": "GET",
+    }
+
+    with pytest.raises(OdsErrorException, match="No ODS report type provided"):
+        handle_api_gateway_request(event)
+
+
+def test_handle_api_gateway_request_incorrect_report_type_raises_exception(
+    mock_jwt_encode,
+):
+    event = {
+        "httpMethod": "GET",
+        "queryStringParameters": {"odsReportType": "IncorrectReportType"},
+    }
+
+    with pytest.raises(OdsErrorException, match="Incorrect report type provided"):
         handle_api_gateway_request(event)
 
 

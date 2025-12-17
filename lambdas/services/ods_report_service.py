@@ -7,12 +7,15 @@ from enums.file_type import FileType
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
+from enums.report_type import ReportType
 from enums.repository_role import RepositoryRole
+from models.document_review import DocumentUploadReviewReference
 from openpyxl.workbook import Workbook
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
+from services.search_document_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.common_query_filters import NotDeleted, get_not_deleted_filter
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
@@ -28,7 +31,9 @@ class OdsReportService:
         self.table_name = os.getenv("LLOYD_GEORGE_DYNAMODB_NAME")
         self.reports_bucket = os.getenv("STATISTICAL_REPORTS_BUCKET")
         self.temp_output_dir = ""
-        self.s3_service = None
+        download_report_aws_role_arn = os.getenv("PRESIGNED_ASSUME_ROLE")
+        self.s3_service = S3Service(custom_aws_role=download_report_aws_role_arn)
+        self.document_upload_review_service = DocumentUploadReviewService()
 
     def get_nhs_numbers_by_ods(
         self,
@@ -51,6 +56,31 @@ class OdsReportService:
             is_pre_signed_needed,
             is_upload_to_s3_needed,
             file_type_output,
+        )
+
+    def get_documents_for_review(
+        self, ods_code: str, output_file_type: FileType = FileType.CSV
+    ):
+        if output_file_type != FileType.CSV:
+            raise OdsReportException(400, LambdaError.UnsupportedFileType)
+
+        query_filter = self.document_upload_review_service.build_review_query_filter()
+
+        results = self.document_upload_review_service.fetch_documents_from_table(
+            search_key="Custodian",
+            search_condition=ods_code,
+            index_name="CustodianIndex",
+            query_filter=query_filter,
+        )
+
+        self.temp_output_dir = tempfile.mkdtemp()
+
+        return self.create_and_save_ods_report(
+            ods_code=ods_code,
+            data=results,
+            create_pre_signed_url=True,
+            upload_to_s3=True,
+            report_type=ReportType.REVIEW,
         )
 
     def scan_table_with_filter(self, ods_code: str):
@@ -118,41 +148,77 @@ class OdsReportService:
     def create_and_save_ods_report(
         self,
         ods_code: str,
-        nhs_numbers: set[str],
+        data: set[str] | list[DocumentUploadReviewReference],
         create_pre_signed_url: bool = False,
         upload_to_s3: bool = False,
         file_type_output: FileType = FileType.CSV,
+        report_type: ReportType = ReportType.PATIENT,
     ):
-        now = datetime.now()
-        formatted_time = now.strftime("%Y-%m-%d_%H-%M")
+        file_name, local_file_path = self.create_ods_report(
+            ods_code, data, file_type_output, report_type
+        )
+
+        if upload_to_s3:
+            self.save_report_to_s3(ods_code, file_name, local_file_path)
+
+            if create_pre_signed_url:
+                return self.get_pre_signed_url(ods_code, file_name)
+
+    def create_ods_report(
+        self,
+        ods_code: str,
+        data: set[str] | list[DocumentUploadReviewReference],
+        file_type_output: FileType = FileType.CSV,
+        report_type: ReportType = ReportType.PATIENT,
+    ):
+        file_name = self.get_file_name_for_report_type(
+            report_type, ods_code, len(data), file_type_output
+        )
+
+        local_file_path = os.path.join(self.temp_output_dir, file_name)
+        match file_type_output:
+            case FileType.CSV:
+                if report_type == ReportType.PATIENT:
+                    self.create_csv_report(local_file_path, data, ods_code)
+                elif report_type == ReportType.REVIEW:
+                    self.create_review_csv_report(local_file_path, data)
+            case FileType.XLSX:
+                self.create_xlsx_report(local_file_path, data, ods_code)
+            case FileType.PDF:
+                self.create_pdf_report(local_file_path, data, ods_code)
+            case _:
+                raise OdsReportException(400, LambdaError.UnsupportedFileType)
+        logger.info(f"Query completed. {len(data)} items written to {file_name}.")
+
+        return (file_name, local_file_path)
+
+    def get_file_name_for_report_type(
+        self,
+        report_type: ReportType,
+        ods_code: str,
+        data_length: int,
+        file_type_output: FileType,
+    ):
+        formatted_time = datetime.now().strftime("%Y-%m-%d_%H-%M")
+
+        file_name_prepend = ""
+
+        match report_type:
+            case ReportType.PATIENT:
+                file_name_prepend = "LloydGeorgeSummary_"
+            case ReportType.REVIEW:
+                file_name_prepend = "ReviewReport_"
+
         file_name = (
-            "LloydGeorgeSummary_"
+            file_name_prepend
             + ods_code
-            + f"_{len(nhs_numbers)}_"
+            + f"_{data_length}_"
             + formatted_time
             + "."
             + file_type_output
         )
-        temp_file_path = os.path.join(self.temp_output_dir, file_name)
-        match file_type_output:
-            case FileType.CSV:
-                self.create_csv_report(temp_file_path, nhs_numbers, ods_code)
-            case FileType.XLSX:
-                self.create_xlsx_report(temp_file_path, nhs_numbers, ods_code)
-            case FileType.PDF:
-                self.create_pdf_report(temp_file_path, nhs_numbers, ods_code)
-            case _:
-                raise OdsReportException(400, LambdaError.UnsupportedFileType)
-        logger.info(
-            f"Query completed. {len(nhs_numbers)} items written to {file_name}."
-        )
-        if upload_to_s3:
-            download_report_aws_role_arn = os.getenv("PRESIGNED_ASSUME_ROLE")
-            self.s3_service = S3Service(custom_aws_role=download_report_aws_role_arn)
-            self.save_report_to_s3(ods_code, file_name, temp_file_path)
 
-            if create_pre_signed_url:
-                return self.get_pre_signed_url(ods_code, file_name)
+        return file_name
 
     def create_csv_report(self, file_name: str, nhs_numbers: set[str], ods_code: str):
         with open(file_name, "w") as f:
@@ -161,6 +227,39 @@ class OdsReportService:
             )
             f.write("NHS Numbers:\n")
             f.writelines(f"{nhs_number}\n" for nhs_number in nhs_numbers)
+
+    def create_review_csv_report(
+        self, file_name: str, data: list[DocumentUploadReviewReference]
+    ):
+        headers = [
+            "nhs_number",
+            "review_reason",
+            "document_snomed_code_type",
+            "author",
+            "upload_date",
+        ]
+
+        with open(file_name, "w") as f:
+            full_line = ""
+            for header in headers:
+                full_line += f"{header},"
+            full_line = full_line[:-1]  # remove the trailing comma
+            f.write(f"{full_line}\n")
+
+            for line in data:
+                upload_date = datetime.fromtimestamp(line.upload_date).isoformat()
+                f.write(
+                    line.nhs_number
+                    + ","
+                    + line.review_reason
+                    + ","
+                    + line.document_snomed_code_type
+                    + ","
+                    + line.author
+                    + ","
+                    + upload_date
+                    + "\n"
+                )
 
     def create_xlsx_report(self, file_name: str, nhs_numbers: set[str], ods_code: str):
         wb = Workbook()
