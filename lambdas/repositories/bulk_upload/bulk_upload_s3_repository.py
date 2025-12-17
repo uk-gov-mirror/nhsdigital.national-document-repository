@@ -68,8 +68,8 @@ class BulkUploadS3Repository:
             f"Verified that all documents for patient {staging_metadata.nhs_number} are clean."
         )
 
-    def copy_to_lg_bucket(self, source_file_key: str, dest_file_key: str):
-        self.s3_repository.copy_across_bucket(
+    def copy_to_lg_bucket(self, source_file_key: str, dest_file_key: str): 
+        result = self.s3_repository.copy_across_bucket(
             source_bucket=self.staging_bucket_name,
             source_file_key=source_file_key,
             dest_bucket=self.lg_bucket_name,
@@ -77,6 +77,8 @@ class BulkUploadS3Repository:
         )
         self.source_bucket_files_in_transaction.append(source_file_key)
         self.dest_bucket_files_in_transaction.append(dest_file_key)
+
+        return result
 
     def remove_ingested_file_from_source_bucket(self):
         for source_file_key in self.source_bucket_files_in_transaction:

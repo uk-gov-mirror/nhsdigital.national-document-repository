@@ -77,6 +77,7 @@ class DataHelper:
             "Uploaded": True,
             "Uploading": False,
             "Version": "1",
+            "S3VersionID": "some-version-id",
             "VirusScannerResult": "Clean",
         }
         self.dynamo_service.create_item(self.dynamo_table, dynamo_item)

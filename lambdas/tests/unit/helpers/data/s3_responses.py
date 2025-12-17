@@ -82,3 +82,27 @@ MOCK_LIST_OBJECTS_PAGINATED_RESPONSES = [
         ],
     },
 ]
+
+MOCK_COPY_OBJECT_RESPONSE = {
+    "CopyObjectResult": {
+        "ETag": '"d41d8cd98f00b204e9800998ecf8427e"',
+        "LastModified": "2024-06-01T12:34:56.000Z"
+    },
+    "Expiration": "expiry-date=\"2024-12-31T23:59:59Z\", rule-id=\"rule1\"",
+    "CopySourceVersionId": "source-version-id",
+    "VersionId": "new-version-id",
+    "ResponseMetadata": {
+        "RequestId": "EXAMPLE123456789",
+        "HostId": "EXAMPLEHostId",
+        "HTTPStatusCode": 200,
+        "HTTPHeaders": {
+            "x-amz-id-2": "EXAMPLEid2",
+            "x-amz-request-id": "EXAMPLErequestid",
+            "date": "Mon, 01 Jun 2024 12:34:56 GMT",
+            "etag": '"d41d8cd98f00b204e9800998ecf8427e"',
+            "content-length": "123",
+            "server": "AmazonS3"
+        },
+        "RetryAttempts": 0
+    }
+}

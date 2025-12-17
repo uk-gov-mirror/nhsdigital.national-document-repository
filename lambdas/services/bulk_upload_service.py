@@ -363,10 +363,12 @@ class BulkUploadService:
             source_file_key = self.file_path_cache[file_metadata.file_path]
             dest_file_key = document_reference.s3_file_key
 
-            self.bulk_upload_s3_repository.copy_to_lg_bucket(
+            copy_result = self.bulk_upload_s3_repository.copy_to_lg_bucket(
                 source_file_key=source_file_key, dest_file_key=dest_file_key
             )
             s3_bucket_name = self.bulk_upload_s3_repository.lg_bucket_name
+
+            document_reference.s3_version_id = copy_result.get("VersionId")
 
             document_reference.file_size = (
                 self.bulk_upload_s3_repository.s3_repository.get_file_size(

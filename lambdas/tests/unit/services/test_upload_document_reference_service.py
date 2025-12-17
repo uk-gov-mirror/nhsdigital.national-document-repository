@@ -25,15 +25,15 @@ from utils.lambda_exceptions import InvalidDocTypeException
 @pytest.fixture
 def mock_document_reference():
     """Create a mock document reference"""
-    doc_ref = Mock(spec=DocumentReference)
+    doc_ref = DocumentReference.model_construct()
     doc_ref.id = "test-doc-id"
     doc_ref.nhs_number = "9000000001"
     doc_ref.s3_file_key = "original/test-key"
     doc_ref.s3_bucket_name = "original-bucket"
     doc_ref.file_location = "original-location"
-    doc_ref.virus_scanner_result = None
+    doc_ref.virus_scanner_result = "CLEAN"
     doc_ref.file_size = 1234567890
-    doc_ref.doc_status = "uploading"
+    doc_ref.doc_status = "preliminary"
     doc_ref.version = "1"
     doc_ref._build_s3_location = Mock(
         return_value="s3://test-lg-bucket/9000000001/test-doc-id"
@@ -482,6 +482,8 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
     new_doc.id = "new-doc-id"
     new_doc.nhs_number = "9000000001"
     new_doc.doc_status = "final"
+    new_doc.version = "2"
+    new_doc.s3_version_id = "test-version-id"
 
     existing_final_doc = Mock(spec=DocumentReference)
     existing_final_doc.id = "old-doc-id"
@@ -492,22 +494,12 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
         existing_final_doc
     ]
 
-    new_doc.model_dump = Mock(
-        return_value={
-            "VirusScannerResult": "Clean",
-            "DocStatus": "final",
-            "FileLocation": "s3://bucket/key",
-            "FileSize": 1234,
-            "Uploaded": True,
-            "Uploading": False,
-        }
-    )
-
     mock_build_update = Mock(return_value={"Update": "transaction1"})
     service.dynamo_service.build_update_transaction_item = mock_build_update
 
     service._finalize_and_supersede_with_transaction(new_doc)
 
+    # Assert fetch was called with the correct parameters
     service.document_service.fetch_documents_from_table.assert_called_once_with(
         table_name=MOCK_LG_TABLE_NAME,
         index_name="S3FileKeyIndex",
@@ -516,10 +508,31 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
         query_filter=FinalOrPreliminaryAndNotSuperseded,
     )
 
+    # Assert build_update_transaction_item was called twice (once for new doc, once for existing doc)
     assert service.dynamo_service.build_update_transaction_item.call_count == 2
+
+    # Assert the first call is for the new document with correct fields
+    first_call = service.dynamo_service.build_update_transaction_item.call_args_list[0]
+    assert first_call[1]["table_name"] == MOCK_LG_TABLE_NAME
+    assert first_call[1]["document_key"] == {"ID": new_doc.id}
+    update_fields = first_call[1]["update_fields"]
+    assert "S3VersionID" in update_fields
+    assert update_fields["S3VersionID"] == "test-version-id"
+    assert "DocStatus" in update_fields
+    assert "FileLocation" in update_fields
+    assert first_call[1]["condition_fields"] == {"DocStatus": "preliminary"}
+
+    # Assert the second call is for superseding the existing final document
+    second_call = service.dynamo_service.build_update_transaction_item.call_args_list[1]
+    assert second_call[1]["table_name"] == MOCK_LG_TABLE_NAME
+    assert second_call[1]["document_key"] == {"ID": existing_final_doc.id}
+    assert second_call[1]["update_fields"] == {"Status": "superseded", "DocStatus": "deprecated"}
+    assert second_call[1]["condition_fields"] == {"DocStatus": "final", "Version": "1"}
+
+    # Assert transact_write_items was called with 2 transaction items
     service.dynamo_service.transact_write_items.assert_called_once()
     call_args = service.dynamo_service.transact_write_items.call_args[0][0]
-    assert len(call_args) == 2  # Two transaction items
+    assert len(call_args) == 2
 
 
 def test_finalize_and_supersede_with_transaction_no_existing_docs(
@@ -532,17 +545,6 @@ def test_finalize_and_supersede_with_transaction_no_existing_docs(
     new_doc.doc_status = "final"
 
     service.document_service.fetch_documents_from_table.return_value = []
-
-    new_doc.model_dump = Mock(
-        return_value={
-            "VirusScannerResult": "Clean",
-            "DocStatus": "final",
-            "FileLocation": "s3://bucket/key",
-            "FileSize": 1234,
-            "Uploaded": True,
-            "Uploading": False,
-        }
-    )
 
     mock_build_update = Mock(return_value={"Update": "transaction1"})
     service.dynamo_service.build_update_transaction_item = mock_build_update
@@ -581,17 +583,6 @@ def test_finalize_and_supersede_with_transaction_multiple_existing(
         existing_doc2,
     ]
 
-    new_doc.model_dump = Mock(
-        return_value={
-            "VirusScannerResult": "Clean",
-            "DocStatus": "final",
-            "FileLocation": "s3://bucket/key",
-            "FileSize": 1234,
-            "Uploaded": True,
-            "Uploading": False,
-        }
-    )
-
     mock_build_update = Mock(return_value={"Update": "transaction"})
     service.dynamo_service.build_update_transaction_item = mock_build_update
 
@@ -618,17 +609,6 @@ def test_finalize_and_supersede_with_transaction_skips_same_id(
     existing_doc.doc_status = "final"
 
     service.document_service.fetch_documents_from_table.return_value = [existing_doc]
-
-    new_doc.model_dump = Mock(
-        return_value={
-            "VirusScannerResult": "Clean",
-            "DocStatus": "final",
-            "FileLocation": "s3://bucket/key",
-            "FileSize": 1234,
-            "Uploaded": True,
-            "Uploading": False,
-        }
-    )
 
     mock_build_update = Mock(return_value={"Update": "transaction"})
     service.dynamo_service.build_update_transaction_item = mock_build_update
@@ -658,17 +638,6 @@ def test_finalize_and_supersede_with_transaction_handles_transaction_cancelled(
 
     service.document_service.fetch_documents_from_table.return_value = []
 
-    # Mock model_dump
-    new_doc.model_dump = Mock(
-        return_value={
-            "VirusScannerResult": "Clean",
-            "DocStatus": "final",
-            "FileLocation": "s3://bucket/key",
-            "FileSize": 1234,
-            "Uploaded": True,
-            "Uploading": False,
-        }
-    )
 
     mock_build_update = Mock(return_value={"Update": "transaction"})
     service.dynamo_service.build_update_transaction_item = mock_build_update

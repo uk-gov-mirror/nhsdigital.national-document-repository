@@ -72,6 +72,13 @@ def mock_upload_stitched_file(mocker, mock_service):
 
 
 @pytest.fixture
+def mock_update_stitched_reference_with_version_id(mocker, mock_service):
+    return mocker.patch.object(
+        mock_service, "update_stitched_reference_with_version_id"
+    )
+
+
+@pytest.fixture
 def mock_migrate_multipart_references(mocker, mock_service):
     return mocker.patch.object(mock_service, "migrate_multipart_references")
 
@@ -164,6 +171,7 @@ def test_process_message(
     mock_sort_multipart_object_keys,
     mock_process_stitching,
     mock_upload_stitched_file,
+    mock_update_stitched_reference_with_version_id,
     mock_migrate_multipart_references,
     mock_write_stitching_reference,
     mock_publish_nrl_message,
@@ -193,6 +201,7 @@ def test_process_message(
     mock_sort_multipart_object_keys.assert_called_once_with()
     mock_process_stitching.assert_called_once_with(s3_object_keys=test_sorted_keys)
     mock_upload_stitched_file.assert_called_once_with(stitching_data_stream=test_stream)
+    mock_update_stitched_reference_with_version_id.assert_called_once()
     mock_migrate_multipart_references.assert_called_once()
     mock_write_stitching_reference.assert_called_once()
     mock_publish_nrl_message.assert_called_once()
@@ -669,6 +678,24 @@ def test_rollback_reference_migration_handles_exception(mock_service):
 
     with pytest.raises(PdfStitchingException):
         mock_service.rollback_reference_migration()
+
+
+def test_update_stitched_reference_with_version_id(mock_service):
+    test_version_id = "test-version-id-12345"
+    mock_service.stitched_reference = TEST_1_OF_1_DOCUMENT_REFERENCE
+
+    mock_service.s3_service.get_head_object.return_value = {
+        "VersionId": test_version_id,
+        "ContentType": "application/pdf",
+        "ContentLength": 1234,
+    }
+
+    mock_service.update_stitched_reference_with_version_id()
+
+    mock_service.s3_service.get_head_object.assert_called_once_with(
+        MOCK_LG_BUCKET, TEST_1_OF_1_DOCUMENT_REFERENCE.s3_file_key
+    )
+    assert mock_service.stitched_reference.s3_version_id == test_version_id
 
 
 def test_process_manual_trigger_calls_process_message_for_each_nhs_number(
