@@ -264,13 +264,15 @@ def test_build_review_record_with_multiple_files(service_under_test):
 # Tests for _move_files_to_review_bucket method
 
 
-def test_move_files_success(service_under_test, sample_review_message):
+def test_move_files_success(service_under_test, sample_review_message, mocker):
     """Test successful file move from staging to review bucket."""
+    mocker.patch("uuid.uuid4", return_value="123412342")
+
     files = service_under_test._move_files_to_review_bucket(
         sample_review_message, "test-review-id-123"
     )
 
-    expected_key = "9000000009/test-review-id-123/test_document.pdf"
+    expected_key = "test-review-id-123/123412342"
 
     assert len(files) == 1
     assert files[0].file_name == "test_document.pdf"
@@ -285,7 +287,7 @@ def test_move_files_success(service_under_test, sample_review_message):
     )
 
 
-def test_move_multiple_files_success(service_under_test):
+def test_move_multiple_files_success(service_under_test, mocker):
     """Test successful move of multiple files."""
     message = ReviewMessageBody(
         upload_id="test-upload-id-999",
@@ -305,14 +307,15 @@ def test_move_multiple_files_success(service_under_test):
         uploader_ods="Y12345",
         current_gp="Y12345",
     )
+    mocker.patch("uuid.uuid4", side_effect=["123412342", "56785678"])
 
     files = service_under_test._move_files_to_review_bucket(message, "test-review-id")
 
     assert len(files) == 2
     assert files[0].file_name == "document_1.pdf"
-    assert files[0].file_location == "9000000009/test-review-id/document_1.pdf"
+    assert files[0].file_location == "test-review-id/123412342"
     assert files[1].file_name == "document_2.pdf"
-    assert files[1].file_location == "9000000009/test-review-id/document_2.pdf"
+    assert files[1].file_location == "test-review-id/56785678"
 
     assert service_under_test.s3_service.copy_across_bucket.call_count == 2
 

@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import datetime, timezone
 
 from botocore.exceptions import ClientError
@@ -104,9 +105,8 @@ class ReviewProcessorService:
         new_file_keys: list[DocumentReviewFileDetails] = []
 
         for file in message_data.files:
-            new_file_key = (
-                f"{message_data.nhs_number}/{review_record_id}/{file.file_name}"
-            )
+            object_key = uuid.uuid4()
+            new_file_key = f"{review_record_id}/{object_key}"
 
             logger.info(
                 f"Copying file from ({file.file_path}) in staging to review bucket: {new_file_key}"
