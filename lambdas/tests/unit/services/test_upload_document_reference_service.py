@@ -3,16 +3,15 @@ from unittest.mock import Mock, patch
 import pytest
 from botocore.exceptions import ClientError
 from enums.virus_scan_result import VirusScanResult
-from lambdas.enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
 from services.mock_virus_scan_service import MockVirusScanService
 from services.upload_document_reference_service import UploadDocumentReferenceService
 from tests.unit.conftest import (
     MOCK_LG_BUCKET,
     MOCK_LG_TABLE_NAME,
-    MOCK_STAGING_STORE_BUCKET,
-    MOCK_PDM_TABLE_NAME,
     MOCK_PDM_BUCKET,
+    MOCK_PDM_TABLE_NAME,
+    MOCK_STAGING_STORE_BUCKET,
 )
 from utils.common_query_filters import (
     FinalOrPreliminaryAndNotSuperseded,
@@ -20,6 +19,8 @@ from utils.common_query_filters import (
 )
 from utils.exceptions import DocumentServiceException, FileProcessingException
 from utils.lambda_exceptions import InvalidDocTypeException
+
+from lambdas.enums.snomed_codes import SnomedCodes
 
 
 @pytest.fixture
@@ -129,6 +130,10 @@ def test_handle_upload_document_reference_request_success(
     mock_document_reference2.id = "another-doc-id"
     mock_document_reference2.doc_status = "final"
     mock_document_reference2.version = "1"
+
+    service.s3_service.copy_across_bucket.return_value = {
+        "VersionId": "test-version-id"
+    }
 
     # First call fetches preliminary doc, second call fetches existing final docs to supersede
     service.document_service.fetch_documents_from_table.side_effect = [
@@ -450,6 +455,11 @@ def test_document_key_extraction_from_object_key_for_lg(
 ):
     """Test extraction of a document key from various object key formats"""
     # First call returns preliminary doc, second call returns empty list (no existing finals)
+
+    service.s3_service.copy_across_bucket.return_value = {
+        "VersionId": "test-version-id"
+    }
+
     service.document_service.fetch_documents_from_table.side_effect = [
         [mock_document_reference],
         [],
@@ -526,7 +536,10 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
     second_call = service.dynamo_service.build_update_transaction_item.call_args_list[1]
     assert second_call[1]["table_name"] == MOCK_LG_TABLE_NAME
     assert second_call[1]["document_key"] == {"ID": existing_final_doc.id}
-    assert second_call[1]["update_fields"] == {"Status": "superseded", "DocStatus": "deprecated"}
+    assert second_call[1]["update_fields"] == {
+        "Status": "superseded",
+        "DocStatus": "deprecated",
+    }
     assert second_call[1]["condition_fields"] == {"DocStatus": "final", "Version": "1"}
 
     # Assert transact_write_items was called with 2 transaction items
@@ -637,7 +650,6 @@ def test_finalize_and_supersede_with_transaction_handles_transaction_cancelled(
     new_doc.s3_version_id = "dma29o8jdo89a2m9dfpo2a899n2amc2anmc92aq"
 
     service.document_service.fetch_documents_from_table.return_value = []
-
 
     mock_build_update = Mock(return_value={"Update": "transaction"})
     service.dynamo_service.build_update_transaction_item = mock_build_update

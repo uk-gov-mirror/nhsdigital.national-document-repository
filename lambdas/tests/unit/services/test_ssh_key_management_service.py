@@ -1,11 +1,12 @@
 """
 Tests for SSH Key Management Service
 """
-import pytest
-from datetime import datetime, timedelta, timezone
-from unittest.mock import Mock, patch, MagicMock
 
-from models.ssh_key import SSHKey, KeyExpiryReport
+from datetime import datetime, timedelta, timezone
+from unittest.mock import Mock, patch
+
+import pytest
+from models.ssh_key import KeyExpiryReport, SSHKey
 from services.ssh_key_management_service import SSHKeyManagementService
 from utils.exceptions import SSHKeyManagementException
 
@@ -707,7 +708,10 @@ class TestLogSummary:
         report = KeyExpiryReport(
             expiring_soon=[Mock()], expired_keys=[Mock(), Mock()], total_keys_checked=10
         )
-        deletion_results = {"successful": ["key-1", "key-2"], "failed": [{"key_id": "key-3"}]}
+        deletion_results = {
+            "successful": ["key-1", "key-2"],
+            "failed": [{"key_id": "key-3"}],
+        }
 
         service.log_summary(report, deletion_results)
 

@@ -13,7 +13,6 @@ from tests.unit.conftest import (
     TEST_NHS_NUMBER,
     TEST_UUID,
 )
-from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_SEARCH_RESPONSE
 from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
@@ -561,7 +560,6 @@ def test_get_document_returns_none_no_documents_found(mock_service):
     actual = mock_service.get_document(TEST_UUID, 1)
 
     assert actual == expected
-
 
 
 def test_get_document_by_id_raises_exception_client_error(mock_service):

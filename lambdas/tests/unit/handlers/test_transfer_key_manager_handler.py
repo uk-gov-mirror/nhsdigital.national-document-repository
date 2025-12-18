@@ -1,8 +1,8 @@
 """
 Tests for Transfer Key Manager Handler
 """
-import pytest
-from unittest.mock import patch, Mock
+
+from unittest.mock import Mock
 
 from handlers.transfer_key_manager_handler import lambda_handler
 
@@ -58,6 +58,7 @@ class TestTransferKeyManagerHandler:
         )
         # Ensure DRY_RUN is not set
         import os
+
         if "DRY_RUN" in os.environ:
             del os.environ["DRY_RUN"]
 
@@ -117,6 +118,7 @@ class TestTransferKeyManagerHandler:
         """Test lambda handler fails when PRM_MAILBOX_EMAIL is missing"""
         # Remove the env var if it exists
         import os
+
         if "PRM_MAILBOX_EMAIL" in os.environ:
             del os.environ["PRM_MAILBOX_EMAIL"]
 

@@ -1,13 +1,16 @@
 import pytest
 from enums.lambda_error import LambdaError
-from tests.unit.conftest import TEST_UUID, event
-
 from enums.snomed_codes import SnomedCodes
-from utils.lambda_handler_utils import extract_bearer_token, validate_review_path_parameters
+from tests.unit.conftest import TEST_UUID
 from utils.lambda_exceptions import (
-    GetFhirDocumentReferenceException,
+    DocumentRefException,
     DocumentRefSearchException,
-    DocumentRefException, DocumentReviewException,
+    DocumentReviewException,
+    GetFhirDocumentReferenceException,
+)
+from utils.lambda_handler_utils import (
+    extract_bearer_token,
+    validate_review_path_parameters,
 )
 
 LG_SNOMED_CODE = SnomedCodes.LLOYD_GEORGE.value.code
@@ -51,9 +54,7 @@ MOCK_MTLS_VALID_EVENT = {
 }
 
 INVALID_REVIEW_EVENTS = [
-    {
-        "httpMethod": "GET"
-    },
+    {"httpMethod": "GET"},
     {
         "httpMethod": "GET",
         "pathParameters": {},

@@ -7,7 +7,6 @@ from models.staging_metadata import StagingSqsMetadata
 from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import (
-    CorruptedFileException,
     DocumentInfectedException,
     S3FileNotFoundException,
     TagNotFoundException,

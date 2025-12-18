@@ -1,11 +1,11 @@
 """
 Tests for SSH Key model functionality
 """
-import pytest
+
 from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock
 
-from models.ssh_key import SSHKey, KeyExpiryReport
+from models.ssh_key import KeyExpiryReport, SSHKey
 
 
 class TestSSHKeyModel:
