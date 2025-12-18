@@ -45,6 +45,7 @@ from tests.unit.utils.test_unicode_utils import (
 )
 from utils.exceptions import (
     BulkUploadException,
+    CorruptedFileException,
     DocumentInfectedException,
     InvalidMessageException,
     PatientNotFoundException,
@@ -1165,3 +1166,81 @@ def test_reraises_other_client_errors(repo, file_key):
 
     with pytest.raises(ClientError):
         repo.check_file_tag_status_on_staging_bucket(file_key)
+
+
+def test_handle_sqs_message_report_failure_when_pdf_is_corrupt(
+    repo_under_test,
+    set_env,
+    mocker,
+    mock_uuid,
+    mock_validate_files,
+    mock_check_virus_result,
+    mock_pds_service,
+    mock_pds_validation_strict,
+    mock_ods_validation,
+):
+    TEST_STAGING_METADATA.retries = 0
+    mock_report_upload_failure = mocker.patch.object(
+        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+    )
+    mock_create_lg_records_and_copy_files = mocker.patch.object(
+        BulkUploadService, "create_lg_records_and_copy_files"
+    )
+    mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
+        repo_under_test.bulk_upload_s3_repository,
+        "remove_ingested_file_from_source_bucket",
+    )
+    repo_under_test.bulk_upload_s3_repository.check_pdf_integrity.side_effect = (
+        CorruptedFileException("Corrupt PDF file detected")
+    )
+
+    repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    mock_report_upload_failure.assert_called_with(
+        TEST_STAGING_METADATA,
+        UploadStatus.FAILED,
+        "One or more of the files were corrupt",
+        "Y12345",
+    )
+    mock_create_lg_records_and_copy_files.assert_not_called()
+    mock_remove_ingested_file_from_source_bucket.assert_not_called()
+    repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
+
+
+def test_handle_sqs_message_report_failure_when_pdf_integrity_check_file_not_found(
+    repo_under_test,
+    set_env,
+    mocker,
+    mock_uuid,
+    mock_validate_files,
+    mock_check_virus_result,
+    mock_pds_service,
+    mock_pds_validation_strict,
+    mock_ods_validation,
+):
+    TEST_STAGING_METADATA.retries = 0
+    mock_report_upload_failure = mocker.patch.object(
+        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+    )
+    mock_create_lg_records_and_copy_files = mocker.patch.object(
+        BulkUploadService, "create_lg_records_and_copy_files"
+    )
+    mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
+        repo_under_test.bulk_upload_s3_repository,
+        "remove_ingested_file_from_source_bucket",
+    )
+    repo_under_test.bulk_upload_s3_repository.check_pdf_integrity.side_effect = (
+        S3FileNotFoundException("Failed to access file")
+    )
+
+    repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    mock_report_upload_failure.assert_called_with(
+        TEST_STAGING_METADATA,
+        UploadStatus.FAILED,
+        "One or more of the files is not accessible from staging bucket",
+        "Y12345",
+    )
+    mock_create_lg_records_and_copy_files.assert_not_called()
+    mock_remove_ingested_file_from_source_bucket.assert_not_called()
+    repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()

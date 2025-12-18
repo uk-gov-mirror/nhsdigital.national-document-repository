@@ -209,3 +209,7 @@ class ReviewProcessDeleteException(Exception):
 
 class ReviewProcessCreateRecordException(Exception):
     pass
+
+
+class CorruptedFileException(Exception):
+    pass

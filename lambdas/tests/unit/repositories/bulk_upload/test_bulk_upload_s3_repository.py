@@ -12,6 +12,7 @@ from tests.unit.helpers.data.bulk_upload.test_data import (
     TEST_STAGING_METADATA,
 )
 from utils.exceptions import (
+    CorruptedFileException,
     DocumentInfectedException,
     S3FileNotFoundException,
     TagNotFoundException,
@@ -162,3 +163,63 @@ def test_create_lg_records_and_copy_files_keep_track_of_successfully_ingested_fi
     actual = repo_under_test.source_bucket_files_in_transaction
 
     assert actual == expected
+
+
+def test_check_pdf_integrity_no_error_when_all_files_are_valid(
+    repo_under_test, set_env, caplog, mock_file_path_cache, valid_pdf_stream
+):
+    repo_under_test.s3_repository.stream_s3_object_to_memory.return_value = (
+        valid_pdf_stream
+    )
+
+    repo_under_test.check_pdf_integrity(TEST_STAGING_METADATA, mock_file_path_cache)
+
+    expected_log = f"Verified that all documents for patient {TEST_STAGING_METADATA.nhs_number} are valid PDFs."
+    actual_log = caplog.records[-1].msg
+    assert actual_log == expected_log
+
+
+def test_check_pdf_integrity_raises_CorruptedFileException_when_file_is_corrupt(
+    repo_under_test, set_env, mock_file_path_cache, valid_pdf_stream, corrupt_pdf_stream
+):
+    repo_under_test.s3_repository.stream_s3_object_to_memory.side_effect = [
+        valid_pdf_stream,
+        corrupt_pdf_stream,
+        valid_pdf_stream,
+    ]
+
+    with pytest.raises(CorruptedFileException):
+        repo_under_test.check_pdf_integrity(TEST_STAGING_METADATA, mock_file_path_cache)
+
+
+def test_check_pdf_integrity_raises_S3FileNotFoundException_when_file_not_accessible(
+    repo_under_test, set_env, mock_file_path_cache, valid_pdf_stream
+):
+    mock_s3_exception = ClientError(
+        {"Error": {"Code": "AccessDenied", "Message": "Access Denied"}},
+        "GetObject",
+    )
+
+    repo_under_test.s3_repository.stream_s3_object_to_memory.side_effect = [
+        valid_pdf_stream,
+        mock_s3_exception,
+    ]
+
+    with pytest.raises(S3FileNotFoundException):
+        repo_under_test.check_pdf_integrity(TEST_STAGING_METADATA, mock_file_path_cache)
+
+
+def test_check_pdf_integrity_raises_S3FileNotFoundException_when_file_not_found(
+    repo_under_test, set_env, mock_file_path_cache
+):
+    mock_s3_exception = ClientError(
+        {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+        "GetObject",
+    )
+
+    repo_under_test.s3_repository.stream_s3_object_to_memory.side_effect = (
+        mock_s3_exception
+    )
+
+    with pytest.raises(S3FileNotFoundException):
+        repo_under_test.check_pdf_integrity(TEST_STAGING_METADATA, mock_file_path_cache)

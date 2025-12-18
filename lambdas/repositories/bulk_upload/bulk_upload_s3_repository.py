@@ -7,12 +7,14 @@ from models.staging_metadata import StagingSqsMetadata
 from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import (
+    CorruptedFileException,
     DocumentInfectedException,
     S3FileNotFoundException,
     TagNotFoundException,
     VirusScanFailedException,
     VirusScanNoResultException,
 )
+from utils.pdf_validator import validate_pdf_integrity
 
 logger = LoggingService(__name__)
 
@@ -68,7 +70,30 @@ class BulkUploadS3Repository:
             f"Verified that all documents for patient {staging_metadata.nhs_number} are clean."
         )
 
-    def copy_to_lg_bucket(self, source_file_key: str, dest_file_key: str): 
+    def check_pdf_integrity(
+        self, staging_metadata: StagingSqsMetadata, file_path_cache: dict
+    ):
+        for file_metadata in staging_metadata.files:
+            file_path = file_metadata.file_path
+            source_file_key = file_path_cache[file_path]
+            try:
+                file_stream = self.s3_repository.stream_s3_object_to_memory(
+                    bucket=self.staging_bucket_name, key=source_file_key
+                )
+                validate_pdf_integrity(file_stream, file_path)
+            except ClientError as e:
+                if "AccessDenied" in str(e) or "NoSuchKey" in str(e):
+                    logger.info(
+                        f"Failed to access file for PDF validation: {file_path}"
+                    )
+                    raise S3FileNotFoundException(f"Failed to access file {file_path}")
+                raise
+
+        logger.info(
+            f"Verified that all documents for patient {staging_metadata.nhs_number} are valid PDFs."
+        )
+
+    def copy_to_lg_bucket(self, source_file_key: str, dest_file_key: str):
         result = self.s3_repository.copy_across_bucket(
             source_bucket=self.staging_bucket_name,
             source_file_key=source_file_key,

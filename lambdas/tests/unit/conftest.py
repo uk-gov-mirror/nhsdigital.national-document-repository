@@ -4,12 +4,14 @@ import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
+from io import BytesIO
 
 import pytest
 from botocore.exceptions import ClientError
 from models.document_reference import DocumentReference
 from models.pds_models import Patient, PatientDetails
 from pydantic import ValidationError
+from pypdf import PdfWriter
 from requests import Response
 from tests.unit.helpers.data.pds.pds_patient_response import PDS_PATIENT
 from utils.audit_logging_setup import LoggingService
@@ -398,3 +400,18 @@ def attach_caplog_handler(caplog):
             instance.logger.removeHandler(caplog.handler)
         except Exception:
             pass
+
+
+@pytest.fixture
+def valid_pdf_stream():
+    writer = PdfWriter()
+    writer.add_blank_page(width=612, height=792)
+    buffer = BytesIO()
+    writer.write(buffer)
+    buffer.seek(0)
+    return buffer
+
+
+@pytest.fixture
+def corrupt_pdf_stream():
+    return BytesIO(b"This is not a valid PDF content")

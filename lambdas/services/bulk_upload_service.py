@@ -19,6 +19,7 @@ from repositories.bulk_upload.bulk_upload_sqs_repository import BulkUploadSqsRep
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import (
     BulkUploadException,
+    CorruptedFileException,
     DocumentInfectedException,
     InvalidMessageException,
     InvalidNhsNumberException,
@@ -205,6 +206,10 @@ class BulkUploadService:
             self.bulk_upload_s3_repository.check_virus_result(
                 staging_metadata, self.file_path_cache
             )
+            logger.info("Virus scan validation complete. Checking PDF file integrity")
+            self.bulk_upload_s3_repository.check_pdf_integrity(
+                staging_metadata, self.file_path_cache
+            )
         except VirusScanNoResultException as e:
             logger.info(e)
             logger.info(
@@ -234,6 +239,20 @@ class BulkUploadService:
                 patient_ods_code,
             )
             return
+        except CorruptedFileException as e:
+            logger.info(e)
+            logger.info(
+                f"PDF integrity check failed for: {staging_metadata.nhs_number}, removing from queue"
+            )
+            logger.info("Will stop processing Lloyd George record for this patient")
+
+            self.dynamo_repository.write_report_upload_to_dynamo(
+                staging_metadata,
+                UploadStatus.FAILED,
+                "One or more of the files were corrupt",
+                patient_ods_code,
+            )
+            return
         except S3FileNotFoundException as e:
             logger.info(e)
             logger.info(
@@ -249,7 +268,7 @@ class BulkUploadService:
             )
             return
 
-        logger.info("Virus result validation complete. Initialising transaction")
+        logger.info("File validation complete. Initialising transaction")
 
         self.bulk_upload_s3_repository.init_transaction()
         self.dynamo_repository.init_transaction()
