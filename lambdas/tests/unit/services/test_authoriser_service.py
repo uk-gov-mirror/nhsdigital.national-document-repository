@@ -30,8 +30,11 @@ MOCK_CURRENT_SESSION = {
 def mock_auth_service(set_env, mocker):
     mock_test_auth_service = AuthoriserService()
     mocker.patch.object(mock_test_auth_service, "manage_user_session_service")
+    mock_test_auth_service.allowed_nhs_numbers = []
+    mock_test_auth_service.deceased_nhs_numbers = []
     yield mock_test_auth_service
-
+    mock_test_auth_service.allowed_nhs_numbers = []
+    mock_test_auth_service.deceased_nhs_numbers = []
 
 def build_decoded_token_for_role(role: str) -> dict:
     return {
@@ -74,6 +77,7 @@ def mock_jwt_decode(mocker):
         "/DocumentStatus",
         "/UploadState",
         "/VirusScan",
+
     ],
 )
 def test_deny_access_policy_returns_true_for_gp_clinical_on_paths(
@@ -86,7 +90,6 @@ def test_deny_access_policy_returns_true_for_gp_clinical_on_paths(
         test_path, RepositoryRole.GP_CLINICAL.value, "900000001"
     )
     assert actual == expected
-    mock_auth_service.allowed_nhs_numbers = []
 
 
 @pytest.mark.parametrize("test_path", ["/DocumentManifest", "/DocumentDelete", "Any"])
@@ -100,7 +103,6 @@ def test_deny_access_policy_returns_true_for_nhs_number_not_in_allowed(
         test_path, RepositoryRole.GP_ADMIN.value, "900000001"
     )
     assert actual == expected
-    mock_auth_service.allowed_nhs_numbers = []
 
 
 @pytest.mark.parametrize("test_path", ["/DocumentManifest", "/DocumentDelete", "Any"])
@@ -114,49 +116,34 @@ def test_deny_access_policy_returns_false_for_nhs_number_in_allowed(
         test_path, RepositoryRole.GP_ADMIN.value, "900000002"
     )
     assert actual == expected
-    mock_auth_service.allowed_nhs_numbers = []
 
 
 @pytest.mark.parametrize(
-    "path",
+    ["path", "role", "expected"],
     [
-        "/DocumentReference",
-        "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7",
-        f"DocumentReview/{TEST_UUID}/1"
+        ("/DocumentReference", RepositoryRole.GP_ADMIN.value, False),
+        ("/DocumentReference", RepositoryRole.GP_CLINICAL.value, False),
+        ("/DocumentReference", RepositoryRole.PCSE.value, True),
+        ("/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7", RepositoryRole.GP_ADMIN.value, False),
+        ("/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7", RepositoryRole.GP_CLINICAL.value, False),
+        ("/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7", RepositoryRole.PCSE.value, True),
+        (f"/DocumentReview/{TEST_UUID}/1", RepositoryRole.GP_ADMIN.value, False),
+        (f"/DocumentReview/{TEST_UUID}/1", RepositoryRole.GP_CLINICAL.value, False),
+        (f"/DocumentReview/{TEST_UUID}/1", RepositoryRole.PCSE.value, False),
+        ("/LloydGeorgeStitch", RepositoryRole.GP_ADMIN.value, False),
+        ("/LloydGeorgeStitch", RepositoryRole.GP_CLINICAL.value, False),
+        ("/LloydGeorgeStitch", RepositoryRole.PCSE.value, True),
     ],
 )
-def test_deny_document_reference_as_gp_admin_or_clinical_returns_false(
-    mock_auth_service: AuthoriserService,
-    path: str,
+def test_deny_access_policy_for_various_paths_and_roles(
+        mock_auth_service: AuthoriserService,
+        path: str,
+        role: str,
+        expected: bool,
 ):
     mock_auth_service.allowed_nhs_numbers.append("122222222")
 
-    expected = False
-
-    for role in (RepositoryRole.GP_CLINICAL.value, RepositoryRole.GP_ADMIN.value):
-        actual = mock_auth_service.deny_access_policy(path, role, "122222222")
-        assert actual == expected
-
-
-@pytest.mark.parametrize(
-    "path",
-    [
-        "/DocumentReference",
-        "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7"
-    ],
-)
-def test_deny_document_reference_as_pcse_returns_true(
-    mock_auth_service: AuthoriserService,
-    path: str,
-):
-    mock_auth_service.allowed_nhs_numbers.append("122222222")
-
-    expected = True
-
-    actual = mock_auth_service.deny_access_policy(
-        path, RepositoryRole.PCSE.value, "122222222"
-    )
-
+    actual = mock_auth_service.deny_access_policy(path, role, "122222222")
     assert actual == expected
 
 
@@ -184,28 +171,54 @@ def test_deny_document_reference_as_any_role_on_deceased_patient_returns_true(
         actual = mock_auth_service.deny_access_policy(path, role, "122222222")
         assert actual == expected
 
+@pytest.mark.parametrize(
+    ["test_path", "nhs_number"],
+    [
+        ("/DocumentManifest", "900000001"),
+        ("/DocumentDelete", "900000001"),
+        ("Any", "900000001"),
+        ("/DocumentManifest", ""),
+        ("/DocumentManifest", None),
+    ],
+)
+def test_deny_access_policy_returns_true_for_invalid_nhs_number(
+    test_path,
+    nhs_number,
+    mock_auth_service: AuthoriserService,
+):
+    expected = True
+    mock_auth_service.allowed_nhs_numbers = ["900000002"]
+    actual = mock_auth_service.deny_access_policy(
+        test_path, RepositoryRole.GP_ADMIN.value, nhs_number
+    )
+    assert actual == expected
 
-def test_allow_access_policy_returns_false_for_nhs_number_not_in_allowed_on_search_path(
+
+@pytest.mark.parametrize(
+    "test_path",
+    [
+        "/SearchPatient",
+        "/OdsReport",
+        "/FeatureFlags",
+        "/Feedback",
+        "/DocumentReview",
+        f"/DocumentReview/{TEST_UUID}/1/Status",
+    ],
+)
+def test_endpoints_allow_access_regardless_of_nhs_number(
+    test_path: str,
     mock_auth_service: AuthoriserService,
 ):
     expected = False
     mock_auth_service.allowed_nhs_numbers = ["900000002"]
 
-    actual = mock_auth_service.deny_access_policy(
-        "/SearchPatient", RepositoryRole.GP_ADMIN.value, "122222222"
-    )
-    assert actual == expected
-    mock_auth_service.allowed_nhs_numbers = []
-
-
-def test_deny_access_policy_returns_false_for_gp_clinical_on_search_path(
-    mock_auth_service: AuthoriserService,
-):
-    expected = False
-    actual = mock_auth_service.deny_access_policy(
-        "/SearchPatient", RepositoryRole.GP_CLINICAL.value, "122222222"
-    )
-    assert expected == actual
+    for role in (
+        RepositoryRole.PCSE.value,
+        RepositoryRole.GP_CLINICAL.value,
+        RepositoryRole.GP_ADMIN.value,
+    ):
+        actual = mock_auth_service.deny_access_policy(test_path, role, "122222222")
+        assert actual == expected
 
 
 @pytest.mark.parametrize(
