@@ -1,13 +1,33 @@
 {
-    "snomedCode": "16521000000102",
-    "displayName": "Electronic Health Record",
+    "snomedCode": "717301000000104",
+    "displayName": "electronic health record",
     "canBeUpdated": false,
-    "associatedSnomed": "16521000000103",
+    "associatedSnomed": "24511000000107",
     "multifileUpload": false,
     "multifileZipped": false,
     "multifileReview": false,
     "canBeDiscarded": true,
     "stitched": false,
-    "acceptedFileTypes": [],
-    "content": {}
+    "singleDocumentOnly": false,
+    "acceptedFileTypes": [
+        "PDF"
+    ],
+    "content": {
+        "viewDocumentTitle": "Electronic health record",
+        "addFilesSelectTitle": "",
+        "uploadFilesSelectTitle": "Choose an electronic health record (EHR) to upload",
+        "uploadFilesBulletPoints": [
+            "You can only upload a single PDF file",
+            "Check your file opens correctly",
+            "Remove any password protection from the file",
+            "If there is a problem with your file during upload, you'll need to resolve it before continuing"
+        ],
+        "chooseFilesMessage": "Choose PDF file to upload",
+        "chooseFilesButtonLabel": "Choose PDF file",
+        "chooseFilesWarningText": "EHR warning text",
+        "confirmFilesTitle": "Check file is for the correct patient",
+        "beforeYouUploadTitle": "Before you upload",
+        "previewUploadTitle": "Preview this electronic health record",
+        "uploadFilesExtraParagraph": ""
+    }
 }

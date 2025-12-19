@@ -3,10 +3,15 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import DocumentView from './DocumentView';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import useTitle from '../../../../helpers/hooks/useTitle';
-import { DOCUMENT_TYPE, getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
+import {
+    DOCUMENT_TYPE,
+    DOCUMENT_TYPE_CONFIG,
+    getConfigForDocType,
+    getDocumentTypeLabel,
+} from '../../../../helpers/utils/documentType';
 import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
-import { routes } from '../../../../types/generic/routes';
-import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import { routeChildren, routes } from '../../../../types/generic/routes';
+import { buildDocumentConfig, buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import userEvent from '@testing-library/user-event';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { lloydGeorgeRecordLinks } from '../../../../types/blocks/lloydGeorgeActions';
@@ -20,6 +25,13 @@ import useRole from '../../../../helpers/hooks/useRole';
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('../../../../helpers/hooks/useTitle');
 vi.mock('../../../../helpers/hooks/useRole');
+vi.mock('../../../../helpers/utils/documentType', async () => {
+    const actual = await vi.importActual('../../../../helpers/utils/documentType');
+    return {
+        ...actual,
+        getConfigForDocType: vi.fn(),
+    };
+});
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
@@ -96,6 +108,7 @@ describe('DocumentView', () => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockUsePatient.mockReturnValue(mockPatientDetails);
         mockUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
+        vi.mocked(getConfigForDocType).mockReturnValue(buildDocumentConfig());
 
         // Mock fullscreen API
         Object.defineProperty(document, 'fullscreenEnabled', {
@@ -187,50 +200,16 @@ describe('DocumentView', () => {
             expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
         });
 
-        it.each(
-            Array.from(Object.values(DOCUMENT_TYPE)).filter((type) => type !== DOCUMENT_TYPE.ALL),
-        )('displays document type label in record card when doc type is %s', (documentType) => {
-            renderComponent({
-                ...mockDocumentReference,
-                documentSnomedCodeType: documentType,
-            });
+        it('displays document type label in record card', () => {
+            renderComponent();
 
             expect(screen.getByTestId('record-card-container')).toHaveTextContent(
-                getDocumentTypeLabel(documentType),
+                buildDocumentConfig().content.viewDocumentTitle as string,
             );
         });
     });
 
     describe('Add Files functionality', () => {
-        it('shows add files section for Lloyd George documents when not in fullscreen', () => {
-            renderComponent();
-
-            expect(screen.getByTestId('add-files-btn')).toBeInTheDocument();
-        });
-
-        it('does not show add files section when in fullscreen', async () => {
-            renderComponent();
-
-            await screen.findByTitle(EMBEDDED_PDF_VIEWER_TITLE);
-            await userEvent.click(screen.getByText('View in full screen'));
-
-            // Simulate the browser entering fullscreen
-            simulateFullscreenChange(true);
-
-            expect(screen.queryByText('Add Files')).not.toBeInTheDocument();
-        });
-
-        it('does not show add files section for non-Lloyd George documents', () => {
-            const nonLGDocument = {
-                ...mockDocumentReference,
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
-            };
-
-            renderComponent(nonLGDocument);
-
-            expect(screen.queryByText('Add Files')).not.toBeInTheDocument();
-        });
-
         it('navigates to upload page when add files is clicked', async () => {
             renderComponent();
 
@@ -240,7 +219,7 @@ describe('DocumentView', () => {
             await waitFor(() => {
                 expect(mockUseNavigate).toHaveBeenCalledWith(
                     expect.objectContaining({
-                        pathname: routes.DOCUMENT_UPLOAD,
+                        pathname: routeChildren.DOCUMENT_UPLOAD_SELECT_FILES,
                     }),
                     expect.objectContaining({
                         state: expect.objectContaining({
@@ -268,6 +247,77 @@ describe('DocumentView', () => {
                 expect(mockUseNavigate).toHaveBeenCalledWith(routes.SERVER_ERROR);
             });
         });
+
+        it.each([
+            {
+                canBeUpdated: true,
+                role: REPOSITORY_ROLE.GP_ADMIN,
+                deceased: false,
+                fullscreen: false,
+                addBtnVisible: true,
+            },
+            {
+                canBeUpdated: true,
+                role: REPOSITORY_ROLE.GP_CLINICAL,
+                deceased: false,
+                fullscreen: false,
+                addBtnVisible: true,
+            },
+            {
+                canBeUpdated: true,
+                role: REPOSITORY_ROLE.PCSE,
+                deceased: false,
+                fullscreen: false,
+                addBtnVisible: false,
+            },
+            {
+                canBeUpdated: true,
+                role: REPOSITORY_ROLE.GP_ADMIN,
+                deceased: true,
+                fullscreen: false,
+                addBtnVisible: false,
+            },
+            {
+                canBeUpdated: false,
+                role: REPOSITORY_ROLE.GP_ADMIN,
+                deceased: false,
+                fullscreen: false,
+                addBtnVisible: false,
+            },
+            {
+                canBeUpdated: false,
+                role: REPOSITORY_ROLE.GP_ADMIN,
+                deceased: false,
+                fullscreen: true,
+                addBtnVisible: false,
+            },
+        ])(
+            'displays add button when %s',
+            async ({ canBeUpdated, role, deceased, fullscreen, addBtnVisible }) => {
+                vi.mocked(getConfigForDocType).mockReturnValue(
+                    buildDocumentConfig({ canBeUpdated }),
+                );
+
+                mockUseRole.mockReturnValue(role);
+                mockUsePatient.mockReturnValue(buildPatientDetails({ deceased }));
+
+                renderComponent();
+
+                if (fullscreen) {
+                    await screen.findByTitle(EMBEDDED_PDF_VIEWER_TITLE);
+                    await userEvent.click(screen.getByText('View in full screen'));
+
+                    // Simulate the browser entering fullscreen
+                    simulateFullscreenChange(true);
+                }
+
+                await waitFor(() => {
+                    expect(screen.queryAllByTestId('add-files-btn')).toHaveLength(
+                        addBtnVisible ? 1 : 0,
+                    );
+                });
+            },
+        );
     });
 
     describe('Document actions', () => {

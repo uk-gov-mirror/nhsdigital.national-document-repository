@@ -74,7 +74,7 @@ const HomePage = (): React.JSX.Element => {
                         </Card.Content>
                     </Card>
                 </Card.GroupItem>
-                {config.featureFlags.uploadDocumentIteration3Enabled &&
+                {config.featureFlags.uploadDocumentIteration3Enabled && (
                     <Card.GroupItem width="one-half">
                         <Card clickable cardType="primary">
                             <Card.Content>
@@ -93,7 +93,7 @@ const HomePage = (): React.JSX.Element => {
                             </Card.Content>
                         </Card>
                     </Card.GroupItem>
-                }
+                )}
             </Card.Group>
         </>
     );

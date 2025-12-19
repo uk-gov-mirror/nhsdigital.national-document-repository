@@ -86,7 +86,12 @@ const DocumentSearchResultsOptions = (props: Props): React.JSX.Element => {
                         disabled={true}
                     />
                 ) : (
-                    <Button type="button" id="download-documents" data-testid="download-documents" onClick={downloadAll}>
+                    <Button
+                        type="button"
+                        id="download-documents"
+                        data-testid="download-documents"
+                        onClick={downloadAll}
+                    >
                         Download all documents
                     </Button>
                 )}

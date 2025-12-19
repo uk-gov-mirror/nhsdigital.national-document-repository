@@ -6,6 +6,7 @@ import {
 import DocumentUploadLloydGeorgePreview from './DocumentUploadLloydGeorgePreview';
 import getMergedPdfBlob from '../../../../helpers/utils/pdfMerger';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { buildDocumentConfig } from '../../../../helpers/test/testBuilders';
 
 const mockNavigate = vi.fn();
 
@@ -24,6 +25,8 @@ const createMockDocument = (id: string): UploadDocument => ({
     docType: DOCUMENT_TYPE.LLOYD_GEORGE,
     attempts: 0,
 });
+
+const docConfig = buildDocumentConfig();
 
 describe('DocumentUploadCompleteStage', () => {
     let documents: UploadDocument[];
@@ -48,6 +51,7 @@ describe('DocumentUploadCompleteStage', () => {
                     <DocumentUploadLloydGeorgePreview
                         documents={documents}
                         setMergedPdfBlob={mockSetMergedPdfBlob}
+                        documentConfig={docConfig}
                     />,
                 );
             });
@@ -68,6 +72,7 @@ describe('DocumentUploadCompleteStage', () => {
                         documents={testDocuments}
                         setMergedPdfBlob={mockSetMergedPdfBlob}
                         stitchedBlobLoaded={stitchedBlobLoaded}
+                        documentConfig={docConfig}
                     />,
                 );
             });

@@ -8,6 +8,7 @@ import {
     buildUploadSession,
     buildConfig,
     buildDocument,
+    buildDocumentConfig,
 } from '../../helpers/test/testBuilders';
 import usePatient from '../../helpers/hooks/usePatient';
 import useConfig from '../../helpers/hooks/useConfig';
@@ -65,12 +66,17 @@ vi.mock('react-router-dom', async () => ({
         key: 'default',
     }),
 }));
+vi.mock('../../styles/right-chevron-circle.svg', () => ({
+    ReactComponent: () => 'svg',
+}));
 
 const mockUseLocation = vi.fn();
 vi.spyOn(ReactRouter, 'useLocation').mockImplementation(mockUseLocation);
 
 const baseUrl = 'http://localhost';
 const baseHeaders = { Authorization: 'Bearer token' };
+
+const docConfig = buildDocumentConfig();
 
 describe('DocumentUploadPage', (): void => {
     beforeEach(() => {
@@ -181,7 +187,9 @@ describe('DocumentUploadPage', (): void => {
             await waitFor(() => {
                 const pageTitle = screen.getByTestId('page-title');
                 expect(pageTitle).toBeInTheDocument();
-                expect(pageTitle).toHaveTextContent('Choose Lloyd George files to upload');
+                expect(pageTitle).toHaveTextContent(
+                    docConfig.content.uploadFilesSelectTitle as string,
+                );
             });
 
             vi.useFakeTimers(); // Reset back to fake timers
@@ -233,7 +241,7 @@ describe('DocumentUploadPage', (): void => {
             let docTypeLink: HTMLElement;
 
             await waitFor(() => {
-                docTypeLink = screen.getByTestId(`upload-${DOCUMENT_TYPE.LLOYD_GEORGE}-link`);
+                docTypeLink = screen.getByTestId(`upload-${DOCUMENT_TYPE.EHR}-link`);
                 expect(docTypeLink).toBeInTheDocument();
             });
 

@@ -3,7 +3,11 @@ import DocumentUploadCompleteStage from './DocumentUploadCompleteStage';
 import userEvent from '@testing-library/user-event';
 import { routes } from '../../../../types/generic/routes';
 import { LinkProps, MemoryRouter } from 'react-router-dom';
-import { buildLgFile, buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import {
+    buildDocumentConfig,
+    buildLgFile,
+    buildPatientDetails,
+} from '../../../../helpers/test/testBuilders';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import usePatient from '../../../../helpers/hooks/usePatient';
@@ -28,6 +32,7 @@ vi.mock('react-router-dom', async () => {
 URL.createObjectURL = vi.fn();
 
 const patientDetails = buildPatientDetails();
+const docConfig = buildDocumentConfig();
 
 describe('DocumentUploadCompleteStage', () => {
     let documents: UploadDocument[] = [];
@@ -54,10 +59,6 @@ describe('DocumentUploadCompleteStage', () => {
     it('renders', async () => {
         renderApp(documents);
 
-        expect(
-            screen.getByText('You have successfully uploaded a digital Lloyd George record for:'),
-        ).toBeInTheDocument();
-
         const expectedFullName = getFormattedPatientFullName(patientDetails);
         expect(screen.getByTestId('patient-name').textContent).toEqual(
             'Patient name: ' + expectedFullName,
@@ -65,7 +66,7 @@ describe('DocumentUploadCompleteStage', () => {
 
         const expectedNhsNumber = formatNhsNumber(patientDetails.nhsNumber);
         expect(screen.getByTestId('nhs-number').textContent).toEqual(
-            'NHS Number: ' + expectedNhsNumber,
+            'NHS number: ' + expectedNhsNumber,
         );
 
         const expectedDob = getFormattedDate(new Date(patientDetails.birthDate));
@@ -95,10 +96,67 @@ describe('DocumentUploadCompleteStage', () => {
         });
     });
 
+    it('should navigate to home if not all documents are in a finished state', async () => {
+        documents.push({
+            docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+            id: '2',
+            file: buildLgFile(2),
+            attempts: 0,
+            state: DOCUMENT_UPLOAD_STATE.UPLOADING,
+            numPages: 3,
+            position: 2,
+        });
+
+        renderApp(documents);
+
+        await waitFor(async () => {
+            expect(mockNavigate).toHaveBeenCalledWith(routes.HOME);
+        });
+    });
+
+    it.each([
+        { docState: DOCUMENT_UPLOAD_STATE.SUCCEEDED, expectedTitle: 'Upload complete' },
+        { docState: DOCUMENT_UPLOAD_STATE.FAILED, expectedTitle: 'Upload partially complete' },
+    ])('should set the page title based on upload success', async ({ docState, expectedTitle }) => {
+        documents = [
+            {
+                docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                id: '2',
+                file: buildLgFile(2),
+                attempts: 0,
+                state: docState,
+                numPages: 3,
+                position: 2,
+            },
+        ];
+
+        renderApp(documents);
+
+        expect(screen.getByTestId('page-title').textContent).toBe(expectedTitle);
+    });
+
+    it('should list failed documents', async () => {
+        documents.push({
+            docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+            id: '2',
+            file: buildLgFile(2),
+            attempts: 0,
+            state: DOCUMENT_UPLOAD_STATE.FAILED,
+            numPages: 3,
+            position: 2,
+        });
+
+        renderApp(documents);
+
+        await userEvent.click(screen.getByTestId('accordion-toggle-button'));
+
+        expect(screen.getByText(documents[1].file.name)).toBeInTheDocument();
+    });
+
     const renderApp = (documents: UploadDocument[]) => {
         render(
             <MemoryRouter>
-                <DocumentUploadCompleteStage documents={documents} />,
+                <DocumentUploadCompleteStage documents={documents} documentConfig={docConfig} />,
             </MemoryRouter>,
         );
     };

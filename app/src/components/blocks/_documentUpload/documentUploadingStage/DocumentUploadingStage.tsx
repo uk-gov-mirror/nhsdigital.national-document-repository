@@ -9,14 +9,19 @@ import { useNavigate } from 'react-router-dom';
 import { routes } from '../../../../types/generic/routes';
 import { allDocsHaveState } from '../../../../helpers/utils/uploadDocumentHelpers';
 import { getJourney } from '../../../../helpers/utils/urlManipulations';
-import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 
 type Props = {
     documents: UploadDocument[];
     startUpload: () => Promise<void>;
+    documentConfig: DOCUMENT_TYPE_CONFIG;
 };
 
-const DocumentUploadingStage = ({ documents, startUpload }: Props): React.JSX.Element => {
+const DocumentUploadingStage = ({
+    documents,
+    startUpload,
+    documentConfig,
+}: Props): React.JSX.Element => {
     const journey = getJourney();
     const pageHeader =
         journey === 'update' ? 'Uploading additional files' : 'Your documents are uploading';
@@ -27,7 +32,7 @@ const DocumentUploadingStage = ({ documents, startUpload }: Props): React.JSX.El
 
     useEffect(() => {
         if (!uploadStartedRef.current) {
-            if (!allDocsHaveState(documents, DOCUMENT_UPLOAD_STATE.SELECTED)) {
+            if (!allDocsHaveState(documents, [DOCUMENT_UPLOAD_STATE.SELECTED])) {
                 navigate(routes.HOME);
                 return;
             }
@@ -37,7 +42,10 @@ const DocumentUploadingStage = ({ documents, startUpload }: Props): React.JSX.El
         }
     }, []);
 
-    if (!uploadStartedRef.current && !allDocsHaveState(documents, DOCUMENT_UPLOAD_STATE.SELECTED)) {
+    if (
+        !uploadStartedRef.current &&
+        !allDocsHaveState(documents, [DOCUMENT_UPLOAD_STATE.SELECTED])
+    ) {
         return <></>;
     }
 
@@ -47,13 +55,12 @@ const DocumentUploadingStage = ({ documents, startUpload }: Props): React.JSX.El
             <WarningCallout id="upload-stage-warning">
                 <WarningCallout.Label headingLevel="h2">Stay on this page</WarningCallout.Label>
                 <p>
-                    Do not close or navigate away from this page until upload is complete.{' '}
-                    {documents.some((doc) => doc.docType === DOCUMENT_TYPE.LLOYD_GEORGE) && (
+                    Do not close or navigate away from this page until the upload is complete.{' '}
+                    {documentConfig.stitched && (
                         <span>
-                            Your Lloyd George files will be combined into one document when the
-                            upload is complete.{' '}
-                            {journey === 'update' &&
-                                'your files will be added to the existing Lloyd George record when upload is complete.'}
+                            {journey === 'update'
+                                ? 'Your files will be added to the existing record when the upload is complete.'
+                                : 'Your files will be combined into one document when the upload is complete.'}
                         </span>
                     )}
                 </p>

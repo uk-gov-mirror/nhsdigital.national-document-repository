@@ -1,4 +1,4 @@
-import { Button, Fieldset, Table, TextInput } from 'nhsuk-react-components';
+import { Button, Fieldset, Table, TextInput, WarningCallout } from 'nhsuk-react-components';
 import { getDocument } from 'pdfjs-dist';
 import { JSX, RefObject, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,13 +23,15 @@ import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/Pat
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import { ErrorMessageListItem } from '../../../../types/pages/genericPageErrors';
 import { getJourney, useEnhancedNavigate } from '../../../../helpers/utils/urlManipulations';
-import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
+import rejectedFileTypes from '../../../../config/rejectedFileTypes.json';
 
 export type Props = {
     setDocuments: SetUploadDocuments;
     documents: Array<UploadDocument>;
     documentType: DOCUMENT_TYPE;
     filesErrorRef: RefObject<boolean>;
+    documentConfig: DOCUMENT_TYPE_CONFIG;
 };
 
 type UploadFilesError = ErrorMessageListItem<UPLOAD_FILE_ERROR_TYPE>;
@@ -39,23 +41,29 @@ const DocumentSelectStage = ({
     setDocuments,
     documentType,
     filesErrorRef,
+    documentConfig,
 }: Props): JSX.Element => {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [noFilesSelected, setNoFilesSelected] = useState<boolean>(false);
     const scrollToRef = useRef<HTMLDivElement>(null);
     const fileInputAreaRef = useRef<HTMLFieldSetElement>(null);
     const [lastErrorsLength, setLastErrorsLength] = useState(0);
+    const [tooManyFilesAdded, setTooManyFilesAdded] = useState<boolean>(false);
     const journey = getJourney();
 
     const navigate = useEnhancedNavigate();
+    const multifile = documentConfig.multifileUpload || documentConfig.multifileReview;
 
     const validateFileType = (file: File): boolean => {
-        switch (documentType) {
-            case DOCUMENT_TYPE.LLOYD_GEORGE:
-                return file.type === 'application/pdf';
+        const fileExtension = file.name.split('.').pop()?.toUpperCase();
+        if (!fileExtension || rejectedFileTypes.includes(fileExtension)) {
+            return false;
         }
 
-        return true;
+        return (
+            documentConfig.acceptedFileTypes.length === 0 ||
+            documentConfig.acceptedFileTypes.includes(fileExtension)
+        );
     };
 
     useEffect(() => {
@@ -83,6 +91,13 @@ const DocumentSelectStage = ({
         } else if (e.dataTransfer.files?.length > 0) {
             fileArray = [...e.dataTransfer.files];
         }
+
+        if (!multifile && fileArray.length > 1) {
+            setTooManyFilesAdded(true);
+            return;
+        }
+
+        setTooManyFilesAdded(false);
 
         if (fileArray) {
             void updateFileList(fileArray);
@@ -118,6 +133,10 @@ const DocumentSelectStage = ({
             if (documents.some((d) => d.file.name === document.file.name)) {
                 document.state = DOCUMENT_UPLOAD_STATE.FAILED;
                 document.error = UPLOAD_FILE_ERROR_TYPE.duplicateFileName;
+                return document;
+            }
+
+            if (file.type !== 'application/pdf') {
                 return document;
             }
 
@@ -157,7 +176,7 @@ const DocumentSelectStage = ({
             return;
         }
 
-        updateDocuments([...docs, ...documents]);
+        updateDocuments(multifile ? [...docs, ...documents] : [...docs]);
     };
 
     const onRemove = (index: number): void => {
@@ -180,15 +199,6 @@ const DocumentSelectStage = ({
         setDocuments(sortedDocs);
     };
 
-    const allowedFileTypes = (): string => {
-        switch (documentType) {
-            case DOCUMENT_TYPE.LLOYD_GEORGE:
-                return '.pdf';
-        }
-
-        return '';
-    };
-
     const validateDocuments = (): boolean => {
         setNoFilesSelected(documents.length === 0);
 
@@ -208,7 +218,12 @@ const DocumentSelectStage = ({
             return;
         }
 
-        navigate.withParams(routeChildren.DOCUMENT_UPLOAD_SELECT_ORDER);
+        if (documentConfig.stitched) {
+            navigate.withParams(routeChildren.DOCUMENT_UPLOAD_SELECT_ORDER);
+            return;
+        }
+
+        navigate.withParams(routeChildren.DOCUMENT_UPLOAD_CONFIRMATION);
     };
 
     const DocumentRow = (document: UploadDocument, index: number): JSX.Element => {
@@ -235,17 +250,12 @@ const DocumentSelectStage = ({
     };
 
     const pageTitle = (): string => {
-        if (documentType === DOCUMENT_TYPE.LLOYD_GEORGE && journey === 'new') {
-            return 'Choose Lloyd George files to upload';
-        } else if (documentType === DOCUMENT_TYPE.LLOYD_GEORGE && journey === 'update') {
-            return 'Add Lloyd George files to this record';
-        } else if (documentType === DOCUMENT_TYPE.ALL && journey === 'new') {
-            return 'Choose files to upload';
-        } else if (documentType === DOCUMENT_TYPE.ALL && journey === 'update') {
-            return 'Add files to this record';
-        }
+        const pageTitle =
+            journey === 'new'
+                ? documentConfig.content.uploadFilesSelectTitle
+                : documentConfig.content.addFilesSelectTitle;
 
-        return 'Choose Lloyd George files to upload';
+        return pageTitle as string;
     };
 
     useTitle({ pageTitle: pageTitle() });
@@ -271,6 +281,11 @@ const DocumentSelectStage = ({
                 linkId: 'upload-files',
                 error: UPLOAD_FILE_ERROR_TYPE.noFiles,
             });
+        } else if (tooManyFilesAdded) {
+            errors.push({
+                linkId: 'upload-files',
+                error: UPLOAD_FILE_ERROR_TYPE.tooManyFiles,
+            });
         } else {
             errorDocs().forEach((doc) => {
                 errors.push({
@@ -287,7 +302,7 @@ const DocumentSelectStage = ({
         <>
             <BackButton toLocation={routes.VERIFY_PATIENT} dataTestid="back-button" />
 
-            {(errorDocs().length > 0 || noFilesSelected) && (
+            {(errorDocs().length > 0 || noFilesSelected || tooManyFilesAdded) && (
                 <ErrorBox
                     dataTestId="error-box"
                     errorBoxSummaryId="failed-document-uploads-summary-title"
@@ -309,26 +324,37 @@ const DocumentSelectStage = ({
                 </PatientSummary>
             </div>
 
+            {documentConfig.content.chooseFilesWarningText && (
+                <WarningCallout>
+                    <WarningCallout.Label>Important</WarningCallout.Label>
+                    <p data-testid="warning-text">
+                        {documentConfig.content.chooseFilesWarningText}
+                    </p>
+                </WarningCallout>
+            )}
+
             <div>
-                <h2 className="nhsuk-heading-m">Before you upload</h2>
+                <h2 className="nhsuk-heading-m">{documentConfig.content.beforeYouUploadTitle}</h2>
                 <ul>
-                    <li>You can only upload PDF files</li>
-                    <li>Check your files open correctly</li>
-                    <li>Remove any passwords from files</li>
-                    <li>
-                        If there is a problem with your files during upload, you'll need to resolve
-                        these before continuing
-                    </li>
+                    {(documentConfig.content.uploadFilesBulletPoints as string[]).map(
+                        (point, index) => (
+                            <li key={`bullet-${index}`}>{point}</li>
+                        ),
+                    )}
                 </ul>
-                <p>
-                    Uploading may take longer if there are many files or if individual files are
-                    large.
-                </p>
+                {multifile ? (
+                    <p>
+                        Uploading may take longer if there are many files or if individual files are
+                        large.
+                    </p>
+                ) : (
+                    <p>Uploading may take longer if the file is large.</p>
+                )}
             </div>
 
             <Fieldset ref={fileInputAreaRef}>
                 <div className={`${noFilesSelected ? 'nhsuk-form-group--error' : ''}`}>
-                    <h3>Choose PDF files to upload</h3>
+                    <h3>{documentConfig.content.chooseFilesMessage}</h3>
                     {noFilesSelected && (
                         <p className="nhsuk-error-message">
                             {fileUploadErrorMessages.noFiles.inline}
@@ -347,15 +373,17 @@ const DocumentSelectStage = ({
                         className={'lloydgeorge_drag-and-drop'}
                     >
                         <strong className="lg-input-bold">
-                            Drag and drop a file or multiple files here
+                            Drag and drop a file{multifile && ' or multiple files'} here
                         </strong>
                         <div>
                             <TextInput
                                 data-testid={`button-input`}
                                 type="file"
-                                multiple={true}
+                                multiple={multifile}
                                 hidden
-                                accept={allowedFileTypes()}
+                                accept={documentConfig.acceptedFileTypes
+                                    .map((ext) => `.${ext}`)
+                                    .join(',')}
                                 onChange={(e: FileInputEvent): void => {
                                     onInput(e);
                                     e.target.value = '';
@@ -374,7 +402,7 @@ const DocumentSelectStage = ({
                                 }}
                                 aria-labelledby="upload-fieldset-legend"
                             >
-                                Choose PDF files
+                                {documentConfig.content.chooseFilesButtonLabel}
                             </Button>
                             {documents && documents.length > 0 && (
                                 <div className="file-count-text" data-testid="file-selected-count">
@@ -390,7 +418,10 @@ const DocumentSelectStage = ({
             </Fieldset>
             {documents && documents.length > 0 && (
                 <>
-                    <Table caption="Chosen files" id="selected-documents-table">
+                    <Table
+                        caption={`Chosen file${documents.length === 1 ? '' : 's'}`}
+                        id="selected-documents-table"
+                    >
                         <Table.Head>
                             <Table.Row>
                                 <Table.Cell className="table-cell-lg-input-cell-border">
@@ -416,16 +447,18 @@ const DocumentSelectStage = ({
 
                         <Table.Body>{documents.map(DocumentRow)}</Table.Body>
                     </Table>
-                    <LinkButton
-                        type="button"
-                        className="remove-all-button mb-5"
-                        data-testid="remove-all-button"
-                        onClick={(): void => {
-                            navigate.withParams(routeChildren.DOCUMENT_UPLOAD_REMOVE_ALL);
-                        }}
-                    >
-                        Remove all files
-                    </LinkButton>
+                    {multifile && (
+                        <LinkButton
+                            type="button"
+                            className="remove-all-button mb-5"
+                            data-testid="remove-all-button"
+                            onClick={(): void => {
+                                navigate.withParams(routeChildren.DOCUMENT_UPLOAD_REMOVE_ALL);
+                            }}
+                        >
+                            Remove all files
+                        </LinkButton>
+                    )}
                 </>
             )}
             <div className="lloydgeorge_upload-submission">

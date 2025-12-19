@@ -3,15 +3,16 @@ import { SearchResult } from '../../../../types/generic/searchResult';
 import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
 import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
-import { getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
+import { DOCUMENT_TYPE_CONFIG, getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
 import LinkButton from '../../../generic/linkButton/LinkButton';
 
 type Props = {
     searchResults: Array<SearchResult>;
     onViewDocument?: (document: SearchResult) => void;
+    documentConfig?: DOCUMENT_TYPE_CONFIG;
 };
 
-const DocumentSearchResults = (props: Props) => {
+const DocumentSearchResults = ({ searchResults, onViewDocument, documentConfig }: Props) => {
     const [session] = useSessionContext();
 
     const canViewFiles =
@@ -19,9 +20,11 @@ const DocumentSearchResults = (props: Props) => {
         session.auth!.role === REPOSITORY_ROLE.GP_CLINICAL;
 
     return (
-        <div className='document-search-results'>
-            <h3 data-testid="subtitle">Records and documents stored for this patient</h3>
-            <Table.Panel>
+        <div className="document-search-results">
+            <h3 className="subtitle" data-testid="subtitle">
+                Records and documents stored for this patient
+            </h3>
+            <Table.Panel id="table-panel">
                 <Table id="available-files-table-title" responsive={true}>
                     <Table.Head>
                         <Table.Row>
@@ -32,7 +35,7 @@ const DocumentSearchResults = (props: Props) => {
                         </Table.Row>
                     </Table.Head>
                     <Table.Body>
-                        {props.searchResults?.map((result, index) => (
+                        {searchResults?.map((result, index) => (
                             <Table.Row
                                 className={'available-files-row'}
                                 id={`available-files-row-${index}`}
@@ -48,9 +51,11 @@ const DocumentSearchResults = (props: Props) => {
                                 <Table.Cell
                                     id={`available-files-row-${index}-filename`}
                                     data-testid="filename"
-                                    className='filename-value'
+                                    className="filename-value"
                                 >
-                                    {result.fileName}
+                                    {documentConfig?.filenameOverride
+                                        ? documentConfig.filenameOverride
+                                        : result.fileName}
                                 </Table.Cell>
                                 <Table.Cell
                                     id={`available-files-row-${index}-created-date`}
@@ -62,12 +67,13 @@ const DocumentSearchResults = (props: Props) => {
                                     id={`available-files-row-${index}-actions`}
                                     data-testid="actions"
                                 >
-                                    {canViewFiles && props.onViewDocument && (
+                                    {canViewFiles && onViewDocument && (
                                         <LinkButton
-                                            onClick={() => props.onViewDocument!(result)}
+                                            onClick={() => onViewDocument(result)}
                                             id={`available-files-row-${index}-view-link`}
                                             data-testid={`view-${index}-link`}
                                             href="#"
+                                            className="px-1 py-1"
                                         >
                                             View
                                         </LinkButton>

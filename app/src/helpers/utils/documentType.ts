@@ -4,24 +4,28 @@ import electronicHealthRecordAttachmentsConfig from '../../config/electronicHeal
 
 export enum DOCUMENT_TYPE {
     LLOYD_GEORGE = '16521000000101',
-    EHR = '16521000000102', // TBC
-    EHR_ATTACHMENTS = '16521000000103', // TBC
-    LETTERS_AND_DOCS = '16521000000104', // TBC
-    ALL = '16521000000101,16521000000102,16521000000103,16521000000104', // TBC
+    EHR = '717301000000104', // TBC
+    EHR_ATTACHMENTS = '24511000000107', // TBC
+    LETTERS_AND_DOCS = '162931000000103', // TBC
+    ALL = '16521000000101,717301000000104,24511000000107,162931000000103', // TBC
 }
 
 export type DOCUMENT_TYPE_CONFIG = {
     snomedCode: string;
     displayName: string;
+    filenameOverride?: string;
     canBeUpdated: boolean;
     associatedSnomed: string;
     multifileUpload: boolean;
     multifileZipped: boolean;
+    zippedFilename?: string;
     multifileReview: boolean;
     canBeDiscarded: boolean;
     stitched: boolean;
+    singleDocumentOnly: boolean;
+    stitchedFilenamePrefix?: string;
     acceptedFileTypes: string[];
-    content: { [key: string]: string };
+    content: { [key: string]: string | string[] };
 };
 
 export const getDocumentTypeLabel = (docType: DOCUMENT_TYPE): string => {

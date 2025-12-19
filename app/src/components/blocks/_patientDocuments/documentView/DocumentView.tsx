@@ -1,7 +1,7 @@
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
-import { DOCUMENT_TYPE, getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
+import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
 import {
@@ -35,6 +35,9 @@ const DocumentView = ({
     const navigate = useNavigate();
     const showMenu = role === REPOSITORY_ROLE.GP_ADMIN && !session.isFullscreen;
     const patientDetails = usePatient();
+    const documentConfig = getConfigForDocType(
+        documentReference?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
+    );
 
     const pageHeader = 'Lloyd George records';
     useTitle({ pageTitle: pageHeader });
@@ -150,7 +153,7 @@ const DocumentView = ({
         const blob = await response.blob();
 
         const to: To = {
-            pathname: routes.DOCUMENT_UPLOAD,
+            pathname: routeChildren.DOCUMENT_UPLOAD_SELECT_FILES,
             search: createSearchParams({ journey: 'update' }).toString(),
         };
         const options: NavigateOptions = {
@@ -165,7 +168,7 @@ const DocumentView = ({
     const getRecordCard = (): React.JSX.Element => {
         const card = (
             <RecordCard
-                heading={getDocumentTypeLabel(documentReference.documentSnomedCodeType)}
+                heading={documentConfig.content.viewDocumentTitle as string}
                 fullScreenHandler={enableFullscreen}
                 detailsElement={details()}
                 isFullScreen={session.isFullscreen!}
@@ -174,6 +177,7 @@ const DocumentView = ({
                 showMenu={showMenu}
             />
         );
+
         return session.isFullscreen ? (
             card
         ) : (
@@ -187,6 +191,12 @@ const DocumentView = ({
             </div>
         );
     };
+
+    const canAddFiles =
+        documentConfig.canBeUpdated &&
+        documentReference.url &&
+        !patientDetails?.deceased &&
+        (role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL);
 
     return (
         <div className="lloydgeorge_record-stage">
@@ -241,19 +251,25 @@ const DocumentView = ({
                         />
                     )}
 
-                    {!session.isFullscreen &&
-                        documentReference.documentSnomedCodeType === DOCUMENT_TYPE.LLOYD_GEORGE && (
-                            <>
-                                <h2 className="title">Add Files</h2>
-                                <p>You can add more files to this patient's record.</p>
-                                <Button onClick={handleAddFilesClick} data-testid="add-files-btn">
-                                    Add Files
-                                </Button>
-                            </>
-                        )}
+                    {!session.isFullscreen && canAddFiles && (
+                        <>
+                            <h2 className="title">Add Files</h2>
+                            <p>You can add more files to this patient's record.</p>
+                            <Button onClick={handleAddFilesClick} data-testid="add-files-btn">
+                                Add Files
+                            </Button>
+                        </>
+                    )}
                 </div>
 
-                {getRecordCard()}
+                {documentReference.url 
+                    ? getRecordCard() 
+                    : (
+                        <p>
+                            This document is currently being uploaded, please try again in a few minutes.
+                        </p>
+                    )
+                }
             </div>
         </div>
     );

@@ -5,6 +5,7 @@ type UploadFilesError = ErrorMessageListItem<UPLOAD_FILE_ERROR_TYPE>;
 
 export enum UPLOAD_FILE_ERROR_TYPE {
     noFiles = 'noFiles',
+    tooManyFiles = 'tooManyFiles',
     passwordProtected = 'passwordProtected',
     invalidPdf = 'invalidPdf',
     emptyPdf = 'emptyPdf',
@@ -39,6 +40,10 @@ export const fileUploadErrorMessages: ErrorMessageType = {
     noFiles: {
         inline: 'Select a file to upload',
         errorBox: 'Select a file to upload',
+    },
+    tooManyFiles: {
+        inline: 'You have selected too many files to upload',
+        errorBox: 'You have selected too many files to upload',
     },
     invalidPdf: {
         inline: 'The selected file is be damaged or unreadable. Fix it to continue with upload.',

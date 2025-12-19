@@ -2,19 +2,24 @@ import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/type
 import { JSX, useEffect, useRef, useState } from 'react';
 import PdfViewer from '../../../generic/pdfViewer/PdfViewer';
 import getMergedPdfBlob from '../../../../helpers/utils/pdfMerger';
+import { DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
+import { getJourney } from '../../../../helpers/utils/urlManipulations';
 
 type Props = {
     documents: UploadDocument[];
-    setMergedPdfBlob: (blob: Blob) => void;
+    setMergedPdfBlob?: (blob: Blob) => void;
     stitchedBlobLoaded?: (value: boolean) => void;
+    documentConfig: DOCUMENT_TYPE_CONFIG;
 };
 
 const DocumentUploadLloydGeorgePreview = ({
     documents,
     setMergedPdfBlob,
     stitchedBlobLoaded,
+    documentConfig,
 }: Props): JSX.Element => {
     const [mergedPdfUrl, setMergedPdfUrl] = useState('');
+    const journey = getJourney();
 
     const runningRef = useRef(false);
     useEffect(() => {
@@ -36,7 +41,9 @@ const DocumentUploadLloydGeorgePreview = ({
             }
 
             const blob = await getMergedPdfBlob(documents.map((doc) => doc.file));
-            setMergedPdfBlob(blob);
+            if (setMergedPdfBlob) {
+                setMergedPdfBlob(blob);
+            }
 
             const url = URL.createObjectURL(blob);
             runningRef.current = false;
@@ -55,6 +62,23 @@ const DocumentUploadLloydGeorgePreview = ({
 
     return (
         <>
+            <h2>{documentConfig.content.previewUploadTitle}</h2>
+            {documentConfig.stitched ? (
+                <>
+                    <p>
+                        This shows how the final record will look when combined into a single
+                        document.{' '}
+                        {journey === 'update' &&
+                            `Any files added will appear after the existing ${documentConfig.displayName}.`}
+                    </p>
+                    <p>
+                        Preview may take longer to load if there are many files or if individual
+                        files are large.
+                    </p>
+                </>
+            ) : (
+                <p>The preview is currently displaying the file: {documents[0]?.file.name}</p>
+            )}
             {documents && mergedPdfUrl && (
                 <PdfViewer customClasses={['upload-preview']} fileUrl={mergedPdfUrl} />
             )}

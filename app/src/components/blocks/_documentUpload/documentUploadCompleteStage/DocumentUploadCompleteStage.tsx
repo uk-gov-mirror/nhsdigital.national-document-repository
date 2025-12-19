@@ -1,4 +1,3 @@
-import { Button } from 'nhsuk-react-components';
 import { routes } from '../../../../types/generic/routes';
 import { Link, useNavigate } from 'react-router-dom';
 import useTitle from '../../../../helpers/hooks/useTitle';
@@ -10,15 +9,18 @@ import {
     DOCUMENT_UPLOAD_STATE,
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { allDocsHaveState } from '../../../../helpers/utils/uploadDocumentHelpers';
 import { getJourney } from '../../../../helpers/utils/urlManipulations';
+import { DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
+import { Button, ChevronLeftIcon, ChevronRightIcon } from 'nhsuk-react-components';
 
 type Props = {
     documents: UploadDocument[];
+    documentConfig: DOCUMENT_TYPE_CONFIG;
 };
 
-const DocumentUploadCompleteStage = ({ documents }: Props): React.JSX.Element => {
+const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const patientDetails = usePatient();
     const nhsNumber: string = patientDetails?.nhsNumber ?? '';
@@ -26,50 +28,90 @@ const DocumentUploadCompleteStage = ({ documents }: Props): React.JSX.Element =>
     const dob: string = getFormattedDateFromString(patientDetails?.birthDate);
     const patientName = getFormattedPatientFullName(patientDetails);
     const journey = getJourney();
+    const [showFiles, setShowFiles] = useState(false);
 
-    useTitle({ pageTitle: 'Record upload complete' });
+    const failedDocuments = documents.filter((doc) => doc.state === DOCUMENT_UPLOAD_STATE.FAILED);
+
+    const pageTitle = failedDocuments.length > 0 ? 'Upload partially complete' : 'Upload complete';
+    useTitle({ pageTitle });
+
+    const docsAreInFinishedState = () =>
+        allDocsHaveState(documents, [
+            DOCUMENT_UPLOAD_STATE.SUCCEEDED,
+            DOCUMENT_UPLOAD_STATE.FAILED,
+        ]);
 
     useEffect(() => {
-        if (!allDocsHaveState(documents, DOCUMENT_UPLOAD_STATE.SUCCEEDED)) {
+        if (!docsAreInFinishedState()) {
             navigate(routes.HOME);
         }
-    }, [navigate]);
+    }, [navigate, documents]);
 
-    if (!allDocsHaveState(documents, DOCUMENT_UPLOAD_STATE.SUCCEEDED)) {
+    if (!docsAreInFinishedState()) {
         return <></>;
     }
 
     return (
-        <div className="lloydgeorge_upload-complete" data-testid="upload-complete-page">
+        <div className="document-upload-complete-stage" data-testid="upload-complete-page">
             <div className="nhsuk-panel" data-testid="upload-complete-card">
-                <h1 className="nhsuk-panel__title">Upload complete</h1>
-                <div className="nhsuk-panel__body">
-                    {journey === 'update' && (
-                        <p>
-                            You have successfully added additional files to the digital Lloyd George
-                            record for:
-                        </p>
-                    )}
-                    {journey === 'new' && (
-                        <p>You have successfully uploaded a digital Lloyd George record for:</p>
-                    )}
-                </div>
+                <h1 data-testid="page-title" className="nhsuk-panel__title">
+                    {pageTitle}
+                </h1>
                 <br />
                 <div className="nhsuk-panel__body">
                     <strong data-testid="patient-name">Patient name: {patientName}</strong>
                     <br />
-                    <span data-testid="nhs-number">NHS Number: {formattedNhsNumber}</span>
+                    <span data-testid="nhs-number">NHS number: {formattedNhsNumber}</span>
                     <br />
                     <span data-testid="dob">Date of birth: {dob}</span>
                 </div>
             </div>
 
-            <h2>What happens next</h2>
+            {failedDocuments.length > 0 && (
+                <div className="govuk-accordion mb-8 govuk-frontend-supported">
+                    <h3>Some of your files failed to upload</h3>
+                    <button
+                        className="toggle-button govuk-accordion__section-button"
+                        onClick={() => setShowFiles(!showFiles)}
+                        data-testid="accordion-toggle-button"
+                        aria-expanded={showFiles}
+                        aria-controls="failed-files-list"
+                    >
+                        <span className="govuk-accordion__section-toggle">
+                            <span className="accordion-toggle govuk-accordion__section-toggle-focus">
+                                {showFiles ? (
+                                    <>
+                                        <ChevronLeftIcon className="accordion-toggle-icon" />
+                                        <span>Hide files</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ChevronRightIcon className="accordion-toggle-icon" />
+                                        <span>View files</span>
+                                    </>
+                                )}
+                            </span>
+                        </span>
+                    </button>
+                    {showFiles && (
+                        <div id="failed-files-list" aria-hidden={!showFiles}>
+                            {failedDocuments.map((doc) => (
+                                <div key={doc.id}>
+                                    <span>{doc.file.name}</span>
+                                    <br />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <h3>What happens next</h3>
 
             {journey === 'update' && (
                 <p>
-                    You can now view the updated Lloyd George record for this patient in this
-                    service by{' '}
+                    You can now view the updated {documentConfig.displayName} for this patient in
+                    this service by{' '}
                     <Link
                         to=""
                         onClick={(e): void => {
@@ -89,11 +131,9 @@ const DocumentUploadCompleteStage = ({ documents }: Props): React.JSX.Element =>
                 <a href="mailto:england.prmteam@nhs.net">england.prmteam@nhs.net</a>.
             </p>
 
-            <p>
-                You can add a note to the patient's electronic health record to say their Lloyd
-                George record is stored in this service. Use SNOMED code 'Lloyd George record
-                folder' 16521000000101.
-            </p>
+            {documentConfig.content.uploadFilesExtraParagraph && (
+                <p>{documentConfig.content.uploadFilesExtraParagraph}</p>
+            )}
 
             <p>
                 For information on destroying your paper records and removing the digital files from

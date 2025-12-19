@@ -1,7 +1,6 @@
 import { AxiosError } from 'axios';
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
-import { Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
+import { useEffect, useRef, useState } from 'react';
+import { Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import DocumentSelectFileErrorsPage from '../../components/blocks/_documentUpload/documentSelectFileErrorsPage/DocumentSelectFileErrorsPage';
 import DocumentSelectOrderStage from '../../components/blocks/_documentUpload/documentSelectOrderStage/DocumentSelectOrderStage';
 import DocumentSelectStage from '../../components/blocks/_documentUpload/documentSelectStage/DocumentSelectStage';
@@ -15,7 +14,6 @@ import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import useConfig from '../../helpers/hooks/useConfig';
 import usePatient from '../../helpers/hooks/usePatient';
 import uploadDocuments, {
-    generateFileName,
     getDocumentStatus,
     uploadDocumentToS3,
 } from '../../helpers/requests/uploadDocuments';
@@ -36,34 +34,15 @@ import { DocumentStatusResult, UploadSession } from '../../types/generic/uploadR
 import {
     DOCUMENT_STATUS,
     DOCUMENT_UPLOAD_STATE,
+    ExistingDocument,
+    LocationParams,
+    LocationState,
     UploadDocument,
 } from '../../types/pages/UploadDocumentsPage/types';
-import documentTypesConfig from '../../config/documentTypesConfig.json';
-import { Card } from 'nhsuk-react-components';
-import { ReactComponent as RightCircleIcon } from '../../styles/right-chevron-circle.svg';
-import PatientSummary from '../../components/generic/patientSummary/PatientSummary';
-import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
-
-type LocationState = {
-    journey?: JourneyType;
-    existingDocuments?: [
-        {
-            docType: DOCUMENT_TYPE | null;
-            blob: Blob | null;
-            fileName: string | null;
-            documentId?: string | null;
-            versionId: string;
-        },
-    ];
-};
-
-type LocationParams<T> = {
-    pathname: string;
-    state: T | undefined;
-    search: string;
-    hash: string;
-    key: string;
-};
+import { DOCUMENT_TYPE, getConfigForDocType } from '../../helpers/utils/documentType';
+import { buildMockUploadSession } from '../../helpers/test/testBuilders';
+import { reduceDocumentsForUpload } from '../../helpers/utils/documentUpload';
+import DocumentUploadIndex from '../../components/blocks/_documentUpload/documentUploadIndex/DocumentUploadIndex';
 
 const DocumentUploadPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
@@ -79,37 +58,27 @@ const DocumentUploadPage = (): React.JSX.Element => {
     const navigate = useEnhancedNavigate();
     const [intervalTimer, setIntervalTimer] = useState(0);
     const [mergedPdfBlob, setMergedPdfBlob] = useState<Blob>();
-    const [journey] = useState<JourneyType>(getJourney());
+    const [journey, setJourney] = useState<JourneyType>(getJourney());
     const config = useConfig();
     const interval = useRef<number>(0);
     const filesErrorPageRef = useRef(false);
     const [documentType, setDocumentType] = useState<DOCUMENT_TYPE>(DOCUMENT_TYPE.LLOYD_GEORGE);
+    const [documentConfig, setDocumentConfig] = useState(getConfigForDocType(documentType));
 
     const UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS = 5000;
     const MAX_POLLING_TIME = 600000;
 
     useEffect(() => {
         const journeyParam = getJourney();
-        if (journeyParam === 'update' && !location.state?.existingDocuments?.[0]?.blob) {
-            // No existing documents found for update journey
-            navigate(routes.SERVER_ERROR);
-            return;
+        if (journeyParam === 'update') {
+            if (!location.state?.existingDocuments?.[0]?.blob) {
+                // No existing documents found for update journey
+                navigate(routes.SERVER_ERROR);
+                return;
+            }
+
+            updateExistingDocuments(location.state?.existingDocuments ?? []);
         }
-
-        const newDocuments: Array<UploadDocument> =
-            location.state?.existingDocuments?.map(
-                (doc) =>
-                    ({
-                        id: doc.documentId,
-                        file: new File([doc.blob!], doc.fileName!, { type: 'application/pdf' }),
-                        state: DOCUMENT_UPLOAD_STATE.SELECTED,
-                        docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                        progress: 0,
-                        versionId: doc.versionId,
-                    }) as UploadDocument,
-            ) ?? [];
-
-        setExistingDocuments(newDocuments);
     }, []);
 
     useEffect(() => {
@@ -128,10 +97,16 @@ const DocumentUploadPage = (): React.JSX.Element => {
         }
 
         const hasVirus = documents.some((d) => d.state === DOCUMENT_UPLOAD_STATE.INFECTED);
-        const docWithError = documents.find((d) => d.state === DOCUMENT_UPLOAD_STATE.ERROR);
+        const docWithError =
+            documents.length === 1 &&
+            documents.find((d) => d.state === DOCUMENT_UPLOAD_STATE.ERROR);
         const allFinished =
             documents.length > 0 &&
-            documents.every((d) => d.state === DOCUMENT_UPLOAD_STATE.SUCCEEDED);
+            documents.every(
+                (d) =>
+                    d.state === DOCUMENT_UPLOAD_STATE.SUCCEEDED ||
+                    d.state === DOCUMENT_UPLOAD_STATE.ERROR,
+            );
 
         if (hasVirus && !virusReference.current) {
             virusReference.current = true;
@@ -157,10 +132,31 @@ const DocumentUploadPage = (): React.JSX.Element => {
     ]);
 
     useEffect(() => {
+        setDocumentConfig(getConfigForDocType(documentType));
+    }, [documentType]);
+
+    useEffect(() => {
         return (): void => {
             window.clearInterval(intervalTimer);
         };
     }, [intervalTimer]);
+
+    const updateExistingDocuments = (existingDocuments: ExistingDocument[]): void => {
+        const newDocuments: Array<UploadDocument> =
+            existingDocuments?.map(
+                (doc) =>
+                    ({
+                        id: doc.documentId,
+                        file: new File([doc.blob!], doc.fileName!, { type: 'application/pdf' }),
+                        state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                        docType: doc.docType,
+                        progress: 0,
+                        versionId: doc.versionId,
+                    }) as UploadDocument,
+            ) ?? [];
+
+        setExistingDocuments(newDocuments);
+    };
 
     const uploadSingleLloydGeorgeDocument = async (
         document: UploadDocument,
@@ -194,60 +190,41 @@ const DocumentUploadPage = (): React.JSX.Element => {
         uploadSession: UploadSession,
     ): void => {
         uploadDocuments.forEach((document) => {
-            if (document.docType === DOCUMENT_TYPE.LLOYD_GEORGE) {
-                void uploadSingleLloydGeorgeDocument(document, uploadSession);
-            }
+            void uploadSingleLloydGeorgeDocument(document, uploadSession);
         });
     };
 
-    const getMockUploadSession = (documents: UploadDocument[]): UploadSession => {
-        const session: UploadSession = {};
-        documents.forEach((doc) => {
-            session[doc.id] = {
-                url: 'https://dusafgdswgfew4-staging-bulk-store.s3.eu-west-2.amazonaws.com/user_upload/9730153817/91b73c0f-b5b0-49f1-acbe-b0a5752dc3df?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAXYSUA44V5SE2IC6U%2F20251028%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20251028T162320Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Security-Token=FwoGZXIvYXdzEBoaDCqX56UT2MdBQk7ztCLIAWXO7781OXoLLc3gJN9UQcAZlaoEhwJl5FQfKuJvn32DAPwYhbS80rb0JGIYmF8rIqj7TKbNOfaw4t%2Bq5NUO%2FEDQLxRbSpl8%2B078%2Ba9d2pY5XbPH3u6D0nW9mzNVREwg1%2Bt02HnWp9YLdREyDO4is9Fj5P3SQRh6DydzLx3in%2BZzzwVK8prxGG%2BBYRn5cQVOKcQCtAR7NMhHhTz9GeFQxU6X5YNalZdZdRJoFmdkxkpdoFeoIozs2Kg6plZhnqbWpFIrV3GvmYTDKPfbg8gGMi2c6f%2F9IJpIscXn0RfQZYA8lr02VHjBtez0LgzKcGVXYsE666uclkspOgBxpgo%3D&X-Amz-Signature=fdf6e3d7522ab4fe80156510d1318c430d4a44170fb98924cdc231117b5eafb8',
-            } as any;
-        });
+    const confirmFiles = async (): Promise<void> => {
+        let reducedDocuments = [...existingDocuments, ...documents];
+        const existingId = existingDocuments[0]?.id;
 
-        return session;
+        reducedDocuments = await reduceDocumentsForUpload(
+            reducedDocuments,
+            documentConfig,
+            mergedPdfBlob!,
+            patientDetails!,
+            existingId ? existingDocuments[0]?.versionId! : '1',
+        );
+
+        setDocuments(reducedDocuments);
+
+        navigate.withParams(routeChildren.DOCUMENT_UPLOAD_UPLOADING);
     };
 
     const startUpload = async (): Promise<void> => {
         try {
-            let reducedDocuments = [...existingDocuments, ...documents];
-            const existingId = existingDocuments[0]?.id;
-
-            if (
-                reducedDocuments.some((doc) => doc.docType === DOCUMENT_TYPE.LLOYD_GEORGE) &&
-                mergedPdfBlob
-            ) {
-                reducedDocuments = reducedDocuments.filter(
-                    (doc) => doc.docType !== DOCUMENT_TYPE.LLOYD_GEORGE,
-                );
-
-                const filename = generateFileName(patientDetails);
-                reducedDocuments.push({
-                    id: uuidv4(),
-                    file: new File([mergedPdfBlob], filename, { type: 'application/pdf' }),
-                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
-                    progress: 0,
-                    docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    attempts: 0,
-                    versionId: existingId ? existingDocuments[0]?.versionId : '1',
-                });
-            }
-
             const uploadSession: UploadSession = isLocal
-                ? getMockUploadSession(reducedDocuments)
+                ? buildMockUploadSession(documents)
                 : await uploadDocuments({
                       nhsNumber,
-                      documents: reducedDocuments,
+                      documents: documents,
                       baseUrl,
                       baseHeaders,
-                      documentReferenceId: existingId,
+                      documentReferenceId: existingDocuments[0]?.id,
                   });
 
             setUploadSession(uploadSession);
-            const uploadingDocuments = markDocumentsAsUploading(reducedDocuments, uploadSession);
+            const uploadingDocuments = markDocumentsAsUploading(documents, uploadSession);
             setDocuments(uploadingDocuments);
 
             if (!isLocal) {
@@ -364,13 +341,18 @@ const DocumentUploadPage = (): React.JSX.Element => {
 
     const getIndexElement = (): React.JSX.Element => {
         return config.featureFlags.uploadDocumentIteration3Enabled ? (
-            <DocumentUploadIndex setDocumentType={setDocumentType} />
+            <DocumentUploadIndex
+                setDocumentType={setDocumentType}
+                setJourney={setJourney}
+                updateExistingDocuments={updateExistingDocuments}
+            />
         ) : (
             <DocumentSelectStage
                 documents={documents}
                 setDocuments={setDocuments}
                 documentType={documentType}
                 filesErrorRef={filesErrorPageRef}
+                documentConfig={documentConfig}
             />
         );
     };
@@ -387,6 +369,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
                             setDocuments={setDocuments}
                             documentType={documentType}
                             filesErrorRef={filesErrorPageRef}
+                            documentConfig={documentConfig}
                         />
                     }
                 />
@@ -398,6 +381,8 @@ const DocumentUploadPage = (): React.JSX.Element => {
                             setDocuments={setDocuments}
                             setMergedPdfBlob={setMergedPdfBlob}
                             existingDocuments={existingDocuments}
+                            documentConfig={documentConfig}
+                            confirmFiles={confirmFiles}
                         />
                     }
                 />
@@ -407,23 +392,38 @@ const DocumentUploadPage = (): React.JSX.Element => {
                         <DocumentUploadRemoveFilesStage
                             documents={documents}
                             setDocuments={setDocuments}
-                            documentType={DOCUMENT_TYPE.LLOYD_GEORGE}
+                            documentType={documentType}
                         />
                     }
                 />
                 <Route
                     path={getLastURLPath(routeChildren.DOCUMENT_UPLOAD_CONFIRMATION) + '/*'}
-                    element={<DocumentUploadConfirmStage documents={documents} />}
+                    element={
+                        <DocumentUploadConfirmStage
+                            documents={documents}
+                            documentConfig={documentConfig}
+                            confirmFiles={confirmFiles}
+                        />
+                    }
                 />
                 <Route
                     path={getLastURLPath(routeChildren.DOCUMENT_UPLOAD_UPLOADING) + '/*'}
                     element={
-                        <DocumentUploadingStage documents={documents} startUpload={startUpload} />
+                        <DocumentUploadingStage
+                            documents={documents}
+                            startUpload={startUpload}
+                            documentConfig={documentConfig}
+                        />
                     }
                 />
                 <Route
                     path={getLastURLPath(routeChildren.DOCUMENT_UPLOAD_COMPLETED) + '/*'}
-                    element={<DocumentUploadCompleteStage documents={documents} />}
+                    element={
+                        <DocumentUploadCompleteStage
+                            documents={documents}
+                            documentConfig={documentConfig}
+                        />
+                    }
                 />
                 <Route
                     path={getLastURLPath(routeChildren.DOCUMENT_UPLOAD_INFECTED) + '/*'}
@@ -441,50 +441,3 @@ const DocumentUploadPage = (): React.JSX.Element => {
 };
 
 export default DocumentUploadPage;
-
-type DocumentUploadIndexProps = {
-    setDocumentType: Dispatch<SetStateAction<DOCUMENT_TYPE>>;
-};
-const DocumentUploadIndex = ({ setDocumentType }: DocumentUploadIndexProps): React.JSX.Element => {
-    const navigate = useNavigate();
-
-    const documentTypeSelected = (documentType: DOCUMENT_TYPE): void => {
-        setDocumentType(documentType);
-        navigate(routeChildren.DOCUMENT_UPLOAD_SELECT_FILES);
-    };
-
-    return (
-        <>
-            <h1 data-testid="page-title">Choose a document type to upload</h1>
-
-            <PatientSummary oneLine />
-
-            <Card.Group>
-                {documentTypesConfig.map((documentConfig) => (
-                    <Card.GroupItem width="one-half" key={documentConfig.snomed_code}>
-                        <Card clickable cardType="primary">
-                            <Card.Content>
-                                <Card.Heading className="nhsuk-heading-m">
-                                    <Card.Link
-                                        data-testid={`upload-${documentConfig.snomed_code}-link`}
-                                        onClick={(): void =>
-                                            documentTypeSelected(
-                                                documentConfig.snomed_code as DOCUMENT_TYPE,
-                                            )
-                                        }
-                                    >
-                                        {documentConfig.content.upload_title}
-                                    </Card.Link>
-                                </Card.Heading>
-                                <Card.Description>
-                                    {documentConfig.content.upload_description}
-                                </Card.Description>
-                                <RightCircleIcon />
-                            </Card.Content>
-                        </Card>
-                    </Card.GroupItem>
-                ))}
-            </Card.Group>
-        </>
-    );
-};

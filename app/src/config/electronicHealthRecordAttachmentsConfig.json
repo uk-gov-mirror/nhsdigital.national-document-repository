@@ -1,13 +1,31 @@
 {
-    "snomedCode": "16521000000103",
-    "displayName": "Electronic Health Record Attachments",
+    "snomedCode": "24511000000107",
+    "displayName": "electronic health record attachments",
     "canBeUpdated": false,
-    "associatedSnomed": "",
-    "multifileUpload": false,
+    "associatedSnomed": "717301000000104",
+    "multifileUpload": true,
     "multifileZipped": true,
+    "zippedFilename": "EHR_Attachments",
     "multifileReview": false,
     "canBeDiscarded": true,
     "stitched": false,
+    "singleDocumentOnly": false,
     "acceptedFileTypes": [],
-    "content": {}
+    "content": {
+        "viewDocumentTitle": "Electronic health record attachments",
+        "addFilesSelectTitle": "",
+        "uploadFilesSelectTitle": "Choose electronic health record attachment files to upload",
+        "uploadFilesBulletPoints": [
+            "Check your files open correctly",
+            "Remove any passwords from files",
+            "If there is a problem with your any of your files during upload, you'll need to resolve these before continuing"
+        ],
+        "chooseFilesMessage": "Choose files to upload",
+        "chooseFilesButtonLabel": "Choose files",
+        "chooseFilesWarningText": "",
+        "confirmFilesTitle": "Check files are for the correct patient",
+        "beforeYouUploadTitle": "Before you upload",
+        "previewUploadTitle": "Preview electronic health record attachment",
+        "uploadFilesExtraParagraph": ""
+    }
 }

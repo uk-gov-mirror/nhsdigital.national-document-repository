@@ -70,9 +70,9 @@ export const getUploadMessage = ({ state, progress }: UploadDocument): string =>
 
 export const allDocsHaveState = (
     documents: UploadDocument[],
-    state: DOCUMENT_UPLOAD_STATE,
+    states: DOCUMENT_UPLOAD_STATE[],
 ): boolean => {
-    return !!documents?.length && documents.every((doc) => doc.state === state);
+    return !!documents?.length && documents.every((doc) => states.includes(doc.state));
 };
 
 export const extractUploadSession = (data: any): UploadSession => {

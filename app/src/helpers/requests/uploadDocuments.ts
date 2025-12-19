@@ -6,13 +6,13 @@ import axios, { AxiosError } from 'axios';
 import {
     DocumentStatusResult,
     S3Upload,
-    S3UploadFields,
     UploadSession,
 } from '../../types/generic/uploadResult';
 import { Dispatch, SetStateAction } from 'react';
 import { extractUploadSession, setSingleDocument } from '../utils/uploadDocumentHelpers';
 import { PatientDetails } from '../../types/generic/patientDetails';
 import { formatDateWithDashes } from '../utils/formatDate';
+import { DOCUMENT_TYPE_CONFIG } from '../utils/documentType';
 
 type UploadDocumentsArgs = {
     documents: UploadDocument[];
@@ -34,16 +34,13 @@ export const uploadDocumentToS3 = async ({
     document,
 }: UploadDocumentsToS3Args): Promise<void> => {
     const documentMetadata: S3Upload = uploadSession[document.id];
-    const formData = new FormData();
-    const docFields: S3UploadFields = documentMetadata.fields ?? [];
-    Object.entries(docFields).forEach(([key, value]) => {
-        formData.append(key, value);
-    });
-    formData.append('file', document.file);
     const s3url = documentMetadata.url;
     const axiosMethod = Object.keys(documentMetadata).includes('fields') ? axios.post : axios.put;
     try {
-        return await axiosMethod(s3url, formData, {
+        return await axiosMethod(s3url, document.file, {
+            headers: {
+                'Content-Type': document.file.type,
+            },
             onUploadProgress: (progress): void => {
                 const { loaded, total } = progress;
                 if (total) {
@@ -64,14 +61,17 @@ export const uploadDocumentToS3 = async ({
     }
 };
 
-export const generateFileName = (patientDetails: PatientDetails | null): string => {
+export const generateStitchedFileName = (
+    patientDetails: PatientDetails | null,
+    documentConfig: DOCUMENT_TYPE_CONFIG,
+): string => {
     if (!patientDetails) {
         throw new Error('Patient details are required to generate filename');
     }
 
     // replace commas and other characters unfriendly characters to file paths
     const givenName = patientDetails.givenName.join(' ').replace(/[,/\\?%*:|"<>]/g, '-');
-    const filename = `1of1_Lloyd_George_Record_[${givenName} ${patientDetails.familyName.toUpperCase()}]_[${patientDetails.nhsNumber}]_[${formatDateWithDashes(new Date(patientDetails.birthDate))}].pdf`;
+    const filename = `${documentConfig.stitchedFilenamePrefix}_[${givenName} ${patientDetails.familyName.toUpperCase()}]_[${patientDetails.nhsNumber}]_[${formatDateWithDashes(new Date(patientDetails.birthDate))}].pdf`;
     return filename;
 };
 

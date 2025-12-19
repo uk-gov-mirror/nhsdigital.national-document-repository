@@ -1,6 +1,7 @@
 {
     "snomedCode": "16521000000101",
-    "displayName": "Scanned Paper Notes",
+    "displayName": "scanned paper notes",
+    "filenameOverride": "Scanned paper notes.pdf",
     "canBeUpdated": true,
     "associatedSnomed": "",
     "multifileUpload": true,
@@ -8,8 +9,27 @@
     "multifileReview": true,
     "canBeDiscarded": true,
     "stitched": true,
+    "stitchedFilenamePrefix": "1of1_Lloyd_George_Record",
+    "singleDocumentOnly": true,
     "acceptedFileTypes": [
-        ".pdf"
+        "PDF"
     ],
-    "content": {}
+    "content": {
+        "viewDocumentTitle": "Scanned paper notes",
+        "addFilesSelectTitle": "Add scanned paper notes files to this record",
+        "uploadFilesSelectTitle": "Choose scanned paper notes files to upload",
+        "uploadFilesBulletPoints": [
+            "You can only upload PDF files",
+            "Check your files open correctly",
+            "Remove any passwords from files",
+            "If there is a problem with your files during upload, you'll need to resolve these before continuing"
+        ],
+        "chooseFilesMessage": "Choose PDF files to upload",
+        "chooseFilesButtonLabel": "Choose PDF files",
+        "chooseFilesWarningText": "",
+        "confirmFilesTitle": "Check your files before uploading",
+        "beforeYouUploadTitle": "Before you upload",
+        "previewUploadTitle": "Preview this scanned paper notes record",
+        "uploadFilesExtraParagraph": "You can add a note to the patient's electronic health record to say their Lloyd George record is stored in this service. Use SNOMED code 16521000000101."
+    }
 }

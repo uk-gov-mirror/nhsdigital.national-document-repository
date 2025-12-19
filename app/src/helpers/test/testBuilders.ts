@@ -18,7 +18,7 @@ import {
     DeceasedAccessAuditReasons,
     PatientAccessAudit,
 } from '../../types/generic/accessAudit';
-import { DOCUMENT_TYPE } from '../utils/documentType';
+import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../utils/documentType';
 
 const buildUserAuth = (userAuthOverride?: Partial<UserAuth>): UserAuth => {
     const auth: UserAuth = {
@@ -174,6 +174,62 @@ const buildPatientAccessAudit = (): PatientAccessAudit[] => {
     ];
 };
 
+const buildDocumentConfig = (
+    configOverride?: Partial<DOCUMENT_TYPE_CONFIG>,
+): DOCUMENT_TYPE_CONFIG => {
+    return {
+        snomedCode: '16521000000101',
+        displayName: 'Scanned Paper Notes',
+        canBeUpdated: true,
+        associatedSnomed: '',
+        multifileUpload: true,
+        multifileZipped: false,
+        multifileReview: true,
+        canBeDiscarded: true,
+        stitched: true,
+        singleDocumentOnly: true,
+        stitchedFilenamePrefix: '1of1_Lloyd_George_Record',
+        acceptedFileTypes: ['PDF'],
+        content: {
+            viewDocumentTitle: 'Scanned paper notes',
+            addFilesSelectTitle: 'Add scanned paper notes files to this record',
+            uploadFilesSelectTitle: 'Choose scanned paper notes files to upload',
+            uploadFilesBulletPoints: [
+                'You can only upload PDF files',
+                'Check your files open correctly',
+                'Remove any passwords from files',
+                "If there is a problem with your files during upload, you'll need to resolve these before continuing",
+            ],
+            chooseFilesMessage: 'Choose PDF files to upload',
+            chooseFilesButtonLabel: 'Choose PDF files',
+            chooseFilesWarningText: '',
+            confirmFilesTitle: 'Check your files before uploading',
+            beforeYouUploadTitle: 'Before you upload',
+            previewUploadTitle: 'Preview this scanned paper notes record',
+            addFilesSuccessMessage:
+                'You have successfully added additional files to the Scanned paper notes record for:',
+            uploadFilesSuccessMessage:
+                'You have successfully uploaded a Scanned paper notes record for:',
+            uploadFilesExtraParagraph:
+                "You can add a note to the patient's electronic health record to say their Lloyd George record is stored in this service. Use SNOMED code 16521000000101.",
+            uploadReviewSuccessMessage:
+                'You have successfully uploaded a Scanned paper notes record for:',
+        },
+        ...configOverride,
+    };
+};
+
+const buildMockUploadSession = (documents: UploadDocument[]): UploadSession => {
+    const session: UploadSession = {};
+    documents.forEach((doc) => {
+        session[doc.id] = {
+            url: 'http://localhost/mock-s3-upload-url',
+        } as any;
+    });
+
+    return session;
+};
+
 export {
     buildPatientDetails,
     buildTextFile,
@@ -185,4 +241,6 @@ export {
     buildConfig,
     buildUploadSession,
     buildPatientAccessAudit,
+    buildDocumentConfig,
+    buildMockUploadSession,
 };

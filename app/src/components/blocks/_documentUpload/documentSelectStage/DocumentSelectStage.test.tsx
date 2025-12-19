@@ -7,7 +7,11 @@ import { getDocument } from 'pdfjs-dist';
 import { JSX, useRef, useState } from 'react';
 import * as ReactRouter from 'react-router-dom';
 import usePatient from '../../../../helpers/hooks/usePatient';
-import { buildLgFile, buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import {
+    buildDocumentConfig,
+    buildLgFile,
+    buildPatientDetails,
+} from '../../../../helpers/test/testBuilders';
 import { PDF_PARSING_ERROR_TYPE } from '../../../../helpers/utils/fileUploadErrorMessages';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
@@ -38,6 +42,8 @@ let history = createMemoryHistory({
     initialIndex: 0,
 });
 
+const docConfig = buildDocumentConfig();
+
 describe('DocumentSelectStage', () => {
     beforeEach(() => {
         vi.mocked(usePatient).mockReturnValue(patientDetails);
@@ -53,18 +59,9 @@ describe('DocumentSelectStage', () => {
         renderApp(history);
 
         await waitFor(async () => {
-            expect(screen.getByText('Choose Lloyd George files to upload')).toBeInTheDocument();
-        });
-    });
-
-    it.each([
-        { doc_type: DOCUMENT_TYPE.LLOYD_GEORGE, title: 'Lloyd George files' },
-        { doc_type: DOCUMENT_TYPE.ALL, title: 'files' },
-    ])('should render the correct title based on document type', async (theory) => {
-        renderApp(history, theory.doc_type);
-
-        await waitFor(async () => {
-            expect(screen.getByText(`Choose ${theory.title} to upload`)).toBeInTheDocument();
+            expect(
+                screen.getByText(docConfig.content.uploadFilesSelectTitle as string),
+            ).toBeInTheDocument();
         });
     });
 
@@ -194,7 +191,7 @@ describe('DocumentSelectStage', () => {
             async (_description, errorType) => {
                 renderApp(history);
 
-                vi.mocked(getDocument).mockImplementation(() => {
+                vi.mocked(getDocument).mockImplementationOnce(() => {
                     throw new Error(errorType);
                 });
 
@@ -214,7 +211,7 @@ describe('DocumentSelectStage', () => {
         it('should navigate to file errors page when user selects a file that is not a PDF', async () => {
             renderApp(history);
             const dropzone = screen.getByTestId('dropzone');
-            const nonPdfFile = { ...lgDocumentOne, type: 'text/plain' };
+            const nonPdfFile = { ...lgDocumentOne, name: 'nonPdfFile.txt', type: 'text/plain' };
             fireEvent.drop(dropzone, {
                 dataTransfer: { files: [nonPdfFile] },
             });
@@ -256,20 +253,12 @@ describe('DocumentSelectStage', () => {
         });
 
         it('should render correct title for update journey with Lloyd George document type', async () => {
-            renderApp(history, DOCUMENT_TYPE.LLOYD_GEORGE);
+            renderApp(history);
 
             await waitFor(async () => {
                 expect(
-                    screen.getByText('Add Lloyd George files to this record'),
+                    screen.getByText(docConfig.content.addFilesSelectTitle as string),
                 ).toBeInTheDocument();
-            });
-        });
-
-        it('should render correct title for update journey with ALL document type', async () => {
-            renderApp(history, DOCUMENT_TYPE.ALL);
-
-            await waitFor(async () => {
-                expect(screen.getByText('Add files to this record')).toBeInTheDocument();
             });
         });
 
@@ -358,13 +347,16 @@ describe('DocumentSelectStage', () => {
         });
 
         it('should navigate to select order screen when continue is clicked in update journey', async () => {
-            vi.mocked(getDocument).mockReturnValue({
-                promise: Promise.resolve({
-                    numPages: 1,
-                    getPage: vi.fn().mockResolvedValue({}),
-                    destroy: vi.fn().mockResolvedValue(undefined),
-                }),
-            } as any);
+            vi.mocked(getDocument).mockImplementationOnce(
+                () =>
+                    ({
+                        promise: Promise.resolve({
+                            numPages: 1,
+                            getPage: vi.fn().mockResolvedValue({}),
+                            destroy: vi.fn().mockResolvedValue(undefined),
+                        }),
+                    }) as any,
+            );
 
             renderApp(history);
             const lgDocumentOne = buildLgFile(1);
@@ -416,7 +408,7 @@ describe('DocumentSelectStage', () => {
         it('should navigate to file errors page when user selects invalid file in update journey', async () => {
             renderApp(history);
 
-            vi.mocked(getDocument).mockImplementation(() => {
+            vi.mocked(getDocument).mockImplementationOnce(() => {
                 throw new Error(PDF_PARSING_ERROR_TYPE.INVALID_PDF_STRUCTURE);
             });
 
@@ -457,7 +449,7 @@ describe('DocumentSelectStage', () => {
         });
     });
 
-    const TestApp = (props: Partial<Props>): JSX.Element => {
+    const TestApp = (): JSX.Element => {
         const [documents, setDocuments] = useState<Array<UploadDocument>>([]);
         const filesErrorRef = useRef<boolean>(false);
 
@@ -465,19 +457,17 @@ describe('DocumentSelectStage', () => {
             <DocumentSelectStage
                 documents={documents}
                 setDocuments={setDocuments}
-                documentType={props.documentType || DOCUMENT_TYPE.LLOYD_GEORGE}
+                documentType={docConfig.snomedCode as DOCUMENT_TYPE}
                 filesErrorRef={filesErrorRef}
+                documentConfig={docConfig}
             />
         );
     };
 
-    const renderApp = (
-        history: MemoryHistory,
-        docType: DOCUMENT_TYPE = DOCUMENT_TYPE.LLOYD_GEORGE,
-    ): RenderResult => {
+    const renderApp = (history: MemoryHistory): RenderResult => {
         return render(
             <ReactRouter.Router navigator={history} location={history.location}>
-                <TestApp documentType={docType} />
+                <TestApp />
             </ReactRouter.Router>,
         );
     };

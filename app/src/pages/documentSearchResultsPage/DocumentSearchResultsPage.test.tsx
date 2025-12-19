@@ -56,7 +56,6 @@ describe('<DocumentSearchResultsPage />', () => {
         });
 
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
-        mockedUsePatient.mockReturnValue(mockPatient);
         mockedUseConfig.mockReturnValue({
             featureFlags: {
                 uploadDocumentIteration3Enabled: true,
@@ -142,12 +141,63 @@ describe('<DocumentSearchResultsPage />', () => {
                 expect(screen.getByTestId('service-error')).toBeInTheDocument();
             });
         });
+
+        it.each([
+            {
+                featureFlagEnabled: true,
+                role: REPOSITORY_ROLE.GP_ADMIN,
+                deceased: false,
+                uploadBtnVisible: true,
+            },
+            {
+                featureFlagEnabled: true,
+                role: REPOSITORY_ROLE.GP_CLINICAL,
+                deceased: false,
+                uploadBtnVisible: true,
+            },
+            {
+                featureFlagEnabled: true,
+                role: REPOSITORY_ROLE.PCSE,
+                deceased: false,
+                uploadBtnVisible: false,
+            },
+            {
+                featureFlagEnabled: true,
+                role: REPOSITORY_ROLE.GP_ADMIN,
+                deceased: true,
+                uploadBtnVisible: false,
+            },
+            {
+                featureFlagEnabled: false,
+                role: REPOSITORY_ROLE.GP_ADMIN,
+                deceased: false,
+                uploadBtnVisible: false,
+            },
+        ])(
+            'displays upload button when %s',
+            async ({ featureFlagEnabled, role, deceased, uploadBtnVisible }) => {
+                mockedGetSearchResults.mockResolvedValue([buildSearchResult()]);
+                mockedUseConfig.mockReturnValue({
+                    featureFlags: {
+                        uploadDocumentIteration3Enabled: featureFlagEnabled,
+                    },
+                });
+
+                renderPage(history, role, deceased);
+
+                await waitFor(() => {
+                    expect(screen.queryAllByTestId('upload-button')).toHaveLength(
+                        uploadBtnVisible ? 1 : 0,
+                    );
+                });
+            },
+        );
     });
 
     describe('Accessibility', () => {
         it('pass accessibility checks at loading screen', async () => {
-            mockedGetSearchResults.mockImplementation(() => 
-                new Promise((resolve) => setTimeout(resolve, 20000)),
+            mockedGetSearchResults.mockImplementation(
+                () => new Promise((resolve) => setTimeout(resolve, 20000)),
             );
             renderPage(history);
 
@@ -228,7 +278,9 @@ describe('<DocumentSearchResultsPage />', () => {
             renderPage(history);
 
             await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(expect.stringContaining(routes.SERVER_ERROR));
+                expect(mockedUseNavigate).toHaveBeenCalledWith(
+                    expect.stringContaining(routes.SERVER_ERROR),
+                );
             });
         });
 
@@ -313,7 +365,9 @@ describe('<DocumentSearchResultsPage />', () => {
         });
     });
 
-    const renderPage = (history: History, role?: REPOSITORY_ROLE): void => {
+    const renderPage = (history: History, role?: REPOSITORY_ROLE, deceased?: boolean): void => {
+        mockedUsePatient.mockReturnValue(buildPatientDetails({ deceased: deceased }));
+
         const auth: Session = {
             auth: buildUserAuth({ role: role ?? REPOSITORY_ROLE.GP_ADMIN }),
             isLoggedIn: true,

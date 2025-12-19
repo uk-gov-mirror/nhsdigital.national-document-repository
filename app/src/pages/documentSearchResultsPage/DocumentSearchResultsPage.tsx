@@ -17,7 +17,7 @@ import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import ErrorBox from '../../components/layout/errorBox/ErrorBox';
 import { errorToParams } from '../../helpers/utils/errorToParams';
 import useTitle from '../../helpers/hooks/useTitle';
-import { getLastURLPath } from '../../helpers/utils/urlManipulations';
+import { getLastURLPath, useEnhancedNavigate } from '../../helpers/utils/urlManipulations';
 import PatientSummary, {
     PatientInfo,
 } from '../../components/generic/patientSummary/PatientSummary';
@@ -32,6 +32,7 @@ import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
 import BackButton from '../../components/generic/backButton/BackButton';
 import ProgressBar from '../../components/generic/progressBar/ProgressBar';
 import DeleteSubmitStage from '../../components/blocks/_delete/deleteSubmitStage/DeleteSubmitStage';
+import { Button } from 'nhsuk-react-components';
 
 const DocumentSearchResultsPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
@@ -108,7 +109,7 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
             ...documentItem,
         });
         navigate(routeChildren.DOCUMENT_VIEW);
-        
+
         void loadDocument(documentItem.id);
     };
 
@@ -131,6 +132,11 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                 });
             } else if (error.response?.status === 403) {
                 navigate(routes.SESSION_EXPIRED);
+            } else if (error.response?.status === 404) {
+                await handleViewDocSuccess({
+                    url: '',
+                    contentType: '',
+                });
             } else {
                 navigate(routes.SERVER_ERROR + errorToParams(error));
             }
@@ -139,7 +145,7 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
 
     const handleViewDocSuccess = async (documentResponse: GetDocumentResponse): Promise<void> => {
         setDocumentReference({
-            url: await getObjectUrl(documentResponse.url),
+            url: documentResponse.url ? await getObjectUrl(documentResponse.url) : null,
             isPdf: documentResponse.contentType === 'application/pdf',
             ...activeSearchResult.current,
         } as DocumentReference);
@@ -203,6 +209,59 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
     );
 };
 
+type SearchResultsProps = {
+    submissionState: SUBMISSION_STATE;
+    searchResults: SearchResult[];
+    nhsNumber: string;
+    onViewDocument: (document: SearchResult) => void;
+    downloadState: SUBMISSION_STATE;
+    setDownloadState: Dispatch<SetStateAction<SUBMISSION_STATE>>;
+    role?: REPOSITORY_ROLE;
+};
+const SearchResults = ({
+    submissionState,
+    searchResults,
+    nhsNumber,
+    onViewDocument,
+    downloadState,
+    setDownloadState,
+    role,
+}: SearchResultsProps): React.JSX.Element => {
+    if (
+        submissionState === SUBMISSION_STATE.INITIAL ||
+        submissionState === SUBMISSION_STATE.PENDING
+    ) {
+        return <ProgressBar status="Loading..." className="loading-bar" />;
+    }
+
+    if (searchResults.length && nhsNumber) {
+        return (
+            <>
+                <DocumentSearchResults
+                    searchResults={searchResults}
+                    onViewDocument={onViewDocument}
+                />
+
+                {role === REPOSITORY_ROLE.PCSE && (
+                    <DocumentSearchResultsOptions
+                        nhsNumber={nhsNumber}
+                        downloadState={downloadState}
+                        updateDownloadState={setDownloadState}
+                    />
+                )}
+            </>
+        );
+    }
+
+    return (
+        <p>
+            <strong id="no-files-message">
+                There are no documents available for this patient.
+            </strong>
+        </p>
+    );
+};
+
 type PageIndexArgs = {
     submissionState: SUBMISSION_STATE;
     downloadState: SUBMISSION_STATE;
@@ -221,57 +280,33 @@ const DocumentSearchResultsPageIndex = ({
 }: PageIndexArgs): React.JSX.Element => {
     const [session] = useSessionContext();
     const patientDetails = usePatient();
-    const navigate = useNavigate();
+    const navigate = useEnhancedNavigate();
+    const config = useConfig();
 
     const role = session.auth?.role;
 
     const canViewFiles =
         session.auth?.role === REPOSITORY_ROLE.GP_ADMIN ||
         session.auth?.role === REPOSITORY_ROLE.GP_CLINICAL;
-        
+
     const pageHeader = canViewFiles ? 'Lloyd George records' : 'Manage Lloyd George records';
     useTitle({ pageTitle: pageHeader });
-
-    const SearchResults = (): React.JSX.Element => {
-        if (
-            submissionState === SUBMISSION_STATE.INITIAL ||
-            submissionState === SUBMISSION_STATE.PENDING
-        ) {
-            return <ProgressBar status="Loading..." className="loading-bar" />;
-        }
-
-        if (searchResults.length && nhsNumber) {
-            return (
-                <>
-                    <DocumentSearchResults
-                        searchResults={searchResults}
-                        onViewDocument={onViewDocument}
-                    />
-
-                    {role === REPOSITORY_ROLE.PCSE && (
-                        <DocumentSearchResultsOptions
-                            nhsNumber={nhsNumber}
-                            downloadState={downloadState}
-                            updateDownloadState={setDownloadState}
-                        />
-                    )}
-                </>
-            );
-        }
-
-        return (
-            <p>
-                <strong id="no-files-message">
-                    There are no documents available for this patient.
-                </strong>
-            </p>
-        );
-    };
 
     if (!session.auth) {
         navigate(routes.UNAUTHORISED);
         return <></>;
     }
+
+    const uploadClicked = (): void => {
+        navigate(routes.DOCUMENT_UPLOAD);
+    };
+
+    const canUpload =
+        config.featureFlags.uploadDocumentIteration3Enabled &&
+        !patientDetails?.deceased &&
+        (role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL) &&
+        submissionState !== SUBMISSION_STATE.INITIAL &&
+        submissionState !== SUBMISSION_STATE.PENDING;
 
     return (
         <>
@@ -298,7 +333,26 @@ const DocumentSearchResultsPageIndex = ({
                 <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
             </PatientSummary>
 
-            <SearchResults />
+            {canUpload && (
+                <Button
+                    type="button"
+                    id="upload-button"
+                    data-testid="upload-button"
+                    onClick={uploadClicked}
+                >
+                    Upload documents for this patient
+                </Button>
+            )}
+
+            <SearchResults
+                submissionState={submissionState}
+                searchResults={searchResults}
+                nhsNumber={nhsNumber}
+                onViewDocument={onViewDocument}
+                downloadState={downloadState}
+                setDownloadState={setDownloadState}
+                role={role}
+            />
 
             {downloadState === SUBMISSION_STATE.FAILED && (
                 <ErrorBox

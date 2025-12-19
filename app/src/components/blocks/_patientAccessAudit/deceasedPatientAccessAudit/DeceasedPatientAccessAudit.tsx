@@ -24,6 +24,7 @@ import { usePatientAccessAuditContext } from '../../../../providers/patientAcces
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import postPatientAccessAudit from '../../../../helpers/requests/postPatientAccessAudit';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
+import useConfig from '../../../../helpers/hooks/useConfig';
 
 enum FORM_FIELDS {
     Reasons = 'reasons',
@@ -77,6 +78,7 @@ const DeceasedPatientAccessAudit = (): React.JSX.Element => {
     );
     const [submitting, setSubmitting] = useState<boolean>(false);
     const scrollToErrorRef = useRef<HTMLDivElement>(null);
+    const config = useConfig();
     /* HOOKS */
 
     if (!patientDetails) {
@@ -188,7 +190,11 @@ const DeceasedPatientAccessAudit = (): React.JSX.Element => {
         ];
 
         setPatientAccessAudit(newPatientAccessAudit);
-        navigate(routes.LLOYD_GEORGE);
+        navigate(
+            config.featureFlags.uploadDocumentIteration3Enabled
+                ? routes.PATIENT_DOCUMENTS
+                : routes.LLOYD_GEORGE,
+        );
     };
 
     const handleError = (fields: FieldValues): void => {

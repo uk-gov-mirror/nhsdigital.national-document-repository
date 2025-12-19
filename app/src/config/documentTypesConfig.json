@@ -4,13 +4,13 @@
         "snomed_code": "16521000000101",
         "config_name": "scannedPaperNotesConfig",
         "content": {
-            "upload_title": "Scanned Lloyd George notes",
+            "upload_title": "Scanned paper notes notes",
             "upload_description": "Upload and add files to a scanned paper Lloyd George record."
         }
     },
     {
         "name": "Electronic Health Record",
-        "snomed_code": "16521000000102",
+        "snomed_code": "717301000000104",
         "config_name": "electronicHealthRecordConfig",
         "content": {
             "upload_title": "Electronic health record (EHR) summary",
@@ -19,7 +19,7 @@
     },
     {
         "name": "Electronic Health Record Attachments",
-        "snomed_code": "16521000000103",
+        "snomed_code": "24511000000107",
         "config_name": "electronicHealthRecordAttachmentsConfig",
         "content": {
             "upload_title": "Attachments to an electronic health record",

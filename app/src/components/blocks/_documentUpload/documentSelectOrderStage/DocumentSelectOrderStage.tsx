@@ -21,13 +21,15 @@ import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/Pat
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import DocumentUploadLloydGeorgePreview from '../documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
-import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 
 type Props = {
     documents: UploadDocument[];
     setDocuments: SetUploadDocuments;
     setMergedPdfBlob: Dispatch<SetStateAction<Blob | undefined>>;
     existingDocuments: UploadDocument[] | undefined;
+    documentConfig: DOCUMENT_TYPE_CONFIG;
+    confirmFiles: () => void;
 };
 
 type FormData = {
@@ -41,6 +43,8 @@ const DocumentSelectOrderStage = ({
     setDocuments,
     setMergedPdfBlob,
     existingDocuments,
+    documentConfig,
+    confirmFiles,
 }: Readonly<Props>): JSX.Element => {
     const navigate = useEnhancedNavigate();
     const journey = getJourney();
@@ -187,7 +191,7 @@ const DocumentSelectOrderStage = ({
     const submitDocuments = (): void => {
         updateDocumentPositions();
         if (documents.length === 1) {
-            navigate.withParams(routeChildren.DOCUMENT_UPLOAD_UPLOADING);
+            confirmFiles();
             return;
         }
 
@@ -209,8 +213,8 @@ const DocumentSelectOrderStage = ({
             })
             .filter((item) => item !== undefined);
 
-    const viewPdfFile = async (file: File): Promise<void> => {
-        const blob = await getMergedPdfBlob([file]);
+    const viewPdfFile = async (document: UploadDocument): Promise<void> => {
+        const blob = await getMergedPdfBlob([document.file]);
         const url = URL.createObjectURL(blob);
 
         window.open(url);
@@ -246,12 +250,12 @@ const DocumentSelectOrderStage = ({
                     {!ableToReposition && position}
                 </Table.Cell>
                 <Table.Cell className="view-cell">
-                    {document && (
+                    {document?.file.type === 'application/pdf' && (
                         <button
                             type="button"
                             className="link-button"
-                            onClick={(): Promise<void> => viewPdfFile(document.file)}
-                            aria-label="Preview - opens in a new tab"
+                            onClick={(): Promise<void> => viewPdfFile(document)}
+                            aria-label={`Preview${documentConfig.stitched ? ' - opens in a new tab' : ''}`}
                             data-testid={`document-preview-${document.id}`}
                         >
                             View
@@ -290,6 +294,18 @@ const DocumentSelectOrderStage = ({
         });
     };
 
+    const getDocumentsForPreview = (): UploadDocument[] => {
+        const docs = [];
+
+        if (journey === 'update') {
+            docs.push(...existingDocuments!);
+        }
+
+        docs.push(...documents);
+
+        return docs.sort((a, b) => a.position! - b.position!);
+    };
+
     return (
         <>
             <BackButton />
@@ -316,11 +332,11 @@ const DocumentSelectOrderStage = ({
                 </PatientSummary>
             </div>
 
-            {journey === 'update' && (
+            {journey === 'update' ? (
                 <>
                     <p>
                         When you upload your files, they will be added to the end of the patient's
-                        existing Lloyd George record.
+                        existing {documentConfig.displayName}.
                     </p>
 
                     <p>
@@ -334,9 +350,7 @@ const DocumentSelectOrderStage = ({
                         </li>
                     </ul>
                 </>
-            )}
-
-            {journey !== 'update' && (
+            ) : (
                 <>
                     <p>
                         When you upload your files, they will be combined into a single PDF
@@ -374,11 +388,11 @@ const DocumentSelectOrderStage = ({
                     <Table.Body>
                         {journey === 'update' &&
                             existingDocuments &&
-                            // Existing Lloyd George Record row
+                            // Existing record row
                             renderFileRow({
                                 id: 'existing-documents',
                                 index: 1,
-                                filename: 'Existing Lloyd George record',
+                                filename: `Existing ${documentConfig.displayName}`,
                                 position: 1,
                                 ableToReposition: false,
                                 ableToRemove: false,
@@ -410,24 +424,17 @@ const DocumentSelectOrderStage = ({
                 </Table>
 
                 <div>
-                    <h2>Preview this Lloyd George record</h2>
-                    <p>
-                        This shows how the final record will look when combined into a single
-                        document.{' '}
-                        {journey === 'update' &&
-                            'Any files added will appear after the existing Lloyd George record.'}
-                    </p>
-                    <p>
-                        Preview may take longer to load if there are many files or if individual
-                        files are large.
-                    </p>
-
                     <DocumentUploadLloydGeorgePreview
                         documents={getDocumentsForPreview()}
-                        setMergedPdfBlob={setMergedPdfBlob}
+                        setMergedPdfBlob={(blob) => {
+                            if (documentConfig.stitched) {
+                                setMergedPdfBlob(blob);
+                            }
+                        }}
                         stitchedBlobLoaded={(loaded: boolean): void => {
                             setStitchedBlobLoaded(loaded);
                         }}
+                        documentConfig={documentConfig}
                     />
                 </div>
                 {documents.length > 0 && stitchedBlobLoaded && (
@@ -452,18 +459,6 @@ const DocumentSelectOrderStage = ({
             </form>
         </>
     );
-
-    function getDocumentsForPreview(): UploadDocument[] {
-        if (journey !== 'update' || !existingDocuments || existingDocuments.length === 0) {
-            return documents
-                .filter((doc) => doc.docType === DOCUMENT_TYPE.LLOYD_GEORGE)
-                .sort((a, b) => a.position! - b.position!);
-        }
-
-        return [...existingDocuments, ...documents]
-            .filter((doc) => doc.docType === DOCUMENT_TYPE.LLOYD_GEORGE)
-            .sort((a, b) => a.position! - b.position!);
-    }
 };
 
 export default DocumentSelectOrderStage;

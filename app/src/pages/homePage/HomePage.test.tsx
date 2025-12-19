@@ -15,6 +15,9 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../../helpers/hooks/useConfig');
+vi.mock('../../styles/right-chevron-circle.svg', () => ({
+    ReactComponent: () => 'svg',
+}));
 const mockUseConfig = useConfig as Mock;
 
 describe('HomePage', () => {
@@ -29,8 +32,12 @@ describe('HomePage', () => {
         it('should render home page with patient search and download report', async () => {
             render(<HomePage />);
 
-            const searchPatientButton = screen.getByTestId('search-patient-btn') as HTMLAnchorElement;
-            const downloadReportButton = screen.getByTestId('download-report-btn') as HTMLAnchorElement;
+            const searchPatientButton = screen.getByTestId(
+                'search-patient-btn',
+            ) as HTMLAnchorElement;
+            const downloadReportButton = screen.getByTestId(
+                'download-report-btn',
+            ) as HTMLAnchorElement;
             expect(searchPatientButton).toBeInTheDocument();
             expect(downloadReportButton).toBeInTheDocument();
         });

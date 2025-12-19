@@ -7,13 +7,14 @@ import {
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import { MemoryRouter } from 'react-router-dom';
 import { fileUploadErrorMessages } from '../../../../helpers/utils/fileUploadErrorMessages';
-import { buildLgFile } from '../../../../helpers/test/testBuilders';
+import { buildDocumentConfig, buildLgFile } from '../../../../helpers/test/testBuilders';
 import { Mock } from 'vitest';
-import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 
 const mockNavigate = vi.fn();
 const mockSetDocuments = vi.fn();
 const mockSetMergedPdfBlob = vi.fn();
+const mockConfirmFiles = vi.fn();
 
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('../../../../helpers/hooks/useTitle');
@@ -44,17 +45,21 @@ vi.mock('../documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview', 
         }
         return (
             <div data-testid="lloyd-george-preview">
-                Lloyd George Preview for {documents.length} documents
+                <h2>{docConfig.content.previewUploadTitle}</h2>
+                <p>Previewing: {documents[0]?.file.name}</p>
             </div>
         );
     },
 }));
+
+let docConfig: DOCUMENT_TYPE_CONFIG;
 
 describe('DocumentSelectOrderStage', () => {
     let documents: UploadDocument[] = [];
 
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
+        docConfig = buildDocumentConfig();
         documents = [
             {
                 docType: DOCUMENT_TYPE.LLOYD_GEORGE,
@@ -128,7 +133,9 @@ describe('DocumentSelectOrderStage', () => {
             renderSut(documents);
 
             await waitFor(() => {
-                expect(screen.getByText('Preview this Lloyd George record')).toBeInTheDocument();
+                expect(
+                    screen.getByText(docConfig.content.previewUploadTitle as string),
+                ).toBeInTheDocument();
                 expect(screen.getByTestId('lloyd-george-preview')).toBeInTheDocument();
             });
         });
@@ -476,7 +483,46 @@ describe('DocumentSelectOrderStage', () => {
 
             await waitFor(() => {
                 expect(
-                    screen.getByText('Lloyd George Preview for 2 documents'),
+                    screen.getByText(docConfig.content.previewUploadTitle as string),
+                ).toBeInTheDocument();
+            });
+        });
+
+        it('loads currently selected document into PDF viewer', async () => {
+            docConfig = buildDocumentConfig({
+                stitched: false,
+                snomedCode: DOCUMENT_TYPE.EHR_ATTACHMENTS,
+            });
+
+            const multipleDocuments = [
+                {
+                    docType: DOCUMENT_TYPE.EHR_ATTACHMENTS,
+                    id: '1',
+                    file: buildLgFile(1),
+                    attempts: 0,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    numPages: 5,
+                    position: 1,
+                },
+                {
+                    docType: DOCUMENT_TYPE.EHR_ATTACHMENTS,
+                    id: '2',
+                    file: buildLgFile(2),
+                    attempts: 0,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    numPages: 3,
+                    position: 2,
+                },
+            ];
+
+            renderSut(multipleDocuments);
+
+            await waitFor(() => {
+                expect(
+                    screen.getByText(docConfig.content.previewUploadTitle as string),
+                ).toBeInTheDocument();
+                expect(
+                    screen.getByText(`Previewing: ${multipleDocuments[0].file.name}`),
                 ).toBeInTheDocument();
             });
         });
@@ -502,10 +548,7 @@ describe('DocumentSelectOrderStage', () => {
             await user.click(continueButton!);
 
             await waitFor(() => {
-                expect(mockNavigate).toHaveBeenCalledWith({
-                    pathname: '/patient/document-upload/in-progress',
-                    search: 'journey=update',
-                });
+                expect(mockConfirmFiles).toHaveBeenCalled();
             });
         });
 
@@ -544,7 +587,7 @@ describe('DocumentSelectOrderStage', () => {
 
             expect(
                 screen.getByText(
-                    "When you upload your files, they will be added to the end of the patient's existing Lloyd George record.",
+                    `When you upload your files, they will be added to the end of the patient's existing ${docConfig.displayName}.`,
                 ),
             ).toBeInTheDocument();
             expect(
@@ -562,7 +605,7 @@ describe('DocumentSelectOrderStage', () => {
 
             expect(
                 screen.getByText(
-                    "When you upload your files, they will be added to the end of the patient's existing Lloyd George record.",
+                    `When you upload your files, they will be added to the end of the patient's existing ${docConfig.displayName}.`,
                 ),
             ).toBeInTheDocument();
 
@@ -593,7 +636,7 @@ describe('DocumentSelectOrderStage', () => {
 
             renderSutWithExistingDocs(documents, existingDocs);
 
-            expect(screen.getByText('Existing Lloyd George record')).toBeInTheDocument();
+            expect(screen.getByText(`Existing ${docConfig.displayName}`)).toBeInTheDocument();
         });
 
         it('existing Lloyd George record has position 1 and cannot be repositioned or removed', () => {
@@ -613,7 +656,7 @@ describe('DocumentSelectOrderStage', () => {
 
             const rows = screen.getAllByRole('row');
             const existingRow = rows.find((row) =>
-                row.textContent?.includes('Existing Lloyd George record'),
+                row.textContent?.includes(`Existing ${docConfig.displayName}`),
             );
 
             expect(existingRow).toBeInTheDocument();
@@ -817,6 +860,8 @@ function renderSutWithExistingDocs(
                 setDocuments={mockSetDocuments}
                 setMergedPdfBlob={mockSetMergedPdfBlob}
                 existingDocuments={existingDocuments}
+                documentConfig={docConfig}
+                confirmFiles={mockConfirmFiles}
             />
         </MemoryRouter>,
     );
@@ -830,6 +875,8 @@ function renderSut(documents: UploadDocument[]): void {
                 setDocuments={mockSetDocuments}
                 setMergedPdfBlob={mockSetMergedPdfBlob}
                 existingDocuments={[]}
+                documentConfig={docConfig}
+                confirmFiles={mockConfirmFiles}
             />
         </MemoryRouter>,
     );

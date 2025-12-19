@@ -1,6 +1,14 @@
 .document-search-results {
-    #available-files-table-title {
-        .table-column-header, .nhsuk-table-responsive__heading {
+    .subtitle {
+        margin-bottom: 1rem;
+    }
+
+    #table-panel {
+        padding-top: 1rem !important;
+        margin-top: 0;
+
+        .table-column-header,
+        .nhsuk-table-responsive__heading {
             word-break: keep-all;
         }
 

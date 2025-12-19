@@ -13,7 +13,10 @@ RUN mkdir -p ./public/pdfjs
 RUN wget https://github.com/mozilla/pdf.js/releases/download/v5.4.296/pdfjs-5.4.296-dist.zip -O ./public/pdfjs/pdfjs.zip
 RUN unzip -o -d ./public/pdfjs ./public/pdfjs/pdfjs.zip
 RUN rm ./public/pdfjs/pdfjs.zip
-RUN npm run build
+
+ARG BUILD_ENV=development
+ARG BUILD_ENV=$BUILD_ENV
+RUN npm run build -- --mode $BUILD_ENV
 
 # Host the App
 FROM nginx:latest

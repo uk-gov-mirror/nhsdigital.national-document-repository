@@ -1,6 +1,7 @@
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { UPLOAD_FILE_ERROR_TYPE } from '../../../helpers/utils/fileUploadErrorMessages';
 import { DOCUMENT_TYPE } from '../../../helpers/utils/documentType';
+import { JourneyType } from '../../../helpers/utils/urlManipulations';
 export type SetUploadStage = Dispatch<SetStateAction<UPLOAD_STAGE>>;
 export type SetUploadDocuments = Dispatch<SetStateAction<Array<UploadDocument>>>;
 
@@ -45,14 +46,25 @@ export type UploadDocument = {
     versionId?: string;
 };
 
-export type SearchResult = {
-    id: string;
-    description: string;
-    type: string;
-    indexed: Date;
-    virusScanResult: string;
-};
-
 export interface FileInputEvent extends FormEvent<HTMLInputElement> {
     target: HTMLInputElement & EventTarget;
 }
+
+export type ExistingDocument = {
+    docType: DOCUMENT_TYPE | null;
+    blob: Blob | null;
+    fileName: string | null;
+    documentId?: string | null;
+    versionId: string;
+};
+export type LocationState = {
+    journey?: JourneyType;
+    existingDocuments?: ExistingDocument[];
+};
+export type LocationParams<T> = {
+    pathname: string;
+    state: T | undefined;
+    search: string;
+    hash: string;
+    key: string;
+};

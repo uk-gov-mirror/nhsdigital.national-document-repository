@@ -5,7 +5,7 @@ import useConfig from '../../../../helpers/hooks/useConfig';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import useRole from '../../../../helpers/hooks/useRole';
 import useTitle from '../../../../helpers/hooks/useTitle';
-import { generateFileName } from '../../../../helpers/requests/uploadDocuments';
+import { generateStitchedFileName } from '../../../../helpers/requests/uploadDocuments';
 import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
 import { getUserRecordActionLinks } from '../../../../types/blocks/lloydGeorgeActions';
 import { LG_RECORD_STAGE } from '../../../../types/blocks/lloydGeorgeStages';
@@ -26,6 +26,7 @@ import { AxiosError } from 'axios';
 import { SearchResult } from '../../../../types/generic/searchResult';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import lloydGeorgeConfig from '../../../../config/lloydGeorgeConfig.json';
 
 export type Props = {
     downloadStage: DOWNLOAD_STAGE;
@@ -163,7 +164,7 @@ const LloydGeorgeViewRecordStage = ({
                 handleSuccess([
                     {
                         id: 'mock-document-id',
-                        fileName: generateFileName(patientDetails),
+                        fileName: generateStitchedFileName(patientDetails, lloydGeorgeConfig),
                         version: 'mock-version-id',
                         created: new Date().toISOString(),
                         fileSize: 12345,

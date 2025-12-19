@@ -5,6 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { routeChildren } from '../../types/generic/routes';
 
 vi.mock('../../../helpers/hooks/useTitle');
+vi.mock('../../styles/right-chevron-circle.svg', () => ({
+    ReactComponent: () => 'svg',
+}));
 
 describe('AdminPage', (): void => {
     describe('Rendering', (): void => {

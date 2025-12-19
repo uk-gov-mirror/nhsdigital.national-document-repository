@@ -27,14 +27,18 @@ export const uploadDocumentForReview = async ({
     const gatewayUrl = baseUrl + endpoints.DOCUMENT_REVIEW;
 
     try {
-        const { data } = await axios.post<DocumentReviewDto>(gatewayUrl, JSON.stringify(requestBody), {
-            headers: {
-                ...baseHeaders,
+        const { data } = await axios.post<DocumentReviewDto>(
+            gatewayUrl,
+            JSON.stringify(requestBody),
+            {
+                headers: {
+                    ...baseHeaders,
+                },
+                params: {
+                    patientId: nhsNumber,
+                },
             },
-            params: {
-                patientId: nhsNumber,
-            },
-        });
+        );
 
         return data;
     } catch (e) {

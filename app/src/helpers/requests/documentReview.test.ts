@@ -13,7 +13,7 @@ const mockedAxios = axios as Mocked<typeof axios>;
 describe('documentReview', () => {
     const mockAuthHeaders: AuthHeaders = {
         authorization: 'Bearer token',
-        "Content-Type": 'string',
+        'Content-Type': 'string',
     };
 
     const mockDocument: UploadDocument = {
@@ -59,7 +59,7 @@ describe('documentReview', () => {
                     params: {
                         patientId: mockArgs.nhsNumber,
                     },
-                }
+                },
             );
             expect(result).toEqual(mockResponse.data);
         });
@@ -86,7 +86,7 @@ describe('documentReview', () => {
                     params: {
                         patientId: mockArgs.nhsNumber,
                     },
-                }
+                },
             );
             expect(result).toEqual(mockResponse.data);
         });

@@ -6,6 +6,7 @@ $govuk-compatibility-govukelements: true;
 @import 'govuk-frontend/dist/govuk/components/warning-text/warning-text';
 @import 'govuk-frontend/dist/govuk/components/notification-banner/notification-banner';
 @import 'govuk-frontend/dist/govuk/components/pagination/pagination';
+@import 'govuk-frontend/dist/govuk/components/accordion/accordion';
 
 @import 'nhsuk-frontend/packages/nhsuk';
 
@@ -500,10 +501,6 @@ $hunit: '%';
             font-size: 1.2rem;
             margin-top: 2.4rem;
         }
-    }
-
-    &_upload-complete {
-        max-width: 711px;
     }
 
     &_drag-and-drop {
@@ -1315,3 +1312,4 @@ progress:not(.continuous-progress-bar) {
 }
 
 @import '../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults.scss';
+@import '../components/blocks/_documentUpload/documentUploadCompleteStage/DocumentUploadCompleteStage.scss';

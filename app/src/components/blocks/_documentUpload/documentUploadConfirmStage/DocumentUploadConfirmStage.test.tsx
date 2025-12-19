@@ -2,7 +2,7 @@ import { render, waitFor, screen, RenderResult } from '@testing-library/react';
 import DocumentUploadConfirmStage from './DocumentUploadConfirmStage';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
-import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import { buildDocumentConfig, buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import {
     DOCUMENT_UPLOAD_STATE,
@@ -14,9 +14,16 @@ import userEvent from '@testing-library/user-event';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPatientFullName';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { getJourney } from '../../../../helpers/utils/urlManipulations';
 
-const mockedUseNavigate = vi.fn();
 vi.mock('../../../../helpers/hooks/usePatient');
+vi.mock('../../../../helpers/utils/urlManipulations', async () => {
+    const actual = await vi.importActual('../../../../helpers/utils/urlManipulations');
+    return {
+        ...actual,
+        getJourney: vi.fn(),
+    };
+});
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
@@ -24,6 +31,29 @@ vi.mock('react-router-dom', async () => {
         useNavigate: () => mockedUseNavigate,
     };
 });
+
+const mockedUseNavigate = vi.fn();
+
+vi.mock('../documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview', () => ({
+    default: ({
+        documents,
+        stitchedBlobLoaded,
+    }: {
+        documents: UploadDocument[];
+        stitchedBlobLoaded?: (loaded: boolean) => void;
+    }): React.JSX.Element => {
+        // Simulate the PDF stitching completion
+        if (stitchedBlobLoaded) {
+            setTimeout(() => stitchedBlobLoaded(true), 0);
+        }
+        return (
+            <div data-testid="lloyd-george-preview">
+                Lloyd George Preview for documents
+                <span data-testid="lloyd-george-preview-count">{documents.length}</span>
+            </div>
+        );
+    },
+}));
 
 const patientDetails = buildPatientDetails();
 
@@ -33,6 +63,9 @@ let history = createMemoryHistory({
     initialEntries: ['/'],
     initialIndex: 0,
 });
+
+let docConfig = buildDocumentConfig();
+const mockConfirmFiles = vi.fn();
 
 describe('DocumentUploadCompleteStage', () => {
     beforeEach(() => {
@@ -53,16 +86,13 @@ describe('DocumentUploadCompleteStage', () => {
         });
     });
 
-    it('should navigate to next screen when confirm button is clicked', async () => {
+    it('should call confirmFiles when confirm button is clicked', async () => {
         renderApp(history, 1);
 
         userEvent.click(await screen.findByTestId('confirm-button'));
 
         await waitFor(() => {
-            expect(mockedUseNavigate).toHaveBeenCalledWith({
-                pathname: routeChildren.DOCUMENT_UPLOAD_UPLOADING,
-                search: '',
-            });
+            expect(mockConfirmFiles).toHaveBeenCalled();
         });
     });
 
@@ -74,6 +104,70 @@ describe('DocumentUploadCompleteStage', () => {
             expect(await screen.findByTestId('page-2-button')).toBeInTheDocument();
         });
     });
+
+    it.each([
+        { fileCount: 3, expectedPreviewCount: 3, stitched: true },
+        { fileCount: 1, expectedPreviewCount: 1, stitched: false },
+    ])(
+        'should render correct number files in the preview %s',
+        async ({ fileCount, expectedPreviewCount, stitched }) => {
+            docConfig = buildDocumentConfig({
+                snomedCode: DOCUMENT_TYPE.EHR,
+                stitched,
+            });
+
+            renderApp(history, fileCount);
+
+            await waitFor(async () => {
+                expect(screen.getByTestId('lloyd-george-preview-count').textContent).toBe(
+                    `${expectedPreviewCount}`,
+                );
+            });
+        },
+    );
+
+    it.each([
+        {
+            stitched: false,
+            multifile: true,
+            journey: '',
+            expectedText: `Each file will be uploaded as a separate ${docConfig.displayName} for this patient.`,
+        },
+        {
+            stitched: false,
+            multifile: false,
+            journey: '',
+            expectedText: `This file will be uploaded as a new ${docConfig.displayName} for this patient.`,
+        },
+        {
+            stitched: true,
+            multifile: true,
+            journey: 'update',
+            expectedText: `Files will be added to the existing ${docConfig.displayName} to create a single PDF document.`,
+        },
+        {
+            stitched: true,
+            multifile: true,
+            journey: '',
+            expectedText: `Files will be combined into a single PDF document to create a ${docConfig.displayName} record for this patient.`,
+        },
+    ])(
+        'renders correct text for file result: %s',
+        async ({ stitched, multifile, journey, expectedText }) => {
+            docConfig = buildDocumentConfig({
+                multifileUpload: multifile,
+                multifileReview: multifile,
+                stitched,
+            });
+            vi.mocked(getJourney).mockReturnValueOnce(journey as any);
+
+            renderApp(history, 1);
+
+            await waitFor(async () => {
+                expect(screen.getByText(expectedText)).toBeInTheDocument();
+            });
+        },
+    );
 
     describe('Navigation', () => {
         it('should navigate to previous screen when go back is clicked', async () => {
@@ -93,7 +187,7 @@ describe('DocumentUploadCompleteStage', () => {
 
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith({
-                    pathname: routes.DOCUMENT_UPLOAD,
+                    pathname: routeChildren.DOCUMENT_UPLOAD_SELECT_FILES,
                     search: '',
                 });
             });
@@ -123,6 +217,7 @@ describe('DocumentUploadCompleteStage', () => {
 
     describe('Update Journey', () => {
         beforeEach(() => {
+            vi.mocked(getJourney).mockReturnValue('update');
             delete (globalThis as any).location;
             globalThis.location = { search: '?journey=update' } as any;
 
@@ -138,7 +233,7 @@ describe('DocumentUploadCompleteStage', () => {
             await waitFor(async () => {
                 expect(
                     screen.getByText(
-                        'Files will be added to the existing Lloyd George record to create a single PDF document.',
+                        `Files will be added to the existing ${docConfig.displayName} to create a single PDF document.`,
                     ),
                 ).toBeInTheDocument();
             });
@@ -151,20 +246,7 @@ describe('DocumentUploadCompleteStage', () => {
 
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith({
-                    pathname: routes.DOCUMENT_UPLOAD,
-                    search: 'journey=update',
-                });
-            });
-        });
-
-        it('should navigate with journey param when confirm button is clicked', async () => {
-            renderApp(history, 1);
-
-            userEvent.click(await screen.findByTestId('confirm-button'));
-
-            await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith({
-                    pathname: routeChildren.DOCUMENT_UPLOAD_UPLOADING,
+                    pathname: routeChildren.DOCUMENT_UPLOAD_SELECT_FILES,
                     search: 'journey=update',
                 });
             });
@@ -199,14 +281,18 @@ describe('DocumentUploadCompleteStage', () => {
                 attempts: 0,
                 id: `${i}`,
                 docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                file: new File(['file'], `file ${i}.pdf`),
+                file: new File(['file'], `file ${i}.pdf`, { type: 'application/pdf' }),
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
             });
         }
 
         return render(
             <ReactRouter.Router navigator={history} location={history.location}>
-                <DocumentUploadConfirmStage documents={documents} />
+                <DocumentUploadConfirmStage
+                    documents={documents}
+                    documentConfig={docConfig}
+                    confirmFiles={mockConfirmFiles}
+                />
             </ReactRouter.Router>,
         );
     };
