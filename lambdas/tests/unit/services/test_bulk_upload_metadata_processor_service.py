@@ -8,9 +8,10 @@ from unittest.mock import call
 
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
+
 from enums.upload_status import UploadStatus
 from enums.virus_scan_result import VirusScanResult
-from freezegun import freeze_time
 from models.staging_metadata import (
     METADATA_FILENAME,
     BulkUploadQueueMetadata,
