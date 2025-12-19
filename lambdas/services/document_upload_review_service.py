@@ -10,6 +10,7 @@ from models.document_review import DocumentUploadReviewReference
 from pydantic import ValidationError
 from services.document_service import DocumentService
 from utils.audit_logging_setup import LoggingService
+from utils.aws_transient_error_check import is_transient_error
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.dynamo_utils import build_transaction_item
 from utils.exceptions import DocumentReviewException
@@ -49,7 +50,7 @@ class DocumentUploadReviewService(DocumentService):
     ) -> tuple[list[DocumentUploadReviewReference], dict | None]:
         logger.info(f"Getting review document references for custodian: {ods_code}")
 
-        filter_expression = self.build_review_query_filter(
+        filter_expression = self.build_review_dynamo_filter(
             nhs_number=nhs_number, uploader=uploader
         )
 
@@ -72,7 +73,7 @@ class DocumentUploadReviewService(DocumentService):
 
         except ClientError as e:
             logger.error(e)
-            raise DocumentReviewException("Failed to query document reviews")
+            raise DocumentReviewException("Error querying document review references")
 
     def _validate_review_references(
         self, items: list[dict]
@@ -85,9 +86,7 @@ class DocumentUploadReviewService(DocumentService):
             return review_references
         except ValidationError as e:
             logger.error(e)
-            raise DocumentReviewException(
-                "Failed to validate document review references"
-            )
+            raise DocumentReviewException("Error validating document review references")
 
     def get_document(
         self, document_id: str, version: int | None
@@ -120,9 +119,28 @@ class DocumentUploadReviewService(DocumentService):
 
                 self.update_document(
                     document=review,
-                    update_key={"ID": review.id, "Version": review.version},
+                    key_pair={"ID": review.id, "Version": review.version},
                     update_fields_name=review_update_field,
                 )
+
+    def update_document_review_status(
+        self,
+        review_document: DocumentUploadReviewReference,
+        condition_expression: str | ConditionBase | None = None,
+    ):
+        review_update_field = {"review_status", "files"}
+        try:
+            self.update_document(
+                document=review_document,
+                key_pair={"ID": review_document.id, "Version": review_document.version},
+                update_fields_name=review_update_field,
+                condition_expression=condition_expression,
+            )
+        except ClientError as e:
+            logger.error(e)
+            if is_transient_error(e):
+                raise e
+            raise DocumentReviewException("Error updating document review status")
 
     def get_document_review_by_id(self, document_id: str, document_version: int):
         return self.get_item(document_id, {"Version": document_version})
@@ -169,7 +187,7 @@ class DocumentUploadReviewService(DocumentService):
         try:
             return self.update_document(
                 document=review_update,
-                update_key={"ID": review_update.id, "Version": review_update.version},
+                key_pair={"ID": review_update.id, "Version": review_update.version},
                 update_fields_name=field_names,
                 condition_expression=condition_expression,
             )
@@ -273,13 +291,14 @@ class DocumentUploadReviewService(DocumentService):
                 logger.warning(f"Skipping file deletion for {file.file_name}")
                 continue
 
-    def build_review_query_filter(
-        self, nhs_number: str | None = None, uploader: str | None = None
+    def build_review_dynamo_filter(
+        self, nhs_number: str | None = None, uploader: str | None = None, status: DocumentReviewStatus | None = DocumentReviewStatus.PENDING_REVIEW
     ) -> Attr | ConditionBase:
         filter_builder = DynamoQueryFilterBuilder()
-        filter_builder.add_condition(
-            "ReviewStatus", AttributeOperator.EQUAL, DocumentReviewStatus.PENDING_REVIEW
-        )
+        if status:
+            filter_builder.add_condition(
+                "ReviewStatus", AttributeOperator.EQUAL, status
+            )
 
         if nhs_number:
             filter_builder.add_condition(

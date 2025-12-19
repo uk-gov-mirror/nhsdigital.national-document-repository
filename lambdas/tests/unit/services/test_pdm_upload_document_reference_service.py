@@ -433,7 +433,7 @@ def test_update_dynamo_table_clean_scan_result(
 
     pdm_service.document_service.update_document.assert_called_once_with(
         table_name=MOCK_PDM_TABLE_NAME,
-        update_key={"NhsNumber": "9000000001", "ID": "test-doc-id"},
+        key_pair={"NhsNumber": "9000000001", "ID": "test-doc-id"},
         document=mock_pdm_document_reference,
         update_fields_name={
             "virus_scanner_result",

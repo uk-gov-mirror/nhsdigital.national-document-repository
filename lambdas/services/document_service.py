@@ -142,6 +142,7 @@ class DocumentService:
             return document
 
         except ValidationError as e:
+            logger.error(f"Validation error on document: {response.get('Item')}")
             logger.error(f"{e}")
             return None
 
@@ -213,11 +214,11 @@ class DocumentService:
     def update_document(
         self,
         table_name: str | None = None,
-        update_key: dict[str, str] | None = None,
         document: BaseModel = None,
         update_fields_name: set[str] | None = None,
         condition_expression: str | Attr | ConditionBase = None,
         expression_attribute_values: dict = None,
+        key_pair: dict | None = None
     ):
         """Update document in specified or configured table."""
         table_name = table_name or self.table_name
@@ -228,8 +229,8 @@ class DocumentService:
                 exclude_none=True, by_alias=True, include=update_fields_name
             ),
         }
-        if update_key:
-            update_kwargs["key_pair"] = update_key
+        if key_pair:
+            update_kwargs["key_pair"] = key_pair
         else:
             update_kwargs["key_pair"] = {
                 DocumentReferenceMetadataFields.ID.value: document.id

@@ -260,7 +260,7 @@ def test_update_document_with_custom_key_pair(mock_service, mock_dynamo_service)
     )
 
     mock_service.update_document(
-        MOCK_TABLE_NAME, custom_key_pair, test_doc_ref, test_update_fields,
+        MOCK_TABLE_NAME, test_doc_ref, test_update_fields, key_pair=custom_key_pair
     )
 
     mock_dynamo_service.update_item.assert_has_calls([update_item_call])

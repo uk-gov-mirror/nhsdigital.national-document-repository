@@ -196,7 +196,7 @@ class DynamoDBService:
         table_name: str,
         key_pair: dict[str, str],
         updated_fields: dict,
-        condition_expression: str | None = None,
+        condition_expression: str | ConditionBase| None = None,
         expression_attribute_values: dict | None = None,
     ):
         table = self.get_table(table_name)

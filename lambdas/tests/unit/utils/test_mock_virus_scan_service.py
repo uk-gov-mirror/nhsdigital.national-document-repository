@@ -5,7 +5,8 @@ from services.mock_virus_scan_service import MockVirusScanService
 
 @pytest.fixture()
 def mock_virus_scan_service():
-    return MockVirusScanService()
+    yield MockVirusScanService()
+    MockVirusScanService._instance = None
 
 
 @pytest.fixture()

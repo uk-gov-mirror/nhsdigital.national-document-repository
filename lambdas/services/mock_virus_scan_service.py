@@ -19,7 +19,16 @@ NHS_NUMBERS_INFECTED_FILES = [
 
 
 class MockVirusScanService:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(MockVirusScanService, cls).__new__(cls)
+        return cls._instance
+
     def __init__(self):
+        if hasattr(self, "_initialized") and self._initialized:
+            return
         logger.info("Virus scan service is set to mock virus scan service")
 
         infected_nhs_numbers_str = os.getenv("INFECTED_NHS_NUMBERS")
@@ -30,6 +39,7 @@ class MockVirusScanService:
         )
         if self.infected_nhs_numbers:
             logger.info(f"Infected NHS numbers are set to: {self.infected_nhs_numbers}")
+        self._initialized = True
 
     def scan_file(self, file_ref: str, *args, **kwargs) -> VirusScanResult:
         nhs_number = kwargs.get("nhs_number")

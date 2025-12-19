@@ -63,65 +63,52 @@ def mock_review_update():
 
 
 def test_table_name(mock_service):
-    """Test that table_name property returns correct environment variable."""
-
     assert mock_service.table_name == MOCK_DOCUMENT_REVIEW_TABLE
 
 
 def test_model_class(mock_service):
-    """Test that the model_class property returns DocumentUploadReviewReference."""
     assert mock_service.model_class == DocumentUploadReviewReference
 
 
 def test_s3_bucket(mock_service, monkeypatch):
-    """Test that s3_bucket property returns the correct environment variable."""
-
     assert mock_service.s3_bucket == MOCK_DOCUMENT_REVIEW_BUCKET
 
 
 def test_update_document_review_custodian_updates_all_documents(
     mock_service, mock_document_review_references, mocker
 ):
-    """Test that update_document_review_custodian updates all documents with different custodian."""
     mock_update_document = mocker.patch.object(mock_service, "update_document")
 
     mock_service.update_document_review_custodian(
         mock_document_review_references, NEW_ODS_CODE
     )
 
-    # Verify that all documents were updated
     assert mock_update_document.call_count == 3
 
-    # Verify each document's custodian was changed
     for review in mock_document_review_references:
         assert review.custodian == NEW_ODS_CODE
 
-    # Verify update_document was called with the correct parameters
     for review in mock_document_review_references:
         mock_update_document.assert_any_call(
             document=review,
             update_fields_name={"custodian"},
-            update_key={"ID": review.id, "Version": review.version},
+            key_pair={"ID": review.id, "Version": review.version},
         )
 
 
 def test_update_document_review_custodian_empty_list(mock_service, mocker):
-    """Test that update_document_review_custodian handles an empty list gracefully."""
     mock_update_document = mocker.patch.object(mock_service, "update_document")
 
     mock_service.update_document_review_custodian([], NEW_ODS_CODE)
 
-    # Verify that update_document was not called
     mock_update_document.assert_not_called()
 
 
 def test_update_document_review_custodian_no_changes_needed(
     mock_service, mock_document_review_references, mocker
 ):
-    """Test that update_document_review_custodian skips documents that already have the correct custodian."""
     mock_update_document = mocker.patch.object(mock_service, "update_document")
 
-    # Set all reviews to already have the target custodian
     for review in mock_document_review_references:
         review.custodian = NEW_ODS_CODE
 
@@ -129,19 +116,15 @@ def test_update_document_review_custodian_no_changes_needed(
         mock_document_review_references, NEW_ODS_CODE
     )
 
-    # Verify that update_document was not called since no changes needed
     mock_update_document.assert_not_called()
 
 
 def test_update_document_review_custodian_mixed_custodians(
     mock_service, mock_document_review_references, mocker
 ):
-    """Test that update_document_review_custodian only updates documents that need updating."""
     mock_update_document = mocker.patch.object(mock_service, "update_document")
 
-    # Set the first review to already have the new custodian
     mock_document_review_references[0].custodian = NEW_ODS_CODE
-    # Keep the other two with the old custodian
 
     mock_service.update_document_review_custodian(
         mock_document_review_references, NEW_ODS_CODE
@@ -182,7 +165,7 @@ def test_update_document_review_custodian_single_document(mock_service, mocker):
     mock_update_document.assert_called_once_with(
         document=single_review,
         update_fields_name={"custodian"},
-        update_key={"ID": single_review.id, "Version": single_review.version},
+        key_pair={"ID": single_review.id, "Version": single_review.version},
     )
 
 
@@ -248,7 +231,7 @@ def test_update_document_review_for_patient_builds_correct_condition_expression(
     assert condition_expr == expected_condition
     assert call_args.kwargs["update_fields_name"] == field_names
     assert call_args.kwargs["document"] == mock_review_update
-    assert call_args.kwargs["update_key"] == {
+    assert call_args.kwargs["key_pair"] == {
         "ID": mock_review_update.id,
         "Version": mock_review_update.version,
     }
@@ -283,7 +266,7 @@ def test_update_document_review_for_patient_conditional_check_failed(
     assert condition_expr == expected_condition
     assert call_args.kwargs["update_fields_name"] == field_names
     assert call_args.kwargs["document"] == mock_review_update
-    assert call_args.kwargs["update_key"] == {
+    assert call_args.kwargs["key_pair"] == {
         "ID": mock_review_update.id,
         "Version": mock_review_update.version,
     }
@@ -433,20 +416,20 @@ def test_update_document_review_with_transaction_transaction_cancelled(
     assert "Failed to update document review" in str(exc_info.value)
 
 
-def test_build_review_query_filter_creates_filter_from_nhs_number(mock_service):
+def test_build_review_dynamo_filter_creates_filter_from_nhs_number(mock_service):
     expected = Attr("ReviewStatus").eq("PENDING_REVIEW") & Attr("NhsNumber").eq(
         TEST_NHS_NUMBER
     )
-    actual = mock_service.build_review_query_filter(nhs_number=TEST_NHS_NUMBER)
+    actual = mock_service.build_review_dynamo_filter(nhs_number=TEST_NHS_NUMBER)
 
     assert actual == expected
 
 
-def test_build_review_query_filter_creates_filter_from_uploader_ods_code(mock_service):
+def test_build_review_dynamo_filter_creates_filter_from_uploader_ods_code(mock_service):
     expected = Attr("ReviewStatus").eq("PENDING_REVIEW") & Attr("Author").eq(
         TEST_ODS_CODE
     )
-    actual = mock_service.build_review_query_filter(uploader=TEST_ODS_CODE)
+    actual = mock_service.build_review_dynamo_filter(uploader=TEST_ODS_CODE)
 
     assert actual == expected
 
@@ -457,7 +440,7 @@ def test_build_filter_handles_both_nhs_number_and_uploader(mock_service):
         & Attr("NhsNumber").eq(TEST_NHS_NUMBER)
         & Attr("Author").eq(TEST_ODS_CODE)
     )
-    actual = mock_service.build_review_query_filter(
+    actual = mock_service.build_review_dynamo_filter(
         nhs_number=TEST_NHS_NUMBER, uploader=TEST_ODS_CODE
     )
 
@@ -468,7 +451,7 @@ def test_query_review_documents_queries_dynamodb_with_filter_expression_nhs_numb
     mock_service, mocker
 ):
     mock_nhs_number_filter_builder = mocker.patch.object(
-        mock_service, "build_review_query_filter"
+        mock_service, "build_review_dynamo_filter"
     )
     mock_nhs_number_filter_builder.return_value = Attr("NhsNumber").eq(TEST_NHS_NUMBER)
 
@@ -494,7 +477,7 @@ def test_query_review_documents_queries_dynamodb_with_filter_expression_uploader
     mock_service, mocker
 ):
     mock_uploader_filter_builder = mocker.patch.object(
-        mock_service, "build_review_query_filter"
+        mock_service, "build_review_dynamo_filter"
     )
     mock_uploader_filter_builder.return_value = Attr("Author").eq(NEW_ODS_CODE)
     mock_service.query_docs_pending_review_by_custodian_with_limit(
@@ -518,7 +501,7 @@ def test_query_review_documents_by_custodian_handles_filtering_by_nhs_number_and
     mock_service, mocker
 ):
     mock_uploader_filter_builder = mocker.patch.object(
-        mock_service, "build_review_query_filter"
+        mock_service, "build_review_dynamo_filter"
     )
     mock_uploader_filter_builder.return_value = Attr("Author").eq(NEW_ODS_CODE) & Attr(
         "NhsNumber"
@@ -538,6 +521,82 @@ def test_query_review_documents_by_custodian_handles_filtering_by_nhs_number_and
         start_key=None,
         query_filter=mock_uploader_filter_builder.return_value,
     )
+
+
+def test_update_document_review_status_success(mock_service, mocker):
+    mock_update_document = mocker.patch.object(mock_service, "update_document")
+
+    review_document = MagicMock(spec=DocumentUploadReviewReference)
+    review_document.id = "test-review-id"
+    review_document.version = 1
+
+    mock_service.update_document_review_status(review_document)
+    mock_update_document.assert_called_once_with(
+        document=review_document,
+        key_pair={"ID": review_document.id, "Version": review_document.version},
+        update_fields_name={"review_status", "files"},
+        condition_expression=None,
+    )
+
+
+def test_update_document_review_status_success_with_condition(mock_service, mocker):
+    mock_update_document = mocker.patch.object(mock_service, "update_document")
+
+    review_document = MagicMock(spec=DocumentUploadReviewReference)
+    review_document.id = "test-review-id"
+    review_document.version = 1
+    condition = Attr("ReviewStatus").eq("PENDING_REVIEW")
+    mock_service.update_document_review_status(review_document, condition)
+    mock_update_document.assert_called_once_with(
+        document=review_document,
+        key_pair={"ID": review_document.id, "Version": review_document.version},
+        update_fields_name={"review_status", "files"},
+        condition_expression=condition,
+    )
+
+
+def test_update_document_review_status_error_handling_transient(mock_service, mocker):
+    mock_update_document = mocker.patch.object(mock_service, "update_document")
+    mock_logger = mocker.patch("services.document_upload_review_service.logger")
+    mock_is_transient = mocker.patch("services.document_upload_review_service.is_transient_error")
+
+    review_document = MagicMock(spec=DocumentUploadReviewReference)
+    review_document.id = "test-review-id"
+    review_document.version = 1
+    mock_is_transient.return_value = True
+    transient_error = ClientError(
+        {"Error": {"Code": "InternalServerError", "Message": "Internal server error"},
+         "ResponseMetadata": {"HTTPStatusCode": 500}},
+        "UpdateItem"
+    )
+    mock_update_document.side_effect = transient_error
+
+    with pytest.raises(ClientError) as exc_info:
+        mock_service.update_document_review_status(review_document)
+    assert exc_info.value == transient_error
+    mock_logger.error.assert_called_once_with(transient_error)
+
+
+def test_update_document_review_status_error_handling(mock_service, mocker):
+    mock_update_document = mocker.patch.object(mock_service, "update_document")
+    mock_logger = mocker.patch("services.document_upload_review_service.logger")
+    mock_is_transient = mocker.patch("services.document_upload_review_service.is_transient_error")
+
+    review_document = MagicMock(spec=DocumentUploadReviewReference)
+    review_document.id = "test-review-id"
+    review_document.version = 1
+    mock_is_transient.return_value = False
+    non_transient_error = ClientError(
+        {"Error": {"Code": "ValidationException", "Message": "Validation error"},
+         "ResponseMetadata": {"HTTPStatusCode": 400}},
+        "UpdateItem"
+    )
+    mock_update_document.side_effect = non_transient_error
+
+    with pytest.raises(DocumentReviewException) as exc_info:
+        mock_service.update_document_review_status(review_document)
+    assert str(exc_info.value) == "Error updating document review status"
+    mock_logger.error.assert_called_once_with(non_transient_error)
 
 
 @freeze_time("2023-10-30T10:25:00")

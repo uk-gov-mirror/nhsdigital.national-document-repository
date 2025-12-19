@@ -116,22 +116,25 @@ class S3Service:
         source_file_key: str,
         dest_bucket: str,
         dest_file_key: str,
-        if_none_match: str | None = None,
+        if_none_match: bool = False,
+        retry_on_conflict: bool = True,
     ):
-        if if_none_match is not None:
-            return self.client.copy_object(
-                Bucket=dest_bucket,
-                Key=dest_file_key,
-                CopySource={"Bucket": source_bucket, "Key": source_file_key},
-                IfNoneMatch=if_none_match,
-                StorageClass="INTELLIGENT_TIERING",
-            )
-        return self.client.copy_object(
-            Bucket=dest_bucket,
-            Key=dest_file_key,
-            CopySource={"Bucket": source_bucket, "Key": source_file_key},
-            StorageClass="INTELLIGENT_TIERING",
-        )
+        copy_source_params = {"Bucket": source_bucket, "Key": source_file_key}
+        copy_object_params = {"Bucket": dest_bucket, "Key": dest_file_key, "CopySource": copy_source_params, "StorageClass": "INTELLIGENT_TIERING"}
+        if if_none_match:
+            copy_object_params["IfNoneMatch"] = '*'
+        try:
+            return self.client.copy_object(**copy_object_params)
+        except ClientError as e:
+            if e.response["ResponseMetadata"]["HTTPStatusCode"] == 409:
+                logger.info(f"Copy failed due to conflict, retrying: {e}")
+                if retry_on_conflict:
+                    return self.copy_across_bucket(source_bucket, source_file_key, dest_bucket, dest_file_key, if_none_match, False)
+                else:
+                    raise e
+            else:
+                logger.error(f"Copy failed: {e}")
+                raise e
 
     def delete_object(
         self, s3_bucket_name: str, file_key: str, version_id: str | None = None

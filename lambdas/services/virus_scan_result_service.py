@@ -19,14 +19,23 @@ TOKEN_ENDPOINT = "/api/Token"
 
 
 class VirusScanService:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self):
+        if hasattr(self, "_initialized") and self._initialized:
+            return
         self.staging_s3_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
-        self.arf_table_name = os.getenv("DOCUMENT_STORE_DYNAMODB_NAME")
         self.ssm_service = SSMService()
         self.username = ""
         self.password = ""
         self.base_url = ""
         self.access_token = ""
+        self._initialized = True
 
     def scan_file(self, file_ref: str, *args, **kwargs) -> VirusScanResult:
         try:
@@ -51,7 +60,14 @@ class VirusScanService:
                 f"{LambdaError.VirusScanAWSFailure.to_str()}: {str(e)}",
                 {"Result": FAIL_SCAN},
             )
-            raise VirusScanResultException(500, LambdaError.VirusScanAWSFailure)
+            return VirusScanResult.ERROR
+        except Exception as e:
+            logger.error(
+                "Virus scan failed due to unexpected error: ",
+                str(e),
+                {"Result": FAIL_SCAN},
+            )
+            return VirusScanResult.ERROR
 
     def request_virus_scan(self, file_ref: str, retry_on_expired: bool):
         try:

@@ -140,21 +140,19 @@ def test_copy_across_bucket(mock_service, mock_client):
 
 
 def test_copy_across_bucket_if_none_match(mock_service, mock_client):
-    test_etag = '"abc123def456"'
-
     mock_service.copy_across_bucket(
         source_bucket="bucket_to_copy_from",
         source_file_key=TEST_FILE_KEY,
         dest_bucket="bucket_to_copy_to",
         dest_file_key=f"{TEST_NHS_NUMBER}/{TEST_UUID}",
-        if_none_match=test_etag,
+        if_none_match=True,
     )
 
     mock_client.copy_object.assert_called_once_with(
         Bucket="bucket_to_copy_to",
         Key=f"{TEST_NHS_NUMBER}/{TEST_UUID}",
         CopySource={"Bucket": "bucket_to_copy_from", "Key": TEST_FILE_KEY},
-        IfNoneMatch=test_etag,
+        IfNoneMatch="*",
         StorageClass="INTELLIGENT_TIERING",
     )
 
@@ -566,3 +564,33 @@ def test_get_head_object_raises_client_error_on_access_denied(
     mock_client.head_object.assert_called_once_with(
         Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY
     )
+
+
+def test_copy_across_bucket_retries_on_409_conflict(mock_service, mock_client):
+    mock_client.copy_object.side_effect = [
+        ClientError(
+            {
+                "Error": {"Code": "PreconditionFailed", "Message": "Precondition Failed"},
+                "ResponseMetadata": {"HTTPStatusCode": 409}
+            },
+            "CopyObject"
+        ),
+        {"CopyObjectResult": {"ETag": "mock-etag"}}  # Success on retry
+    ]
+
+    mock_service.copy_across_bucket(
+        source_bucket="bucket_to_copy_from",
+        source_file_key=TEST_FILE_KEY,
+        dest_bucket="bucket_to_copy_to",
+        dest_file_key=f"{TEST_NHS_NUMBER}/{TEST_UUID}",
+    )
+
+    assert mock_client.copy_object.call_count == 2
+
+    expected_call = {
+        "Bucket": "bucket_to_copy_to",
+        "Key": f"{TEST_NHS_NUMBER}/{TEST_UUID}",
+        "CopySource": {"Bucket": "bucket_to_copy_from", "Key": TEST_FILE_KEY},
+        "StorageClass": "INTELLIGENT_TIERING",
+    }
+    mock_client.copy_object.assert_called_with(**expected_call)

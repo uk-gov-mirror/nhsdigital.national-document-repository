@@ -463,7 +463,7 @@ class UploadDocumentReferenceService:
 
             self.document_service.update_document(
                 table_name=self.table_name,
-                update_key=update_key,
+                key_pair=update_key,
                 document=document,
                 update_fields_name=update_fields,
             )

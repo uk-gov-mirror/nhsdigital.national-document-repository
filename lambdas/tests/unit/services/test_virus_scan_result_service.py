@@ -23,6 +23,7 @@ def virus_scanner_service(set_env, mocker):
     service = VirusScanService()
     mocker.patch.object(service, "ssm_service")
     yield service
+    VirusScanService._instance = None
 
 
 @pytest.fixture
@@ -37,8 +38,10 @@ def test_prepare_request_raise_error(virus_scanner_service, mocker):
     virus_scanner_service.get_ssm_parameters_for_request_access_token.side_effect = (
         ClientError({"Error": {"Code": "500", "Message": "mocked error"}}, "test")
     )
-    with pytest.raises(VirusScanResultException):
-        virus_scanner_service.scan_file(MOCK_LG_FILE_REF)
+
+    result = virus_scanner_service.scan_file(MOCK_LG_FILE_REF)
+
+    assert result == VirusScanResult.ERROR
 
 
 def test_virus_scan_request_successful(mocker, virus_scanner_service):
