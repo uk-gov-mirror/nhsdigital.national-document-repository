@@ -5,17 +5,21 @@ from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
-from models.document_review import DocumentUploadReviewReference
+from freezegun import freeze_time
+from models.document_review import (
+    DocumentReviewFileDetails,
+    DocumentUploadReviewReference,
+)
+from pydantic import ValidationError
 from services.document_upload_review_service import DocumentUploadReviewService
 from tests.unit.conftest import (
     MOCK_DOCUMENT_REVIEW_BUCKET,
     MOCK_DOCUMENT_REVIEW_TABLE,
+    TEST_CURRENT_GP_ODS,
     TEST_NHS_NUMBER,
     TEST_UUID,
 )
-from tests.unit.helpers.data.search_document_review.dynamo_response import (
-    MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
-)
+from tests.unit.helpers.data.search_document_review.dynamo_response import MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE
 from utils.exceptions import DocumentReviewException
 
 TEST_ODS_CODE = "Y12345"
@@ -534,6 +538,64 @@ def test_query_review_documents_by_custodian_handles_filtering_by_nhs_number_and
         start_key=None,
         query_filter=mock_uploader_filter_builder.return_value,
     )
+
+
+@freeze_time("2023-10-30T10:25:00")
+def test_create_dynamo_entry_creates_review_document_reference_in_dynamodb_valid_reference(
+    mock_service,
+):
+    valid_review_document_reference = DocumentUploadReviewReference(
+        id=TEST_UUID,
+        author=TEST_CURRENT_GP_ODS,
+        custodian=TEST_CURRENT_GP_ODS,
+        files=[
+            DocumentReviewFileDetails(file_name="test_file.pdf", file_location="here")
+        ],
+        nhs_number=TEST_NHS_NUMBER,
+    )
+
+    mock_service.create_dynamo_entry(valid_review_document_reference)
+
+    mock_service.dynamo_service.create_item.assert_called_with(
+        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
+        item=valid_review_document_reference.model_dump(
+            by_alias=True, exclude_none=True
+        ),
+    )
+
+
+def test_create_dynamo_entry_throws_error_invalid_object_to_write_to_dynamodb(
+    mock_service,
+):
+    invalid_entry = {
+        "author": TEST_CURRENT_GP_ODS,
+        "other_key": "this model has missing data",
+    }
+
+    with pytest.raises(ValidationError):
+        mock_service.create_dynamo_entry(invalid_entry)
+
+    mock_service.dynamo_service.create_item.assert_not_called()
+
+
+def test_create_dynamo_entry_throws_error_dynamodb_error(
+    mock_service,
+):
+    mock_service.dynamo_service.create_item.side_effect = ClientError(
+        {"error": "test error message"}, "test"
+    )
+    valid_review_document_reference = DocumentUploadReviewReference(
+        id=TEST_UUID,
+        author=TEST_CURRENT_GP_ODS,
+        custodian=TEST_CURRENT_GP_ODS,
+        files=[
+            DocumentReviewFileDetails(file_name="test_file.pdf", file_location="here")
+        ],
+        nhs_number=TEST_NHS_NUMBER,
+    )
+
+    with pytest.raises(ClientError):
+        mock_service.create_dynamo_entry(valid_review_document_reference)
 
 
 def test_get_document_returns_review_document(mock_service):

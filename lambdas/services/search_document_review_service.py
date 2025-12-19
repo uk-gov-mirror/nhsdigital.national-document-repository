@@ -6,7 +6,7 @@ from enums.lambda_error import LambdaError
 from pydantic import ValidationError
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
-from utils.lambda_exceptions import DocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 
 logger = LoggingService(__name__)
 
@@ -56,10 +56,12 @@ class SearchDocumentReviewService:
 
         except ValidationError as e:
             logger.error(e)
-            raise DocumentReviewException(500, LambdaError.DocumentReviewValidation)
+            raise DocumentReviewLambdaException(
+                500, LambdaError.DocumentReviewValidation
+            )
         except ValueError as e:
             logger.error(e)
-            raise DocumentReviewException(
+            raise DocumentReviewLambdaException(
                 400, LambdaError.SearchDocumentInvalidQuerystring
             )
 
@@ -93,7 +95,7 @@ class SearchDocumentReviewService:
             for key, value in start_key.items():
                 if isinstance(value, decimal.Decimal):
                     start_key[key] = int(value)
-            return (
-                base64.b64encode(json.dumps(start_key).encode("ascii")).decode("utf-8")
+            return base64.b64encode(json.dumps(start_key).encode("ascii")).decode(
+                "utf-8"
             )
         return None

@@ -1,9 +1,10 @@
 import uuid
+from datetime import datetime, timezone
 
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel, to_pascal
 from utils.exceptions import InvalidNhsNumberException
 from utils.utilities import validate_nhs_number
@@ -17,7 +18,7 @@ class DocumentReviewFileDetails(BaseModel):
     )
 
     file_name: str
-    file_location: str
+    file_location: str | None = None
     presigned_url: str | None = None
 
 
@@ -37,10 +38,12 @@ class DocumentUploadReviewReference(BaseModel):
     review_status: DocumentReviewStatus = Field(
         default=DocumentReviewStatus.PENDING_REVIEW
     )
-    review_reason: str
+    review_reason: str | None = None
     review_date: int | None = Field(default=None)
     reviewer: str | None = Field(default=None)
-    upload_date: int
+    upload_date: int = Field(
+        default_factory=lambda: int(datetime.now(timezone.utc).timestamp()),
+    )
     files: list[DocumentReviewFileDetails] = Field(min_length=1)
     nhs_number: str
     version: int = Field(default=1)
@@ -126,3 +129,29 @@ class PatchDocumentReviewRequest(BaseModel):
             except InvalidNhsNumberException:
                 raise ValueError("Invalid NHS number")
         return self
+
+
+class DocumentReviewUploadEvent(BaseModel):
+    model_config = ConfigDict(
+        validate_by_alias=True,
+        populate_by_name=True,
+        validate_by_name=True,
+        alias_generator=to_camel,
+        use_enum_values=True,
+        extra="forbid",
+    )
+
+    nhs_number: str
+    snomed_code: SnomedCodes
+    documents: list = Field(min_length=1, max_length=1)
+
+    @field_validator("snomed_code", mode="before")
+    @classmethod
+    def check_snomed_code(cls, value) -> SnomedCodes | None:
+        return SnomedCodes.find_by_code(value)
+
+    @field_validator("nhs_number", mode="before")
+    @classmethod
+    def verify_nhs_number(cls, value) -> str | None:
+        if validate_nhs_number(value):
+            return value

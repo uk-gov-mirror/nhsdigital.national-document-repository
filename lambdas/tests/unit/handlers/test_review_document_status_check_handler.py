@@ -11,7 +11,7 @@ from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
 from utils.exceptions import OdsErrorException
-from utils.lambda_exceptions import DocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_response import ApiGatewayResponse
 
 MOCK_DOCUMENT_REVIEW_REFERENCE = DocumentUploadReviewReference.model_validate(
@@ -163,14 +163,14 @@ def test_lambda_handler_returns_403_document_review_forbidden_raised(
     mock_upload_document_iteration_3_enabled,
     mock_extract_ods,
 ):
-    mock_service.get_document_review_status.side_effect = DocumentReviewException(
-        403, LambdaError.DocumentReviewForbidden
+    mock_service.get_document_review_status.side_effect = DocumentReviewLambdaException(
+        403, LambdaError.DocumentReviewUploadForbidden
     )
 
     body = json.dumps(
         {
-            "message": LambdaError.DocumentReviewForbidden.value["message"],
-            "err_code": LambdaError.DocumentReviewForbidden.value["err_code"],
+            "message": LambdaError.DocumentReviewUploadForbidden.value["message"],
+            "err_code": LambdaError.DocumentReviewUploadForbidden.value["err_code"],
             "interaction_id": MOCK_INTERACTION_ID,
         }
     )
@@ -219,7 +219,7 @@ def test_lambda_returns_500_on_model_validation_failure(
     mock_upload_document_iteration_3_enabled,
     mock_extract_ods,
 ):
-    mock_service.get_document_review_status.side_effect = DocumentReviewException(
+    mock_service.get_document_review_status.side_effect = DocumentReviewLambdaException(
         500, LambdaError.DocumentReviewValidation
     )
     body = json.dumps(
@@ -247,7 +247,7 @@ def test_lambda_handler_returns_500_on_dynamodb_client_error(
     mock_upload_document_iteration_3_enabled,
     mock_extract_ods,
 ):
-    mock_service.get_document_review_status.side_effect = DocumentReviewException(
+    mock_service.get_document_review_status.side_effect = DocumentReviewLambdaException(
         500, LambdaError.DocumentReviewDB
     )
 
@@ -276,7 +276,7 @@ def test_lambda_handler_returns_404_no_document_review_reference_found(
     mock_upload_document_iteration_3_enabled,
     mock_extract_ods,
 ):
-    mock_service.get_document_review_status.side_effect = DocumentReviewException(
+    mock_service.get_document_review_status.side_effect = DocumentReviewLambdaException(
         404, LambdaError.DocumentReviewNotFound
     )
 

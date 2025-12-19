@@ -8,7 +8,7 @@ from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
     MOCK_PREVIOUS_ODS_CODE,
 )
-from utils.lambda_exceptions import DocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 
 MOCK_DOCUMENT_REVIEW_REFERENCE = DocumentUploadReviewReference.model_validate(
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]
@@ -59,10 +59,10 @@ def test_get_document_status_throws_error_if_user_is_not_author(mock_service):
         MOCK_DOCUMENT_REVIEW_REFERENCE
     )
 
-    with pytest.raises(DocumentReviewException) as e:
+    with pytest.raises(DocumentReviewLambdaException) as e:
         mock_service.get_document_review_status(TEST_CURRENT_GP_ODS, TEST_UUID, 1)
     assert e.value.status_code == 403
-    assert e.value.err_code == "SDR_4031"
+    assert e.value.err_code == "UDR_4031"
 
 
 def test_get_document_review_status_returns_document_review_status(
@@ -99,7 +99,7 @@ def test_get_document_review_status_throws_404_no_document_reference_found(
 ):
     mock_service_user_is_author.review_document_service.get_document.return_value = None
 
-    with pytest.raises(DocumentReviewException) as e:
+    with pytest.raises(DocumentReviewLambdaException) as e:
         mock_service_user_is_author.get_document_review_status(MOCK_PREVIOUS_ODS_CODE, TEST_UUID, 1)
 
     assert e.value.status_code == 404

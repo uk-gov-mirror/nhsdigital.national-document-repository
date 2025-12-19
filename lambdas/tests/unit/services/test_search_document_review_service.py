@@ -10,7 +10,7 @@ from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_UUID
 from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
-from utils.lambda_exceptions import DocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 
 TEST_QUERY_LIMIT = "20"
 TEST_LAST_EVALUATED_KEY = {"id": TEST_UUID, "UploadDate": 0}
@@ -138,7 +138,7 @@ def test_process_request_handles_invalid_limit_querystring(
         search_document_review_service, "decode_start_key"
     ).return_value = TEST_LAST_EVALUATED_KEY
 
-    with pytest.raises(DocumentReviewException) as e:
+    with pytest.raises(DocumentReviewLambdaException) as e:
         search_document_review_service.process_request(
             params=MOCK_QUERYSTRING_PARAMS_INVALID_LIMIT, ods_code=TEST_CURRENT_GP_ODS
         )
@@ -158,13 +158,13 @@ def test_process_request_handles_validation_error(
         search_document_review_service, "get_review_document_references"
     ).side_effect = ValidationError("", [])
 
-    with pytest.raises(DocumentReviewException) as e:
+    with pytest.raises(DocumentReviewLambdaException) as e:
         search_document_review_service.process_request(
             ods_code=TEST_CURRENT_GP_ODS,
             params=MOCK_QUERYSTRING_PARAMS_LIMIT_KEY_UPLOADER,
         )
     assert e.value.status_code == 500
-    assert e.value.err_code == "SDR_5002"
+    assert e.value.err_code == "UDR_5002"
     assert e.value.message == "Review document model error"
 
 
@@ -252,9 +252,9 @@ def test_get_review_document_references_throws_exception_client_error(
 ):
     (
         search_document_review_service.document_service.query_docs_pending_review_by_custodian_with_limit
-    ).side_effect = DocumentReviewException(500, LambdaError.DocumentReviewDB)
+    ).side_effect = DocumentReviewLambdaException(500, LambdaError.DocumentReviewDB)
 
-    with pytest.raises(DocumentReviewException) as e:
+    with pytest.raises(DocumentReviewLambdaException) as e:
         search_document_review_service.get_review_document_references(
             TEST_CURRENT_GP_ODS, TEST_QUERY_LIMIT
         )

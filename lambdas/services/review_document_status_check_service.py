@@ -3,7 +3,7 @@ from models.document_review import DocumentUploadReviewReference
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import OdsErrorException
-from utils.lambda_exceptions import DocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 
 logger = LoggingService(__name__)
 
@@ -25,11 +25,11 @@ class ReviewDocumentStatusCheckService:
             )
             if not review_document_reference:
                 logger.info("No document review references found.")
-                raise DocumentReviewException(404, LambdaError.DocumentReviewNotFound)
+                raise DocumentReviewLambdaException(404, LambdaError.DocumentReviewNotFound)
 
             logger.info("Checking user is author of review document.")
             if not self.user_is_author(ods_code, review_document_reference):
-                raise DocumentReviewException(403, LambdaError.DocumentReviewForbidden)
+                raise DocumentReviewLambdaException(403, LambdaError.DocumentReviewUploadForbidden)
 
             return review_document_reference.model_dump_camel_case(
                 mode="json", include={"id", "version", "review_status"}
@@ -37,7 +37,7 @@ class ReviewDocumentStatusCheckService:
 
         except OdsErrorException:
             logger.info("Failed to obtain ODS code from request context.")
-            raise DocumentReviewException(401, LambdaError.DocumentReviewMissingODS)
+            raise DocumentReviewLambdaException(401, LambdaError.DocumentReviewMissingODS)
 
     def user_is_author(
         self,

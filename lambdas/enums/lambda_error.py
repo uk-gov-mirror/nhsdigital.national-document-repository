@@ -661,17 +661,17 @@ class LambdaError(Enum):
         Errors for DocumentReview exceptions
     """
     DocumentReviewDB = {
-        "err_code": "SDR_5001",
+        "err_code": "UDR_5001",
         "message": RETRIEVE_DOCUMENTS,
     }
 
     DocumentReviewValidation = {
-        "err_code": "SDR_5002",
+        "err_code": "UDR_5002",
         "message": "Review document model error",
     }
 
     DocumentReviewMissingODS = {
-        "err_code": "SDR_4011",
+        "err_code": "UDR_4001",
         "message": "Missing ODS code in request context",
     }
 
@@ -680,13 +680,17 @@ class LambdaError(Enum):
         "message": "Invalid query string passed",
     }
 
-    DocumentReviewStatusMissingId = {
-        "err_code": "SDR_4003",
-        "message": "Missing path parameters"
+    DocumentReviewUploadInvalidRequest = {
+        "err_code": "UDR_4003",
+        "message": "Invalid request",
     }
 
-    DocumentReviewForbidden = {
-        "err_code": "SDR_4031",
-        "message": "User is not permitted to review document"
+    DocumentReviewUploadForbidden = {
+        "err_code": "UDR_4031",
+        "message": "Forbidden"
     }
 
+    DocumentReviewPresignedFailure = {
+        "err_code": "UDR_5003",
+        "message": "Presign creation process failure",
+    }

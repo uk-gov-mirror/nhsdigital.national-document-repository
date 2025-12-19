@@ -1,13 +1,12 @@
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
-
 from utils.audit_logging_setup import LoggingService
-from utils.lambda_header_utils import validate_common_name_in_mtls
 from utils.lambda_exceptions import (
-    GetFhirDocumentReferenceException,
+    DocumentRefException,
     DocumentRefSearchException,
-    DocumentRefException, DocumentReviewException,
+    GetFhirDocumentReferenceException, DocumentReviewLambdaException,
 )
+from utils.lambda_header_utils import validate_common_name_in_mtls
 
 logger = LoggingService(__name__)
 
@@ -43,14 +42,14 @@ def validate_review_path_parameters(event):
     document_id = path_parameters.get("id")
     document_version = path_parameters.get("version")
     if not document_id or not document_version:
-        raise DocumentReviewException(
+        raise DocumentReviewLambdaException(
             400, LambdaError.DocumentReferenceMissingParameters
         )
     try:
         document_version = int(document_version)
     except (ValueError, AttributeError):
         logger.error(f"Invalid document version: {document_version}")
-        raise DocumentReviewException(
+        raise DocumentReviewLambdaException(
             400, LambdaError.DocumentReferenceMissingParameters
         )
     return document_id, document_version

@@ -13,7 +13,7 @@ from tests.unit.conftest import MOCK_INTERACTION_ID, TEST_CURRENT_GP_ODS, TEST_U
 from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
-from utils.lambda_exceptions import DocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_response import ApiGatewayResponse
 
 TEST_QUERY_LIMIT = "20"
@@ -120,7 +120,7 @@ def test_get_ods_code_from_request(mocked_request_context_with_ods):
 def test_get_ods_code_from_request_throws_exception_no_auth(mocker):
     mocker.patch("handlers.search_document_review_handler.request_context", {})
 
-    with pytest.raises(DocumentReviewException) as e:
+    with pytest.raises(DocumentReviewLambdaException) as e:
         get_ods_code_from_request_context()
 
     assert e.value.status_code == 401
@@ -217,7 +217,7 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
 ):
 
     references = [
-        DocumentUploadReviewReference.model_validate(item).model_dump(
+        DocumentUploadReviewReference.model_validate(item).model_dump_camel_case(
             exclude_none=True,
             include={"id", "nhs_number", "review_reason", "document_snomed_code_type"},
             mode="json",
@@ -251,7 +251,7 @@ def test_handler_returns_list_of_references_no_limit_passed(
     mock_service, context, set_env, mocked_request_context_with_ods, event
 ):
     references = [
-        DocumentUploadReviewReference.model_validate(item).model_dump(
+        DocumentUploadReviewReference.model_validate(item).model_dump_camel_case(
             exclude_none=True,
             include={"id", "nhs_number", "review_reason", "document_snomed_code_type"},
             mode="json",
@@ -281,7 +281,7 @@ def test_handler_returns_500_response_error_raised(
     mock_service, context, set_env, mocked_request_context_with_ods, event_with_limit
 ):
 
-    mock_service.process_request.side_effect = DocumentReviewException(
+    mock_service.process_request.side_effect = DocumentReviewLambdaException(
         500, LambdaError.DocumentReviewValidation
     )
 

@@ -1,9 +1,9 @@
+import operator
 import time
-from typing import Optional, Sequence
 from functools import reduce
+from typing import Optional, Sequence
 
 import boto3
-import operator
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
 from botocore.exceptions import ClientError
 from utils.audit_logging_setup import LoggingService

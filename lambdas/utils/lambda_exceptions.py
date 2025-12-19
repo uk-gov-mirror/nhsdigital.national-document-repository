@@ -109,7 +109,7 @@ class UpdateFhirDocumentReferenceException(LambdaException):
     pass
 
 
-class DocumentReviewException(LambdaException):
+class DocumentReviewLambdaException(LambdaException):
     pass
 
 

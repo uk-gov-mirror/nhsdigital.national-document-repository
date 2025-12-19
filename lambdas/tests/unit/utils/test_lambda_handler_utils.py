@@ -5,7 +5,7 @@ from tests.unit.conftest import TEST_UUID
 from utils.lambda_exceptions import (
     DocumentRefException,
     DocumentRefSearchException,
-    DocumentReviewException,
+    DocumentReviewLambdaException,
     GetFhirDocumentReferenceException,
 )
 from utils.lambda_handler_utils import (
@@ -136,7 +136,7 @@ def test_extract_problem_bearer_token(context, function_name, error_type, header
 def test_validate_review_path_parameters_invalid_events():
 
     for event in INVALID_REVIEW_EVENTS:
-        with pytest.raises(DocumentReviewException) as e:
+        with pytest.raises(DocumentReviewLambdaException) as e:
             validate_review_path_parameters(event)
 
         assert e.value.status_code == 400

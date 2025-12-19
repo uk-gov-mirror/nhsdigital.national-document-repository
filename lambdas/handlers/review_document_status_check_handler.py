@@ -11,7 +11,7 @@ from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.exceptions import OdsErrorException
-from utils.lambda_exceptions import DocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_handler_utils import validate_review_path_parameters
 from utils.lambda_response import ApiGatewayResponse
 from utils.ods_utils import extract_ods_code_from_request_context
@@ -68,4 +68,4 @@ def lambda_handler(event, context):
 
     except OdsErrorException:
         logger.error("Missing ODS code in request context.")
-        raise DocumentReviewException(401, LambdaError.DocumentReviewMissingODS)
+        raise DocumentReviewLambdaException(401, LambdaError.DocumentReviewMissingODS)

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from boto3.dynamodb.conditions import Attr, ConditionBase
+from botocore.exceptions import ClientError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.supported_document_types import SupportedDocumentTypes
 from models.document_reference import DocumentReference
@@ -279,3 +280,20 @@ class DocumentService:
 
         found_docs = [model_class.model_validate(item) for item in response]
         return found_docs
+
+    def create_dynamo_entry(
+        self,
+        item: BaseModel,
+        table_name: str | None = None,
+        model_class: BaseModel | None = None,
+    ):
+        try:
+            table_name = table_name or self.table_name
+            model_class = model_class or self.model_class
+
+            model_class.model_validate(item)
+            entry = item.model_dump(by_alias=True, exclude_none=True)
+            self.dynamo_service.create_item(table_name=table_name, item=entry)
+        except (ValidationError, ClientError) as e:
+            logger.error(e)
+            raise e

@@ -167,3 +167,12 @@ def mock_upload_document_iteration_3_enabled(mocker):
         FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: True
     }
     yield mock_feature_flag
+
+
+@pytest.fixture
+def mock_upload_document_iteration_3_disabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_feature_flag = mock_function.return_value = {
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: False
+    }
+    yield mock_feature_flag

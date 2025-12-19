@@ -13,7 +13,7 @@ from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.exceptions import OdsErrorException
-from utils.lambda_exceptions import DocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_response import ApiGatewayResponse
 from utils.request_context import request_context
 
@@ -54,7 +54,7 @@ def lambda_handler(event, context):
             FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
         ]:
             logger.info("Feature flag not enabled, event will not be processed")
-            raise DocumentReviewException(403, LambdaError.FeatureFlagDisabled)
+            raise DocumentReviewLambdaException(403, LambdaError.FeatureFlagDisabled)
 
         ods_code = get_ods_code_from_request_context()
 
@@ -99,7 +99,7 @@ def get_ods_code_from_request_context():
 
     except AttributeError as e:
         logger.error(e)
-        raise DocumentReviewException(401, LambdaError.DocumentReviewMissingODS)
+        raise DocumentReviewLambdaException(401, LambdaError.DocumentReviewMissingODS)
 
 
 def parse_querystring_parameters(event):
