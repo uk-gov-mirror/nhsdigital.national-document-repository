@@ -1,5 +1,7 @@
 name: "ZBASE Lambdas: Deploy all required Lambda functions"
 
+run-name: "${{ github.event.inputs.environment }} | ${{ github.event.inputs.python_version }} | ${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.is_sandbox }} | ${{ github.event.inputs.mock_login_enabled }}"
+
 on:
   workflow_call:
     inputs:

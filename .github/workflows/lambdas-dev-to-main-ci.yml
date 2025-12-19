@@ -84,7 +84,14 @@ jobs:
     name: Notify Slack on Failure
     runs-on: ubuntu-latest
     environment: development
-    needs: [check_packages, run_tests, publish_all_lambda_layers, deploy_all_lambdas, deploy_data_collection]
+    needs:
+      [
+        check_packages,
+        run_tests,
+        publish_all_lambda_layers,
+        deploy_all_lambdas,
+        deploy_data_collection,
+      ]
     if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Configure AWS Credentials
@@ -94,14 +101,14 @@ jobs:
           role-skip-session-tagging: true
           aws-region: ${{ vars.AWS_REGION }}
           mask-aws-account-id: true
-  
+
       - name: Get slack bot token from SSM parameter store
         id: ssm-parameters
         run: |
           slack_bot_token=$(aws ssm get-parameter --name "/ndr/alerting/slack/bot_token" --with-decryption --query "Parameter.Value" --output text)
           echo "::add-mask::$slack_bot_token"
           echo "SLACK_BOT_TOKEN=$slack_bot_token" >> $GITHUB_ENV
-  
+
       - name: Send Slack Notification
         uses: slackapi/slack-github-action@v2.1.1
         with:

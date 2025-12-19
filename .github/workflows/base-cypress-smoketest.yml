@@ -1,5 +1,6 @@
-# .github/workflows/terraform-dev
 name: "Z-BASE Cypress Smoketest: Smoketest shared actions for running"
+
+run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.environment }} | ${{ github.event.inputs.sandbox }}"
 
 on:
   workflow_call:

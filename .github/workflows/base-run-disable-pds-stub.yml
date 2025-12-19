@@ -1,5 +1,7 @@
 name: "Base PDS - Disable PDS Stub"
 
+run-name: "${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.base_branch }} | ${{ github.event.inputs.environment }}"
+
 permissions:
   pull-requests: write
   id-token: write # This is required for requesting the JWT

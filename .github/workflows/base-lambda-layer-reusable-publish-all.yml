@@ -1,4 +1,6 @@
-name: 'ZBASE Lambda Layers: Deploy all required Lambda layers'
+name: "ZBASE Lambda Layers: Deploy all required Lambda layers"
+
+run-name: "${{ github.event.inputs.environment }} | ${{ github.event.inputs.python_version }} | ${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.sandbox }}"
 
 on:
   workflow_call:
@@ -10,13 +12,13 @@ on:
         required: true
         type: string
       build_branch:
-        description: 'Feature branch to push to test?'
+        description: "Feature branch to push to test?"
         required: true
-        type: 'string'
+        type: "string"
       sandbox:
-        description: 'Which Sandbox to push to'
+        description: "Which Sandbox to push to"
         required: true
-        type: 'string'
+        type: "string"
     secrets:
       AWS_ASSUME_ROLE:
         required: true

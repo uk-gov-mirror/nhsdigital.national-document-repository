@@ -1,21 +1,22 @@
-# .github/workflows/terraform-dev
-name: 'Z-BASE Cypress Test Base: Run a cypress test job against a specific browser'
+name: "Z-BASE Cypress Test Base: Run a cypress test job against a specific browser"
+
+run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.cypress_base_url }} | ${{ github.event.inputs.cypress_browser }}"
 
 on:
   workflow_call:
     inputs:
       build_branch:
-        description: 'Branch with smoke tests.'
+        description: "Branch with smoke tests."
         required: true
-        type: 'string'
+        type: "string"
       cypress_base_url:
-        description: 'Base URL to run tests against'
+        description: "Base URL to run tests against"
         required: true
-        type: 'string'
+        type: "string"
       cypress_browser:
-        description: 'what browser to run against'
+        description: "what browser to run against"
         required: true
-        type: 'string'
+        type: "string"
 
 permissions:
   pull-requests: write
@@ -39,7 +40,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          repository: 'NHSDigital/national-document-repository'
+          repository: "NHSDigital/national-document-repository"
           ref: ${{ inputs.build_branch }}
 
       - name: Download the build folder
@@ -69,7 +70,7 @@ jobs:
           working-directory: ./app
         env:
           CYPRESS_BASE_URL: ${{ inputs.cypress_base_url }}
-          CYPRESS_grepTags: 'regression'
+          CYPRESS_grepTags: "regression"
 
       - uses: actions/upload-artifact@v5
         if: failure()

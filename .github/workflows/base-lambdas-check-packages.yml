@@ -1,5 +1,7 @@
 name: "Z-BASE Lambdas: Lambda check packages runner"
 
+run-name: "${{ github.event.inputs.environment }} | ${{ github.event.inputs.python_version }} | ${{ github.event.inputs.build_branch }}"
+
 on:
   workflow_call:
     inputs:
@@ -24,7 +26,6 @@ jobs:
     name: View input params
     runs-on: ubuntu-latest
     steps:
-
       - name: Display client passed variables
         run: |
           echo Python Version: ${{ inputs.python_version }}
@@ -40,7 +41,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          repository: 'NHSDigital/national-document-repository'
+          repository: "NHSDigital/national-document-repository"
           ref: ${{ inputs.build_branch }}
 
       - name: Set up Python ${{ inputs.python_version }}
@@ -49,7 +50,7 @@ jobs:
           python-version: ${{ inputs.python_version }}
 
       - name: Make virtual environment
-        run: | 
+        run: |
           make env
 
       - name: Start virtual environment

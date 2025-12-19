@@ -1,4 +1,6 @@
-name: 'PRE PROD UI - Deploy to Pre-Prod'
+name: "PRE PROD UI - Deploy to Pre-Prod"
+
+run-name: "${{ github.event.inputs.branch_or_tag }}"
 
 on:
   workflow_dispatch:
@@ -10,7 +12,7 @@ on:
         default: main
 
 permissions:
-  actions: read   # Required for anchore/sbom-action
+  actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   pull-requests: write
   id-token: write # This is required for requesting the JWT
@@ -27,7 +29,7 @@ jobs:
     uses: ./.github/workflows/base-cypress-build.yml
     with:
       build_branch: main
-  
+
   cypress_test_job:
     name: Run Cypress E2E Tests
     needs: [cypress_build_job]
@@ -44,25 +46,25 @@ jobs:
     permissions: write-all
 
     steps:
-    - name: Checkout main
-      if: ${{ github.event.inputs.branch_or_tag == 'main' }}
-      uses: actions/checkout@v6
-      with:
-        ref: main
-        fetch-depth: '0'
+      - name: Checkout main
+        if: ${{ github.event.inputs.branch_or_tag == 'main' }}
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: "0"
 
-    - name: Bump version and push tag
-      if: ${{ github.event.inputs.branch_or_tag == 'main' }}
-      id: versioning
-      uses: anothrNick/github-tag-action@1.64.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        WITH_V: false
-        DEFAULT_BUMP: patch
-    
-    - name: View outputs
-      run: |
-        echo Deploying branch or tagged version to pre-prod UI: ${{ steps.versioning.outputs.tag || github.event.inputs.branch_or_tag }}
+      - name: Bump version and push tag
+        if: ${{ github.event.inputs.branch_or_tag == 'main' }}
+        id: versioning
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: false
+          DEFAULT_BUMP: patch
+
+      - name: View outputs
+        run: |
+          echo Deploying branch or tagged version to pre-prod UI: ${{ steps.versioning.outputs.tag || github.event.inputs.branch_or_tag }}
 
   deploy_ui:
     name: Deploy UI

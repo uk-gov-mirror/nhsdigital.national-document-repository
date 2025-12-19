@@ -1,5 +1,7 @@
 name: Subscribe to MNS
 
+run-name: "${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.environment }}"
+
 on:
   workflow_dispatch:
     inputs:
@@ -46,8 +48,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |

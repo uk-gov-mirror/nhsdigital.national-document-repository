@@ -1,5 +1,6 @@
-# .github/workflows/terraform-dev
 name: "Test: Bulk Upload Validator - 300 patients 3 files"
+
+run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.environment }} | ${{ github.event.inputs.sandbox }}"
 
 on:
   workflow_dispatch:

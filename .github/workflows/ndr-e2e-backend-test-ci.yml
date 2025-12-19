@@ -1,10 +1,9 @@
-# .github/workflows/terraform-dev
 name: "Merge to main: E2e Tests Backend"
 
 on:
   workflow_run:
     workflows:
-      - 'CI Lambdas - CI Feature to Main'
+      - "CI Lambdas - CI Feature to Main"
     types:
       - completed
     branches:
@@ -24,7 +23,7 @@ jobs:
       sandbox: ndr-dev
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
-  
+
   services-fhir-api-e2etest:
     uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
     with:
@@ -33,7 +32,7 @@ jobs:
       sandbox: ndr-dev
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
-  
+
   notify-slack:
     name: Notify Slack on Failure
     runs-on: ubuntu-latest
@@ -48,14 +47,14 @@ jobs:
           role-skip-session-tagging: true
           aws-region: ${{ vars.AWS_REGION }}
           mask-aws-account-id: true
-  
+
       - name: Get slack bot token from SSM parameter store
         id: ssm-parameters
         run: |
           slack_bot_token=$(aws ssm get-parameter --name "/ndr/alerting/slack/bot_token" --with-decryption --query "Parameter.Value" --output text)
           echo "::add-mask::$slack_bot_token"
           echo "SLACK_BOT_TOKEN=$slack_bot_token" >> $GITHUB_ENV
-  
+
       - name: Send Slack Notification
         uses: slackapi/slack-github-action@v2.1.1
         with:

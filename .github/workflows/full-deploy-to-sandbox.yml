@@ -1,5 +1,7 @@
 name: "SANDBOX Full- Deploy feature branch to sandbox"
 
+run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.environment }} | ${{ github.event.inputs.bulk_upload }} | ${{ github.event.inputs.disable_pds }} | ${{ github.event.inputs.mock_login_enabled }}"
+
 on:
   workflow_dispatch:
     inputs:

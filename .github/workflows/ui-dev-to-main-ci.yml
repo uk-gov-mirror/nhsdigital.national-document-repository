@@ -1,4 +1,3 @@
-# .github/workflows/terraform-dev
 name: "CI UI - Development CI Feature Branch to Main"
 
 on:
@@ -22,7 +21,7 @@ on:
         required: true
 
 permissions:
-  actions: read   # Required for anchore/sbom-action
+  actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   pull-requests: write
   id-token: write # This is required for requesting the JWT

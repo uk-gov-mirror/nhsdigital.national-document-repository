@@ -1,4 +1,6 @@
-name: 'SANDBOX Data Collection - Publish Data Collection Image to ECR'
+name: "SANDBOX Data Collection - Publish Data Collection Image to ECR"
+
+run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.environment }}"
 
 on:
   workflow_dispatch:

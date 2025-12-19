@@ -1,5 +1,7 @@
 name: Run Bulk Upload - Dev
 
+run-name: "${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.combi_settings }} | ${{ github.event.inputs.file_count }}"
+
 permissions:
   pull-requests: write
   id-token: write # This is required for requesting the JWT

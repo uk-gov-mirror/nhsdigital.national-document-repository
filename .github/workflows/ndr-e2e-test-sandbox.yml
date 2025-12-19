@@ -1,5 +1,6 @@
-# .github/workflows/terraform-dev
 name: "SANDBOX: E2e Tests Backend"
+
+run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.environment }}"
 
 on:
   workflow_dispatch:

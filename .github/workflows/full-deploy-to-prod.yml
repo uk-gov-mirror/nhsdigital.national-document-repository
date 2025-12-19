@@ -1,5 +1,7 @@
 name: "PROD Full - Deploy tagged version to Prod"
 
+run-name: "${{ github.event.inputs.tag_version }}"
+
 on:
   workflow_dispatch:
     inputs:
@@ -9,7 +11,7 @@ on:
         type: "string"
 
 permissions:
-  actions: read   # Required for anchore/sbom-action
+  actions: read # Required for anchore/sbom-action
   contents: write # Required for anchore/sbom-action
   pull-requests: write
   id-token: write # This is required for requesting the JWT
@@ -24,7 +26,7 @@ jobs:
   view_action_parameters:
     name: View input params
     runs-on: ubuntu-latest
-    steps: 
+    steps:
       - name: Display client passed variables
         run: |
           echo Build Branch: ${{ inputs.tag_version }}
@@ -53,7 +55,7 @@ jobs:
       python_version: "3.11"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
-  
+
   deploy_ui:
     name: Deploy UI
     uses: ./.github/workflows/base-deploy-ui.yml

@@ -1,5 +1,7 @@
 name: "TEST Lambdas - Deploy Feature Branch to Test"
 
+run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.mock_login_enabled }}"
+
 on:
   workflow_dispatch:
     inputs:
@@ -48,7 +50,3 @@ jobs:
       mock_login_enabled: ${{ inputs.mock_login_enabled }}
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
-
-  
-
-        

@@ -1,5 +1,7 @@
 name: Performance Run Bulk Upload - Test
 
+run-name: "${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.num_patients }} | ${{ github.event.inputs.file_count }} | ${{ github.event.inputs.file_size }} | ${{ github.event.inputs.use_bulk_upload_metadata_processor }}"
+
 permissions:
   pull-requests: write
   id-token: write # This is required for requesting the JWT

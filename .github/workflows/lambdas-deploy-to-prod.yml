@@ -1,5 +1,7 @@
 name: "PROD Lambdas - Deploy tagged version to Prod"
 
+run-name: "${{ github.event.inputs.tag_version }}"
+
 on:
   workflow_dispatch:
     inputs:
