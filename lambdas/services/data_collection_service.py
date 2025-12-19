@@ -118,23 +118,23 @@ class DataCollectionService:
         project_expression = ",".join(field_names_to_fetch)
         filter_expression = UploadCompleted
 
-        for doc_type in SupportedDocumentTypes.list():
-            table_name = doc_type.get_dynamodb_table_name()
-            result = self.dynamodb_service.scan_whole_table(
-                table_name=table_name,
-                project_expression=project_expression,
-                filter_expression=filter_expression,
-            )
-            all_results.extend(result)
+        doc_type = SupportedDocumentTypes.LG
+        table_name = doc_type.get_dynamodb_table_name()
+        result = self.dynamodb_service.scan_whole_table(
+            table_name=table_name,
+            project_expression=project_expression,
+            filter_expression=filter_expression,
+        )
+        all_results.extend(result)
 
         return all_results
 
     def get_all_s3_files_info(self) -> list[dict]:
         all_results = []
-        for doc_type in SupportedDocumentTypes.list():
-            bucket_name = doc_type.get_s3_bucket_name()
-            result = self.s3_service.list_all_objects(bucket_name)
-            all_results += result
+        doc_type = SupportedDocumentTypes.LG
+        bucket_name = doc_type.get_s3_bucket_name()
+        result = self.s3_service.list_all_objects(bucket_name)
+        all_results += result
 
         return all_results
 

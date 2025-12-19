@@ -5,8 +5,8 @@ from botocore.exceptions import ClientError
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference
-from models.fhir.R4.base_models import Identifier, Reference
-from models.fhir.R4.fhir_document_reference import Attachment
+from models.fhir.R4.base_models import CodeableConcept, Identifier, Reference
+from models.fhir.R4.fhir_document_reference import SNOMED_URL, Attachment
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
@@ -520,7 +520,11 @@ def test_create_document_reference_without_custodian(
     ],
 )
 def test_extract_author_from_fhir(
-    mock_post_fhir_doc_ref_service, mocker, fhir_author, expected_author
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
+    fhir_author,
+    expected_author,
 ):
     """Test _extract_author_from_fhir method when author."""
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
@@ -563,6 +567,27 @@ def test_determine_document_type_with_missing_type(
     """Test _determine_document_type method when type is missing entirely."""
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
     fhir_doc.type = None
+
+    with pytest.raises(DocumentRefException) as excinfo:
+        mock_post_fhir_doc_ref_service._determine_document_type(fhir_doc, None)
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.error == LambdaError.DocRefInvalidType
+
+
+def test_determine_document_type_with_unknown_config(
+    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+):
+    """Test _determine_document_type method when type is missing entirely."""
+    fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
+    mock_coding = [
+        {
+            "system": SNOMED_URL,
+            "code": "1234567890",
+            "display": "unknown code",
+        }
+    ]
+    fhir_doc.type = CodeableConcept(coding=mock_coding)
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_post_fhir_doc_ref_service._determine_document_type(fhir_doc, None)

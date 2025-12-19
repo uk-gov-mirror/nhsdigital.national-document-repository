@@ -292,7 +292,10 @@ class DocumentUploadReviewService(DocumentService):
                 continue
 
     def build_review_dynamo_filter(
-        self, nhs_number: str | None = None, uploader: str | None = None, status: DocumentReviewStatus | None = DocumentReviewStatus.PENDING_REVIEW
+        self,
+        nhs_number: str | None = None,
+        uploader: str | None = None,
+        status: DocumentReviewStatus | None = DocumentReviewStatus.PENDING_REVIEW,
     ) -> Attr | ConditionBase:
         filter_builder = DynamoQueryFilterBuilder()
         if status:

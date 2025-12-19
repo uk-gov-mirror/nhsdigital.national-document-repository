@@ -329,6 +329,8 @@ class DocTypeTableRouter:
         self._define_tables()
         self.mapping = {
             SnomedCodes.LLOYD_GEORGE.value.code: self.lg_dynamo_table,
+            SnomedCodes.EHR.value.code: self.lg_dynamo_table,
+            SnomedCodes.EHR_ATTACHMENTS.value.code: self.lg_dynamo_table,
             SnomedCodes.PATIENT_DATA.value.code: self.core_dynamo_table,
         }
 

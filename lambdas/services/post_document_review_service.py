@@ -87,7 +87,7 @@ class PostDocumentReviewService:
     def create_response(
         self, document_review_reference: DocumentUploadReviewReference
     ) -> dict:
-        logger.info(f"Creating response body.")
+        logger.info("Creating response body.")
         return document_review_reference.model_dump_camel_case(
             exclude_none=True,
             mode="json",

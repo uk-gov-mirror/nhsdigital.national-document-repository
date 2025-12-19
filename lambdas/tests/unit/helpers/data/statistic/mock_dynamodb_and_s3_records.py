@@ -73,9 +73,6 @@ MOCK_LG_SCAN_RESULT = [
         "FileLocation": "s3://test-lg-table/9000000001/2543ba87-dcdb-4583-bae2-e83c4ba7af34",
         "NhsNumber": "9000000001",
     },
-]
-
-MOCK_ARF_SCAN_RESULT = [
     {
         "CurrentGpOds": "Y12345",
         "ContentType": "application/msword",
@@ -103,8 +100,6 @@ MOCK_LG_LIST_OBJECTS_RESULT = [
     {"Key": "9000000009/0ab18243-783a-4044-8146-b5b0996d8422", "Size": 3 * MB},
     {"Key": "9000000001/5d5b3c28-e6c8-4d46-8ae3-a2b97321bcf8", "Size": 4 * MB},
     {"Key": "9000000001/2543ba87-dcdb-4583-bae2-e83c4ba7af34", "Size": 5 * MB},
-]
-MOCK_ARF_LIST_OBJECTS_RESULT = [
     {
         "Key": "9000000005/beec3523-1428-4c5f-b718-6ef25a4db1b9",
         "Size": 1 * MB,

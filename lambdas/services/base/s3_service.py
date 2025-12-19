@@ -120,16 +120,28 @@ class S3Service:
         retry_on_conflict: bool = True,
     ):
         copy_source_params = {"Bucket": source_bucket, "Key": source_file_key}
-        copy_object_params = {"Bucket": dest_bucket, "Key": dest_file_key, "CopySource": copy_source_params, "StorageClass": "INTELLIGENT_TIERING"}
+        copy_object_params = {
+            "Bucket": dest_bucket,
+            "Key": dest_file_key,
+            "CopySource": copy_source_params,
+            "StorageClass": "INTELLIGENT_TIERING",
+        }
         if if_none_match:
-            copy_object_params["IfNoneMatch"] = '*'
+            copy_object_params["IfNoneMatch"] = "*"
         try:
             return self.client.copy_object(**copy_object_params)
         except ClientError as e:
             if e.response["ResponseMetadata"]["HTTPStatusCode"] == 409:
                 logger.info(f"Copy failed due to conflict, retrying: {e}")
                 if retry_on_conflict:
-                    return self.copy_across_bucket(source_bucket, source_file_key, dest_bucket, dest_file_key, if_none_match, False)
+                    return self.copy_across_bucket(
+                        source_bucket,
+                        source_file_key,
+                        dest_bucket,
+                        dest_file_key,
+                        if_none_match,
+                        False,
+                    )
                 else:
                     raise e
             else:

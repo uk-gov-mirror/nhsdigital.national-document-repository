@@ -11,8 +11,6 @@ from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from services.data_collection_service import DataCollectionService
 from tests.unit.conftest import (
-    MOCK_ARF_BUCKET,
-    MOCK_ARF_TABLE_NAME,
     MOCK_LG_BUCKET,
     MOCK_LG_TABLE_NAME,
     MOCK_STATISTICS_TABLE,
@@ -28,8 +26,6 @@ from tests.unit.helpers.data.statistic.mock_collected_data import (
     START_DATE_STR,
 )
 from tests.unit.helpers.data.statistic.mock_dynamodb_and_s3_records import (
-    MOCK_ARF_LIST_OBJECTS_RESULT,
-    MOCK_ARF_SCAN_RESULT,
     MOCK_LG_LIST_OBJECTS_RESULT,
     MOCK_LG_SCAN_RESULT,
     TOTAL_FILE_SIZE_FOR_H81109,
@@ -70,9 +66,7 @@ def mock_dynamo_service(mocker):
     def mock_implementation(table_name, **_kwargs):
         if table_name == MOCK_LG_TABLE_NAME:
             return MOCK_LG_SCAN_RESULT
-        elif table_name == MOCK_ARF_TABLE_NAME:
-            return MOCK_ARF_SCAN_RESULT
-
+        return None
     patched_instance = mocker.patch(
         "services.data_collection_service.DynamoDBService", spec=DynamoDBService
     ).return_value
@@ -87,9 +81,7 @@ def mock_s3_list_all_objects(mocker):
     def mock_implementation(bucket_name, **_kwargs):
         if bucket_name == MOCK_LG_BUCKET:
             return MOCK_LG_LIST_OBJECTS_RESULT
-        elif bucket_name == MOCK_ARF_BUCKET:
-            return MOCK_ARF_LIST_OBJECTS_RESULT
-
+        return None
     patched_instance = mocker.patch(
         "services.data_collection_service.S3Service", spec=S3Service
     ).return_value
@@ -120,7 +112,7 @@ def mock_query_logs(mocker):
             return MOCK_ODS_REPORT_REQUESTED
         elif query_params == OdsReportsCreated:
             return MOCK_ODS_REPORT_CREATED
-
+        return []
     patched_instance = mocker.patch(
         "services.data_collection_service.CloudwatchService",
         spec=CloudwatchService,
@@ -226,11 +218,6 @@ def test_scan_dynamodb_tables(mock_dynamo_service, mock_service):
 
     expected_calls = [
         call(
-            table_name=MOCK_ARF_TABLE_NAME,
-            project_expression=expected_project_expression,
-            filter_expression=expected_filter_expression,
-        ),
-        call(
             table_name=MOCK_LG_TABLE_NAME,
             project_expression=expected_project_expression,
             filter_expression=expected_filter_expression,
@@ -243,7 +230,6 @@ def test_get_all_s3_files_info(mock_s3_list_all_objects, mock_service):
     mock_service.get_all_s3_files_info()
 
     expected_calls = [
-        call(MOCK_ARF_BUCKET),
         call(MOCK_LG_BUCKET),
     ]
 
@@ -253,8 +239,8 @@ def test_get_all_s3_files_info(mock_s3_list_all_objects, mock_service):
 def test_get_record_store_data(mock_uuid, mock_service):
     mock_service.today_date = START_DATE_STR
 
-    mock_dynamo_scan_result = MOCK_ARF_SCAN_RESULT + MOCK_LG_SCAN_RESULT
-    s3_list_objects_result = MOCK_ARF_LIST_OBJECTS_RESULT + MOCK_LG_LIST_OBJECTS_RESULT
+    mock_dynamo_scan_result = MOCK_LG_SCAN_RESULT
+    s3_list_objects_result = MOCK_LG_LIST_OBJECTS_RESULT
 
     actual = mock_service.get_record_store_data(
         mock_dynamo_scan_result, s3_list_objects_result
@@ -265,7 +251,7 @@ def test_get_record_store_data(mock_uuid, mock_service):
 
 
 def test_get_organisation_data(mock_uuid, mock_service):
-    mock_dynamo_scan_result = MOCK_ARF_SCAN_RESULT + MOCK_LG_SCAN_RESULT
+    mock_dynamo_scan_result = MOCK_LG_SCAN_RESULT
 
     actual = mock_service.get_organisation_data(
         mock_dynamo_scan_result, start_date=START_DATE, end_date=END_DATE
@@ -312,11 +298,11 @@ def test_get_cloud_watch_query_result(set_env, mock_query_logs):
 
 def test_get_total_number_of_records(mock_service):
     actual = mock_service.get_total_number_of_records(
-        MOCK_ARF_SCAN_RESULT + MOCK_LG_SCAN_RESULT
+        MOCK_LG_SCAN_RESULT
     )
     expected = [
-        {"ods_code": "Y12345", "total_number_of_records": 2},
         {"ods_code": "H81109", "total_number_of_records": 6},
+        {"ods_code": "Y12345", "total_number_of_records": 2},
     ]
 
     assert actual == expected
@@ -338,7 +324,7 @@ def test_get_total_number_of_records_larger_mock_data(mock_service, larger_mock_
 
 def test_get_number_of_patients(mock_service):
     actual = mock_service.get_number_of_patients(
-        MOCK_ARF_SCAN_RESULT + MOCK_LG_SCAN_RESULT
+        MOCK_LG_SCAN_RESULT
     )
     expected = unordered(
         [
@@ -351,9 +337,9 @@ def test_get_number_of_patients(mock_service):
 
 
 def test_get_metrics_for_total_and_average_file_sizes(mock_service):
-    mock_dynamo_scan_result = MOCK_ARF_SCAN_RESULT + MOCK_LG_SCAN_RESULT
+    mock_dynamo_scan_result = MOCK_LG_SCAN_RESULT
     mock_s3_list_objects_result = (
-        MOCK_ARF_LIST_OBJECTS_RESULT + MOCK_LG_LIST_OBJECTS_RESULT
+        MOCK_LG_LIST_OBJECTS_RESULT
     )
 
     actual = mock_service.get_metrics_for_total_and_average_file_sizes(
@@ -407,18 +393,8 @@ def test_get_metrics_for_total_and_average_file_sizes_larger_mock_data(
 
 
 def test_get_number_of_document_types(mock_service):
-    actual = mock_service.get_number_of_document_types(MOCK_ARF_SCAN_RESULT)
-    expected = unordered(
-        [
-            {"ods_code": "Y12345", "number_of_document_types": 2},
-            {"ods_code": "H81109", "number_of_document_types": 1},
-        ]
-    )
-
-    assert actual == expected
-
     actual = mock_service.get_number_of_document_types(
-        MOCK_ARF_SCAN_RESULT + MOCK_LG_SCAN_RESULT
+        MOCK_LG_SCAN_RESULT
     )
     expected = unordered(
         [
@@ -432,7 +408,7 @@ def test_get_number_of_document_types(mock_service):
 
 def test_get_average_number_of_file_per_patient(mock_service):
     actual = mock_service.get_average_number_of_files_per_patient(
-        MOCK_ARF_SCAN_RESULT + MOCK_LG_SCAN_RESULT
+        MOCK_LG_SCAN_RESULT
     )
     expected = unordered(
         [

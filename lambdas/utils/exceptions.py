@@ -66,6 +66,10 @@ class FileProcessingException(Exception):
     pass
 
 
+class ConfigNotFoundException(Exception):
+    pass
+
+
 class LGFileTypeException(ValueError):
     """One or more of the files do not match the required file type."""
 

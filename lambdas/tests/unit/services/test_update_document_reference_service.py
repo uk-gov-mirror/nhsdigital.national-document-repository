@@ -1,15 +1,13 @@
 import json
-import pytest
 
+import pytest
 from freezegun import freeze_time
 from services.fhir_document_reference_service_base import (
     FhirDocumentReferenceServiceBase,
 )
 from services.update_document_reference_service import UpdateDocumentReferenceService
-from tests.unit.helpers.data.create_document_reference import (
-    LG_FILE,
-)
 from tests.unit.conftest import TEST_UUID
+from tests.unit.helpers.data.create_document_reference import LG_FILE
 from tests.unit.helpers.data.test_documents import (
     create_test_doc_store_refs,
     create_test_lloyd_george_doc_store_refs,
@@ -17,10 +15,8 @@ from tests.unit.helpers.data.test_documents import (
 from utils.exceptions import LGInvalidFilesException, PatientNotFoundException
 from utils.lambda_exceptions import DocumentRefException
 from utils.request_context import request_context
-from lambdas.tests.unit.conftest import (
-    TEST_CURRENT_GP_ODS,
-    TEST_NHS_NUMBER,
-)
+
+from lambdas.tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_NHS_NUMBER
 
 
 @pytest.fixture
@@ -54,7 +50,7 @@ def setup_request_context():
     request_context.authorization = {
         "ndr_session_id": TEST_UUID,
         "nhs_user_id": "test-user-id",
-        "selected_organisation": {"org_ods_code": "test-ods-code"},
+        "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS},
     }
     yield
     request_context.authorization = {}
@@ -69,11 +65,11 @@ def mock_stop_if_upload_is_in_progress(mock_update_doc_ref_service, mocker):
 
 
 @pytest.fixture()
-def mock_validate_lg_files_for_access_and_store(
+def mock_validate_files_for_access_and_store(
     mocker, mock_getting_patient_info_from_pds
 ):
     yield mocker.patch(
-        "services.update_document_reference_service.validate_lg_files_for_access_and_store"
+        "services.update_document_reference_service.validate_files_for_access_and_store"
     )
 
 
@@ -144,7 +140,7 @@ def test_update_document_reference_request_with_lg_list_happy_path(
     mock_stop_if_upload_is_in_progress,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_process_fhir_document_reference,
-    mock_validate_lg_files_for_access_and_store,
+    mock_validate_files_for_access_and_store,
     mock_pds_patient,
     mock_fetch_documents_from_table,
 ):
@@ -171,10 +167,11 @@ def test_update_document_reference_request_with_lg_list_happy_path(
 
 
 def test_ods_code_not_in_pilot_raises_exception(
+    mock_fhir_doc_ref_base_service,
     mock_update_doc_ref_service,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_process_fhir_document_reference,
-    mock_validate_lg_files_for_access_and_store,
+    mock_validate_files_for_access_and_store,
     mock_stop_if_upload_is_in_progress,
     mock_getting_patient_info_from_pds,
     mock_pds_patient,
@@ -190,7 +187,7 @@ def test_ods_code_not_in_pilot_raises_exception(
         )
 
     mock_process_fhir_document_reference.assert_not_called()
-    mock_validate_lg_files_for_access_and_store.assert_not_called()
+    mock_validate_files_for_access_and_store.assert_not_called()
     mock_stop_if_upload_is_in_progress.assert_not_called()
 
     exception = exc_info.value
@@ -200,6 +197,7 @@ def test_ods_code_not_in_pilot_raises_exception(
 
 
 def test_nhs_number_not_found_raises_exception(
+    mock_fhir_doc_ref_base_service,
     mock_getting_patient_info_from_pds,
     mock_update_doc_ref_service,
     mock_check_if_ods_code_is_in_pilot,
@@ -226,7 +224,7 @@ def test_nhs_number_not_found_raises_exception(
 # covers for number of files expected, non-pdf files, incorrect file name format, duplicate files
 def test_invalid_files_raises_exception(
     mock_update_doc_ref_service,
-    mock_validate_lg_files_for_access_and_store,
+    mock_validate_files_for_access_and_store,
     mock_getting_patient_info_from_pds,
     mock_pds_patient,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
@@ -239,7 +237,7 @@ def test_invalid_files_raises_exception(
     mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
         TEST_CURRENT_GP_ODS
     ]
-    mock_validate_lg_files_for_access_and_store.side_effect = LGInvalidFilesException
+    mock_validate_files_for_access_and_store.side_effect = LGInvalidFilesException
     mock_fetch_documents_from_table.return_value = create_test_doc_store_refs()
 
     with pytest.raises(DocumentRefException) as exc_info:
@@ -264,7 +262,7 @@ def test_upload_already_in_progress_raises_exception(
     mock_pds_patient,
     mock_fhir_doc_ref_base_service,
     mock_process_fhir_document_reference,
-    mock_validate_lg_files_for_access_and_store,
+    mock_validate_files_for_access_and_store,
     mock_fetch_documents_from_table,
 ):
     mock_getting_patient_info_from_pds.return_value = mock_pds_patient

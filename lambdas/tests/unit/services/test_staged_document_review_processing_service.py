@@ -15,7 +15,6 @@ from tests.unit.conftest import (
     MOCK_STAGING_STORE_BUCKET,
     TEST_NHS_NUMBER,
 )
-from utils.exceptions import DocumentServiceException, FileProcessingException
 
 
 @pytest.fixture
@@ -202,8 +201,11 @@ def test_handle_upload_document_reference_request_with_client_errors(
     mock_review_document_service.build_review_dynamo_filter.return_value = {}
 
     error = ClientError(
-        {"Error": {"Code": error_code, "Message": "Test error"},
-         "ResponseMetadata": {"HTTPStatusCode": status_code}}, "test_operation"
+        {
+            "Error": {"Code": error_code, "Message": "Test error"},
+            "ResponseMetadata": {"HTTPStatusCode": status_code},
+        },
+        "test_operation",
     )
     mock_service.s3_service.copy_across_bucket.side_effect = error
 
@@ -266,7 +268,6 @@ def test_handle_upload_document_reference_request_with_mismatched_object_key_and
     mock_virus_scan_service.scan_file.assert_not_called()
     mock_service.s3_service.copy_across_bucket.assert_not_called()
     mock_service.s3_service.delete_object.assert_called()
-
 
 
 @pytest.mark.parametrize(
@@ -362,9 +363,11 @@ def test_copy_files_from_staging_bucket_with_error(
 ):
     source_file_key = "test-upload-id/test-document.pdf"
     error = ClientError(
-        {"Error": {"Code": "AccessDenied", "Message": "Access denied"},
-         "ResponseMetadata": {"HTTPStatusCode": 400},
-         }, "copy_object"
+        {
+            "Error": {"Code": "AccessDenied", "Message": "Access denied"},
+            "ResponseMetadata": {"HTTPStatusCode": 400},
+        },
+        "copy_object",
     )
     mock_s3_service.copy_across_bucket.side_effect = error
 
@@ -372,6 +375,7 @@ def test_copy_files_from_staging_bucket_with_error(
         mock_service.copy_files_from_staging_bucket(
             sample_document_reference, source_file_key
         )
+
 
 def test_copy_files_from_staging_bucket_with_412_error(
     mock_service,
@@ -401,7 +405,6 @@ def test_copy_files_from_staging_bucket_with_412_error(
         dest_file_key=f"{sample_document_reference.id}/{sample_document_reference.files[0].file_name}",
         if_none_match=True,
     )
-
 
 
 def test_delete_file_from_staging_bucket(

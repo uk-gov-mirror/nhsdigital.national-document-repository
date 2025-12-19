@@ -19,7 +19,9 @@ from tests.unit.conftest import (
     TEST_NHS_NUMBER,
     TEST_UUID,
 )
-from tests.unit.helpers.data.search_document_review.dynamo_response import MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE
+from tests.unit.helpers.data.search_document_review.dynamo_response import (
+    MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
+)
 from utils.exceptions import DocumentReviewException
 
 TEST_ODS_CODE = "Y12345"

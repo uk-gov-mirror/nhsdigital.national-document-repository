@@ -81,7 +81,7 @@ def check_for_patient_already_exist_in_repo(nhs_number: str):
         )
 
 
-def validate_lg_files_for_access_and_store(
+def validate_files_for_access_and_store(
     file_list: list[UploadRequestDocument], pds_patient_details: Patient
 ):
     nhs_number = pds_patient_details.id

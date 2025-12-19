@@ -109,8 +109,9 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             if fhir_doc.type and fhir_doc.type.coding:
                 for coding in fhir_doc.type.coding:
                     if coding.system == SNOMED_URL:
-                        if coding.code == SnomedCodes.LLOYD_GEORGE.value.code:
-                            return SnomedCodes.LLOYD_GEORGE.value
+                        snomed_code = SnomedCodes.find_by_code(coding.code)
+                        if snomed_code is not None:
+                            return snomed_code
                     else:
                         logger.error(
                             f"SNOMED code {coding.code} - {coding.display} is not supported"

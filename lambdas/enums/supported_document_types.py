@@ -10,6 +10,8 @@ logger = LoggingService(__name__)
 class SupportedDocumentTypes(StrEnum):
     ARF = "ARF"
     LG = SnomedCodes.LLOYD_GEORGE.value.code
+    EHR = SnomedCodes.EHR.value.code
+    EHR_ATTACHMENTS = SnomedCodes.EHR_ATTACHMENTS.value.code
 
     @staticmethod
     def list():
@@ -33,6 +35,10 @@ class SupportedDocumentTypes(StrEnum):
         document_type_to_table_name = {
             SupportedDocumentTypes.ARF: os.getenv("DOCUMENT_STORE_DYNAMODB_NAME"),
             SupportedDocumentTypes.LG: os.getenv("LLOYD_GEORGE_DYNAMODB_NAME"),
+            SupportedDocumentTypes.EHR: os.getenv("LLOYD_GEORGE_DYNAMODB_NAME"),
+            SupportedDocumentTypes.EHR_ATTACHMENTS: os.getenv(
+                "LLOYD_GEORGE_DYNAMODB_NAME"
+            ),
         }
         return document_type_to_table_name[self]
 
@@ -40,5 +46,9 @@ class SupportedDocumentTypes(StrEnum):
         lookup_dict = {
             SupportedDocumentTypes.ARF: os.getenv("DOCUMENT_STORE_BUCKET_NAME"),
             SupportedDocumentTypes.LG: os.getenv("LLOYD_GEORGE_BUCKET_NAME"),
+            SupportedDocumentTypes.EHR: os.getenv("LLOYD_GEORGE_BUCKET_NAME"),
+            SupportedDocumentTypes.EHR_ATTACHMENTS: os.getenv(
+                "LLOYD_GEORGE_BUCKET_NAME"
+            ),
         }
         return lookup_dict[self]

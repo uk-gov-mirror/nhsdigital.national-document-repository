@@ -5,6 +5,7 @@ from typing import Optional
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
 from enums.supported_document_types import SupportedDocumentTypes
+from enums.upload_forbidden_file_extensions import is_file_type_allowed
 from models.document_reference import DocumentReference, UploadRequestDocument
 from models.fhir.R4.fhir_document_reference import Attachment, DocumentReferenceInfo
 from pydantic import ValidationError
@@ -12,21 +13,24 @@ from services.base.ssm_service import SSMService
 from services.post_fhir_document_reference_service import (
     PostFhirDocumentReferenceService,
 )
+from utils import upload_file_configs
 from utils.audit_logging_setup import LoggingService
-from utils.common_query_filters import NotDeleted, UploadIncomplete
+from utils.common_query_filters import NotDeleted
 from utils.constants.ssm import UPLOAD_PILOT_ODS_ALLOWED_LIST
 from utils.exceptions import (
+    ConfigNotFoundException,
     InvalidNhsNumberException,
     LGInvalidFilesException,
+    OdsErrorException,
     PatientNotFoundException,
     PdsTooManyRequestsException,
 )
 from utils.lambda_exceptions import DocumentRefException
 from utils.lloyd_george_validator import (
+    check_for_duplicate_files,
     getting_patient_info_from_pds,
-    validate_lg_files_for_access_and_store,
 )
-from utils.request_context import request_context
+from utils.ods_utils import extract_ods_code_from_request_context
 from utils.utilities import create_reference_id
 
 FAILED_CREATE_REFERENCE_MESSAGE = "Create document reference failed"
@@ -46,98 +50,66 @@ class CreateDocumentReferenceService:
         self.ssm_service = SSMService()
 
         self.lg_dynamo_table = os.getenv("LLOYD_GEORGE_DYNAMODB_NAME")
-        self.arf_dynamo_table = os.getenv("DOCUMENT_STORE_DYNAMODB_NAME")
         self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
         self.upload_sub_folder = "user_upload"
 
     def create_document_reference_request(
         self, nhs_number: str, documents_list: list[dict]
     ):
-        arf_documents: list[DocumentReference] = []
-        upload_lg_documents: list[UploadRequestDocument] = []
+        upload_document_names = []
         url_responses = {}
         upload_request_documents = self.parse_documents_list(documents_list)
 
-        has_lg_document = any(
+        if any(
             document.doc_type == SupportedDocumentTypes.LG
             for document in upload_request_documents
-        )
+        ):
+            self.check_existing_lloyd_george_records_and_remove_failed_upload(
+                nhs_number
+            )
 
         try:
-            snomed_code_type = SnomedCodes.LLOYD_GEORGE.value
-            current_gp_ods = ""
-            if has_lg_document:
-                pds_patient_details = getting_patient_info_from_pds(nhs_number)
-                current_gp_ods = (
-                    pds_patient_details.get_ods_code_or_inactive_status_for_gp()
-                )
-                ods_allowed = self.check_if_ods_code_is_in_pilot(current_gp_ods)
-                if not ods_allowed:
-                    raise DocumentRefException(404, LambdaError.DocRefOdsCodeNotAllowed)
-                self.check_existing_lloyd_george_records_and_remove_failed_upload(
-                    nhs_number
-                )
+            user_ods_code = extract_ods_code_from_request_context()
 
-            if isinstance(request_context.authorization, dict):
-                user_ods_code = request_context.authorization.get(
-                    "selected_organisation", {}
-                ).get("org_ods_code", "")
+            pds_patient_details = getting_patient_info_from_pds(nhs_number)
+            patient_ods_code = (
+                pds_patient_details.get_ods_code_or_inactive_status_for_gp()
+            )
+            self.validate_patient_user_ods_codes_match(user_ods_code, patient_ods_code)
+            self.check_if_user_ods_code_is_in_pilot(user_ods_code)
 
             for validated_doc in upload_request_documents:
+                snomed_code = validated_doc.doc_type
+
                 document_reference = self.create_document_reference(
-                    nhs_number, current_gp_ods, validated_doc, snomed_code_type.code
+                    nhs_number, user_ods_code, validated_doc, snomed_code
                 )
 
-                match document_reference.doc_type:
-                    case SupportedDocumentTypes.ARF:
-                        # change snomed_code_type to ARF when available
-                        arf_documents.append(document_reference)
-                    case SupportedDocumentTypes.LG:
-                        upload_lg_documents.append(validated_doc)
-                    case _:
-                        logger.error(
-                            f"{LambdaError.DocRefInvalidType.to_str()}",
-                            {"Result": UPLOAD_REFERENCE_FAILED_MESSAGE},
-                        )
-                        raise DocumentRefException(400, LambdaError.DocRefInvalidType)
+                self.validate_document_file_type(validated_doc, snomed_code)
 
-                attachment_details = Attachment(
-                    title=validated_doc.file_name,
-                )
+                upload_document_names.append(validated_doc.file_name)
 
-                doc_ref_info = DocumentReferenceInfo(
-                    nhs_number=nhs_number,
-                    snomed_code_doc_type=snomed_code_type,
-                    attachment=attachment_details,
-                    author=user_ods_code,
-                )
-
-                fhir_doc_ref = doc_ref_info.create_fhir_document_reference_object(
-                    document_reference
-                )
-
-                fhir_response = (
-                    self.post_fhir_doc_ref_service.process_fhir_document_reference(
-                        fhir_doc_ref.model_dump_json()
-                    )
+                fhir_response = self.build_and_process_fhir_doc_ref(
+                    nhs_number,
+                    user_ods_code,
+                    validated_doc,
+                    snomed_code,
+                    document_reference,
                 )
                 fhir_response_data = json.loads(fhir_response)
                 url_responses[validated_doc.client_id] = fhir_response_data["content"][
                     0
                 ]["attachment"]["url"]
 
-            if upload_lg_documents:
-                validate_lg_files_for_access_and_store(
-                    upload_lg_documents, pds_patient_details
-                )
-
-            if arf_documents:
-                self.check_existing_arf_record_and_remove_failed_upload(nhs_number)
+            check_for_duplicate_files(upload_document_names)
 
             return url_responses
 
         except PatientNotFoundException:
             raise DocumentRefException(404, LambdaError.SearchPatientNoPDS)
+
+        except OdsErrorException:
+            raise DocumentRefException(404, LambdaError.DocRefOdsCodeNotAllowed)
 
         except (
             InvalidNhsNumberException,
@@ -150,18 +122,78 @@ class CreateDocumentReferenceService:
             )
             raise DocumentRefException(400, LambdaError.DocRefInvalidFiles)
 
-    def check_if_ods_code_is_in_pilot(self, ods_code) -> bool:
-        pilot_ods_codes = self.get_allowed_list_of_ods_codes_for_upload_pilot()
-        return ods_code in pilot_ods_codes
+    def validate_document_file_type(self, validated_doc, snomed_code):
+        accepted_file_types = self.get_accepted_file_types(
+            snomed_code, upload_file_configs
+        )
 
-    def check_existing_arf_record_and_remove_failed_upload(self, nhs_number):
-        incomplete_arf_upload_records = self.fetch_incomplete_arf_upload_records(
-            nhs_number
+        if not is_file_type_allowed(validated_doc.file_name, accepted_file_types):
+            raise LGInvalidFilesException(
+                f"Unsupported file type for file: {validated_doc.file_name}"
+            )
+
+    def build_and_process_fhir_doc_ref(
+        self, nhs_number, user_ods_code, validated_doc, snomed_code, document_reference
+    ):
+        doc_ref_info = self.build_doc_ref_info(
+            validated_doc,
+            nhs_number,
+            snomed_code,
+            user_ods_code,
         )
-        self.stop_if_upload_is_in_process(incomplete_arf_upload_records)
-        self.remove_records_of_failed_upload(
-            self.arf_dynamo_table, incomplete_arf_upload_records
+
+        fhir_doc_ref = doc_ref_info.create_fhir_document_reference_object(
+            document_reference
         )
+
+        fhir_response = self.post_fhir_doc_ref_service.process_fhir_document_reference(
+            fhir_doc_ref.model_dump_json()
+        )
+
+        return fhir_response
+
+    def validate_patient_user_ods_codes_match(self, user_ods_code, patient_ods_code):
+        if user_ods_code != patient_ods_code:
+            logger.error(
+                f"{LambdaError.DocRefUnauthorizedOdsCode.to_str()}",
+            )
+            raise DocumentRefException(401, LambdaError.DocRefUnauthorizedOdsCode)
+
+    def get_accepted_file_types(self, snomed_code, upload_file_configs):
+        try:
+            return upload_file_configs.get_config_by_snomed_code(
+                snomed_code
+            ).accepted_file_types
+        except ConfigNotFoundException:
+            logger.error(
+                f"{LambdaError.DocRefInvalidType.to_str()}",
+                {"Result": UPLOAD_REFERENCE_FAILED_MESSAGE},
+            )
+            raise DocumentRefException(400, LambdaError.DocRefInvalidType)
+
+    def build_doc_ref_info(
+        self, validated_doc, nhs_number, snomed_code, user_ods_code
+    ) -> DocumentReferenceInfo:
+        attachment_details = Attachment(
+            title=validated_doc.file_name,
+            contentType=validated_doc.content_type,
+        )
+
+        doc_ref_info = DocumentReferenceInfo(
+            nhs_number=nhs_number,
+            snomed_code_doc_type=SnomedCodes.find_by_code(snomed_code),
+            attachment=attachment_details,
+            author=user_ods_code,
+        )
+
+        return doc_ref_info
+
+    def check_if_user_ods_code_is_in_pilot(self, ods_code) -> bool:
+        pilot_ods_codes = self.get_allowed_list_of_ods_codes_for_upload_pilot()
+        if ods_code in pilot_ods_codes:
+            return True
+        else:
+            raise OdsErrorException()
 
     def parse_documents_list(
         self, document_list: list[dict]
@@ -179,7 +211,8 @@ class CreateDocumentReferenceService:
                     {"Result": FAILED_CREATE_REFERENCE_MESSAGE},
                 )
                 raise DocumentRefException(400, LambdaError.DocRefNoParse)
-
+        if len(upload_request_document_list) == 0:
+            raise DocumentRefException(400, LambdaError.DocRefInvalidFiles)
         return upload_request_document_list
 
     def create_document_reference(
@@ -286,15 +319,6 @@ class CreateDocumentReferenceService:
         )
 
         logger.info("Previous failed records are deleted.")
-
-    def fetch_incomplete_arf_upload_records(
-        self, nhs_number
-    ) -> list[DocumentReference]:
-        return self.post_fhir_doc_ref_service.document_service.fetch_available_document_references_by_type(
-            nhs_number=nhs_number,
-            doc_type=SupportedDocumentTypes.ARF,
-            query_filter=UploadIncomplete,
-        )
 
     def get_allowed_list_of_ods_codes_for_upload_pilot(self) -> list[str]:
         logger.info(

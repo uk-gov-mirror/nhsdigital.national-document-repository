@@ -14,15 +14,11 @@ from services.fhir_document_reference_service_base import (
 from tests.unit.helpers.data.create_document_reference import (
     ARF_FILE_LIST,
     LG_FILE_LIST,
-    PARSED_ARF_FILE_LIST,
     PARSED_LG_FILE_LIST,
 )
 from tests.unit.helpers.data.test_documents import (
-    create_test_arf_doc_store_refs,
-    create_test_doc_refs,
     create_test_lloyd_george_doc_store_refs,
 )
-from utils.common_query_filters import UploadIncomplete
 from utils.constants.ssm import UPLOAD_PILOT_ODS_ALLOWED_LIST
 from utils.exceptions import PatientNotFoundException
 from utils.lambda_exceptions import DocumentRefException
@@ -31,10 +27,8 @@ from utils.request_context import request_context
 
 from lambdas.enums.supported_document_types import SupportedDocumentTypes
 from lambdas.tests.unit.conftest import (
-    MOCK_ARF_TABLE_NAME,
     MOCK_LG_BUCKET,
     MOCK_LG_TABLE_NAME,
-    MOCK_STAGING_STORE_BUCKET,
     TEST_CURRENT_GP_ODS,
     TEST_NHS_NUMBER,
     TEST_UUID,
@@ -87,7 +81,7 @@ def setup_request_context():
     request_context.authorization = {
         "ndr_session_id": TEST_UUID,
         "nhs_user_id": "test-user-id",
-        "selected_organisation": {"org_ods_code": "test-ods-code"},
+        "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS},
     }
     yield
     request_context.authorization = {}
@@ -136,9 +130,9 @@ def mock_check_existing_lloyd_george_records_and_remove_failed_upload(
 
 
 @pytest.fixture()
-def mock_validate_lg_files_for_access_and_store(mocker):
+def mock_check_for_duplicate_files(mocker):
     yield mocker.patch(
-        "services.create_document_reference_service.validate_lg_files_for_access_and_store"
+        "services.create_document_reference_service.check_for_duplicate_files"
     )
 
 
@@ -186,34 +180,14 @@ def test_create_document_reference_request_empty_list(
     mock_getting_patient_info_from_pds,
     setup_request_context,
 ):
-    mock_create_doc_ref_service.create_document_reference_request(TEST_NHS_NUMBER, [])
+    with pytest.raises(DocumentRefException) as e:
+        mock_create_doc_ref_service.create_document_reference_request(
+            TEST_NHS_NUMBER, []
+        )
 
-    mock_getting_patient_info_from_pds.assert_not_called()
+    assert e.value == DocumentRefException(400, LambdaError.DocRefInvalidFiles)
     mock_create_document_reference.assert_not_called()
     mock_process_fhir_document_reference.assert_not_called()
-
-
-def test_create_document_reference_request_with_arf_list_happy_path(
-    mocker,
-    mock_fhir_doc_ref_base_service,
-    mock_create_doc_ref_service,
-    mock_process_fhir_document_reference,
-    mock_validate_lg_files_for_access_and_store,
-    undo_mocking_for_is_upload_in_process,
-):
-    mock_presigned_url_response = "https://test-bucket.s3.amazonaws.com/"
-
-    url_references = mock_create_doc_ref_service.create_document_reference_request(
-        TEST_NHS_NUMBER, ARF_FILE_LIST
-    )
-    expected_response = {
-        "uuid1": mock_presigned_url_response,
-        "uuid2": mock_presigned_url_response,
-        "uuid3": mock_presigned_url_response,
-    }
-    assert url_references == expected_response
-
-    mock_validate_lg_files_for_access_and_store.assert_not_called()
 
 
 def test_create_document_reference_request_with_lg_list_happy_path(
@@ -225,7 +199,7 @@ def test_create_document_reference_request_with_lg_list_happy_path(
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_check_existing_lloyd_george_records_and_remove_failed_upload,
     mock_fetch_available_document_references_by_type,
-    mock_validate_lg_files_for_access_and_store,
+    mock_check_for_duplicate_files,
 ):
     mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
         TEST_CURRENT_GP_ODS
@@ -245,72 +219,7 @@ def test_create_document_reference_request_with_lg_list_happy_path(
     mock_check_existing_lloyd_george_records_and_remove_failed_upload.assert_called_with(
         TEST_NHS_NUMBER
     )
-    mock_validate_lg_files_for_access_and_store.assert_called_once()
-
-
-@freeze_time("2023-10-30T10:25:00")
-def test_create_document_reference_request_with_both_list(
-    mock_fhir_doc_ref_base_service,
-    mock_create_doc_ref_service,
-    mock_process_fhir_document_reference,
-    mocker,
-    mock_create_document_reference,
-    mock_getting_patient_info_from_pds,
-    mock_validate_lg_files_for_access_and_store,
-    mock_fetch_available_document_references_by_type,
-    undo_mocking_for_is_upload_in_process,
-    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
-):
-    files_list = ARF_FILE_LIST + LG_FILE_LIST
-    lg_file_names = [file["fileName"] for file in LG_FILE_LIST]
-    arf_file_names = [file["fileName"] for file in ARF_FILE_LIST]
-
-    lg_doc_refs = create_test_doc_refs(
-        override={"current_gp_ods": TEST_CURRENT_GP_ODS}, file_names=lg_file_names
-    )
-    arf_doc_refs = create_test_doc_refs(
-        override={
-            "doc_type": "ARF",
-            "current_gp_ods": TEST_CURRENT_GP_ODS,
-        },
-        file_names=arf_file_names,
-    )
-    document_references = lg_doc_refs + arf_doc_refs
-    prepare_doc_object_mock_return_values = document_references
-
-    mock_create_document_reference.side_effect = prepare_doc_object_mock_return_values
-    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
-        TEST_CURRENT_GP_ODS
-    ]
-    mock_presigned_url_response = "https://test-bucket.s3.amazonaws.com/"
-
-    expected_calls_for_prepare_doc_object = [
-        mocker.call(
-            TEST_NHS_NUMBER,
-            TEST_CURRENT_GP_ODS,
-            validated_doc,
-            SnomedCodes.LLOYD_GEORGE.value.code,
-        )
-        for validated_doc in PARSED_ARF_FILE_LIST + PARSED_LG_FILE_LIST
-    ]
-
-    url_references = mock_create_doc_ref_service.create_document_reference_request(
-        TEST_NHS_NUMBER, files_list
-    )
-
-    mock_create_document_reference.assert_has_calls(
-        expected_calls_for_prepare_doc_object, any_order=True
-    )
-
-    # only 3 uuids because test ARF and LG files have the same clientId
-    expected_response = {
-        "uuid1": mock_presigned_url_response,
-        "uuid2": mock_presigned_url_response,
-        "uuid3": mock_presigned_url_response,
-    }
-    assert url_references == expected_response
-
-    mock_validate_lg_files_for_access_and_store.assert_called()
+    mock_check_for_duplicate_files.assert_called_once()
 
 
 def test_create_document_reference_request_raise_error_when_invalid_lg(
@@ -319,7 +228,7 @@ def test_create_document_reference_request_raise_error_when_invalid_lg(
     mocker,
     mock_process_fhir_document_reference,
     mock_create_document_reference,
-    mock_validate_lg_files_for_access_and_store,
+    mock_check_for_duplicate_files,
     mock_getting_patient_info_from_pds,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_check_existing_lloyd_george_records_and_remove_failed_upload,
@@ -345,9 +254,7 @@ def test_create_document_reference_request_raise_error_when_invalid_lg(
         side_effects.append(document_references[index])
 
     mock_create_document_reference.side_effect = side_effects
-    mock_validate_lg_files_for_access_and_store.side_effect = LGInvalidFilesException(
-        "test"
-    )
+    mock_check_for_duplicate_files.side_effect = LGInvalidFilesException("test")
     mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
         TEST_CURRENT_GP_ODS
     ]
@@ -376,8 +283,8 @@ def test_create_document_reference_failed_to_parse_pds_response(
     mock_create_doc_ref_service,
     mock_create_document_reference,
     mock_getting_patient_info_from_pds,
+    mock_fetch_available_document_references_by_type,
 ):
-
     mock_getting_patient_info_from_pds.side_effect = LGInvalidFilesException
 
     with pytest.raises(Exception) as exc_info:
@@ -394,9 +301,11 @@ def test_create_document_reference_failed_to_parse_pds_response(
 
 
 def test_cdr_nhs_number_not_found_raises_search_patient_exception(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mock_create_document_reference,
     mock_getting_patient_info_from_pds,
+    mock_fetch_available_document_references_by_type,
 ):
     mock_getting_patient_info_from_pds.side_effect = PatientNotFoundException
 
@@ -417,12 +326,12 @@ def test_cdr_non_pdf_file_raises_exception(
     mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mock_process_fhir_document_reference,
-    mock_validate_lg_files_for_access_and_store,
+    mock_check_for_duplicate_files,
     mock_getting_patient_info_from_pds,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_check_existing_lloyd_george_records_and_remove_failed_upload,
 ):
-    mock_validate_lg_files_for_access_and_store.side_effect = LGInvalidFilesException
+    mock_check_for_duplicate_files.side_effect = LGInvalidFilesException
     mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
         TEST_CURRENT_GP_ODS
     ]
@@ -444,7 +353,7 @@ def test_create_document_reference_request_lg_upload_throw_lambda_error_if_uploa
     mock_create_doc_ref_service,
     mock_process_fhir_document_reference,
     mock_getting_patient_info_from_pds,
-    mock_validate_lg_files_for_access_and_store,
+    mock_check_for_duplicate_files,
     mock_fetch_available_document_references_by_type,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
 ):
@@ -471,7 +380,7 @@ def test_create_document_reference_request_lg_upload_throw_lambda_error_if_got_a
     mock_create_doc_ref_service,
     mock_process_fhir_document_reference,
     mock_getting_patient_info_from_pds,
-    mock_validate_lg_files_for_access_and_store,
+    mock_check_for_duplicate_files,
     mock_fetch_available_document_references_by_type,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
 ):
@@ -514,66 +423,11 @@ def test_check_existing_lloyd_george_records_remove_previous_failed_upload_and_c
     )
 
 
-@freeze_time("2023-10-30T10:25:00")
-def test_create_document_reference_request_arf_upload_throw_lambda_error_if_upload_in_progress(
-    mock_fhir_doc_ref_base_service,
-    mock_create_doc_ref_service,
-    mock_process_fhir_document_reference,
-    mock_fetch_available_document_references_by_type,
+def test_parse_documents_list_for_valid_input(
+    mock_fhir_doc_ref_base_service, mock_create_doc_ref_service
 ):
-    two_minutes_ago = 1698661380  # 2023-10-30T10:23:00
-    mock_records_upload_in_process = create_test_arf_doc_store_refs(
-        override={"uploaded": False, "uploading": True, "last_updated": two_minutes_ago}
-    )
-    mock_fetch_available_document_references_by_type.return_value = (
-        mock_records_upload_in_process
-    )
-
-    with pytest.raises(DocumentRefException) as e:
-        mock_create_doc_ref_service.create_document_reference_request(
-            TEST_NHS_NUMBER, ARF_FILE_LIST
-        )
-    assert e.value == DocumentRefException(423, LambdaError.UploadInProgressError)
-
-    mock_fetch_available_document_references_by_type.assert_called_with(
-        doc_type=SupportedDocumentTypes.ARF,
-        nhs_number=TEST_NHS_NUMBER,
-        query_filter=UploadIncomplete,
-    )
-
-
-def test_create_document_reference_request_arf_upload_remove_previous_failed_upload_and_continue(
-    mock_fhir_doc_ref_base_service,
-    mock_create_doc_ref_service,
-    mock_process_fhir_document_reference,
-    mock_fetch_available_document_references_by_type,
-    mock_remove_records,
-    undo_mocking_for_is_upload_in_process,
-):
-    mock_doc_refs_of_failed_upload = create_test_arf_doc_store_refs(
-        override={"uploaded": False}
-    )
-    mock_fetch_available_document_references_by_type.return_value = (
-        mock_doc_refs_of_failed_upload
-    )
-
-    mock_create_doc_ref_service.create_document_reference_request(
-        TEST_NHS_NUMBER, ARF_FILE_LIST
-    )
-
-    mock_remove_records.assert_called_with(
-        MOCK_ARF_TABLE_NAME, mock_doc_refs_of_failed_upload
-    )
-    mock_fetch_available_document_references_by_type.assert_called_with(
-        doc_type=SupportedDocumentTypes.ARF,
-        nhs_number=TEST_NHS_NUMBER,
-        query_filter=UploadIncomplete,
-    )
-
-
-def test_parse_documents_list_for_valid_input(mock_create_doc_ref_service):
-    mock_input = LG_FILE_LIST + ARF_FILE_LIST
-    expected = PARSED_LG_FILE_LIST + PARSED_ARF_FILE_LIST
+    mock_input = LG_FILE_LIST
+    expected = PARSED_LG_FILE_LIST
 
     actual = mock_create_doc_ref_service.parse_documents_list(mock_input)
 
@@ -581,6 +435,7 @@ def test_parse_documents_list_for_valid_input(mock_create_doc_ref_service):
 
 
 def test_parse_documents_list_raise_lambda_error_when_no_type(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
 ):
     mock_input_no_file_type = [
@@ -595,6 +450,7 @@ def test_parse_documents_list_raise_lambda_error_when_no_type(
 
 
 def test_parse_documents_list_raise_lambda_error_when_doc_type_is_invalid(
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
 ):
     mock_input_wrong_doc_type = [
@@ -609,46 +465,9 @@ def test_parse_documents_list_raise_lambda_error_when_doc_type_is_invalid(
         mock_create_doc_ref_service.parse_documents_list(mock_input_wrong_doc_type)
 
 
-def test_prepare_doc_object_arf_happy_path(mocker, mock_create_doc_ref_service):
-    validated_document = UploadRequestDocument.model_validate(ARF_FILE_LIST[0])
-    nhs_number = "1234567890"
-    reference_id = 12341234
-    current_gp_ods = ""
-
-    mocker.patch(
-        "services.create_document_reference_service.create_reference_id",
-        return_value=reference_id,
-    )
-    mocked_doc = mocker.MagicMock()
-    nhs_doc_class = mocker.patch(
-        "services.create_document_reference_service.DocumentReference",
-        return_value=mocked_doc,
-    )
-    nhs_doc_class.model_dump.return_value = {}
-
-    actual_document_reference = mock_create_doc_ref_service.create_document_reference(
-        nhs_number, current_gp_ods, validated_document
-    )
-
-    assert actual_document_reference == mocked_doc
-    nhs_doc_class.assert_called_with(
-        nhs_number=nhs_number,
-        current_gp_ods=current_gp_ods,
-        s3_bucket_name=MOCK_STAGING_STORE_BUCKET,
-        sub_folder=mock_create_doc_ref_service.upload_sub_folder,
-        id=reference_id,
-        content_type="text/plain",
-        file_name="test1.txt",
-        doc_type=SupportedDocumentTypes.ARF.value,
-        document_snomed_code_type=None,
-        uploading=True,
-        author=current_gp_ods,
-        custodian=current_gp_ods,
-        doc_status="preliminary",
-    )
-
-
-def test_prepare_doc_object_lg_happy_path(mocker, mock_create_doc_ref_service):
+def test_prepare_doc_object_lg_happy_path(
+    mocker, mock_fhir_doc_ref_base_service, mock_create_doc_ref_service
+):
     validated_document = UploadRequestDocument.model_validate(LG_FILE_LIST[0])
     nhs_number = "1234567890"
     reference_id = 12341234
@@ -786,9 +605,12 @@ def test_remove_records_of_failed_upload(
 
 def test_ods_code_not_in_pilot_raises_exception(
     mocker,
+    mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mock_create_document_reference,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_fetch_available_document_references_by_type,
+    mock_getting_patient_info_from_pds,
 ):
     mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = ["PI001"]
 
@@ -806,7 +628,7 @@ def test_ods_code_not_in_pilot_raises_exception(
 
 
 def test_get_allowed_list_of_ods_codes_for_upload_pilot(
-    mock_create_doc_ref_service, mock_ssm
+    mock_fhir_doc_ref_base_service, mock_create_doc_ref_service, mock_ssm
 ):
     mock_ssm.get_ssm_parameter.return_value = MOCK_ALLOWED_ODS_CODES_LIST_PILOT[
         "Parameter"
@@ -820,3 +642,54 @@ def test_get_allowed_list_of_ods_codes_for_upload_pilot(
     mock_ssm.get_ssm_parameter.assert_called_once()
 
     assert actual == expected
+
+
+def test_patient_ods_does_not_match_user_ods_and_raises_exception(
+    mock_fhir_doc_ref_base_service,
+    mock_create_doc_ref_service,
+    mock_create_document_reference,
+    mock_check_existing_lloyd_george_records_and_remove_failed_upload,
+):
+
+    with pytest.raises(DocumentRefException) as exc_info:
+        mock_create_doc_ref_service.create_document_reference_request(
+            TEST_NHS_NUMBER, LG_FILE_LIST
+        )
+
+    mock_create_document_reference.assert_not_called()
+
+    exception = exc_info.value
+    assert isinstance(exception, DocumentRefException)
+    assert exception.status_code == 401
+    assert (
+        exception.message
+        == "The user is not authorised to upload documents for this patient"
+    )
+
+
+def test_unable_to_find_config_reiases_exception(
+    mock_fhir_doc_ref_base_service,
+    mock_create_doc_ref_service,
+    mock_check_existing_lloyd_george_records_and_remove_failed_upload,
+    mock_getting_patient_info_from_pds,
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
+    mock_process_fhir_document_reference,
+):
+    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
+        TEST_CURRENT_GP_ODS
+    ]
+
+    with pytest.raises(DocumentRefException) as exc_info:
+        mock_create_doc_ref_service.create_document_reference_request(
+            TEST_NHS_NUMBER, ARF_FILE_LIST
+        )
+
+    exception = exc_info.value
+    assert isinstance(exception, DocumentRefException)
+    assert exception.status_code == 400
+    assert (
+        exception.message
+        == "Failed to parse document upload request data due to invalid document type"
+    )
+
+    mock_process_fhir_document_reference.assert_not_called()

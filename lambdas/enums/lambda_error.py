@@ -108,6 +108,11 @@ class LambdaError(Enum):
         "message": "ODS code does not match any of the allowed.",
         "fhir_coding": FhirIssueCoding.INVALID,
     }
+    DocRefUnauthorizedOdsCode = {
+        "err_code": "DR_4010",
+        "message": "The user is not authorised to upload documents for this patient",
+        "fhir_coding": UKCoreSpineError.ACCESS_DENIED,
+    }
     DocRefPresign = {
         "err_code": "DR_5001",
         "message": "An error occurred when creating pre-signed url for document reference",

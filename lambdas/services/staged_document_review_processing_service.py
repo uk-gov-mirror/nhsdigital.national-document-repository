@@ -32,7 +32,9 @@ class StagedDocumentReviewProcessingService:
 
             document_reference = self._fetch_document_reference_by_id(upload_id)
 
-            if self._is_review_pending_upload(document_reference) and self._is_file_at_expected_location(document_reference, object_key):
+            if self._is_review_pending_upload(
+                document_reference
+            ) and self._is_file_at_expected_location(document_reference, object_key):
                 logger.info(
                     f"Document {document_reference.id} is in pending upload state, processing"
                 )
@@ -102,7 +104,6 @@ class StagedDocumentReviewProcessingService:
             )
         return documents[0]
 
-
     def _is_review_pending_upload(
         self, document_reference: DocumentUploadReviewReference
     ) -> bool:
@@ -111,7 +112,9 @@ class StagedDocumentReviewProcessingService:
             == DocumentReviewStatus.REVIEW_PENDING_UPLOAD
         )
 
-    def _is_file_at_expected_location(self, document_reference: DocumentUploadReviewReference, object_key: str) -> bool:
+    def _is_file_at_expected_location(
+        self, document_reference: DocumentUploadReviewReference, object_key: str
+    ) -> bool:
         expected_file_location = document_reference.files[0].file_location
         return expected_file_location.endswith(object_key)
 
@@ -163,7 +166,9 @@ class StagedDocumentReviewProcessingService:
         except ClientError as e:
             logger.error("Error copying file from staging bucket")
             if e.response["ResponseMetadata"]["HTTPStatusCode"] == 412:
-                logger.warning(f"File already exists in destination bucket: {source_file_key}")
+                logger.warning(
+                    f"File already exists in destination bucket: {source_file_key}"
+                )
                 return
             raise e
 

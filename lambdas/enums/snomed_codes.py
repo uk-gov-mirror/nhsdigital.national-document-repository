@@ -17,6 +17,10 @@ class SnomedCodes(Enum):
     GENERAL_MEDICAL_PRACTICE = SnomedCode(
         code="1060971000000108", display_name="General practice service"
     )
+    EHR = SnomedCode(code="717301000000104", display_name="Electronic Health Record")
+    EHR_ATTACHMENTS = SnomedCode(
+        code="24511000000107", display_name="Electronic Health Record Attachments"
+    )
     # Temporary snomed code used.
     PATIENT_DATA = SnomedCode(
         code="717391000000106", display_name="Confidential patient data"
