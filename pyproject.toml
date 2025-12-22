@@ -50,7 +50,7 @@ idna = "3.7"
 inflection = "0.5.1"
 jmespath = "1.0.1"
 oauthlib = "3.2.2"
-packaging = "23.0.0"
+packaging = "23.1.0"
 pydantic = { version = "^2.11", extras = ["email"] }
 pypdf = "6.4.0"
 requests = "2.32.4"

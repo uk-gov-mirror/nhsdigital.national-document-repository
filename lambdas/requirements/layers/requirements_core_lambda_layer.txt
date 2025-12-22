@@ -8,7 +8,7 @@ idna==3.7
 inflection==0.5.1
 jmespath==1.0.1
 oauthlib==3.2.2
-packaging==23.0.0
+packaging==23.1.0
 pydantic==2.11
 pydantic[email]==2.11
 pypdf==6.4.0
