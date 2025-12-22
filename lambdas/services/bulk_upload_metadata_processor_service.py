@@ -56,6 +56,7 @@ class BulkUploadMetadataProcessorService:
         self,
         metadata_formatter_service: MetadataPreprocessorService,
         metadata_heading_remap: dict,
+        fixed_values: dict = None,
     ):
         self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
         self.metadata_queue_url = os.getenv("METADATA_SQS_QUEUE_URL")
@@ -67,6 +68,7 @@ class BulkUploadMetadataProcessorService:
         self.virus_scan_service = get_virus_scan_service()
 
         self.metadata_heading_remap = metadata_heading_remap
+        self.fixed_values = fixed_values or {}
 
         self.temp_download_dir = tempfile.mkdtemp()
         self.practice_directory = metadata_formatter_service.practice_directory
@@ -148,10 +150,10 @@ class BulkUploadMetadataProcessorService:
 
         validated_rows, rejected_rows, rejected_reasons = (
             self.metadata_mapping_validator_service.validate_and_normalize_metadata(
-                records, self.metadata_heading_remap
+                records, self.fixed_values, self.metadata_heading_remap
             )
         )
-        if rejected_reasons:
+        if rejected_reasons: 
             for reason in rejected_reasons:
                 logger.warning(f"Rejected due to: {reason['REASON']}")
 
@@ -177,6 +179,10 @@ class BulkUploadMetadataProcessorService:
     ) -> None:
         """Validate individual file metadata and attach to patient group."""
         file_metadata = MetadataFile.model_validate(row)
+
+        if self.fixed_values:
+            file_metadata = self.apply_fixed_values(file_metadata)
+
         nhs_number, ods_code = self.extract_patient_info(file_metadata)
 
         try:
@@ -190,6 +196,17 @@ class BulkUploadMetadataProcessorService:
                                   + "/" +
                                   sqs_metadata.file_path.lstrip("/"))
         patients[(nhs_number, ods_code)].append(sqs_metadata)
+
+    def apply_fixed_values(self, file_metadata: MetadataFile) -> MetadataFile:
+        
+        metadata_dict = file_metadata.model_dump(by_alias=True)
+
+        for field_name, fixed_value in self.fixed_values.items():
+            metadata_dict[field_name] = fixed_value
+            logger.info(
+                f"Applied fixed value for field '{field_name}': '{fixed_value}'")
+            
+        return MetadataFile.model_validate(metadata_dict)
 
     @staticmethod
     def convert_to_sqs_metadata(

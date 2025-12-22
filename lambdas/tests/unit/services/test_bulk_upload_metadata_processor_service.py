@@ -377,7 +377,7 @@ def test_duplicates_csv_to_sqs_metadata(mocker, bulk_upload_service):
     mocker.patch.object(
         bulk_upload_service.metadata_mapping_validator_service,
         "validate_and_normalize_metadata",
-        side_effect=lambda records, source_name: (records, [], []),
+        side_effect=lambda records, fixed_values, remappings: (records, [], []),
     )
 
     actual = bulk_upload_service.csv_to_sqs_metadata("fake/path.csv")
@@ -725,7 +725,7 @@ def test_csv_to_sqs_metadata_happy_path(mocker, bulk_upload_service, mock_csv_co
     mocker.patch.object(
         bulk_upload_service.metadata_mapping_validator_service,
         "validate_and_normalize_metadata",
-        side_effect=lambda records, src: (records, [], []),
+        side_effect=lambda records, fixed_values, remappings: (records, [], []),
     )
 
     mock_process_metadata_row = mocker.patch.object(
@@ -784,7 +784,7 @@ def test_csv_to_sqs_metadata_groups_patients_correctly(mocker, bulk_upload_servi
     mocker.patch.object(
         bulk_upload_service.metadata_mapping_validator_service,
         "validate_and_normalize_metadata",
-        side_effect=lambda records, src: (records, [], []),
+        side_effect=lambda records, fixed_values, remappings: (records, [], []),
     )
 
     mocker.patch.object(
@@ -955,7 +955,6 @@ def test_no_remapping_logic(
             retries=0,
         )
     ]
-
 
 @freeze_time("2025-02-03T10:00:00")
 def test_validate_expedite_file_happy_path_returns_expected_tuple(test_service):
@@ -1162,3 +1161,100 @@ def test_check_file_status_logs_issue_when_not_clean(mocker, test_service, caplo
         f"Found an issue with the file {file_key}." in record.msg
         for record in caplog.records
     )
+def test_apply_fixed_values_no_fixed_values(test_service, base_metadata_file):
+    result = test_service.apply_fixed_values(base_metadata_file)
+    
+    assert result == base_metadata_file
+
+
+def test_apply_fixed_values_single_field(mocker, base_metadata_file):
+    service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=MockMetadataPreprocessorService(
+            practice_directory="test_practice_directory"
+        ),
+        metadata_heading_remap={},
+        fixed_values={"SECTION": "AR"},
+    )
+    mocker.patch.object(service, "s3_service")
+    
+    result = service.apply_fixed_values(base_metadata_file)
+    
+    assert result.section == "AR"
+    assert result.nhs_number == base_metadata_file.nhs_number
+    assert result.gp_practice_code == base_metadata_file.gp_practice_code
+
+
+def test_apply_fixed_values_multiple_fields(mocker, base_metadata_file):
+    service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=MockMetadataPreprocessorService(
+            practice_directory="test_practice_directory"
+        ),
+        metadata_heading_remap={},
+        fixed_values={
+            "SECTION": "AR",
+            "SUB-SECTION": "Mental Health",
+            "SCAN-ID": "FIXED_SCAN_ID",
+        },
+    )
+    mocker.patch.object(service, "s3_service")
+    
+    result = service.apply_fixed_values(base_metadata_file)
+    
+    assert result.section == "AR"
+    assert result.sub_section == "Mental Health"
+    assert result.scan_id == "FIXED_SCAN_ID"
+    assert result.nhs_number == base_metadata_file.nhs_number
+
+
+def test_apply_fixed_values_overwrites_existing_value(mocker, base_metadata_file):
+    original_section = base_metadata_file.section
+    assert original_section == "LG"
+    
+    service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=MockMetadataPreprocessorService(
+            practice_directory="test_practice_directory"
+        ),
+        metadata_heading_remap={},
+        fixed_values={"SECTION": "AR"},
+    )
+    mocker.patch.object(service, "s3_service")
+    
+    result = service.apply_fixed_values(base_metadata_file)
+    
+    assert result.section == "AR"
+    assert result.section != original_section
+
+
+def test_apply_fixed_values_logs_applied_values(mocker, base_metadata_file, caplog):
+    service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=MockMetadataPreprocessorService(
+            practice_directory="test_practice_directory"
+        ),
+        metadata_heading_remap={},
+        fixed_values={"SECTION": "AR", "SCAN-ID": "TEST_ID"},
+    )
+    mocker.patch.object(service, "s3_service")
+    
+    service.apply_fixed_values(base_metadata_file)
+    
+    log_messages = [record.message for record in caplog.records]
+    assert any("Applied fixed value for field 'SECTION': 'AR'" in msg for msg in log_messages)
+    assert any("Applied fixed value for field 'SCAN-ID': 'TEST_ID'" in msg for msg in log_messages)
+
+
+def test_apply_fixed_values_returns_valid_metadata_file(mocker, base_metadata_file):
+    service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=MockMetadataPreprocessorService(
+            practice_directory="test_practice_directory"
+        ),
+        metadata_heading_remap={},
+        fixed_values={"SECTION": "AR"},
+    )
+    mocker.patch.object(service, "s3_service")
+    
+    result = service.apply_fixed_values(base_metadata_file)
+    
+    assert isinstance(result, MetadataFile)
+    # Ensure it can be validated again
+    validated = MetadataFile.model_validate(result.model_dump(by_alias=True))
+    assert validated.section == "AR"

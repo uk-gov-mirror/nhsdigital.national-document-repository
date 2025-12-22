@@ -3,11 +3,13 @@ from services.bulk_upload_metadata_processor_service import (
     BulkUploadMetadataProcessorService,
     get_formatter_service,
 )
+from services.metadata_mapping_validator_service import MetadataMappingValidatorService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
+from utils.exceptions import BulkUploadMetadataException
 
 logger = LoggingService(__name__)
 
@@ -48,4 +50,16 @@ def lambda_handler(event, _context):
         f"Starting metadata processing for practice directory: {practice_directory}"
     )
 
+    fixed_values = event.get("fixedValues", {})
+
+    validator_service = MetadataMappingValidatorService()
+    validator_service.validate_fixed_values(
+        fixed_values, remappings)
+
+    metadata_formatter_service = formatter_service_class(practice_directory)
+    metadata_service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=metadata_formatter_service,
+        metadata_heading_remap=remappings,
+        fixed_values=fixed_values
+    )
     metadata_service.process_metadata()

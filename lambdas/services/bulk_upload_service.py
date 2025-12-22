@@ -74,7 +74,9 @@ class BulkUploadService:
                 logger.info(
                     "Cannot validate patient due to PDS responded with Too Many Requests"
                 )
-                logger.info("Cannot process for now due to PDS rate limit reached.")
+                logger.info(
+                    "Cannot process for now due to PDS rate limit reached."
+                )
                 logger.info(
                     "All remaining messages in this batch will be returned to sqs queue to retry later."
                 )
