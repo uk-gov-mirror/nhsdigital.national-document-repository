@@ -1,8 +1,8 @@
 import { Card } from 'nhsuk-react-components';
 import { JSX } from 'react';
 import useTitle from '../../helpers/hooks/useTitle';
-import { routeChildren } from '../../types/generic/routes';
 import { ReactComponent as RightCircleIcon } from '../../styles/right-chevron-circle.svg';
+import { routeChildren } from '../../types/generic/routes';
 
 export const AdminPage = (): JSX.Element => {
     useTitle({ pageTitle: 'Admin console' });

@@ -1,0 +1,36 @@
+// SpinnerV2
+
+@keyframes spin-v2 {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.nhsuk-loader-v2 {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: nhsuk-spacing(2);
+}
+
+.nhsuk-loader__text-v2 {
+    @include nhsuk-font(16);
+    display: inline-block;
+    margin: 0;
+}
+
+.spinner-blue-v2 {
+    animation: spin-v2 2s linear infinite;
+    border: 3px solid $color_nhsuk-grey-4;
+    border-top: 3px solid nhsuk-tint($color_nhsuk-blue, 15%);
+    display: inline-block;
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}

@@ -27,7 +27,7 @@ import NonAuthGuard from './guards/notAuthGuard/NonAuthGuard';
 import PatientAccessAuditPage from '../pages/patientAccessAuditPage/PatientAccessAuditPage';
 import MockLoginPage from '../pages/mockLoginPage/MockLoginPage';
 import DocumentUploadPage from '../pages/documentUploadPage/DocumentUploadPage';
-import { AdminRoutesPage } from '../pages/adminRoutesPage/AdminRoutesPage';
+import AdminRoutesPage from '../pages/adminRoutesPage/AdminRoutesPage';
 
 const {
     START,

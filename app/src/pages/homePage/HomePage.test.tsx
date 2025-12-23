@@ -67,4 +67,29 @@ describe('HomePage', () => {
             expect(screen.queryByTestId('admin-console-btn')).not.toBeInTheDocument();
         });
     });
+
+    describe('Admin Console button', () => {
+        it('renders admin console button when feature flag is enabled and user is GP_ADMIN', () => {
+            mockUseConfig.mockReturnValue(
+                buildConfig(undefined, { uploadDocumentIteration3Enabled: true }),
+            );
+
+            render(<HomePage />);
+
+            const adminConsoleButton = screen.getByTestId('admin-console-btn') as HTMLAnchorElement;
+            expect(adminConsoleButton).toBeInTheDocument();
+            expect(adminConsoleButton).toHaveTextContent('Admin console');
+            expect(adminConsoleButton).toHaveAttribute('href', routes.ADMIN_ROUTE);
+        });
+
+        it('does not render admin console button when feature flag is disabled', () => {
+            mockUseConfig.mockReturnValue(
+                buildConfig(undefined, { uploadDocumentIteration3Enabled: false }),
+            );
+
+            render(<HomePage />);
+
+            expect(screen.queryByTestId('admin-console-btn')).not.toBeInTheDocument();
+        });
+    });
 });
