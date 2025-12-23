@@ -11,10 +11,10 @@ from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
 
-PDM_SNOMED = 717391000000106
+PDM_SNOMED = pdm_data_helper.snomed_code
 PDM_METADATA_TABLE = pdm_data_helper.dynamo_table
 PDM_S3_BUCKET = pdm_data_helper.s3_bucket
-MTLS_ENDPOINT = os.environ.get("MTLS_ENDPOINT")
+MTLS_ENDPOINT = pdm_data_helper.mtls_endpoint
 CLIENT_CERT_PATH = os.environ.get("CLIENT_CERT_PATH")
 CLIENT_KEY_PATH = os.environ.get("CLIENT_KEY_PATH")
 

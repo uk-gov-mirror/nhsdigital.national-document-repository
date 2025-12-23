@@ -6,9 +6,8 @@ import pytest
 import requests
 from tests.e2e.helpers.data_helper import PdmDataHelper
 
-from lambdas.tests.e2e.conftest import PDM_SNOMED
-
 pdm_data_helper = PdmDataHelper()
+PDM_SNOMED = pdm_data_helper.snomed_code
 
 
 def test_ping(nhsd_apim_proxy_url):

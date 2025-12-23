@@ -4,15 +4,17 @@ import os
 from urllib.parse import parse_qs, quote, urlparse
 
 import requests
+from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
+
+data_helper = LloydGeorgeDataHelper()
 
 
 class LloydGeorgeMockcis2Helper:
     def __init__(self, ods, repository_role):
         self.mock_key = os.environ.get("MOCK_CIS2_KEY") or ""
-        self.api_endpoint = os.environ.get("NDR_API_ENDPOINT")
+        self.api_endpoint = data_helper.api_endpoint
         self.ods = ods
         self.repository_role = repository_role
-
         pass
 
     def generate_mockcis2_token(self):

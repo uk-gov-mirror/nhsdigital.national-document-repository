@@ -2,10 +2,11 @@ import pytest
 
 from lambdas.tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
+    PDM_SNOMED,
     create_and_store_pdm_record,
     create_mtls_session,
 )
-from lambdas.tests.e2e.conftest import APIM_ENDPOINT, PDM_SNOMED
+from lambdas.tests.e2e.conftest import APIM_ENDPOINT
 from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
@@ -31,7 +32,7 @@ def search_document_reference(nhs_number, client_cert_path=None, client_key_path
 
 
 def test_search_nonexistent_document_references_for_patient_details():
-    response = search_document_reference("9912003071")
+    response = search_document_reference("9449305943")
     assert response.status_code == 200
 
     bundle = response.json()

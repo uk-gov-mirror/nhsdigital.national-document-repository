@@ -19,6 +19,21 @@ on:
         type: string
         default: development
 
+  workflow_call:
+    inputs:
+      build_branch:
+        required: true
+        type: string
+      sandbox:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+    secrets:
+      AWS_ASSUME_ROLE:
+        required: true
+
 permissions:
   pull-requests: write
   id-token: write

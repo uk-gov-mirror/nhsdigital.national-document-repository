@@ -1,15 +1,11 @@
-import os
-
 import pytest
 
 from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
 
-PDM_METADATA_TABLE = (
-    os.environ.get("PDM_METADATA_TABLE") or "ndr-dev_COREDocumentMetadata"
-)
-PDM_S3_BUCKET = os.environ.get("PDM_S3_BUCKET") or "ndr-dev-pdm-document-store"
+PDM_METADATA_TABLE = pdm_data_helper.dynamo_table
+PDM_S3_BUCKET = pdm_data_helper.s3_bucket
 
 
 @pytest.fixture

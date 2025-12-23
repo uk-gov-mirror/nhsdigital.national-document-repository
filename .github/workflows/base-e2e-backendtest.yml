@@ -78,8 +78,6 @@ jobs:
       - name: Get E2e Test Variables
         run: |
           AWS_WORKSPACE="${SANDBOX}"
-          API_URL="api-${SANDBOX}.access-request-fulfilment.patient-deductions.nhs.uk"
-          echo "NDR_API_ENDPOINT=$API_URL" >> $GITHUB_ENV
           echo "AWS_WORKSPACE=$AWS_WORKSPACE" >> $GITHUB_ENV
         env:
           SANDBOX: ${{ inputs.sandbox }}

@@ -8,18 +8,14 @@ from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
 
-LLOYD_GEORGE_SNOMED = 16521000000101
-API_ENDPOINT = os.environ.get("NDR_API_ENDPOINT")
+LLOYD_GEORGE_SNOMED = data_helper.snomed_code
+API_ENDPOINT = data_helper.api_endpoint
 API_KEY = os.environ.get("NDR_API_KEY")
 LG_METADATA_TABLE = data_helper.dynamo_table
 LG_UNSTITCHED_TABLE = os.environ.get("LG_UNSTITCHED_TABLE")
 BULK_REPORT_TABLE = os.environ.get("BULK_REPORT_TABLE")
 LLOYD_GEORGE_S3_BUCKET = data_helper.s3_bucket
 APIM_ENDPOINT = data_helper.apim_url
-PDM_SNOMED = 717391000000106
-MTLS_ENDPOINT = os.environ.get("MTLS_ENDPOINT")
-CLIENT_CERT_PATH = os.environ.get("CLIENT_CERT_PATH")
-CLIENT_KEY_PATH = os.environ.get("CLIENT_KEY_PATH")
 
 
 @pytest.fixture

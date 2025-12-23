@@ -8,17 +8,7 @@ if [[ "$#" -ne 1 ]]; then
 fi
 
 WORKSPACE="$1"
-
-# Set domain
-if [[ "$WORKSPACE" = "ndr-test" || "$WORKSPACE" = "pre-prod" ]]; then
-  DOMAIN="national-document-repository.nhs.uk"
-else
-  DOMAIN="access-request-fulfilment.patient-deductions.nhs.uk"
-fi
-
-# Set environment variables
 export AWS_WORKSPACE="${WORKSPACE}"
-export MTLS_ENDPOINT="mtls.${WORKSPACE}.${DOMAIN}"
 
 # Ensure Client certificates in place
 if ! make download-api-certs WORKSPACE="${WORKSPACE}"; then

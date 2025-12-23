@@ -25,6 +25,8 @@ class DataHelper:
         self.dynamo_service = DynamoDBService()
         self.s3_service = S3Service()
         self.apim_url = None
+        self.api_endpoint = None
+        self.mtls_endpoint = None
 
         self.build_env(table_name, bucket_name)
 
@@ -37,10 +39,25 @@ class DataHelper:
         apim_map = {
             "pre-prod": "int.api.service.nhs.uk",
             "ndr-test": "internal-qa.api.service.nhs.uk",
-            "ndr-dev":  "internal-dev.api.service.nhs.uk",
-            }
-        self.apim_url = apim_map.get(str(self.workspace), "internal-dev.api.service.nhs.uk")
+            "ndr-dev": "internal-dev.api.service.nhs.uk",
+        }
+        self.apim_url = apim_map.get(
+            str(self.workspace), "internal-dev.api.service.nhs.uk"
+        )
 
+        domain = (
+            "national-document-repository.nhs.uk"
+            if self.workspace == "pre-prod"
+            else "access-request-fulfilment.patient-deductions.nhs.uk"
+        )
+
+        self.api_endpoint = (
+            f"api.{self.workspace}.{domain}"
+            if self.workspace in {"pre-prod", "ndr-test"}
+            else f"api-{self.workspace}.{domain}"
+        )
+
+        self.mtls_endpoint = f"mtls.{self.workspace}.{domain}"
 
     def build_record(
         self, nhs_number="9912003071", data=None, doc_status=None, size=None

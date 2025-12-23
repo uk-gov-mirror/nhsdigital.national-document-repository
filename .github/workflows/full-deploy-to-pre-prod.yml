@@ -135,3 +135,15 @@ jobs:
       sandbox: pre-prod
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  run_backend_e2e_tests:
+    name: Run E2E Tests
+    needs: ["deploy_all_lambdas"]
+    uses: ./.github/workflows/ndr-e2e-test-sandbox.yml
+    with:
+      build_branch: ${{ needs.tag_and_release.outputs.version }}
+      environment: pre-prod
+      sandbox: pre-prod
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+  

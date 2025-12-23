@@ -4,10 +4,11 @@ import os
 
 from lambdas.tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
+    PDM_SNOMED,
     create_mtls_session,
     fetch_with_retry_mtls,
 )
-from lambdas.tests.e2e.conftest import APIM_ENDPOINT, PDM_SNOMED
+from lambdas.tests.e2e.conftest import APIM_ENDPOINT
 from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()

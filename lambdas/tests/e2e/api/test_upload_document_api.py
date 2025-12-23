@@ -165,7 +165,9 @@ def test_create_document_virus(test_data, snapshot_json):
     lloyd_george_record["nhs_number"] = "9730154260"
 
     # Attach EICAR data
-    eicar_string = r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    eicar_string = (
+        r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    )
     lloyd_george_record["data"] = base64.b64encode(eicar_string.encode()).decode()
 
     payload = create_upload_payload(lloyd_george_record)
@@ -185,14 +187,16 @@ def test_create_document_virus(test_data, snapshot_json):
     def condition(response_json):
         logging.info(response_json)
         return response_json.get("docStatus") in (
-        "cancelled",
-        "final",
+            "cancelled",
+            "final",
         )
 
     raw_retrieve_response = fetch_with_retry(retrieve_url, condition)
     retrieve_response = raw_retrieve_response.json()
 
-    assert upload_response == snapshot_json(exclude=paths("id", "date", "content.0.attachment.url"))
+    assert upload_response == snapshot_json(
+        exclude=paths("id", "date", "content.0.attachment.url")
+    )
     assert retrieve_response == snapshot_json(exclude=paths("id", "date"))
 
 

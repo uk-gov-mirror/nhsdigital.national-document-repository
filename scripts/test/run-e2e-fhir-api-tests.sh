@@ -35,7 +35,6 @@ fi
 source ./scripts/test/set-e2e-env-vars.sh $WORKSPACE
 
 echo "Running FHIR api E2E tests on workspace $AWS_WORKSPACE with:"
-echo "MTLS_ENDPOINT=$MTLS_ENDPOINT"
 echo "CLIENT_CERT_PATH=$CLIENT_CERT_PATH"
 echo "CLIENT_KEY_PATH=$CLIENT_KEY_PATH"
 echo "UNAUTHORISED_CLIENT_CERT_PATH=$UNAUTHORISED_CLIENT_CERT_PATH"
