@@ -13,17 +13,17 @@
         "snomed_code": "717301000000104",
         "config_name": "electronicHealthRecordConfig",
         "content": {
-            "upload_title": "Electronic health record (EHR) summary",
-            "upload_description": "Upload the summary file of an electronic health record. You might also call these a 'journal' or 'practice notes'. Upload this suymmary if, for example, GP2GP fails."
-        }
+                "upload_title": "Electronic health record (EHR) summary",
+                "upload_description": "Upload the summary file of an electronic health record. You might also call these a 'journal' or 'practice notes'. Upload this suymmary if, for example, GP2GP fails."
+            }
     },
     {
         "name": "Electronic Health Record Attachments",
         "snomed_code": "24511000000107",
         "config_name": "electronicHealthRecordAttachmentsConfig",
         "content": {
-            "upload_title": "Attachments to an electronic health record",
-            "upload_description": "Upload other files that are part of the patient's EHR on your clinical system. For example, letters, laboratory reports and imaging. Upload these files if, for example GP2GP fails."
-        }
+                "upload_title": "Attachments to an electronic health record",
+                "upload_description": "Upload other files that are part of the patient's EHR on your clinical system. For example, letters, laboratory reports and imaging. Upload these files if, for example GP2GP fails."
+            }
     }
 ]

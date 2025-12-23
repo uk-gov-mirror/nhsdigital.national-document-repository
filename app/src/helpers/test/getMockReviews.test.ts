@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import getMockResponses, { setupMockRequest } from './getMockReviews';
-import { ReviewsResponse } from '../../types/generic/reviews';
 
 // Mock isLocal to ensure the mock implementation is initialized
 vi.mock('../utils/isLocal', () => ({

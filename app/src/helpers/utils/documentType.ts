@@ -10,6 +10,10 @@ export enum DOCUMENT_TYPE {
     ALL = '16521000000101,717301000000104,24511000000107,162931000000103', // TBC
 }
 
+export type ContentKey = 'reviewList';
+export interface IndividualDocumentTypeContent extends Record<ContentKey, string> {}
+
+// The individual config for each document type
 export type DOCUMENT_TYPE_CONFIG = {
     snomedCode: string;
     displayName: string;
@@ -27,6 +31,19 @@ export type DOCUMENT_TYPE_CONFIG = {
     acceptedFileTypes: string[];
     content: { [key: string]: string | string[] };
 };
+
+export type DocumentTypeContentKey = 'upload_title' | 'upload_description';
+export interface DocumentTypeContent extends Record<DocumentTypeContentKey, string> {}
+
+// The document type as defined in the documentTypesConfig.json
+export interface DocumentType {
+    name: string;
+    snomed_code: string;
+    config_name: string;
+    content: DocumentTypeContent;
+}
+
+export type DocumentTypesConfig = DocumentType[];
 
 export const getDocumentTypeLabel = (docType: DOCUMENT_TYPE): string => {
     switch (docType) {

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, Mocked, test, vi } from 'vitest';
 import { endpoints } from '../../types/generic/endpoints';
 import { ReviewsResponse } from '../../types/generic/reviews';
 import getReviews from './getReviews';
+import { DOCUMENT_TYPE } from '../utils/documentType';
 
 vi.mock('axios');
 vi.mock('../utils/isLocal', () => ({
@@ -26,7 +27,7 @@ describe('getReviews', () => {
                     {
                         id: '1',
                         nhsNumber: '9000000001',
-                        document_snomed_code_type: '16521000000101',
+                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-15',
                         reviewReason: 'Missing metadata',
@@ -34,7 +35,7 @@ describe('getReviews', () => {
                     {
                         id: '2',
                         nhsNumber: '9000000002',
-                        document_snomed_code_type: '16521000000101',
+                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-16',
                         reviewReason: 'Duplicate record',
@@ -83,7 +84,7 @@ describe('getReviews', () => {
                     {
                         id: '11',
                         nhsNumber: '9000000011',
-                        document_snomed_code_type: '16521000000101',
+                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-25',
                         reviewReason: 'Review needed',
@@ -235,7 +236,7 @@ describe('getReviews', () => {
                     {
                         id: '1',
                         nhsNumber: '9000000001',
-                        document_snomed_code_type: '16521000000101',
+                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-15',
                         reviewReason: 'Missing metadata',
@@ -269,7 +270,7 @@ describe('getReviews', () => {
                     {
                         id: '1',
                         nhsNumber: '9000000001',
-                        document_snomed_code_type: '16521000000101',
+                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-15',
                         reviewReason: 'Missing metadata',
@@ -277,7 +278,7 @@ describe('getReviews', () => {
                     {
                         id: '2',
                         nhsNumber: '9000000002',
-                        document_snomed_code_type: '717391000000106',
+                        document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
                         odsCode: 'Y67890',
                         dateUploaded: '2024-02-20',
                         reviewReason: 'Invalid format',
@@ -313,7 +314,7 @@ describe('getReviews', () => {
                     {
                         id: '1',
                         nhsNumber: '9000000001',
-                        document_snomed_code_type: '16521000000101',
+                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-15',
                         reviewReason: 'Missing metadata',
@@ -399,7 +400,7 @@ describe('getReviews', () => {
                     {
                         id: '1',
                         nhsNumber: '9000000001',
-                        document_snomed_code_type: '16521000000101',
+                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-15',
                         reviewReason: 'Missing metadata',
@@ -426,7 +427,7 @@ describe('getReviews', () => {
                     {
                         id: '1',
                         nhsNumber: '9000000001',
-                        document_snomed_code_type: '717391000000106', // EHR code
+                        document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-15',
                         reviewReason: 'Review needed',
@@ -454,7 +455,7 @@ describe('getReviews', () => {
                     {
                         id: '1',
                         nhsNumber: '9000000001',
-                        document_snomed_code_type: '16521000000101',
+                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-15',
                         reviewReason: 'Suspicious content',

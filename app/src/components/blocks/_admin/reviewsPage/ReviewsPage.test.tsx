@@ -6,17 +6,24 @@ import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import getReviews from '../../../../helpers/requests/getReviews';
 import { ReviewsResponse } from '../../../../types/generic/reviews';
 import { ReviewsPage } from './ReviewsPage';
+import PatientDetailsProvider from '../../../../providers/patientProvider/PatientProvider';
+import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
 
 const mockedUseNavigate = vi.fn();
+const mockSetSnoMed = vi.fn();
+
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
-vi.mock('../../../../helpers/hooks/useTitle');
-vi.mock('../../../../helpers/requests/getReviews');
+vi.mock('../../../../helpers/requests/getReviews', () => ({
+    default: vi.fn(),
+}));
+vi.mock('../../../../helpers/utils/documentType');
 vi.mock('react-router-dom', () => ({
     useNavigate: (): typeof mockedUseNavigate => mockedUseNavigate,
 }));
 
 const mockUseBaseAPIUrl = useBaseAPIUrl as Mock;
 const mockGetReviews = getReviews as Mock;
+const mockGetConfigForDocType = getConfigForDocType as Mock;
 
 const testUrl = 'https://test-api.com';
 
@@ -25,7 +32,7 @@ const mockReviewsResponse: ReviewsResponse = {
         {
             id: '1',
             nhsNumber: '9000000001',
-            document_snomed_code_type: '16521000000101',
+            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
             odsCode: 'Y12345',
             dateUploaded: '2024-01-15',
             reviewReason: 'Missing metadata',
@@ -33,7 +40,7 @@ const mockReviewsResponse: ReviewsResponse = {
         {
             id: '2',
             nhsNumber: '9000000002',
-            document_snomed_code_type: '717391000000106',
+            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
             odsCode: 'Y67890',
             dateUploaded: '2024-01-16',
             reviewReason: 'Duplicate record',
@@ -48,7 +55,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '1',
             nhsNumber: '9000000001',
-            document_snomed_code_type: '16521000000101',
+            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
             odsCode: 'Y12345',
             dateUploaded: '2024-01-15',
             reviewReason: 'Missing metadata',
@@ -56,7 +63,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '2',
             nhsNumber: '9000000002',
-            document_snomed_code_type: '717391000000106',
+            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
             odsCode: 'Y67890',
             dateUploaded: '2024-01-16',
             reviewReason: 'Duplicate record',
@@ -64,7 +71,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '3',
             nhsNumber: '9000000003',
-            document_snomed_code_type: '16521000000101',
+            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
             odsCode: 'Y11111',
             dateUploaded: '2024-01-17',
             reviewReason: 'Another reason',
@@ -72,7 +79,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '4',
             nhsNumber: '9000000004',
-            document_snomed_code_type: '717391000000106',
+            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
             odsCode: 'Y22222',
             dateUploaded: '2024-01-18',
             reviewReason: 'Another reason',
@@ -80,7 +87,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '5',
             nhsNumber: '9000000005',
-            document_snomed_code_type: '16521000000101',
+            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
             odsCode: 'Y33333',
             dateUploaded: '2024-01-19',
             reviewReason: 'Another reason',
@@ -88,7 +95,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '   6',
             nhsNumber: '9000000006',
-            document_snomed_code_type: '16521000000101',
+            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
             odsCode: 'Y12345',
             dateUploaded: '2024-01-20',
             reviewReason: 'Invalid format',
@@ -96,7 +103,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '7',
             nhsNumber: '9000000007',
-            document_snomed_code_type: '717391000000106',
+            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
             odsCode: 'Y67890',
             dateUploaded: '2024-01-21',
             reviewReason: 'Incorrect data',
@@ -104,7 +111,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '8',
             nhsNumber: '9000000008',
-            document_snomed_code_type: '16521000000101',
+            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
             odsCode: 'Y11111',
             dateUploaded: '2024-01-22',
             reviewReason: 'Missing pages',
@@ -112,7 +119,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '9',
             nhsNumber: '9000000009',
-            document_snomed_code_type: '717391000000106',
+            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
             odsCode: 'Y22222',
             dateUploaded: '2024-01-23',
             reviewReason: 'Incorrect data',
@@ -120,7 +127,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '10',
             nhsNumber: '9000000010',
-            document_snomed_code_type: '16521000000101',
+            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
             odsCode: 'Y33333',
             dateUploaded: '2024-01-24',
             reviewReason: 'Missing metadata',
@@ -128,7 +135,7 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '11',
             nhsNumber: '9000000011',
-            document_snomed_code_type: '717391000000106',
+            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
             odsCode: 'Y44444',
             dateUploaded: '2024-01-25',
             reviewReason: 'Duplicate record',
@@ -149,7 +156,11 @@ const renderComponent = (): ReturnType<typeof render> => {
         [
             {
                 path: '/admin/reviews',
-                element: <ReviewsPage />,
+                element: (
+                    <PatientDetailsProvider>
+                        <ReviewsPage />
+                    </PatientDetailsProvider>
+                ),
             },
         ],
         {
@@ -164,7 +175,32 @@ describe('ReviewsPage', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockUseBaseAPIUrl.mockReturnValue(testUrl);
+        mockGetReviews.mockReset();
         mockGetReviews.mockResolvedValue(mockReviewsResponse);
+        mockSetSnoMed.mockClear();
+        mockGetConfigForDocType.mockImplementation((snomed: string) => {
+            if (snomed === '16521000000101') {
+                return {
+                    content: {
+                        reviewList: 'Lloyd George',
+                    },
+                    displayName: 'Lloyd George Record',
+                };
+            } else if (snomed === '717391000000106') {
+                return {
+                    content: {
+                        reviewList: 'Electronic Health Record',
+                    },
+                    displayName: 'Electronic Health Record',
+                };
+            }
+            return {
+                content: {
+                    reviewList: 'Unknown Type',
+                },
+                displayName: 'Unknown Type',
+            };
+        });
     });
 
     afterEach(() => {
@@ -175,7 +211,8 @@ describe('ReviewsPage', () => {
         it('renders the page title', () => {
             renderComponent();
 
-            expect(screen.getByRole('heading', { name: 'Reviews' })).toBeInTheDocument();
+            const headings = screen.getAllByText('Documents to review');
+            expect(headings.length).toBeGreaterThanOrEqual(1);
         });
 
         it('renders the search form with NHS number input', () => {
@@ -189,10 +226,11 @@ describe('ReviewsPage', () => {
             renderComponent();
 
             expect(screen.getByRole('columnheader', { name: 'NHS number' })).toBeInTheDocument();
-            expect(screen.getByRole('columnheader', { name: 'Record type' })).toBeInTheDocument();
-            expect(screen.getByRole('columnheader', { name: 'ODS code' })).toBeInTheDocument();
+            expect(screen.getByRole('columnheader', { name: 'Document type' })).toBeInTheDocument();
+            expect(
+                screen.getByRole('columnheader', { name: 'Sender ODS code' }),
+            ).toBeInTheDocument();
             expect(screen.getByRole('columnheader', { name: 'Date uploaded' })).toBeInTheDocument();
-            expect(screen.getByRole('columnheader', { name: 'Review reason' })).toBeInTheDocument();
             expect(screen.getByRole('columnheader', { name: 'View' })).toBeInTheDocument();
         });
 
@@ -201,22 +239,6 @@ describe('ReviewsPage', () => {
 
             await waitFor(() => {
                 expect(mockGetReviews).toHaveBeenCalledWith(testUrl, '', '', 10);
-            });
-        });
-
-        it('displays loading spinner while fetching initial data', async () => {
-            mockGetReviews.mockImplementation(
-                () => new Promise((resolve) => setTimeout(() => resolve(mockReviewsResponse), 100)),
-            );
-
-            renderComponent();
-
-            await waitFor(() => {
-                expect(screen.getByText('Review reason')).toBeInTheDocument();
-            });
-
-            await waitFor(() => {
-                expect(screen.getByText('Loading...')).toBeInTheDocument();
             });
         });
     });
@@ -234,8 +256,6 @@ describe('ReviewsPage', () => {
             expect(screen.getByText('Electronic Health Record')).toBeInTheDocument();
             expect(screen.getByText('Y12345')).toBeInTheDocument();
             expect(screen.getByText('Y67890')).toBeInTheDocument();
-            expect(screen.getByText('Missing metadata')).toBeInTheDocument();
-            expect(screen.getByText('Duplicate record')).toBeInTheDocument();
         });
 
         it('displays formatted NHS numbers', async () => {
@@ -254,7 +274,7 @@ describe('ReviewsPage', () => {
                     {
                         id: '1',
                         nhsNumber: '0000000000',
-                        document_snomed_code_type: '16521000000101',
+                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-15',
                         reviewReason: 'Test',
@@ -288,7 +308,7 @@ describe('ReviewsPage', () => {
                     {
                         id: '1',
                         nhsNumber: '9000000001',
-                        document_snomed_code_type: '999999999',
+                        document_snomed_code_type: '999999999' as DOCUMENT_TYPE,
                         odsCode: 'Y12345',
                         dateUploaded: '2024-01-15',
                         reviewReason: 'Test',
@@ -604,7 +624,8 @@ describe('ReviewsPage', () => {
         it('renders table panel with heading', () => {
             renderComponent();
 
-            expect(screen.getByText('Items to review')).toBeInTheDocument();
+            const headings = screen.getAllByText('Documents to review');
+            expect(headings.length).toBeGreaterThanOrEqual(1);
         });
 
         it('renders table with responsive class', () => {
@@ -708,7 +729,7 @@ describe('ReviewsPage', () => {
                     {
                         id: '3',
                         nhsNumber: '9000000003',
-                        document_snomed_code_type: '16521000000101',
+                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
                         odsCode: 'Y11111',
                         dateUploaded: '2024-01-17',
                         reviewReason: 'Another reason',

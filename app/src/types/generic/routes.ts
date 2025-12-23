@@ -1,3 +1,4 @@
+import { To } from 'react-router-dom';
 import { REPOSITORY_ROLE } from './authRole';
 
 export enum routes {
@@ -60,7 +61,48 @@ export enum routeChildren {
     DOCUMENT_DELETE_COMPLETE = '/patient/documents/delete/complete',
 
     ADMIN_REVIEW = '/admin/reviews',
+    ADMIN_REVIEW_DETAIL = '/admin/reviews/:reviewId',
+    ADMIN_REVIEW_SEARCH_PATIENT = '/admin/reviews/:reviewId/search-patient',
+    ADMIN_REVIEW_ASSESS_FILES = '/admin/reviews/:reviewId/assess',
+    ADMIN_REVIEW_COMPLETE = '/admin/reviews/:reviewId/complete',
+    ADMIN_REVIEW_COMPLETE_PATIENT_MATCH = '/admin/reviews/:reviewId/complete/patient-matched',
+    ADMIN_REVIEW_DONT_KNOW_NHS_NUMBER = '/admin/reviews/:reviewId/dont-know-nhs-number',
+    ADMIN_REVIEW_DONT_KNOW_NHS_NUMBER_PATIENT_VERIFY = '/admin/reviews/:reviewId/dont-know-nhs-number/patient/verify',
+    ADMIN_REVIEW_COMPLETE_PATIENT_UNKNOWN = '/admin/reviews/:reviewId/complete/patient-unknown',
+    ADMIN_REVIEW_COMPLETE_NO_FILES_CHOICE = '/admin/reviews/:reviewId/complete/no-files-choice',
+
+    ADMIN_REVIEW_NO_FILES_CHOICE = '/admin/reviews/:reviewId/no-files-choice',
+    ADMIN_REVIEW_ADD_MORE_CHOICE = '/admin/reviews/:reviewId/add-more-choice',
+    ADMIN_REVIEW_CHOOSE_WHICH_FILES = '/admin/reviews/:reviewId/files',
+    ADMIN_REVIEW_DOWNLOAD_CHOICE = '/admin/reviews/:reviewId/download-choice',
+    ADMIN_REVIEW_UPLOAD_ADDITIONAL_FILES = '/admin/reviews/:reviewId/upload-additional-files',
+    ADMIN_REVIEW_UPLOAD_FILE_ORDER = '/admin/reviews/:reviewId/upload-file-order',
+    ADMIN_REVIEW_UPLOAD = '/admin/reviews/:reviewId/upload',
 }
+
+export const navigateUrlParam = (
+    path: routeChildren | routes,
+    params: Record<string, string>,
+    navigate: (path: string, options?: { replace: boolean }) => void,
+    navigateOptions?: { replace: boolean },
+): void => {
+    let updatedPath: string = path;
+    Object.keys(params).forEach((key) => {
+        updatedPath = updatedPath.replace(`:${key}`, params[key]);
+    });
+    navigate(updatedPath, navigateOptions);
+};
+
+export const getToWithUrlParams = (
+    path: routeChildren | routes,
+    params: Record<string, string>,
+): To => {
+    let updatedPath: string = path;
+    Object.keys(params).forEach((key) => {
+        updatedPath = updatedPath.replace(`:${key}`, params[key]);
+    });
+    return updatedPath;
+};
 
 export enum ROUTE_TYPE {
     // No guard

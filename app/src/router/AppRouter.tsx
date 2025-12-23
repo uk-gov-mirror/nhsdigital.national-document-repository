@@ -153,6 +153,10 @@ export const childRoutes = [
         route: routeChildren.ADMIN_REVIEW,
         parent: ADMIN_ROUTE,
     },
+    {
+        route: routeChildren.ADMIN_REVIEW_DETAIL,
+        parent: ADMIN_ROUTE,
+    },
 ];
 
 export const routeMap: Routes = {

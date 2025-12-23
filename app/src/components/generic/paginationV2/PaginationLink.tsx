@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { forwardRef } from 'react';
 import { AsElementLink, PaginationLinkText, PaginationLinkTextProps } from './PaginationItem';
 import { ArrowLeftIcon, ArrowRightIcon } from 'nhsuk-react-components';

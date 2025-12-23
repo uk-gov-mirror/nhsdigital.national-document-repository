@@ -28,6 +28,7 @@
         "confirmFilesTitle": "Check file is for the correct patient",
         "beforeYouUploadTitle": "Before you upload",
         "previewUploadTitle": "Preview this electronic health record",
-        "uploadFilesExtraParagraph": ""
+        "uploadFilesExtraParagraph": "",
+        "reviewList": "Electronic Health Record"
     }
 }

@@ -100,7 +100,7 @@ describe('DocumentUploadIndex', () => {
         const firstUploadLink = screen.getAllByTestId(/upload-\d+-link/)[0];
 
         await act(async () => {
-            userEvent.click(firstUploadLink);
+            await userEvent.click(firstUploadLink);
         });
 
         await waitFor(() => {

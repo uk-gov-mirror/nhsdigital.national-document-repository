@@ -89,7 +89,7 @@ describe('DocumentUploadCompleteStage', () => {
     it('should call confirmFiles when confirm button is clicked', async () => {
         renderApp(history, 1);
 
-        userEvent.click(await screen.findByTestId('confirm-button'));
+        await userEvent.click(await screen.findByTestId('confirm-button'));
 
         await waitFor(() => {
             expect(mockConfirmFiles).toHaveBeenCalled();

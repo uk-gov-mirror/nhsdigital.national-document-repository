@@ -5,14 +5,13 @@ import { ReactComponent as RightCircleIcon } from '../../styles/right-chevron-ci
 import { routeChildren } from '../../types/generic/routes';
 
 export const AdminPage = (): JSX.Element => {
-    useTitle({ pageTitle: 'Admin console' });
+    useTitle({ pageTitle: 'Admin hub' });
 
     return (
         <>
-            <h1>Admin console</h1>
+            <h1>Admin hub</h1>
             <Card.Group>
                 <Card.GroupItem width="one-half">
-                    {/* Reviews  */}
                     <Card clickable cardType="primary">
                         <Card.Content>
                             <Card.Heading className="nhsuk-heading-m">
@@ -20,12 +19,12 @@ export const AdminPage = (): JSX.Element => {
                                     data-testid="admin-reviews-btn"
                                     href={routeChildren.ADMIN_REVIEW}
                                 >
-                                    Reviews
+                                    Review documents
                                 </Card.Link>
                             </Card.Heading>
                             <Card.Description>
-                                Review documents from practice to practice transfers and rejections
-                                from bulk transfer into this service.
+                                Review patient documents from practice to practice transfers, or
+                                rejections from bulk transfer into this service.
                             </Card.Description>
                             <RightCircleIcon />
                         </Card.Content>

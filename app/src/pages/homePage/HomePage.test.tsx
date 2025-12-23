@@ -2,15 +2,15 @@ import { render, screen } from '@testing-library/react';
 import HomePage from './HomePage';
 import { buildConfig } from '../../helpers/test/testBuilders';
 import useConfig from '../../helpers/hooks/useConfig';
-import { routes } from '../../types/generic/routes';
 import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { routes } from '../../types/generic/routes';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockedUseNavigate,
+        useNavigate: (): typeof mockedUseNavigate => mockedUseNavigate,
     };
 });
 

@@ -26,6 +26,7 @@
         "confirmFilesTitle": "Check files are for the correct patient",
         "beforeYouUploadTitle": "Before you upload",
         "previewUploadTitle": "Preview electronic health record attachment",
-        "uploadFilesExtraParagraph": ""
+        "uploadFilesExtraParagraph": "",
+        "reviewList": "EHR Attachments"
     }
 }

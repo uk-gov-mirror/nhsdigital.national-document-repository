@@ -5,6 +5,7 @@ import App from './App';
 import 'pdfjs-viewer-element';
 import PdfjsViewerElement from 'pdfjs-viewer-element';
 import { GlobalWorkerOptions } from 'pdfjs-dist';
+import './helpers/utils/string-extensions';
 
 declare module 'react' {
     namespace JSX {

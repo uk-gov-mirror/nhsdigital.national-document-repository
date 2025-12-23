@@ -1,4 +1,5 @@
 import { ReviewsResponse, ReviewListItemDto } from '../../types/generic/reviews';
+import { DOCUMENT_TYPE } from '../utils/documentType';
 import { isLocal } from '../utils/isLocal';
 
 let getMockResponses: ((params: URLSearchParams) => Promise<ReviewsResponse>) | undefined;
@@ -24,7 +25,7 @@ if (isLocal) {
 
     getMockResponses = async (params: URLSearchParams): Promise<ReviewsResponse> => {
         // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 1000));
+        // await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 1000));
 
         const limit = parseInt(params.get('limit') || '10');
         const startKey = params.get('startKey') || '';
@@ -68,14 +69,15 @@ if (isLocal) {
     const getMockReviewsData = (params: URLSearchParams): ReviewListItemDto[] => {
         const injectData = params.get('injectData') === 'true';
 
-        const lg = '16521000000101'; // LG SNOMED code
-        const ehr = '717391000000106'; // EHR SNOMED code // TODO: verify code
+        const LG = DOCUMENT_TYPE.LLOYD_GEORGE;
+        const EHR = DOCUMENT_TYPE.EHR;
+        const EHR_ATTACHMENTS = DOCUMENT_TYPE.EHR_ATTACHMENTS;
 
-        let baseData = [
+        let baseData: ReviewListItemDto[] = [
             {
                 id: '0',
                 nhsNumber: '0000000000',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-01-14',
                 reviewReason: 'Missing metadata',
@@ -83,7 +85,7 @@ if (isLocal) {
             {
                 id: '1',
                 nhsNumber: '9000000001',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-01-15',
                 reviewReason: 'Missing metadata',
@@ -91,7 +93,7 @@ if (isLocal) {
             {
                 id: '2',
                 nhsNumber: '9000000002',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-01-16',
                 reviewReason: 'Duplicate record',
@@ -99,7 +101,7 @@ if (isLocal) {
             {
                 id: '3',
                 nhsNumber: '9000000003',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-01-17',
                 reviewReason: 'Invalid format',
@@ -107,7 +109,7 @@ if (isLocal) {
             {
                 id: '4',
                 nhsNumber: '9000000004',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-01-18',
                 reviewReason: 'Missing metadata',
@@ -115,7 +117,7 @@ if (isLocal) {
             {
                 id: '5',
                 nhsNumber: '9000000005',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-01-19',
                 reviewReason: 'Suspicious content',
@@ -123,7 +125,7 @@ if (isLocal) {
             {
                 id: '6',
                 nhsNumber: '9000000006',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-01-20',
                 reviewReason: 'Invalid format',
@@ -131,7 +133,7 @@ if (isLocal) {
             {
                 id: '7',
                 nhsNumber: '9000000007',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y22222',
                 dateUploaded: '2024-01-21',
                 reviewReason: 'Duplicate record',
@@ -139,7 +141,7 @@ if (isLocal) {
             {
                 id: '8',
                 nhsNumber: '9000000008',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-01-22',
                 reviewReason: 'Missing metadata',
@@ -147,7 +149,7 @@ if (isLocal) {
             {
                 id: '9',
                 nhsNumber: '9000000009',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-01-23',
                 reviewReason: 'Suspicious content',
@@ -155,7 +157,7 @@ if (isLocal) {
             {
                 id: '10',
                 nhsNumber: '9000000010',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-01-24',
                 reviewReason: 'Invalid format',
@@ -163,7 +165,7 @@ if (isLocal) {
             {
                 id: '11',
                 nhsNumber: '9000000011',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y22222',
                 dateUploaded: '2024-01-25',
                 reviewReason: 'Missing metadata',
@@ -171,7 +173,7 @@ if (isLocal) {
             {
                 id: '12',
                 nhsNumber: '9000000012',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-01-26',
                 reviewReason: 'Duplicate record',
@@ -179,7 +181,7 @@ if (isLocal) {
             {
                 id: '13',
                 nhsNumber: '9000000013',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-01-27',
                 reviewReason: 'Missing metadata',
@@ -187,7 +189,7 @@ if (isLocal) {
             {
                 id: '14',
                 nhsNumber: '9000000014',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-01-28',
                 reviewReason: 'Invalid format',
@@ -195,7 +197,7 @@ if (isLocal) {
             {
                 id: '15',
                 nhsNumber: '9000000015',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-01-29',
                 reviewReason: 'Suspicious content',
@@ -203,7 +205,7 @@ if (isLocal) {
             {
                 id: '16',
                 nhsNumber: '9000000016',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y22222',
                 dateUploaded: '2024-01-30',
                 reviewReason: 'Duplicate record',
@@ -211,7 +213,7 @@ if (isLocal) {
             {
                 id: '17',
                 nhsNumber: '9000000017',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-01-31',
                 reviewReason: 'Missing metadata',
@@ -219,7 +221,7 @@ if (isLocal) {
             {
                 id: '18',
                 nhsNumber: '9000000018',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-02-01',
                 reviewReason: 'Invalid format',
@@ -227,7 +229,7 @@ if (isLocal) {
             {
                 id: '19',
                 nhsNumber: '9000000019',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-02-02',
                 reviewReason: 'Suspicious content',
@@ -235,7 +237,7 @@ if (isLocal) {
             {
                 id: '20',
                 nhsNumber: '9000000020',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y22222',
                 dateUploaded: '2024-02-03',
                 reviewReason: 'Duplicate record',
@@ -243,7 +245,7 @@ if (isLocal) {
             {
                 id: '21',
                 nhsNumber: '9000000021',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-02-04',
                 reviewReason: 'Missing metadata',
@@ -251,7 +253,7 @@ if (isLocal) {
             {
                 id: '22',
                 nhsNumber: '9000000022',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-02-05',
                 reviewReason: 'Invalid format',
@@ -259,7 +261,7 @@ if (isLocal) {
             {
                 id: '23',
                 nhsNumber: '9000000023',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-02-06',
                 reviewReason: 'Suspicious content',
@@ -267,7 +269,7 @@ if (isLocal) {
             {
                 id: '24',
                 nhsNumber: '9000000024',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y22222',
                 dateUploaded: '2024-02-07',
                 reviewReason: 'Duplicate record',
@@ -275,7 +277,7 @@ if (isLocal) {
             {
                 id: '25',
                 nhsNumber: '9000000025',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-02-08',
                 reviewReason: 'Missing metadata',
@@ -283,7 +285,7 @@ if (isLocal) {
             {
                 id: '26',
                 nhsNumber: '9000000026',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-02-09',
                 reviewReason: 'Invalid format',
@@ -291,7 +293,7 @@ if (isLocal) {
             {
                 id: '27',
                 nhsNumber: '9000000027',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-02-10',
                 reviewReason: 'Suspicious content',
@@ -299,7 +301,7 @@ if (isLocal) {
             {
                 id: '28',
                 nhsNumber: '9000000028',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y22222',
                 dateUploaded: '2024-02-11',
                 reviewReason: 'Duplicate record',
@@ -307,7 +309,7 @@ if (isLocal) {
             {
                 id: '29',
                 nhsNumber: '9000000029',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-02-12',
                 reviewReason: 'Missing metadata',
@@ -315,7 +317,7 @@ if (isLocal) {
             {
                 id: '30',
                 nhsNumber: '9000000030',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-02-13',
                 reviewReason: 'Invalid format',
@@ -323,7 +325,7 @@ if (isLocal) {
             {
                 id: '31',
                 nhsNumber: '9000000031',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-02-14',
                 reviewReason: 'Suspicious content',
@@ -331,7 +333,7 @@ if (isLocal) {
             {
                 id: '32',
                 nhsNumber: '9000000032',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y22222',
                 dateUploaded: '2024-02-15',
                 reviewReason: 'Duplicate record',
@@ -339,7 +341,7 @@ if (isLocal) {
             {
                 id: '33',
                 nhsNumber: '9000000033',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-02-16',
                 reviewReason: 'Missing metadata',
@@ -347,7 +349,7 @@ if (isLocal) {
             {
                 id: '34',
                 nhsNumber: '9000000034',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-02-17',
                 reviewReason: 'Invalid format',
@@ -355,7 +357,7 @@ if (isLocal) {
             {
                 id: '35',
                 nhsNumber: '9000000035',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-02-18',
                 reviewReason: 'Suspicious content',
@@ -363,7 +365,7 @@ if (isLocal) {
             {
                 id: '101',
                 nhsNumber: '9000000101',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-04-24',
                 reviewReason: 'Missing metadata',
@@ -371,7 +373,7 @@ if (isLocal) {
             {
                 id: '102',
                 nhsNumber: '9000000102',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-04-25',
                 reviewReason: 'Invalid format',
@@ -379,7 +381,7 @@ if (isLocal) {
             {
                 id: '103',
                 nhsNumber: '9000000103',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-04-26',
                 reviewReason: 'Suspicious content',
@@ -387,7 +389,7 @@ if (isLocal) {
             {
                 id: '104',
                 nhsNumber: '9000000104',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y22222',
                 dateUploaded: '2024-04-27',
                 reviewReason: 'Duplicate record',
@@ -395,7 +397,7 @@ if (isLocal) {
             {
                 id: '105',
                 nhsNumber: '9000000105',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-04-28',
                 reviewReason: 'Missing metadata',
@@ -403,7 +405,7 @@ if (isLocal) {
             {
                 id: '106',
                 nhsNumber: '9000000106',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: EHR_ATTACHMENTS,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-04-29',
                 reviewReason: 'Invalid format',
@@ -411,7 +413,7 @@ if (isLocal) {
             {
                 id: '107',
                 nhsNumber: '9000000107',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-04-30',
                 reviewReason: 'Suspicious content',
@@ -419,7 +421,7 @@ if (isLocal) {
             {
                 id: '108',
                 nhsNumber: '9000000108',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y22222',
                 dateUploaded: '2024-05-01',
                 reviewReason: 'Duplicate record',
@@ -427,7 +429,7 @@ if (isLocal) {
             {
                 id: '109',
                 nhsNumber: '9000000109',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y12345',
                 dateUploaded: '2024-05-02',
                 reviewReason: 'Missing metadata',
@@ -435,7 +437,7 @@ if (isLocal) {
             {
                 id: '110',
                 nhsNumber: '9000000110',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y67890',
                 dateUploaded: '2024-05-03',
                 reviewReason: 'Invalid format',
@@ -443,7 +445,7 @@ if (isLocal) {
             {
                 id: '111',
                 nhsNumber: '9000000111',
-                document_snomed_code_type: ehr,
+                document_snomed_code_type: EHR,
                 odsCode: 'Y11111',
                 dateUploaded: '2024-05-04',
                 reviewReason: 'Suspicious content',
@@ -451,7 +453,7 @@ if (isLocal) {
             {
                 id: '112',
                 nhsNumber: '9000000112',
-                document_snomed_code_type: lg,
+                document_snomed_code_type: LG,
                 odsCode: 'Y22222',
                 dateUploaded: '2024-05-05',
                 reviewReason: 'Duplicate record',
@@ -464,7 +466,7 @@ if (isLocal) {
                 {
                     id: '36',
                     nhsNumber: '9000000036',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-02-19',
                     reviewReason: 'Duplicate record',
@@ -472,7 +474,7 @@ if (isLocal) {
                 {
                     id: '37',
                     nhsNumber: '9000000037',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-02-20',
                     reviewReason: 'Missing metadata',
@@ -480,7 +482,7 @@ if (isLocal) {
                 {
                     id: '38',
                     nhsNumber: '9000000038',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-02-21',
                     reviewReason: 'Invalid format',
@@ -488,7 +490,7 @@ if (isLocal) {
                 {
                     id: '39',
                     nhsNumber: '9000000039',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-02-22',
                     reviewReason: 'Suspicious content',
@@ -496,7 +498,7 @@ if (isLocal) {
                 {
                     id: '40',
                     nhsNumber: '9000000040',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-02-23',
                     reviewReason: 'Duplicate record',
@@ -504,7 +506,7 @@ if (isLocal) {
                 {
                     id: '41',
                     nhsNumber: '9000000041',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-02-24',
                     reviewReason: 'Missing metadata',
@@ -512,7 +514,7 @@ if (isLocal) {
                 {
                     id: '42',
                     nhsNumber: '9000000042',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: EHR_ATTACHMENTS,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-02-25',
                     reviewReason: 'Invalid format',
@@ -520,7 +522,7 @@ if (isLocal) {
                 {
                     id: '43',
                     nhsNumber: '9000000043',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-02-26',
                     reviewReason: 'Suspicious content',
@@ -528,7 +530,7 @@ if (isLocal) {
                 {
                     id: '44',
                     nhsNumber: '9000000044',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-02-27',
                     reviewReason: 'Duplicate record',
@@ -536,7 +538,7 @@ if (isLocal) {
                 {
                     id: '45',
                     nhsNumber: '9000000045',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-02-28',
                     reviewReason: 'Missing metadata',
@@ -544,7 +546,7 @@ if (isLocal) {
                 {
                     id: '46',
                     nhsNumber: '9000000046',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-02-29',
                     reviewReason: 'Invalid format',
@@ -552,7 +554,7 @@ if (isLocal) {
                 {
                     id: '47',
                     nhsNumber: '9000000047',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-03-01',
                     reviewReason: 'Suspicious content',
@@ -560,7 +562,7 @@ if (isLocal) {
                 {
                     id: '48',
                     nhsNumber: '9000000048',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-03-02',
                     reviewReason: 'Duplicate record',
@@ -568,7 +570,7 @@ if (isLocal) {
                 {
                     id: '49',
                     nhsNumber: '9000000049',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-03-03',
                     reviewReason: 'Missing metadata',
@@ -576,23 +578,23 @@ if (isLocal) {
                 {
                     id: '50',
                     nhsNumber: '9000000050',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-03-04',
                     reviewReason: 'Invalid format',
                 },
                 {
-                    id: '51',
-                    nhsNumber: '9000000051',
-                    document_snomed_code_type: ehr,
+                    id: '111',
+                    nhsNumber: '9000000111',
+                    document_snomed_code_type: EHR_ATTACHMENTS,
                     odsCode: 'Y11111',
-                    dateUploaded: '2024-03-05',
+                    dateUploaded: '2024-05-04',
                     reviewReason: 'Suspicious content',
                 },
                 {
                     id: '52',
                     nhsNumber: '9000000052',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-03-06',
                     reviewReason: 'Duplicate record',
@@ -600,7 +602,7 @@ if (isLocal) {
                 {
                     id: '53',
                     nhsNumber: '9000000053',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-03-07',
                     reviewReason: 'Missing metadata',
@@ -608,7 +610,7 @@ if (isLocal) {
                 {
                     id: '54',
                     nhsNumber: '9000000054',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-03-08',
                     reviewReason: 'Invalid format',
@@ -616,7 +618,7 @@ if (isLocal) {
                 {
                     id: '55',
                     nhsNumber: '9000000055',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR_ATTACHMENTS,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-03-09',
                     reviewReason: 'Suspicious content',
@@ -624,7 +626,7 @@ if (isLocal) {
                 {
                     id: '56',
                     nhsNumber: '9000000056',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-03-10',
                     reviewReason: 'Duplicate record',
@@ -632,7 +634,7 @@ if (isLocal) {
                 {
                     id: '57',
                     nhsNumber: '9000000057',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-03-11',
                     reviewReason: 'Missing metadata',
@@ -640,7 +642,7 @@ if (isLocal) {
                 {
                     id: '58',
                     nhsNumber: '9000000058',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-03-12',
                     reviewReason: 'Invalid format',
@@ -648,7 +650,7 @@ if (isLocal) {
                 {
                     id: '59',
                     nhsNumber: '9000000059',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-03-13',
                     reviewReason: 'Suspicious content',
@@ -656,7 +658,7 @@ if (isLocal) {
                 {
                     id: '60',
                     nhsNumber: '9000000060',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-03-14',
                     reviewReason: 'Duplicate record',
@@ -664,7 +666,7 @@ if (isLocal) {
                 {
                     id: '61',
                     nhsNumber: '9000000061',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-03-15',
                     reviewReason: 'Missing metadata',
@@ -672,7 +674,7 @@ if (isLocal) {
                 {
                     id: '62',
                     nhsNumber: '9000000062',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-03-16',
                     reviewReason: 'Invalid format',
@@ -680,7 +682,7 @@ if (isLocal) {
                 {
                     id: '63',
                     nhsNumber: '9000000063',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-03-17',
                     reviewReason: 'Suspicious content',
@@ -688,7 +690,7 @@ if (isLocal) {
                 {
                     id: '64',
                     nhsNumber: '9000000064',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-03-18',
                     reviewReason: 'Duplicate record',
@@ -696,7 +698,7 @@ if (isLocal) {
                 {
                     id: '65',
                     nhsNumber: '9000000065',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-03-19',
                     reviewReason: 'Missing metadata',
@@ -704,7 +706,7 @@ if (isLocal) {
                 {
                     id: '66',
                     nhsNumber: '9000000066',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-03-20',
                     reviewReason: 'Invalid format',
@@ -712,7 +714,7 @@ if (isLocal) {
                 {
                     id: '67',
                     nhsNumber: '9000000067',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-03-21',
                     reviewReason: 'Suspicious content',
@@ -720,7 +722,7 @@ if (isLocal) {
                 {
                     id: '68',
                     nhsNumber: '9000000068',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: EHR_ATTACHMENTS,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-03-22',
                     reviewReason: 'Duplicate record',
@@ -728,7 +730,7 @@ if (isLocal) {
                 {
                     id: '69',
                     nhsNumber: '9000000069',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-03-23',
                     reviewReason: 'Missing metadata',
@@ -736,7 +738,7 @@ if (isLocal) {
                 {
                     id: '70',
                     nhsNumber: '9000000070',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-03-24',
                     reviewReason: 'Invalid format',
@@ -744,7 +746,7 @@ if (isLocal) {
                 {
                     id: '71',
                     nhsNumber: '9000000071',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-03-25',
                     reviewReason: 'Suspicious content',
@@ -752,7 +754,7 @@ if (isLocal) {
                 {
                     id: '72',
                     nhsNumber: '9000000072',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-03-26',
                     reviewReason: 'Duplicate record',
@@ -760,7 +762,7 @@ if (isLocal) {
                 {
                     id: '73',
                     nhsNumber: '9000000073',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-03-27',
                     reviewReason: 'Missing metadata',
@@ -768,7 +770,7 @@ if (isLocal) {
                 {
                     id: '74',
                     nhsNumber: '9000000074',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-03-28',
                     reviewReason: 'Invalid format',
@@ -776,7 +778,7 @@ if (isLocal) {
                 {
                     id: '75',
                     nhsNumber: '9000000075',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-03-29',
                     reviewReason: 'Suspicious content',
@@ -784,7 +786,7 @@ if (isLocal) {
                 {
                     id: '76',
                     nhsNumber: '9000000076',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-03-30',
                     reviewReason: 'Duplicate record',
@@ -792,7 +794,7 @@ if (isLocal) {
                 {
                     id: '77',
                     nhsNumber: '9000000077',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-03-31',
                     reviewReason: 'Missing metadata',
@@ -800,7 +802,7 @@ if (isLocal) {
                 {
                     id: '78',
                     nhsNumber: '9000000078',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-04-01',
                     reviewReason: 'Invalid format',
@@ -808,7 +810,7 @@ if (isLocal) {
                 {
                     id: '79',
                     nhsNumber: '9000000079',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-04-02',
                     reviewReason: 'Suspicious content',
@@ -816,7 +818,7 @@ if (isLocal) {
                 {
                     id: '80',
                     nhsNumber: '9000000080',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-04-03',
                     reviewReason: 'Duplicate record',
@@ -824,7 +826,7 @@ if (isLocal) {
                 {
                     id: '81',
                     nhsNumber: '9000000081',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR_ATTACHMENTS,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-04-04',
                     reviewReason: 'Missing metadata',
@@ -832,7 +834,7 @@ if (isLocal) {
                 {
                     id: '82',
                     nhsNumber: '9000000082',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-04-05',
                     reviewReason: 'Invalid format',
@@ -840,7 +842,7 @@ if (isLocal) {
                 {
                     id: '83',
                     nhsNumber: '9000000083',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-04-06',
                     reviewReason: 'Suspicious content',
@@ -848,7 +850,7 @@ if (isLocal) {
                 {
                     id: '84',
                     nhsNumber: '9000000084',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-04-07',
                     reviewReason: 'Duplicate record',
@@ -856,7 +858,7 @@ if (isLocal) {
                 {
                     id: '85',
                     nhsNumber: '9000000085',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-04-08',
                     reviewReason: 'Missing metadata',
@@ -864,7 +866,7 @@ if (isLocal) {
                 {
                     id: '86',
                     nhsNumber: '9000000086',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-04-09',
                     reviewReason: 'Invalid format',
@@ -872,7 +874,7 @@ if (isLocal) {
                 {
                     id: '87',
                     nhsNumber: '9000000087',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-04-10',
                     reviewReason: 'Suspicious content',
@@ -880,7 +882,7 @@ if (isLocal) {
                 {
                     id: '88',
                     nhsNumber: '9000000088',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-04-11',
                     reviewReason: 'Duplicate record',
@@ -888,7 +890,7 @@ if (isLocal) {
                 {
                     id: '89',
                     nhsNumber: '9000000089',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-04-12',
                     reviewReason: 'Missing metadata',
@@ -896,7 +898,7 @@ if (isLocal) {
                 {
                     id: '90',
                     nhsNumber: '9000000090',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-04-13',
                     reviewReason: 'Invalid format',
@@ -904,7 +906,7 @@ if (isLocal) {
                 {
                     id: '91',
                     nhsNumber: '9000000091',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-04-14',
                     reviewReason: 'Suspicious content',
@@ -912,7 +914,7 @@ if (isLocal) {
                 {
                     id: '92',
                     nhsNumber: '9000000092',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-04-15',
                     reviewReason: 'Duplicate record',
@@ -920,7 +922,7 @@ if (isLocal) {
                 {
                     id: '93',
                     nhsNumber: '9000000093',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-04-16',
                     reviewReason: 'Missing metadata',
@@ -928,7 +930,7 @@ if (isLocal) {
                 {
                     id: '94',
                     nhsNumber: '9000000094',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: EHR_ATTACHMENTS,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-04-17',
                     reviewReason: 'Invalid format',
@@ -936,7 +938,7 @@ if (isLocal) {
                 {
                     id: '95',
                     nhsNumber: '9000000095',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-04-18',
                     reviewReason: 'Suspicious content',
@@ -944,7 +946,7 @@ if (isLocal) {
                 {
                     id: '96',
                     nhsNumber: '9000000096',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-04-19',
                     reviewReason: 'Duplicate record',
@@ -952,7 +954,7 @@ if (isLocal) {
                 {
                     id: '97',
                     nhsNumber: '9000000097',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y12345',
                     dateUploaded: '2024-04-20',
                     reviewReason: 'Missing metadata',
@@ -960,7 +962,7 @@ if (isLocal) {
                 {
                     id: '98',
                     nhsNumber: '9000000098',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y67890',
                     dateUploaded: '2024-04-21',
                     reviewReason: 'Invalid format',
@@ -968,7 +970,7 @@ if (isLocal) {
                 {
                     id: '99',
                     nhsNumber: '9000000099',
-                    document_snomed_code_type: ehr,
+                    document_snomed_code_type: EHR,
                     odsCode: 'Y11111',
                     dateUploaded: '2024-04-22',
                     reviewReason: 'Suspicious content',
@@ -976,7 +978,7 @@ if (isLocal) {
                 {
                     id: '100',
                     nhsNumber: '9000000100',
-                    document_snomed_code_type: lg,
+                    document_snomed_code_type: LG,
                     odsCode: 'Y22222',
                     dateUploaded: '2024-04-23',
                     reviewReason: 'Duplicate record',

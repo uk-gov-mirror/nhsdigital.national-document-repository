@@ -5,20 +5,19 @@ import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import getReviews from '../../../../helpers/requests/getReviews';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
-import {
-    ReviewListItem,
-    ReviewListItemDto,
-    translateSnowmed,
-} from '../../../../types/generic/reviews';
+import { ReviewListItem, ReviewListItemDto } from '../../../../types/generic/reviews';
 import { routes } from '../../../../types/generic/routes';
 import BackButton from '../../../generic/backButton/BackButton';
 import { Pagination } from '../../../generic/paginationV2/Pagination';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import SpinnerV2 from '../../../generic/spinnerV2/SpinnerV2';
+import { usePatientDetailsContext } from '../../../../providers/patientProvider/PatientProvider';
+import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 
 export const ReviewsPage = (): React.JSX.Element => {
     useTitle({ pageTitle: 'Admin - Reviews' });
     const baseUrl = useBaseAPIUrl();
+    const [, setPatientDetails] = usePatientDetailsContext();
     const inputRef = useRef<HTMLInputElement | null>(null);
     const pageLimit = 10;
     const [inputValue, setInputValue] = useState('');
@@ -109,7 +108,8 @@ export const ReviewsPage = (): React.JSX.Element => {
             return {
                 id: dto.id,
                 nhsNumber,
-                recordType: translateSnowmed(dto.document_snomed_code_type),
+                recordType: getConfigForDocType(dto.document_snomed_code_type).content.reviewList as string,
+                snomedCode: dto.document_snomed_code_type,
                 uploader: dto.odsCode,
                 dateUploaded: dto.dateUploaded,
                 reviewReason: dto.reviewReason,
@@ -118,6 +118,7 @@ export const ReviewsPage = (): React.JSX.Element => {
     };
 
     useEffect(() => {
+        setPatientDetails(null);
         handleSearch();
     }, []);
 
@@ -125,8 +126,44 @@ export const ReviewsPage = (): React.JSX.Element => {
         <>
             <BackButton toLocation={routes.ADMIN_ROUTE} backLinkText="Go back" />
 
-            <h1 className="smaller-title">Reviews</h1>
-            <Table.Panel heading="Items to review" className="reviews-page" allowFullScreen>
+            <h1 className="smaller-title">Documents to review</h1>
+
+            <h2>Documents that we store automatically</h2>
+            <p>Lloyd George scanned paper notes are automatically stored in this service if:</p>
+            <ul>
+                <li>they transferred successfully at bulk transfer</li>
+                <li>
+                    a patient moves practice and their Lloyd George record is transferred to your
+                    practice
+                </li>
+            </ul>
+            <p>
+                You can view these records{' '}
+                <a href={routes.SEARCH_PATIENT}>searching using the patient's NHS number</a>.
+            </p>
+
+            <h2>Documents that you need to review before they are stored in this service</h2>
+            <p>
+                The documents listed in the table could not be automatically stored in this service.
+            </p>
+            <p>These documents could be:</p>
+            <ul>
+                <li>
+                    Lloyd George scanned paper notes that were scanned from the bulk transfer of
+                    your files into the service
+                </li>
+                <li>
+                    Lloyd George scanned paper notes that were received from another practice and
+                    are not for patients that you serve
+                </li>
+                <li>Non-Lloyd George files that could be yours</li>
+            </ul>
+            <p>
+                Review each document and decide whether you want to accept and store it in the
+                service.
+            </p>
+
+            <Table.Panel heading="Documents to review" className="reviews-page" allowFullScreen>
                 {/* Search box */}
                 <form
                     id="search-form"
@@ -166,10 +203,9 @@ export const ReviewsPage = (): React.JSX.Element => {
                     <Table.Head>
                         <Table.Row>
                             <Table.Cell>NHS number</Table.Cell>
-                            <Table.Cell>Record type</Table.Cell>
-                            <Table.Cell>ODS code</Table.Cell>
+                            <Table.Cell>Document type</Table.Cell>
+                            <Table.Cell>Sender ODS code</Table.Cell>
                             <Table.Cell>Date uploaded</Table.Cell>
-                            <Table.Cell>Review reason</Table.Cell>
                             <Table.Cell>View</Table.Cell>
                         </Table.Row>
                     </Table.Head>
