@@ -618,7 +618,7 @@ def test_validate_and_correct_filename_sad_path(
     result = test_service.validate_and_correct_filename(base_metadata_file)
 
     mocked_validate_record_filename.assert_called_once_with(
-        base_metadata_file.file_path
+        base_metadata_file.file_path, base_metadata_file.nhs_number
     )
     assert result == "corrected/path/file_corrected.pdf"
 

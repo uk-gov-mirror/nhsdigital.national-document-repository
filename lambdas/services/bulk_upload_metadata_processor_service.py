@@ -244,7 +244,8 @@ class BulkUploadMetadataProcessorService:
             return file_metadata.file_path
         except LGInvalidFilesException:
             return self.metadata_formatter_service.validate_record_filename(
-                file_metadata.file_path
+                file_metadata.file_path,
+                file_metadata.nhs_number
             )
 
     def validate_expedite_file(self, s3_object_key: str):
