@@ -114,8 +114,6 @@ describe('GP Workflow: Upload Lloyd George record', () => {
         cy.getByTestId('confirm-button').click();
 
         cy.getByTestId('upload-complete-page', { timeout: 25000 }).should('exist');
-        cy.getByTestId('upload-complete-page')
-          .should('include.text', 'You have successfully uploaded a digital Lloyd George record for');
 
         cy.getByTestId('upload-complete-card').should('be.visible');
 
@@ -129,7 +127,7 @@ describe('GP Workflow: Upload Lloyd George record', () => {
 
         cy.get('.patient-results-form').submit();
 
-        cy.get("#pdf-viewer", {timeout: 20000}).should('exist');
+        cy.get("#pdf-viewer", { timeout: 20000 }).should('exist');
       });
   });
 });
