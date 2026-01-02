@@ -69,8 +69,7 @@
         "system": "https://fhir.nhs.uk/Id/ods-organization-code",
         "value": "H81109",
         "period": {
-          "start": "2020-01-01",
-          "end": "2025-12-31"
+          "start": "2020-01-01"
         }
       }
     }
