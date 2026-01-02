@@ -28,7 +28,7 @@ def eventbridge_event_with_s3_key(key: str):
 def test_metadata_processor_lambda_handler_valid_event(
     set_env, context, mock_metadata_service
 ):
-    lambda_handler({"practiceDirectory": "test"}, context)
+    lambda_handler({"inputFileLocation": "test"}, context)
 
     mock_metadata_service.process_metadata.assert_called_once()
 

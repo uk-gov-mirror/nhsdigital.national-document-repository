@@ -9,7 +9,6 @@ from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
-from utils.exceptions import BulkUploadMetadataException
 
 logger = LoggingService(__name__)
 
@@ -25,13 +24,14 @@ def lambda_handler(event, _context):
         "preFormatType", LloydGeorgePreProcessFormat.GENERAL
     )
     formatter_service_class = get_formatter_service(raw_pre_format_type)
-    practice_directory = event.get("practiceDirectory", "")
+    input_file_location = event.get("inputFileLocation", "")
 
     remappings = event.get("metadataFieldRemappings", {})
-    metadata_formatter_service = formatter_service_class(practice_directory)
+    metadata_formatter_service = formatter_service_class(input_file_location)
     metadata_service = BulkUploadMetadataProcessorService(
         metadata_formatter_service=metadata_formatter_service,
         metadata_heading_remap=remappings,
+        input_file_location=input_file_location,
     )
 
     if "source" in event and event.get("source") == "aws.s3":
@@ -40,14 +40,14 @@ def lambda_handler(event, _context):
         metadata_service.handle_expedite_event(event)
         return
 
-    if not practice_directory:
+    if not input_file_location:
         logger.error(
-            "Failed to start metadata processing due to missing practice directory"
+            "Failed to start metadata processing due to missing field: inputFileLocation"
         )
         return
 
     logger.info(
-        f"Starting metadata processing for practice directory: {practice_directory}"
+        f"Starting metadata processing for file location: {input_file_location}"
     )
 
     fixed_values = event.get("fixedValues", {})
@@ -56,10 +56,10 @@ def lambda_handler(event, _context):
     validator_service.validate_fixed_values(
         fixed_values, remappings)
 
-    metadata_formatter_service = formatter_service_class(practice_directory)
     metadata_service = BulkUploadMetadataProcessorService(
         metadata_formatter_service=metadata_formatter_service,
         metadata_heading_remap=remappings,
-        fixed_values=fixed_values
+        fixed_values=fixed_values,
+        input_file_location=input_file_location
     )
     metadata_service.process_metadata()

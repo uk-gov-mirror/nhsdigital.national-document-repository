@@ -1,5 +1,5 @@
-import os
 import copy
+import os
 import tempfile
 import urllib
 import urllib.parse
@@ -79,6 +79,7 @@ def test_service(mocker, set_env, mock_tempfile):
             practice_directory="test_practice_directory"
         ),
         metadata_heading_remap={},
+        input_file_location="test_input_file_location",
     )
 
     mocker.patch.object(service, "s3_service")
@@ -133,9 +134,9 @@ def base_metadata_file():
 
 
 def test_process_metadata_send_metadata_to_sqs_queue(
-    mocker,
-    test_service,
-    mock_download_metadata_from_s3,
+        mocker,
+        test_service,
+        mock_download_metadata_from_s3,
 ):
     fake_csv_path = "fake/path/metadata.csv"
 
@@ -168,32 +169,30 @@ def test_process_metadata_send_metadata_to_sqs_queue(
 
 
 def test_process_metadata_catch_and_log_error_when_fail_to_get_metadata_csv_from_s3(
-    set_env,
-    caplog,
-    mock_s3_service,
-    mock_sqs_service,
-    test_service,
+        set_env,
+        caplog,
+        mock_s3_service,
+        mock_sqs_service,
+        test_service,
 ):
     mock_s3_service.download_file.side_effect = ClientError(
         {"Error": {"Code": "403", "Message": "Forbidden"}}, "S3:HeadObject"
     )
-    expected_err_msg = 'No metadata file could be found with the name "metadata.csv"'
+    expected_err_msg = 'Could not retrieve the following metadata file: test_input_file_location'
 
     with pytest.raises(BulkUploadMetadataException) as e:
         test_service.process_metadata()
 
     assert expected_err_msg in str(e.value)
-    assert caplog.records[-1].msg == expected_err_msg
-    assert caplog.records[-1].levelname == "ERROR"
 
     mock_sqs_service.send_message_with_nhs_number_attr_fifo.assert_not_called()
 
 
 def test_process_metadata_raise_validation_error_when_metadata_csv_is_invalid(
-    mock_sqs_service,
-    mock_download_metadata_from_s3,
-    test_service,
-    mocker,
+        mock_sqs_service,
+        mock_download_metadata_from_s3,
+        test_service,
+        mocker,
 ):
     mock_download_metadata_from_s3.return_value = "fake/path.csv"
     mocker.patch.object(
@@ -210,16 +209,16 @@ def test_process_metadata_raise_validation_error_when_metadata_csv_is_invalid(
 
 
 def test_process_metadata_raise_validation_error_when_gp_practice_code_is_missing(
-    mock_sqs_service,
-    mock_download_metadata_from_s3,
-    test_service,
-    mocker,
+        mock_sqs_service,
+        mock_download_metadata_from_s3,
+        test_service,
+        mocker,
 ):
     mock_download_metadata_from_s3.return_value = "fake/path.csv"
 
     expected_error_log = (
-        "Failed to parse metadata.csv: 1 validation error for MetadataFile\n"
-        + "GP-PRACTICE-CODE\n  missing GP-PRACTICE-CODE for patient 1234567890"
+            "Failed to parse metadata.csv: 1 validation error for MetadataFile\n"
+            + "GP-PRACTICE-CODE\n  missing GP-PRACTICE-CODE for patient 1234567890"
     )
 
     mocker.patch.object(
@@ -236,7 +235,7 @@ def test_process_metadata_raise_validation_error_when_gp_practice_code_is_missin
 
 
 def test_process_metadata_raise_client_error_when_failed_to_send_message_to_sqs(
-    test_service, mocker
+        test_service, mocker
 ):
     mocker.patch.object(
         test_service, "download_metadata_from_s3", return_value="fake/path.csv"
@@ -278,10 +277,10 @@ def test_process_metadata_raise_client_error_when_failed_to_send_message_to_sqs(
 def test_download_metadata_from_s3(mock_s3_service, test_service):
     result = test_service.download_metadata_from_s3()
 
+    expected_file_key = test_service.file_key
     expected_download_path = os.path.join(
-        test_service.temp_download_dir, METADATA_FILENAME
+        test_service.temp_download_dir, expected_file_key
     )
-    expected_file_key = f"{test_service.practice_directory}/{METADATA_FILENAME}"
 
     mock_s3_service.download_file.assert_called_once_with(
         s3_bucket_name=test_service.staging_bucket_name,
@@ -293,13 +292,14 @@ def test_download_metadata_from_s3(mock_s3_service, test_service):
 
 
 def test_download_metadata_from_s3_raise_error_when_failed_to_download(
-    set_env, mock_s3_service, mock_tempfile, test_service
+        set_env, mock_s3_service, mock_tempfile, test_service
 ):
     mock_s3_service.download_file.side_effect = ClientError(
         {"Error": {"Code": "500", "Message": "file not exist in bucket"}},
         "s3_get_object",
     )
-    with pytest.raises(ClientError):
+    with pytest.raises(BulkUploadMetadataException,
+                       match=r"Could not retrieve the following metadata file: test_input_file_location"):
         test_service.download_metadata_from_s3()
 
 
@@ -329,6 +329,7 @@ def bulk_upload_service(mocker, set_env, mock_tempfile):
             practice_directory="test_practice_directory"
         ),
         metadata_heading_remap={},
+        input_file_location="test_input_file_location",
     )
 
 
@@ -386,7 +387,7 @@ def test_duplicates_csv_to_sqs_metadata(mocker, bulk_upload_service):
     for metadata in expected:
         for file in metadata.files:
             file.file_path = (
-                f"test_practice_directory/{file.stored_file_name.lstrip('/')}"
+                f"test_input_file_location/{file.stored_file_name.lstrip('/')}"
             )
 
     assert actual == expected
@@ -417,7 +418,7 @@ def test_send_metadata_to_sqs(set_env, mocker, mock_sqs_service, test_service):
 
 
 def test_send_metadata_to_sqs_raise_error_when_fail_to_send_message(
-    set_env, mock_sqs_service, test_service
+        set_env, mock_sqs_service, test_service
 ):
     mock_sqs_service.send_message_with_nhs_number_attr_fifo.side_effect = ClientError(
         {
@@ -474,7 +475,7 @@ def test_process_metadata_row_success(mocker, test_service):
 
     expected_sqs_metadata = BulkUploadQueueMetadata.model_validate(
         {
-            "file_path": "test_practice_directory/some/path/file.pdf",
+            "file_path": "test_input_file_location/some/path/file.pdf",
             "nhs_number": "1234567890",
             "gp_practice_code": "Y12345",
             "scan_date": "01/01/2023",
@@ -524,6 +525,7 @@ def test_process_metadata_row_adds_to_existing_entry(mocker):
     service = BulkUploadMetadataProcessorService(
         metadata_formatter_service=preprocessor,
         metadata_heading_remap={},
+        input_file_location="test_input_file_location",
     )
 
     service.process_metadata_row(row, patients)
@@ -531,7 +533,7 @@ def test_process_metadata_row_adds_to_existing_entry(mocker):
     assert len(patients[key]) == 2
     assert patients[key][0] == mock_metadata_existing
     assert isinstance(patients[key][1], BulkUploadQueueMetadata)
-    assert patients[key][1].file_path == "test_practice_directory/some/path/file2.pdf"
+    assert patients[key][1].file_path == "test_input_file_location/some/path/file2.pdf"
     assert patients[key][1].stored_file_name == "/some/path/file2.pdf"
 
 
@@ -543,7 +545,7 @@ def test_extract_patient_info(test_service, base_metadata_file):
 
 
 def test_handle_invalid_filename_writes_failed_entry_to_dynamo(
-    mocker, test_service, base_metadata_file
+        mocker, test_service, base_metadata_file
 ):
     nhs_number = "1234567890"
     error = InvalidFileNameException("Invalid filename format")
@@ -590,7 +592,7 @@ def test_convert_to_sqs_metadata(base_metadata_file):
 
 
 def test_validate_and_correct_filename_returns_happy_path(
-    mocker, test_service, base_metadata_file
+        mocker, test_service, base_metadata_file
 ):
     mocker.patch(
         "services.bulk_upload_metadata_processor_service.validate_file_name",
@@ -603,7 +605,7 @@ def test_validate_and_correct_filename_returns_happy_path(
 
 
 def test_validate_and_correct_filename_sad_path(
-    mocker, test_service, base_metadata_file
+        mocker, test_service, base_metadata_file
 ):
     mocker.patch(
         "services.bulk_upload_metadata_processor_service.validate_file_name",
@@ -740,7 +742,7 @@ def test_csv_to_sqs_metadata_happy_path(mocker, bulk_upload_service, mock_csv_co
 
 
 def test_csv_to_sqs_metadata_raises_BulkUploadMetadataException_if_no_headers(
-    mocker, bulk_upload_service
+        mocker, bulk_upload_service
 ):
     mocker.patch("builtins.open", mocker.mock_open(read_data=""))
 
@@ -749,7 +751,7 @@ def test_csv_to_sqs_metadata_raises_BulkUploadMetadataException_if_no_headers(
 
 
 def test_csv_to_sqs_metadata_raises_BulkUploadMetadataException_if_all_rows_rejected(
-    mocker, bulk_upload_service, mock_csv_content
+        mocker, bulk_upload_service, mock_csv_content
 ):
     mocker.patch("builtins.open", mocker.mock_open(read_data=mock_csv_content))
 
@@ -764,7 +766,7 @@ def test_csv_to_sqs_metadata_raises_BulkUploadMetadataException_if_all_rows_reje
     )
 
     with pytest.raises(
-        BulkUploadMetadataException, match="No valid metadata rows found"
+            BulkUploadMetadataException, match="No valid metadata rows found"
     ):
         bulk_upload_service.csv_to_sqs_metadata("fake/path.csv")
 
@@ -837,6 +839,7 @@ def mock_service_remapping_mandatory_fields(mocker, set_env, mock_tempfile):
             "USER-ID": "User ID",
             "UPLOAD": "Upload Date",
         },
+        input_file_location="test_input_file_location",
     )
 
     mocker.patch.object(
@@ -864,7 +867,7 @@ def mock_remap_csv_content():
 
 
 def test_remapping_mandatory_fields(
-    mocker, mock_service_remapping_mandatory_fields, mock_remap_csv_content
+        mocker, mock_service_remapping_mandatory_fields, mock_remap_csv_content
 ):
     mocker.patch("builtins.open", mocker.mock_open(read_data=mock_remap_csv_content))
 
@@ -876,7 +879,7 @@ def test_remapping_mandatory_fields(
             nhs_number="123456789",
             files=[
                 BulkUploadQueueMetadata(
-                    file_path="test_practice_directory/path/1.pdf",
+                    file_path="test_input_file_location/path/1.pdf",
                     gp_practice_code="Y12345",
                     scan_date="02/01/2023",
                     stored_file_name="/path/1.pdf",
@@ -909,6 +912,7 @@ def mock_service_no_remapping(mocker, set_env, mock_tempfile):
             practice_directory="test_practice_directory"
         ),
         metadata_heading_remap={},
+        input_file_location="test_input_file_location",
     )
 
     mocker.patch.object(
@@ -935,7 +939,7 @@ def mock_noremap_csv_content():
 
 
 def test_no_remapping_logic(
-    mocker, mock_service_no_remapping, mock_noremap_csv_content
+        mocker, mock_service_no_remapping, mock_noremap_csv_content
 ):
     mocker.patch("builtins.open", mocker.mock_open(read_data=mock_noremap_csv_content))
 
@@ -946,7 +950,7 @@ def test_no_remapping_logic(
             nhs_number="123456789",
             files=[
                 BulkUploadQueueMetadata(
-                    file_path="test_practice_directory/path/1.pdf",
+                    file_path="test_input_file_location/path/1.pdf",
                     gp_practice_code="Y12345",
                     scan_date="02/01/2023",
                     stored_file_name="/path/1.pdf",
@@ -955,6 +959,7 @@ def test_no_remapping_logic(
             retries=0,
         )
     ]
+
 
 @freeze_time("2025-02-03T10:00:00")
 def test_validate_expedite_file_happy_path_returns_expected_tuple(test_service):
@@ -1084,7 +1089,7 @@ def test_enforce_virus_scanner_triggers_scan_when_no_result(mocker, test_service
 
 
 def test_enforce_virus_scanner_raises_bulk_exception_on_s3_access_error(
-    mocker, test_service
+        mocker, test_service
 ):
     file_key = "expedite/folder/file.pdf"
     client_error = ClientError(
@@ -1161,9 +1166,11 @@ def test_check_file_status_logs_issue_when_not_clean(mocker, test_service, caplo
         f"Found an issue with the file {file_key}." in record.msg
         for record in caplog.records
     )
+
+
 def test_apply_fixed_values_no_fixed_values(test_service, base_metadata_file):
     result = test_service.apply_fixed_values(base_metadata_file)
-    
+
     assert result == base_metadata_file
 
 
@@ -1176,9 +1183,9 @@ def test_apply_fixed_values_single_field(mocker, base_metadata_file):
         fixed_values={"SECTION": "AR"},
     )
     mocker.patch.object(service, "s3_service")
-    
+
     result = service.apply_fixed_values(base_metadata_file)
-    
+
     assert result.section == "AR"
     assert result.nhs_number == base_metadata_file.nhs_number
     assert result.gp_practice_code == base_metadata_file.gp_practice_code
@@ -1197,9 +1204,9 @@ def test_apply_fixed_values_multiple_fields(mocker, base_metadata_file):
         },
     )
     mocker.patch.object(service, "s3_service")
-    
+
     result = service.apply_fixed_values(base_metadata_file)
-    
+
     assert result.section == "AR"
     assert result.sub_section == "Mental Health"
     assert result.scan_id == "FIXED_SCAN_ID"
@@ -1209,7 +1216,7 @@ def test_apply_fixed_values_multiple_fields(mocker, base_metadata_file):
 def test_apply_fixed_values_overwrites_existing_value(mocker, base_metadata_file):
     original_section = base_metadata_file.section
     assert original_section == "LG"
-    
+
     service = BulkUploadMetadataProcessorService(
         metadata_formatter_service=MockMetadataPreprocessorService(
             practice_directory="test_practice_directory"
@@ -1218,9 +1225,9 @@ def test_apply_fixed_values_overwrites_existing_value(mocker, base_metadata_file
         fixed_values={"SECTION": "AR"},
     )
     mocker.patch.object(service, "s3_service")
-    
+
     result = service.apply_fixed_values(base_metadata_file)
-    
+
     assert result.section == "AR"
     assert result.section != original_section
 
@@ -1234,9 +1241,9 @@ def test_apply_fixed_values_logs_applied_values(mocker, base_metadata_file, capl
         fixed_values={"SECTION": "AR", "SCAN-ID": "TEST_ID"},
     )
     mocker.patch.object(service, "s3_service")
-    
+
     service.apply_fixed_values(base_metadata_file)
-    
+
     log_messages = [record.message for record in caplog.records]
     assert any("Applied fixed value for field 'SECTION': 'AR'" in msg for msg in log_messages)
     assert any("Applied fixed value for field 'SCAN-ID': 'TEST_ID'" in msg for msg in log_messages)
@@ -1251,9 +1258,9 @@ def test_apply_fixed_values_returns_valid_metadata_file(mocker, base_metadata_fi
         fixed_values={"SECTION": "AR"},
     )
     mocker.patch.object(service, "s3_service")
-    
+
     result = service.apply_fixed_values(base_metadata_file)
-    
+
     assert isinstance(result, MetadataFile)
     # Ensure it can be validated again
     validated = MetadataFile.model_validate(result.model_dump(by_alias=True))
