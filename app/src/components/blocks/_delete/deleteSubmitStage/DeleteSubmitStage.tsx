@@ -116,7 +116,7 @@ const DeleteSubmitStageIndexView = ({
         }
     };
 
-    const pageTitle = `You are removing the ${getDocumentTypeLabel(docType) ?? 'records'} of`;
+    const pageTitle = `You are removing the ${getDocumentTypeLabel(docType) || 'records'} of`;
     useTitle({ pageTitle });
 
     return (

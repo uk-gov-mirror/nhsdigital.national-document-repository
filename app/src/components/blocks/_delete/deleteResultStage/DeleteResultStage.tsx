@@ -35,7 +35,7 @@ const DeleteResultStage = ({ docType, setDownloadStage }: Props): React.JSX.Elem
     const recordLabel = docType ? getDocumentTypeLabel(docType) : '';
 
     const isGP = role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL;
-    const pageHeader = `You have permanently removed the ${recordLabel ? recordLabel : 'records'} of:`;
+    const pageHeader = `You have permanently removed the ${recordLabel || 'records'} of:`;
     useTitle({ pageTitle: pageHeader });
 
     return (
