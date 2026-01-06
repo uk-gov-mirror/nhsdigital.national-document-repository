@@ -74,10 +74,8 @@ def mock_jwt_decode(mocker):
     [
         "/DocumentManifest",
         "/DocumentDelete",
-        "/DocumentStatus",
         "/UploadState",
         "/VirusScan",
-
     ],
 )
 def test_deny_access_policy_returns_true_for_gp_clinical_on_paths(
@@ -92,7 +90,7 @@ def test_deny_access_policy_returns_true_for_gp_clinical_on_paths(
     assert actual == expected
 
 
-@pytest.mark.parametrize("test_path", ["/DocumentManifest", "/DocumentDelete", "Any"])
+@pytest.mark.parametrize("test_path", ["/DocumentManifest", "/DocumentDelete", "/DocumentStatus", "Any"])
 def test_deny_access_policy_returns_true_for_nhs_number_not_in_allowed(
     test_path,
     mock_auth_service: AuthoriserService,
