@@ -1,4 +1,5 @@
 import pytest
+from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCodes
 from handlers.get_fhir_document_reference_handler import (
     extract_document_parameters,
@@ -63,8 +64,18 @@ def mock_document_service(mocker):
     return mock_service_instance
 
 
+@pytest.fixture
+def mock_mtls_common_names(monkeypatch):
+    monkeypatch.setattr(
+        MtlsCommonNames,
+        "_get_mtls_common_names",
+        classmethod(lambda cls: {"PDM": ["ndrclient.main.int.pdm.national.nhs.uk"]}),
+    )
+
+
 def test_lambda_handler_happy_path_with_mtls_pdm_login(
     set_env,
+    mock_mtls_common_names,
     mock_document_service,
     context,
 ):
@@ -85,7 +96,7 @@ def test_lambda_handler_happy_path_with_mtls_pdm_login(
     )
 
 
-def test_extract_bearer_token_when_pdm(context):
+def test_extract_bearer_token_when_pdm(context, mock_mtls_common_names):
     token = extract_bearer_token(MOCK_MTLS_VALID_EVENT, context)
     assert token is None
 

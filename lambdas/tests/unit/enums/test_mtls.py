@@ -7,11 +7,17 @@ from utils.lambda_exceptions import InvalidDocTypeException
 @pytest.mark.parametrize(
     ["common_name", "expected"],
     [
-        ("ndrclient.main.int.pdm.national.nhs.uk", MtlsCommonNames.PDM),
-        ("client.dev.ndr.national.nhs.uk", MtlsCommonNames.PDM),
+        ("xxx", MtlsCommonNames.PDM),
+        ("yyy", MtlsCommonNames.PDM),
+        ("zzz", MtlsCommonNames.PDM),
     ],
 )
-def test_mtls_enum_returned(common_name, expected):
+def test_mtls_enum_returned(common_name, expected, monkeypatch):
+    monkeypatch.setattr(
+        MtlsCommonNames,
+        "_get_mtls_common_names",
+        classmethod(lambda cls: {"PDM": ["xxx", "yyy", "zzz"]}),
+    )
     doc_type_enum = MtlsCommonNames.from_common_name(common_name)
     assert doc_type_enum == expected
 
@@ -24,7 +30,12 @@ def test_mtls_enum_returned(common_name, expected):
         "foo.bar",
     ],
 )
-def test_mtls_enum_error_raised(common_name):
+def test_mtls_enum_error_raised(common_name, monkeypatch):
+    monkeypatch.setattr(
+        MtlsCommonNames,
+        "_get_mtls_common_names",
+        classmethod(lambda cls: {"PDM": ["xxx", "yyy", "zzz"]}),
+    )
     with pytest.raises(InvalidDocTypeException) as excinfo:
         MtlsCommonNames.from_common_name(common_name)
     assert excinfo.value.status_code == 400

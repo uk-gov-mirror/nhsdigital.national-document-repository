@@ -61,6 +61,22 @@ def mock_fhir_doc_ref_base_service(mocker, setup_request_context):
 
 
 @pytest.fixture
+def mock_mtls_common_names(monkeypatch):
+    monkeypatch.setattr(
+        MtlsCommonNames,
+        "_get_mtls_common_names",
+        classmethod(
+            lambda cls: {
+                "PDM": [
+                    "ndrclient.main.int.pdm.national.nhs.uk",
+                    "client.dev.ndr.national.nhs.uk",
+                ]
+            }
+        ),
+    )
+
+
+@pytest.fixture
 def setup_request_context():
     request_context.authorization = {
         "ndr_session_id": TEST_UUID,
@@ -322,6 +338,7 @@ def test_get_dynamo_table_for_lloyd_george_doc_type(
 def test_process_mtls_fhir_document_reference_with_binary(
     mock_fhir_doc_ref_base_service,
     mock_post_fhir_doc_ref_service,
+    mock_mtls_common_names,
     valid_mtls_fhir_doc_with_binary,
     valid_mtls_request_context,
 ):

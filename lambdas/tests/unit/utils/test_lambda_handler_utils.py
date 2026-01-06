@@ -1,5 +1,6 @@
 import pytest
 from enums.lambda_error import LambdaError
+from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCodes
 from tests.unit.conftest import TEST_UUID
 from utils.lambda_exceptions import (
@@ -74,6 +75,22 @@ INVALID_REVIEW_EVENTS = [
 ]
 
 
+@pytest.fixture
+def mock_mtls_common_names(monkeypatch):
+    monkeypatch.setattr(
+        MtlsCommonNames,
+        "_get_mtls_common_names",
+        classmethod(
+            lambda cls: {
+                "PDM": [
+                    "ndrclient.main.int.pdm.national.nhs.uk",
+                    "client.dev.ndr.national.nhs.uk",
+                ]
+            }
+        ),
+    )
+
+
 @pytest.mark.parametrize(
     "function_name, mock_event",
     [
@@ -88,7 +105,7 @@ def test_extract_bearer_token_happy_paths(context, function_name, mock_event):
     assert token == f"Bearer {TEST_UUID}"
 
 
-def test_extract_bearer_token_when_pdm(context):
+def test_extract_bearer_token_when_pdm(context, mock_mtls_common_names):
     token = extract_bearer_token(MOCK_MTLS_VALID_EVENT, context)
     assert token is None
 

@@ -1,4 +1,5 @@
 import pytest
+from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCodes
 from freezegun import freeze_time
 from models.document_reference import DocumentReference
@@ -44,6 +45,15 @@ def mock_filter_builder(mocker):
     return mock_filter
 
 
+@pytest.fixture
+def mock_mtls_common_names(monkeypatch):
+    monkeypatch.setattr(
+        MtlsCommonNames,
+        "_get_mtls_common_names",
+        classmethod(lambda cls: {"PDM": ["ndrclient.main.int.pdm.national.nhs.uk"]}),
+    )
+
+
 @pytest.mark.parametrize(
     "common_name, expected",
     [
@@ -72,7 +82,9 @@ def mock_filter_builder(mocker):
         ({}, ["test_pdm_dynamoDB_table", "test_lg_dynamoDB_table"]),
     ],
 )
-def test_get_pdm_table(set_env, mock_document_service, common_name, expected):
+def test_get_pdm_table(
+    set_env, mock_document_service, common_name, expected, mock_mtls_common_names
+):
     cn = validate_common_name_in_mtls(common_name)
     tables = mock_document_service._get_table_names(cn)
     assert tables == expected

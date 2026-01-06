@@ -64,14 +64,32 @@ def invalid_mtls_request_context():
     }
 
 
-def test_validate_valid_common_name(valid_mtls_request_context):
+@pytest.fixture
+def mock_mtls_common_names(monkeypatch):
+    monkeypatch.setattr(
+        MtlsCommonNames,
+        "_get_mtls_common_names",
+        classmethod(
+            lambda cls: {
+                "PDM": [
+                    "ndrclient.main.int.pdm.national.nhs.uk",
+                    "client.dev.ndr.national.nhs.uk",
+                ]
+            }
+        ),
+    )
+
+
+def test_validate_valid_common_name(valid_mtls_request_context, mock_mtls_common_names):
     """Test validate_common_name when mtls and pdm."""
     result = validate_common_name_in_mtls(valid_mtls_request_context)
 
     assert result == MtlsCommonNames.PDM.value
 
 
-def test_validate_invalid_common_name(invalid_mtls_request_context):
+def test_validate_invalid_common_name(
+    invalid_mtls_request_context, mock_mtls_common_names
+):
     """Test validate_common_name when mtls but not allowed."""
     with pytest.raises(InvalidDocTypeException) as excinfo:
         validate_common_name_in_mtls(invalid_mtls_request_context)
