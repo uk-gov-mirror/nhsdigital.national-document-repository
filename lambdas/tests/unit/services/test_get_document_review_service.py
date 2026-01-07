@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
@@ -65,7 +66,7 @@ def mock_document_review():
         author=TEST_ODS_CODE,
         custodian=TEST_ODS_CODE,
         review_status=DocumentReviewStatus.PENDING_REVIEW,
-        review_reason="Uploaded for review",
+        review_reason=DocumentReviewReason.FILE_NAME_MISMATCH,
         upload_date=1699000000,
         files=files,
         nhs_number=TEST_NHS_NUMBER,

@@ -1,5 +1,6 @@
 import pytest
 from botocore.exceptions import ClientError
+from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from models.document_review import (
     DocumentReviewFileDetails,
@@ -40,7 +41,7 @@ def sample_review_message():
             )
         ],
         nhs_number="9000000009",
-        failure_reason="Failed virus scan",
+        failure_reason=DocumentReviewReason.DEMOGRAPHIC_MISMATCHES,
         upload_date="2024-01-15T10:30:00Z",
         uploader_ods="Y12345",
         current_gp="Y12345",
@@ -95,7 +96,7 @@ def test_process_review_message_multiple_files(service_under_test, mocker):
             ),
         ],
         nhs_number="9000000009",
-        failure_reason="Failed virus scan",
+        failure_reason=DocumentReviewReason.FILE_COUNT_MISMATCH,
         upload_date="2024-01-15T10:30:00Z",
         uploader_ods="Y12345",
         current_gp="Y12345",
@@ -212,7 +213,7 @@ def test_build_review_record_success(service_under_test, sample_review_message):
     assert result.id == "test-review-id"
     assert result.nhs_number == "9000000009"
     assert result.review_status == DocumentReviewStatus.PENDING_REVIEW
-    assert result.review_reason == "Failed virus scan"
+    assert result.review_reason == "Demographic mismatches"
     assert result.author == "Y12345"
     assert result.custodian == "Y12345"
     assert len(result.files) == 1
@@ -237,7 +238,7 @@ def test_build_review_record_with_multiple_files(service_under_test):
             ),
         ],
         nhs_number="9000000009",
-        failure_reason="Failed virus scan",
+        failure_reason=DocumentReviewReason.FILE_COUNT_MISMATCH,
         upload_date="2024-01-15T10:30:00Z",
         uploader_ods="Y12345",
         current_gp="Y12345",
@@ -302,7 +303,7 @@ def test_move_multiple_files_success(service_under_test, mocker):
             ),
         ],
         nhs_number="9000000009",
-        failure_reason="Failed virus scan",
+        failure_reason=DocumentReviewReason.FILE_COUNT_MISMATCH,
         upload_date="2024-01-15T10:30:00Z",
         uploader_ods="Y12345",
         current_gp="Y12345",
@@ -409,7 +410,7 @@ def test_workflow_handles_multiple_different_patients(service_under_test):
                 )
             ],
             nhs_number=f"900000000{i}",
-            failure_reason="Test failure",
+            failure_reason=DocumentReviewReason.GENERAL_ERROR,
             upload_date="2024-01-15T10:30:00Z",
             uploader_ods="Y12345",
             current_gp="Y12345",

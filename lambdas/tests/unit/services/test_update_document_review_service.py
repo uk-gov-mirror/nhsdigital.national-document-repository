@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
@@ -56,7 +57,7 @@ def mock_document_review():
         author=TEST_ODS_CODE,
         custodian=TEST_ODS_CODE,
         review_status=DocumentReviewStatus.PENDING_REVIEW,
-        review_reason="Uploaded for review",
+        review_reason=DocumentReviewReason.DUPLICATE_RECORD,
         upload_date=TEST_UPLOAD_DATE,
         files=files,
         nhs_number=TEST_NHS_NUMBER,
@@ -732,7 +733,11 @@ def test_update_document_review_raises_exception_when_updating_approved_pending_
     mock_document_review.review_status = DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS
     update_data = PatchDocumentReviewRequest(
         review_status=invalid_target_status,
-        nhs_number=TEST_REASSIGNED_NHS_NUMBER if "REASSIGNED" in invalid_target_status.value else None,
+        nhs_number=(
+            TEST_REASSIGNED_NHS_NUMBER
+            if "REASSIGNED" in invalid_target_status.value
+            else None
+        ),
     )
     mock_service.document_review_service.get_document_review_by_id.return_value = (
         mock_document_review

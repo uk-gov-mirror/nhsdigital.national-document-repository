@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
+from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
@@ -38,7 +39,9 @@ class DocumentUploadReviewReference(BaseModel):
     review_status: DocumentReviewStatus = Field(
         default=DocumentReviewStatus.PENDING_REVIEW
     )
-    review_reason: str | None = None
+    review_reason: DocumentReviewReason = Field(
+        default=DocumentReviewReason.GENERAL_ERROR
+    )
     review_date: int | None = Field(default=None)
     reviewer: str | None = Field(default=None)
     upload_date: int = Field(

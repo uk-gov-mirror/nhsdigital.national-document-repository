@@ -73,7 +73,6 @@ def mock_document_references(mocker):
 
 @pytest.fixture
 def mock_document_review_references(mocker):
-    # Create a list of mock document review references
     reviews = []
     for i in range(2):
         review = MagicMock(spec=DocumentUploadReviewReference)

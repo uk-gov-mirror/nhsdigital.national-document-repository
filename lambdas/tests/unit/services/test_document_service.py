@@ -518,7 +518,10 @@ def test_get_item_success(
 @pytest.mark.parametrize(
     "document_id,mock_response",
     [
-        ("non-existent-doc", {}, ),
+        (
+            "non-existent-doc",
+            {},
+        ),
         (
             "invalid-doc",
             {"Item": {"ID": "invalid-doc", "InvalidField": "invalid-value"}},
@@ -526,7 +529,10 @@ def test_get_item_success(
     ],
 )
 def test_get_item_returns_none(
-    mock_service, mock_dynamo_service, document_id, mock_response,
+    mock_service,
+    mock_dynamo_service,
+    document_id,
+    mock_response,
 ):
     """Test get_item returns None for not found or invalid documents."""
     mock_dynamo_service.get_item.return_value = mock_response
@@ -563,11 +569,10 @@ def test_get_item_with_custom_model_class(
     mock_dynamo_response = {
         "Item": {
             "ID": document_id,
-
             "Author": "Y12345",
             "Custodian": "Y12345",
             "ReviewStatus": "PENDING_REVIEW",
-            "ReviewReason": "Test reason",
+            "ReviewReason": "General error",
             "UploadDate": 1699000000,
             "Files": [
                 {

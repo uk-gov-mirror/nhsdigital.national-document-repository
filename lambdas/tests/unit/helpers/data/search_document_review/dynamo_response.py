@@ -1,3 +1,4 @@
+from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.snomed_codes import SnomedCodes
 from tests.unit.conftest import (
@@ -28,7 +29,7 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "Custodian": TEST_CURRENT_GP_ODS,
             "UploadDate": 1704110400,
             "NhsNumber": TEST_NHS_NUMBER,
-            "ReviewReason": "Failure",
+            "ReviewReason": DocumentReviewReason.FILE_COUNT_MISMATCH,
             "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
             "DocumentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,
@@ -50,7 +51,7 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "Custodian": TEST_CURRENT_GP_ODS,
             "UploadDate": 1704110400,
             "NhsNumber": TEST_NHS_NUMBER,
-            "ReviewReason": "Failure",
+            "ReviewReason": DocumentReviewReason.FILE_COUNT_MISMATCH,
             "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
             "DocumentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,
@@ -74,7 +75,7 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "Reviewer": None,
             "NhsNumber": TEST_NHS_NUMBER,
             "ReviewDate": None,
-            "ReviewReason": "Failure",
+            "ReviewReason": DocumentReviewReason.FILE_COUNT_MISMATCH,
             "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
             "DocumentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,

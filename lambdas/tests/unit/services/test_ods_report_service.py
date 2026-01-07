@@ -4,6 +4,8 @@ from datetime import datetime
 from unittest.mock import call
 
 import pytest
+
+from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.dynamo_filter import AttributeOperator
 from enums.file_type import FileType
@@ -61,7 +63,7 @@ def mock_review_result():
     return DocumentUploadReviewReference(
         nhs_number="mock_nhs_number",
         author="mock_author",
-        review_reason="mock_review_reason",
+        review_reason=DocumentReviewReason.GENERAL_ERROR,
         document_snomed_code_type="mock_snomed_code",
         upload_date=int(datetime.now().timestamp()),
         files=[

@@ -1,6 +1,8 @@
 import json
 
 import pytest
+
+from enums.document_review_reason import DocumentReviewReason
 from handlers.document_review_processor_handler import lambda_handler
 from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
 
@@ -27,7 +29,7 @@ def sample_review_message_body():
             )
         ],
         nhs_number="9000000009",
-        failure_reason="Failed virus scan",
+        failure_reason=DocumentReviewReason.GENERAL_ERROR,
         upload_date="2024-01-15T10:30:00Z",
         uploader_ods="Y12345",
         current_gp="Y12345",
@@ -62,7 +64,7 @@ def sample_sqs_event_multiple_messages(sample_review_message_body):
             )
         ],
         nhs_number="9000000009",
-        failure_reason="Failed virus scan",
+        failure_reason=DocumentReviewReason.UNKNOWN_NHS_NUMBER,
         upload_date="2024-01-15T10:30:00Z",
         uploader_ods="Y12345",
         current_gp="Y12345",
@@ -77,7 +79,7 @@ def sample_sqs_event_multiple_messages(sample_review_message_body):
             )
         ],
         nhs_number="9000000010",
-        failure_reason="Invalid file format",
+        failure_reason=DocumentReviewReason.FILE_NAME_MISMATCH,
         upload_date="2024-01-15T10:35:00Z",
         uploader_ods="Y12345",
         current_gp="Y12345",
@@ -92,7 +94,7 @@ def sample_sqs_event_multiple_messages(sample_review_message_body):
             )
         ],
         nhs_number="9000000011",
-        failure_reason="Missing metadata",
+        failure_reason=DocumentReviewReason.FILE_COUNT_MISMATCH,
         upload_date="2024-01-15T10:40:00Z",
         uploader_ods="Y67890",
         current_gp="Y67890",
@@ -194,7 +196,7 @@ def test_lambda_handler_parses_json_body_correctly(
                             {"file_name": "test.pdf", "file_path": "staging/test.pdf"}
                         ],
                         "nhs_number": "9000000009",
-                        "failure_reason": "Test failure",
+                        "failure_reason": "General error",
                         "upload_date": "2024-01-15T10:30:00Z",
                         "uploader_ods": "Y12345",
                         "current_gp": "Y12345",

@@ -3,7 +3,9 @@ import uuid
 from datetime import datetime, timezone
 
 from botocore.exceptions import ClientError
-from enums.document_review_status import DocumentReviewReason, DocumentReviewStatus
+
+from enums.document_review_reason import DocumentReviewReason
+from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from models.document_review import (
@@ -116,7 +118,7 @@ class PostDocumentReviewService:
             files=document_file_details,
             nhs_number=event.nhs_number,
             document_snomed_code_type=event.snomed_code.code,
-            review_reason=DocumentReviewReason.REVIEW_FROM_DATA_CONTROLLER,
+            review_reason=DocumentReviewReason.GP2GP_ERROR,
         )
         return document_review_reference
 

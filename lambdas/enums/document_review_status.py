@@ -13,6 +13,3 @@ class DocumentReviewStatus(StrEnum):
     REVIEW_PENDING_UPLOAD = "REVIEW_PENDING_UPLOAD"
     VIRUS_SCAN_FAILED = "VIRUS_SCAN_FAILED"
 
-
-class DocumentReviewReason(StrEnum):
-    REVIEW_FROM_DATA_CONTROLLER = "Needs review from data controller"
