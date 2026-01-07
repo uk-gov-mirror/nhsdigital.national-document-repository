@@ -48,7 +48,9 @@
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.gnupg,target=/home/vscode/.gnupg,type=bind,consistency=cached",
     "source=${localWorkspaceFolder}/.devcontainer/config/nvim,target=/home/vscode/.config/nvim,type=bind",
-    "source=${env:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
+    "source=${env:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind",
+    "source=${localEnv:NDRI_LOCATION},target=/workspaces/national-document-repository-infrastructure,type=bind,consistency=cached"
   ],
   "postCreateCommand": "HOST_PWD=${localWorkspaceFolder} bash -c '.devcontainer/src/create.sh' ",
   "runArgs": [

@@ -31,6 +31,15 @@ The following tools are required for all options:
 - [Git](https://git-scm.com/)
 - Docker (e.g. via [Brew](https://formulae.brew.sh/formula/docker))
 
+Setup an environment variable on your local system. The environment variable points to your national-document-repository-infrastructure directory on your local system.
+For Linux/MacOS users add the following to your ~/.zshrc or ~/.bashrc file
+
+```bash
+export NDRI_LOCATION=<national-document-repository-infrastructure FOLDER location>
+```
+
+For Windows users, please follow Microsoft's recommendations for creating persistent environment variables
+
 ### Method 1 - Dev container within VS Code (recommended)
 
 > [!IMPORTANT]
@@ -69,6 +78,18 @@ lazygit
 - [ruff](https://formulae.brew.sh/formula/ruff)
 - [Node@24](https://formulae.brew.sh/formula/node@24)
 - [Python@3.11](https://formulae.brew.sh/formula/python@3.11)
+
+### Initial Setup of the container
+
+1. Configure Github-CLI with
+
+```bash
+gh auth login
+```
+
+## Deploying a sandbox
+
+In order to fully test your development it may be necessary to build and deploy your own temporary sandbox on the dev environment. In order to build a sandbox please [follow the steps outlined in confluence](https://nhsd-confluence.digital.nhs.uk/spaces/NDR/pages/1145307545/How+To+Deploy+Custom+Sandbox)
 
 ## Monitoring
 

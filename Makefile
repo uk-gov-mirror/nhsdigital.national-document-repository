@@ -18,7 +18,7 @@ ZIP_BASE_PATH = ./$(LAMBDAS_BUILD_PATH)/$(lambda_name)/tmp
 ZIP_COMMON_FILES = lambdas/utils lambdas/models lambdas/services lambdas/repositories lambdas/enums lambdas/scripts
 CONTAINER ?= false
 
-.PHONY: install clean help format list requirements ruff
+.PHONY: install clean help format list requirements ruff build-and-deploy-sandbox
 
 default: help
 
@@ -67,6 +67,17 @@ check-packages:
 	./lambdas/venv/bin/pip-audit -r $(DATA_REQUIREMENTS)
 	./lambdas/venv/bin/pip-audit -r $(REPORTS_REQUIREMENTS)
 	./lambdas/venv/bin/pip-audit -r $(ALERTING_REQUIREMENTS)
+
+build-and-deploy-sandbox: ## Build a sandbox and deploy code. If no SANDBOX_NAME is provided it will use your current branch as the name. It will default to building and deploying using 'main', You can skip building infrastructure by BUILD_INFRA=false. Usage: make build-and-deploy-sandbox SANDBOX_NAME=<sandbox_name> NDRI_WORKFLOW_BRANCH=<branch> NDRI_BRANCH=<branch> NDR_WORKFLOW_BRANCH=<branch> NDR_BRANCH=<branch> BUILD_INFRA=<true|false> NDRI_DIR_LOC_OVERRIDE=<dir_location>
+	@./scripts/build_and_deploy_sandbox.sh \
+		$(if $(NDRI_WORKFLOW_BRANCH),--ndri_workflow_branch=$(NDRI_WORKFLOW_BRANCH)) \
+		$(if $(NDRI_BRANCH),--ndri_branch=$(NDRI_BRANCH)) \
+		$(if $(NDR_WORKFLOW_BRANCH),--ndr_workflow_branch=$(NDR_WORKFLOW_BRANCH)) \
+		$(if $(NDR_BRANCH),--ndr_branch=$(NDR_BRANCH)) \
+		$(if $(SANDBOX_NAME),--sandbox_name=$(SANDBOX_NAME)) \
+		$(if $(BUILD_INFRA),--build_infra=$(BUILD_INFRA)) \
+		$(if $(FULL_DEPLOY),--full_deploy=$(FULL_DEPLOY)) \
+		$(if $(NDRI_DIR_LOC_OVERRIDE),--ndri_dir_loc_override=$(NDRI_DIR_LOC_OVERRIDE))
 
 download-api-certs: ## Downloads mTLS certificates (use with dev envs only). Usage: make download-api-certs WORKSPACE=<workspace>
 	rm -rf ./lambdas/mtls_env_certs/$(WORKSPACE)

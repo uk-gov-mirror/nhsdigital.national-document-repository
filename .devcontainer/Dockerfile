@@ -10,14 +10,28 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
   strip-nondeterminism \
   uuid-runtime \
   parallel \
-  bc
+  bc \
+  curl \
+  ca-certificates \
+  gnupg
+
+# Prepare github-cli install
+RUN mkdir -p /etc/apt/keyrings \
+  && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+  | gpg --dearmor \
+  | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+  && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] \
+  https://cli.github.com/packages stable main" \
+  | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
 
 # Install CLI tools.
 RUN apt-get update && apt-get install -y \
   vim \
   ranger \
   tmux \
-  fzf
+  fzf \
+  gh
 
 # Install base neovim
 RUN set -eux; \
