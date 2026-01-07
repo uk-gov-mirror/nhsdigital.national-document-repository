@@ -517,6 +517,10 @@ class LambdaError(Enum):
         "err_code": "DRV_4005",
         "message": "The NHS number provided is invalid",
     }
+    DocumentReviewUnsupportedFileType = {
+        "err_code": "DRV_4006",
+        "message": "The file type provided is not supported",
+    }
 
     """
        Errors for get ods report lambda 
@@ -690,10 +694,7 @@ class LambdaError(Enum):
         "message": "Invalid request",
     }
 
-    DocumentReviewUploadForbidden = {
-        "err_code": "UDR_4031",
-        "message": "Forbidden"
-    }
+    DocumentReviewUploadForbidden = {"err_code": "UDR_4031", "message": "Forbidden"}
 
     DocumentReviewPresignedFailure = {
         "err_code": "UDR_5003",

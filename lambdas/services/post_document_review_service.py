@@ -86,6 +86,7 @@ class PostDocumentReviewService:
         except ClientError:
             raise DocumentReviewLambdaException(500, LambdaError.DocumentReviewDB)
 
+
     def create_response(
         self, document_review_reference: DocumentUploadReviewReference
     ) -> dict:

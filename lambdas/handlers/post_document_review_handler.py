@@ -10,7 +10,7 @@ from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.set_audit_arg import set_request_context_for_logging
-from utils.exceptions import InvalidNhsNumberException
+from utils.exceptions import InvalidNhsNumberException, InvalidFileTypeException
 from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_response import ApiGatewayResponse
 
@@ -59,4 +59,9 @@ def validate_event_body(body):
         logger.error(e)
         raise DocumentReviewLambdaException(
             400, LambdaError.DocumentReviewUploadInvalidRequest
+        )
+    except InvalidFileTypeException as e:
+        logger.error(e)
+        raise DocumentReviewLambdaException(
+            400, LambdaError.DocumentReviewUnsupportedFileType
         )

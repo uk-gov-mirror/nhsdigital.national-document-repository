@@ -38,6 +38,12 @@ INVALID_EVENT_MISSING_DOCUMENTS = {
     "documents": [],
 }
 
+INVALID_EVENT_INVALID_FILE_EXTENSION = {
+    "nhsNumber": TEST_NHS_NUMBER,
+    "snomedCode": SnomedCodes.LLOYD_GEORGE.value.code,
+    "documents": ["testFile.job"],
+}
+
 TEST_PRESIGNED_URL_1 = "https://s3.amazonaws.com/presigned1?signature=abc123"
 
 
@@ -215,11 +221,19 @@ def test_validate_event_body_valid_event_returns_document_review_upload_event_mo
 
 
 def test_validate_event_body_throws_error_unsupported_snomed_code(invalid_event):
-    invalid_event["body"] = INVALID_EVENT_UNSUPPORTED_SNOMED_CODE
+    invalid_event["body"] = json.dumps(INVALID_EVENT_UNSUPPORTED_SNOMED_CODE)
     with pytest.raises(DocumentReviewLambdaException) as e:
         validate_event_body(invalid_event["body"])
     assert e.value.status_code == 400
     assert e.value.err_code == "UDR_4003"
+
+
+def test_validate_event_body_throws_error_unsupported_file_type(invalid_event):
+    invalid_event["body"] = json.dumps(INVALID_EVENT_INVALID_FILE_EXTENSION)
+    with pytest.raises(DocumentReviewLambdaException) as e:
+        validate_event_body(invalid_event["body"])
+    assert e.value.status_code == 400
+    assert e.value.err_code == "DRV_4006"
 
 
 def test_lambda_handler_calls_service_with_validated_event(

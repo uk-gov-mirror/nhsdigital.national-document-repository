@@ -1,13 +1,16 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Self
 
 from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
+from enums.upload_forbidden_file_extensions import is_file_type_allowed
 from enums.snomed_codes import SnomedCodes
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, ValidationError
 from pydantic.alias_generators import to_camel, to_pascal
-from utils.exceptions import InvalidNhsNumberException
+from utils.exceptions import InvalidNhsNumberException, ConfigNotFoundException, InvalidFileTypeException
+from utils import upload_file_configs
 from utils.utilities import validate_nhs_number
 
 
@@ -158,3 +161,16 @@ class DocumentReviewUploadEvent(BaseModel):
     def verify_nhs_number(cls, value) -> str | None:
         if validate_nhs_number(value):
             return value
+
+    @model_validator(mode="after")
+    def validate_file_extension(self) -> Self:
+        try:
+            accepted_file_types = upload_file_configs.get_config_by_snomed_code(self.snomed_code.code).accepted_file_types
+
+            for file in self.documents:
+                if not is_file_type_allowed(file, accepted_file_types):
+                    raise InvalidFileTypeException("Invalid file extension.")
+            return self
+        except ConfigNotFoundException:
+            raise InvalidFileTypeException("Unable to find file configuration.")
+

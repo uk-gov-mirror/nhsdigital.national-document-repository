@@ -549,7 +549,7 @@ def test_extract_author_from_fhir(
     ],
 )
 def test_extract_author_from_fhir_raises_error(
-    mock_post_fhir_doc_ref_service, mocker, fhir_author
+    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker, fhir_author
 ):
     """Test _extract_author_from_fhir method with malformed json returns Validation errors."""
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
