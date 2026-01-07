@@ -15,14 +15,12 @@ logger = LoggingService(__name__)
 @set_request_context_for_logging
 @ensure_environment_variables(
     names=[
-        "LLOYD_GEORGE_DYNAMODB_NAME",
-        "PDM_DYNAMODB_NAME",
         "STAGING_STORE_BUCKET_NAME",
         "LLOYD_GEORGE_BUCKET_NAME",
         "PDM_BUCKET_NAME",
         "VIRUS_SCAN_STUB",
         "DOCUMENT_REVIEW_DYNAMODB_NAME",
-        "PENDING_REVIEW_BUCKET_NAME"
+        "PENDING_REVIEW_BUCKET_NAME",
     ]
 )
 def lambda_handler(event, context):
@@ -42,6 +40,4 @@ def lambda_handler(event, context):
 
         service.handle_upload_document_reference_request(object_key, object_size)
 
-    return ApiGatewayResponse(
-        200, "Virus Scan was successful", "POST"
-    ).create_api_gateway_response()
+    return ApiGatewayResponse(200, "Virus Scan was successful", "POST").create_api_gateway_response()

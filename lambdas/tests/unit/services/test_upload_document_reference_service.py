@@ -68,44 +68,6 @@ def service(set_env, mock_virus_scan_service):
         return service
 
 
-@pytest.fixture
-def mock_pdm_document_reference():
-    """Create a mock document reference"""
-    doc_ref = Mock(spec=DocumentReference)
-    doc_ref.id = "test-doc-id"
-    doc_ref.nhs_number = "9000000001"
-    doc_ref.s3_file_key = (
-        f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000001/test-doc-id"
-    )
-    doc_ref.s3_bucket_name = "test-staging-bucket"
-    doc_ref.virus_scanner_result = None
-    doc_ref.file_size = 1234567890
-    doc_ref.doc_status = "uploading"
-    doc_ref._build_s3_location = Mock(
-        return_value=f"s3://test-staging-bucket/fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000001/test-doc-id"
-    )
-    return doc_ref
-
-
-@pytest.fixture
-def pdm_service(set_env, mock_virus_scan_service):
-    with patch.multiple(
-        "services.upload_document_reference_service",
-        DocumentService=Mock(),
-        DynamoDBService=Mock(),
-        S3Service=Mock(),
-    ):
-        service = UploadDocumentReferenceService()
-        service.document_service = Mock()
-        service.dynamo_service = Mock()
-        service.virus_scan_service = MockVirusScanService()
-        service.s3_service = Mock()
-        service.table_name = MOCK_PDM_TABLE_NAME
-        service.destination_bucket_name = MOCK_PDM_BUCKET
-        service.doc_type = SnomedCodes.PATIENT_DATA.value
-        return service
-
-
 def test_handle_upload_document_reference_request_with_empty_object_key(service):
     """Test handling of an empty object key"""
     service.handle_upload_document_reference_request("", 122)
@@ -167,6 +129,7 @@ def test_handle_upload_document_reference_request_with_exception(service):
 def test_fetch_preliminary_document_reference_success(service, mock_document_reference):
     """Test successful document reference fetching"""
     document_key = "test-doc-id"
+    service.table_name = "dev_LloydGeorgeReferenceMetadata"
     service.document_service.fetch_documents_from_table.return_value = [
         mock_document_reference
     ]
@@ -175,7 +138,7 @@ def test_fetch_preliminary_document_reference_success(service, mock_document_ref
 
     assert result == mock_document_reference
     service.document_service.fetch_documents_from_table.assert_called_once_with(
-        table_name=MOCK_LG_TABLE_NAME,
+        table_name="dev_LloydGeorgeReferenceMetadata",
         search_condition=document_key,
         search_key="ID",
         query_filter=PreliminaryStatus,
@@ -400,10 +363,11 @@ def test_delete_file_from_staging_bucket_client_error(service):
 
 def test_update_dynamo_table_clean_scan_result(service, mock_document_reference):
     """Test updating DynamoDB table with a clean scan result"""
+    service.table_name = "dev_LloydGeorgeReferenceMetadata"
     service._update_dynamo_table(mock_document_reference)
 
     service.document_service.update_document.assert_called_once_with(
-        table_name=MOCK_LG_TABLE_NAME,
+        table_name="dev_LloydGeorgeReferenceMetadata",
         document=mock_document_reference,
         key_pair=None,
         update_fields_name={
@@ -472,13 +436,13 @@ def test_document_key_extraction_from_object_key_for_lg(
 
     # Check first call (preliminary document)
     first_call = service.document_service.fetch_documents_from_table.call_args_list[0]
-    assert first_call[1]["table_name"] == MOCK_LG_TABLE_NAME
+    assert first_call[1]["table_name"] == "dev_LloydGeorgeReferenceMetadata"
     assert first_call[1]["search_condition"] == expected_document_key
     assert first_call[1]["search_key"] == "ID"
 
     # Check second call (existing final documents)
     second_call = service.document_service.fetch_documents_from_table.call_args_list[1]
-    assert second_call[1]["table_name"] == MOCK_LG_TABLE_NAME
+    assert second_call[1]["table_name"] == "dev_LloydGeorgeReferenceMetadata"
     assert second_call[1]["index_name"] == "S3FileKeyIndex"
     assert second_call[1]["search_condition"] == mock_document_reference.s3_file_key
     assert second_call[1]["search_key"] == "S3FileKey"
@@ -500,6 +464,7 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
     existing_final_doc.doc_status = "final"
     existing_final_doc.version = "1"
 
+    service.table_name = "dev_LloydGeorgeReferenceMetadata"
     service.document_service.fetch_documents_from_table.return_value = [
         existing_final_doc
     ]
@@ -511,7 +476,7 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
 
     # Assert fetch was called with the correct parameters
     service.document_service.fetch_documents_from_table.assert_called_once_with(
-        table_name=MOCK_LG_TABLE_NAME,
+        table_name="dev_LloydGeorgeReferenceMetadata",
         index_name="S3FileKeyIndex",
         search_condition=new_doc.s3_file_key,
         search_key="S3FileKey",
@@ -523,7 +488,7 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
 
     # Assert the first call is for the new document with correct fields
     first_call = service.dynamo_service.build_update_transaction_item.call_args_list[0]
-    assert first_call[1]["table_name"] == MOCK_LG_TABLE_NAME
+    assert first_call[1]["table_name"] == "dev_LloydGeorgeReferenceMetadata"
     assert first_call[1]["document_key"] == {"ID": new_doc.id}
     update_fields = first_call[1]["update_fields"]
     assert "S3VersionID" in update_fields
@@ -534,7 +499,7 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
 
     # Assert the second call is for superseding the existing final document
     second_call = service.dynamo_service.build_update_transaction_item.call_args_list[1]
-    assert second_call[1]["table_name"] == MOCK_LG_TABLE_NAME
+    assert second_call[1]["table_name"] == "dev_LloydGeorgeReferenceMetadata"
     assert second_call[1]["document_key"] == {"ID": existing_final_doc.id}
     assert second_call[1]["update_fields"] == {
         "Status": "superseded",
@@ -703,8 +668,10 @@ def test_process_preliminary_document_reference_exception_during_processing(
 
 
 def test_get_infrastructure_for_document_key_non_pdm(service):
+    assert service.table_name == ""
     infra = service._get_infrastructure_for_document_key(object_parts=["1234", "123"])
     assert infra is None
+    assert service.table_name == "dev_LloydGeorgeReferenceMetadata"
 
 
 def test_get_infra_invalid_doc_type(monkeypatch, service):

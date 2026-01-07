@@ -31,7 +31,7 @@ logger = LoggingService(__name__)
 class UploadDocumentReferenceService:
     def __init__(self):
         self.staging_s3_bucket_name = os.environ["STAGING_STORE_BUCKET_NAME"]
-        self.table_name = os.environ["LLOYD_GEORGE_DYNAMODB_NAME"]
+        self.table_name = ""
         self.destination_bucket_name = os.environ["LLOYD_GEORGE_BUCKET_NAME"]
         self.doc_type = SnomedCodes.LLOYD_GEORGE.value
         self.document_service = DocumentService()
@@ -73,10 +73,11 @@ class UploadDocumentReferenceService:
             return
 
     def _get_infrastructure_for_document_key(self, object_parts: list[str]) -> None:
-        doc_type = None
+        doc_type = self.doc_type
         if object_parts[0] != "fhir_upload" or not (
             doc_type := SnomedCodes.find_by_code(object_parts[1])
         ):
+            self.table_name = self.table_router.resolve(doc_type)
             return
 
         try:

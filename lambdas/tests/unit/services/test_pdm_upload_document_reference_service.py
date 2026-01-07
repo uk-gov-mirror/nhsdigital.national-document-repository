@@ -507,7 +507,7 @@ def test_process_preliminary_document_reference_exception_during_processing(
 
 
 def test_get_infrastructure_for_document_key_pdm(service):
-    assert service.table_name == MOCK_LG_TABLE_NAME
+    assert service.table_name == ""
     assert service.destination_bucket_name == MOCK_LG_BUCKET
     service._get_infrastructure_for_document_key(
         object_parts=["fhir_upload", SnomedCodes.PATIENT_DATA.value.code, "1234"]
@@ -517,7 +517,9 @@ def test_get_infrastructure_for_document_key_pdm(service):
 
 
 def test_get_infrastructure_for_document_key_non_pdm(service):
+    assert service.table_name == ""
     infra = service._get_infrastructure_for_document_key(object_parts=["1234", "123"])
+    assert service.table_name == str(DynamoTables.LLOYD_GEORGE)
     assert infra is None
 
 
@@ -553,19 +555,19 @@ def test_get_infra_invalid_doc_type(monkeypatch, service):
     [
         (
             "staging/documents/test-doc-123",
-            MOCK_LG_TABLE_NAME,
+            "dev_LloydGeorgeReferenceMetadata",
             MOCK_LG_BUCKET,
             SnomedCodes.LLOYD_GEORGE.value,
         ),
         (
             "folder/subfolder/another-doc",
-            MOCK_LG_TABLE_NAME,
+            "dev_LloydGeorgeReferenceMetadata",
             MOCK_LG_BUCKET,
             SnomedCodes.LLOYD_GEORGE.value,
         ),
         (
             "simple-doc",
-            MOCK_LG_TABLE_NAME,
+            "dev_LloydGeorgeReferenceMetadata",
             MOCK_LG_BUCKET,
             SnomedCodes.LLOYD_GEORGE.value,
         ),
@@ -577,7 +579,7 @@ def test_get_infra_invalid_doc_type(monkeypatch, service):
         ),
         (
             f"{SnomedCodes.LLOYD_GEORGE.value.code}/staging/test-doc-123",
-            MOCK_LG_TABLE_NAME,
+            "dev_LloydGeorgeReferenceMetadata",
             MOCK_LG_BUCKET,
             SnomedCodes.LLOYD_GEORGE.value,
         ),

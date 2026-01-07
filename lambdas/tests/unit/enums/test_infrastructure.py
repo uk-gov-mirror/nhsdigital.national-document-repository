@@ -9,7 +9,6 @@ from utils.lambda_exceptions import DocumentRefException, InvalidDocTypeExceptio
     ["enum_value", "expected"],
     [
         (DynamoTables.LLOYD_GEORGE, "LloydGeorgeReferenceMetadata"),
-        (DynamoTables.PDM, "PDMDocumentMetadata"),
         (DynamoTables.CORE, "COREDocumentMetadata"),
     ],
 )
@@ -29,7 +28,7 @@ def test_dynamo_tables_no_workspace(monkeypatch):
     monkeypatch.delenv("WORKSPACE", raising=False)
 
     with pytest.raises(DocumentRefException) as exc:
-        str(DynamoTables.PDM)
+        str(DynamoTables.CORE)
 
     assert exc.value.status_code == 500
     assert exc.value.error == LambdaError.EnvMissing

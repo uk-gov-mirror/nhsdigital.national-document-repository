@@ -87,9 +87,7 @@ def create_expression_attribute_values(attribute_field_values: dict) -> dict:
     """
     expression_attribute_values = {}
     for field_name, field_value in attribute_field_values.items():
-        expression_attribute_values[
-            f"{create_expression_value_placeholder(field_name)}"
-        ] = field_value
+        expression_attribute_values[f"{create_expression_value_placeholder(field_name)}"] = field_value
 
     return expression_attribute_values
 
@@ -133,14 +131,12 @@ def filter_uploaded_docs_and_recently_uploading_docs():
     filter_builder.add_condition("Uploaded", AttributeOperator.EQUAL, True)
     uploaded_filter_expression = filter_builder.build()
 
-    filter_builder.add_condition(
-        "Uploading", AttributeOperator.EQUAL, True
-    ).add_condition("LastUpdated", AttributeOperator.GREATER_OR_EQUAL, time_limit)
+    filter_builder.add_condition("Uploading", AttributeOperator.EQUAL, True).add_condition(
+        "LastUpdated", AttributeOperator.GREATER_OR_EQUAL, time_limit
+    )
     uploading_filter_expression = filter_builder.build()
 
-    return delete_filter_expression & (
-        uploaded_filter_expression | uploading_filter_expression
-    )
+    return delete_filter_expression & (uploaded_filter_expression | uploading_filter_expression)
 
 
 def parse_dynamo_record(dynamodb_record: Dict[str, Any]) -> Dict[str, Any]:
@@ -196,12 +192,8 @@ def build_mixed_condition_expression(
         if operator in ["attribute_exists", "attribute_not_exists"]:
             condition_expressions.append(f"{operator}({condition_placeholder})")
         else:
-            condition_value_placeholder = create_expression_value_placeholder(
-                field_name, suffix
-            )
-            condition_expressions.append(
-                f"{condition_placeholder} {operator} {condition_value_placeholder}"
-            )
+            condition_value_placeholder = create_expression_value_placeholder(field_name, suffix)
+            condition_expressions.append(f"{condition_placeholder} {operator} {condition_value_placeholder}")
             condition_attribute_values[condition_value_placeholder] = field_value
 
     condition_expression = f" {join_operator} ".join(condition_expressions)
@@ -242,9 +234,7 @@ def build_general_transaction_item(
     action = action.capitalize()
 
     if action not in ["Put", "Update", "Delete", "Conditioncheck"]:
-        raise ValueError(
-            f"Invalid action: {action}. Must be one of: Put, Update, Delete, ConditionCheck"
-        )
+        raise ValueError(f"Invalid action: {action}. Must be one of: Put, Update, Delete, ConditionCheck")
 
     transaction_item: dict[str, dict[str, Any]] = {action: {"TableName": table_name}}
 
@@ -269,14 +259,10 @@ def build_general_transaction_item(
         transaction_item[action]["ConditionExpression"] = condition_expression
 
     if expression_attribute_names:
-        transaction_item[action][
-            "ExpressionAttributeNames"
-        ] = expression_attribute_names
+        transaction_item[action]["ExpressionAttributeNames"] = expression_attribute_names
 
     if expression_attribute_values:
-        transaction_item[action][
-            "ExpressionAttributeValues"
-        ] = expression_attribute_values
+        transaction_item[action]["ExpressionAttributeValues"] = expression_attribute_values
 
     return transaction_item
 
@@ -305,8 +291,8 @@ def build_transaction_item(
         expression_attribute_values.update(update_attr_values)
 
     if conditions:
-        condition_expr, condition_attr_names, condition_attr_values = (
-            build_mixed_condition_expression(conditions, condition_join_operator)
+        condition_expr, condition_attr_names, condition_attr_values = build_mixed_condition_expression(
+            conditions, condition_join_operator
         )
         condition_expression = condition_expr
         expression_attribute_names.update(condition_attr_names)
@@ -336,7 +322,6 @@ class DocTypeTableRouter:
 
     def _define_tables(self):
         self.lg_dynamo_table = DynamoTables.LLOYD_GEORGE
-        self.pdm_dynamo_table = DynamoTables.PDM
         self.core_dynamo_table = DynamoTables.CORE
 
     def resolve(self, doc_type: SnomedCode) -> str:
@@ -344,7 +329,5 @@ class DocTypeTableRouter:
             table = self.mapping[doc_type.code]
             return str(table)
         except KeyError:
-            logger.error(
-                f"SNOMED code {doc_type.code} - {doc_type.display_name} is not supported"
-            )
+            logger.error(f"SNOMED code {doc_type.code} - {doc_type.display_name} is not supported")
             raise InvalidDocTypeException(400, LambdaError.DocTypeDB)
