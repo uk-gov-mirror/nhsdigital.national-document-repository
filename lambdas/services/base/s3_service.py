@@ -16,6 +16,7 @@ logger = LoggingService(__name__)
 class S3Service:
     _instance = None
     EXPIRED_SESSION_WARNING = "Expired session, creating a new role session"
+    S3_PREFIX = "s3://"
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:

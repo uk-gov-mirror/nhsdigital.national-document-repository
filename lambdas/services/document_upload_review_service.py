@@ -5,9 +5,8 @@ from boto3.dynamodb.conditions import Attr, ConditionBase
 from botocore.exceptions import ClientError
 from enums.document_review_status import DocumentReviewStatus
 from enums.dynamo_filter import AttributeOperator
-from enums.lambda_error import LambdaError, ErrorMessage
+from enums.lambda_error import ErrorMessage
 from enums.metadata_field_names import DocumentReferenceMetadataFields
-from models.document_reference import S3_PREFIX
 from models.document_review import DocumentUploadReviewReference
 from pydantic import ValidationError
 from services.document_service import DocumentService
@@ -88,9 +87,7 @@ class DocumentUploadReviewService(DocumentService):
             return review_references
         except ValidationError as e:
             logger.error(e)
-            raise DocumentReviewException(
-                ErrorMessage.FAILED_TO_VALIDATE.value
-            )
+            raise DocumentReviewException(ErrorMessage.FAILED_TO_VALIDATE.value)
 
     def get_document(
         self, document_id: str, version: int | None
@@ -333,7 +330,9 @@ class DocumentUploadReviewService(DocumentService):
         self, document_review: DocumentUploadReviewReference
     ):
         for file in document_review.files:
-            location_without_prefix = file.file_location.replace(S3_PREFIX, "")
+            location_without_prefix = file.file_location.replace(
+                self.s3_service.S3_PREFIX, ""
+            )
             bucket, file_key = location_without_prefix.split("/", 1)
             try:
                 self.s3_service.delete_object(bucket, file_key)

@@ -3,7 +3,6 @@ import uuid
 from datetime import datetime, timezone
 
 from botocore.exceptions import ClientError
-
 from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
@@ -86,7 +85,6 @@ class PostDocumentReviewService:
         except ClientError:
             raise DocumentReviewLambdaException(500, LambdaError.DocumentReviewDB)
 
-
     def create_response(
         self, document_review_reference: DocumentUploadReviewReference
     ) -> dict:
@@ -108,11 +106,18 @@ class PostDocumentReviewService:
     ) -> DocumentUploadReviewReference:
         logger.info(f"Creating DocumentUploadReviewReference from event: {event}")
 
+        review_document_ref_id = str(uuid.uuid4())
+
         document_file_details = [
-            DocumentReviewFileDetails(file_name=file) for file in event.documents
+            DocumentReviewFileDetails(
+                file_name=file,
+                file_location=f"{self.s3_service.S3_PREFIX}{self.staging_bucket}/review/{review_document_ref_id}/{str(uuid.uuid4())}",
+            )
+            for file in event.documents
         ]
 
         document_review_reference = DocumentUploadReviewReference(
+            id=review_document_ref_id,
             author=author,
             custodian=patient_details.general_practice_ods,
             review_status=DocumentReviewStatus.REVIEW_PENDING_UPLOAD,
@@ -128,7 +133,7 @@ class PostDocumentReviewService:
     ) -> None:
         try:
             for document_file in document_review_reference.files:
-                upload_id = str(uuid.uuid4())
+                upload_id = document_file.file_location.split("/")[-1]
                 document_file.presigned_url = (
                     self.create_review_document_upload_presigned_url(
                         file_key=f"review/{document_review_reference.id}/{upload_id}",

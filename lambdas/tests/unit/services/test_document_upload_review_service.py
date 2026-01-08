@@ -185,6 +185,7 @@ def test_handle_standard_custodian_update_updates_document(mock_service, mocker)
         update_fields_name=update_fields,
     )
 
+
 def test_get_document_review_by_id(
     mock_service, mock_document_review_references, mocker
 ):
@@ -360,6 +361,7 @@ def test_update_document_review_with_transaction_builds_correct_items(
 
 
 def test_delete_document_review_files_success(mock_service, mocker):
+    mock_service.s3_service.S3_PREFIX = "s3://"
     mock_delete_object = mocker.patch.object(mock_service.s3_service, "delete_object")
 
     document_review = MagicMock(spec=DocumentUploadReviewReference)
@@ -381,6 +383,7 @@ def test_delete_document_review_files_success(mock_service, mocker):
 
 
 def test_delete_document_review_files_handles_s3_error(mock_service, mocker):
+    mock_service.s3_service.S3_PREFIX = "string"
     mock_delete_object = mocker.patch.object(mock_service.s3_service, "delete_object")
 
     client_error = ClientError(
@@ -644,16 +647,23 @@ def test_update_document_review_status_success_with_condition(mock_service, mock
 def test_update_document_review_status_error_handling_transient(mock_service, mocker):
     mock_update_document = mocker.patch.object(mock_service, "update_document")
     mock_logger = mocker.patch("services.document_upload_review_service.logger")
-    mock_is_transient = mocker.patch("services.document_upload_review_service.is_transient_error")
+    mock_is_transient = mocker.patch(
+        "services.document_upload_review_service.is_transient_error"
+    )
 
     review_document = MagicMock(spec=DocumentUploadReviewReference)
     review_document.id = "test-review-id"
     review_document.version = 1
     mock_is_transient.return_value = True
     transient_error = ClientError(
-        {"Error": {"Code": "InternalServerError", "Message": "Internal server error"},
-         "ResponseMetadata": {"HTTPStatusCode": 500}},
-        "UpdateItem"
+        {
+            "Error": {
+                "Code": "InternalServerError",
+                "Message": "Internal server error",
+            },
+            "ResponseMetadata": {"HTTPStatusCode": 500},
+        },
+        "UpdateItem",
     )
     mock_update_document.side_effect = transient_error
 
@@ -666,16 +676,20 @@ def test_update_document_review_status_error_handling_transient(mock_service, mo
 def test_update_document_review_status_error_handling(mock_service, mocker):
     mock_update_document = mocker.patch.object(mock_service, "update_document")
     mock_logger = mocker.patch("services.document_upload_review_service.logger")
-    mock_is_transient = mocker.patch("services.document_upload_review_service.is_transient_error")
+    mock_is_transient = mocker.patch(
+        "services.document_upload_review_service.is_transient_error"
+    )
 
     review_document = MagicMock(spec=DocumentUploadReviewReference)
     review_document.id = "test-review-id"
     review_document.version = 1
     mock_is_transient.return_value = False
     non_transient_error = ClientError(
-        {"Error": {"Code": "ValidationException", "Message": "Validation error"},
-         "ResponseMetadata": {"HTTPStatusCode": 400}},
-        "UpdateItem"
+        {
+            "Error": {"Code": "ValidationException", "Message": "Validation error"},
+            "ResponseMetadata": {"HTTPStatusCode": 400},
+        },
+        "UpdateItem",
     )
     mock_update_document.side_effect = non_transient_error
 
