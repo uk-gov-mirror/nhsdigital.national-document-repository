@@ -55,7 +55,7 @@ describe('downloadReport', () => {
 
         expect(getSpy).toHaveBeenCalledWith(args.baseUrl + report.endpoint, {
             headers: args.baseHeaders,
-            params: { outputFileFormat: args.fileType, odsReportType: "PATIENT" },
+            params: { outputFileFormat: args.fileType, odsReportType: 'PATIENT' },
         });
 
         expect(mockAnchor.setAttribute).toHaveBeenCalledWith('download', '');
@@ -90,7 +90,7 @@ describe('downloadReport', () => {
         expect(errorCode).toBe(404);
         expect(getSpy).toHaveBeenCalledWith(args.baseUrl + report.endpoint, {
             headers: args.baseHeaders,
-            params: { outputFileFormat: args.fileType, odsReportType: "PATIENT" },
+            params: { outputFileFormat: args.fileType, odsReportType: 'PATIENT' },
         });
     });
 });

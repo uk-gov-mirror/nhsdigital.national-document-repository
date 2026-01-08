@@ -15,7 +15,7 @@ type DocumentReviewFile = {
 
 export type DocumentReviewStatusDto = {
     id: string;
-    status: string;
+    reviewStatus: string;
     version: string;
     reviewReason: string;
 };

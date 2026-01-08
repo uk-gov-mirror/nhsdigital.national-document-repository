@@ -58,6 +58,7 @@ const mockPatient = {
     familyName: 'Doe',
     birthDate: '1990-01-01',
     postalCode: 'AB1 2CD',
+    canManageRecord: true,
 };
 
 const renderComponent = (props = defaultProps) => {

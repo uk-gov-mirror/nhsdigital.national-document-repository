@@ -8,4 +8,5 @@ export type PatientDetails = {
     restricted: boolean;
     active: boolean;
     deceased: boolean;
+    canManageRecord?: boolean;
 };

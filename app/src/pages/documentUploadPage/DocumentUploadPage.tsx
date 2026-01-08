@@ -13,10 +13,7 @@ import useBaseAPIHeaders from '../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import useConfig from '../../helpers/hooks/useConfig';
 import usePatient from '../../helpers/hooks/usePatient';
-import uploadDocuments, {
-    getDocumentStatus,
-    uploadDocumentToS3,
-} from '../../helpers/requests/uploadDocuments';
+import { getDocumentStatus, uploadDocumentToS3 } from '../../helpers/requests/uploadDocuments';
 import { errorCodeToParams, errorToParams } from '../../helpers/utils/errorToParams';
 import { isLocal, isMock } from '../../helpers/utils/isLocal';
 import {
@@ -30,9 +27,8 @@ import {
     useEnhancedNavigate,
 } from '../../helpers/utils/urlManipulations';
 import { routeChildren, routes } from '../../types/generic/routes';
-import { DocumentStatusResult, UploadSession } from '../../types/generic/uploadResult';
+import { UploadSession } from '../../types/generic/uploadResult';
 import {
-    DOCUMENT_STATUS,
     DOCUMENT_UPLOAD_STATE,
     ExistingDocument,
     LocationParams,
@@ -40,9 +36,14 @@ import {
     UploadDocument,
 } from '../../types/pages/UploadDocumentsPage/types';
 import { DOCUMENT_TYPE, getConfigForDocType } from '../../helpers/utils/documentType';
-import { buildMockUploadSession } from '../../helpers/test/testBuilders';
-import { reduceDocumentsForUpload } from '../../helpers/utils/documentUpload';
+import {
+    getUploadSession,
+    handleDocReviewStatusResult,
+    handleDocStatusResult,
+    reduceDocumentsForUpload,
+} from '../../helpers/utils/documentUpload';
 import DocumentUploadIndex from '../../components/blocks/_documentUpload/documentUploadIndex/DocumentUploadIndex';
+import { getDocumentReviewStatus } from '../../helpers/requests/documentReview';
 
 const DocumentUploadPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
@@ -158,7 +159,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
         setExistingDocuments(newDocuments);
     };
 
-    const uploadSingleLloydGeorgeDocument = async (
+    const uploadSingleDocument = async (
         document: UploadDocument,
         uploadSession: UploadSession,
     ): Promise<void> => {
@@ -190,7 +191,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
         uploadSession: UploadSession,
     ): void => {
         uploadDocuments.forEach((document) => {
-            void uploadSingleLloydGeorgeDocument(document, uploadSession);
+            void uploadSingleDocument(document, uploadSession);
         });
     };
 
@@ -213,15 +214,14 @@ const DocumentUploadPage = (): React.JSX.Element => {
 
     const startUpload = async (): Promise<void> => {
         try {
-            const uploadSession: UploadSession = isLocal
-                ? buildMockUploadSession(documents)
-                : await uploadDocuments({
-                      nhsNumber,
-                      documents: documents,
-                      baseUrl,
-                      baseHeaders,
-                      documentReferenceId: existingDocuments[0]?.id,
-                  });
+            const uploadSession: UploadSession = await getUploadSession(
+                patientDetails!,
+                baseUrl,
+                baseHeaders,
+                existingDocuments,
+                documents,
+                setDocuments,
+            );
 
             setUploadSession(uploadSession);
             const uploadingDocuments = markDocumentsAsUploading(documents, uploadSession);
@@ -250,36 +250,6 @@ const DocumentUploadPage = (): React.JSX.Element => {
                 navigate(routes.SERVER_ERROR + errorToParams(error));
             }
         }
-    };
-
-    const handleDocStatusResult = (documentStatusResult: DocumentStatusResult): void => {
-        setDocuments((previousState) =>
-            previousState.map((doc) => {
-                const docStatus = documentStatusResult[doc.ref!];
-
-                const updatedDoc = {
-                    ...doc,
-                };
-
-                switch (docStatus?.status) {
-                    case DOCUMENT_STATUS.FINAL:
-                        updatedDoc.state = DOCUMENT_UPLOAD_STATE.SUCCEEDED;
-                        break;
-
-                    case DOCUMENT_STATUS.INFECTED:
-                        updatedDoc.state = DOCUMENT_UPLOAD_STATE.INFECTED;
-                        break;
-
-                    case DOCUMENT_STATUS.NOT_FOUND:
-                    case DOCUMENT_STATUS.CANCELLED:
-                        updatedDoc.state = DOCUMENT_UPLOAD_STATE.ERROR;
-                        updatedDoc.errorCode = docStatus.error_code;
-                        break;
-                }
-
-                return updatedDoc;
-            }),
-        );
     };
 
     const startIntervalTimer = (uploadDocuments: Array<UploadDocument>): number => {
@@ -314,14 +284,25 @@ const DocumentUploadPage = (): React.JSX.Element => {
                 setDocuments(updatedDocuments);
             } else {
                 try {
-                    const documentStatusResult = await getDocumentStatus({
-                        documents: uploadDocuments,
-                        baseUrl,
-                        baseHeaders,
-                        nhsNumber,
-                    });
+                    if (patientDetails?.canManageRecord) {
+                        const documentStatusResult = await getDocumentStatus({
+                            documents: uploadDocuments,
+                            baseUrl,
+                            baseHeaders,
+                            nhsNumber,
+                        });
 
-                    handleDocStatusResult(documentStatusResult);
+                        handleDocStatusResult(documentStatusResult, setDocuments);
+                    } else {
+                        uploadDocuments.forEach(async (document) => {
+                            void getDocumentReviewStatus({
+                                document,
+                                baseUrl,
+                                baseHeaders,
+                                nhsNumber,
+                            }).then((result) => handleDocReviewStatusResult(result, setDocuments));
+                        });
+                    }
                 } catch (e) {
                     const error = e as AxiosError;
                     navigate(routes.SERVER_ERROR + errorToParams(error));

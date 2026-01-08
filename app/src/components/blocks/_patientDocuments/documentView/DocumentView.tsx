@@ -262,14 +262,14 @@ const DocumentView = ({
                     )}
                 </div>
 
-                {documentReference.url 
-                    ? getRecordCard() 
-                    : (
-                        <p>
-                            This document is currently being uploaded, please try again in a few minutes.
-                        </p>
-                    )
-                }
+                {documentReference.url ? (
+                    getRecordCard()
+                ) : (
+                    <p>
+                        This document is currently being uploaded, please try again in a few
+                        minutes.
+                    </p>
+                )}
             </div>
         </div>
     );

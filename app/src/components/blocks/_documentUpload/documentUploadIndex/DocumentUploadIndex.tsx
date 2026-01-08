@@ -37,7 +37,12 @@ const DocumentUploadIndex = ({
     const documentTypeSelected = async (documentType: DOCUMENT_TYPE): Promise<void> => {
         const config = getConfigForDocType(documentType);
 
-        if (config.singleDocumentOnly) {
+        if (!patientDetails?.nhsNumber) {
+            navigate(routes.SERVER_ERROR);
+            return;
+        }
+
+        if (config.singleDocumentOnly && patientDetails.canManageRecord) {
             await handleSingleDocumentOnlyTypeSelected(documentType);
             setDocumentType(documentType);
             return;
@@ -59,11 +64,6 @@ const DocumentUploadIndex = ({
     };
 
     const handleSingleDocumentOnlyTypeSelected = async (docType: DOCUMENT_TYPE): Promise<void> => {
-        if (!patientDetails?.nhsNumber) {
-            navigate(routes.SERVER_ERROR);
-            return;
-        }
-
         const handleSuccess = (existingDocument: ExistingDocument): void => {
             const to: To = {
                 pathname: routeChildren.DOCUMENT_UPLOAD_SELECT_FILES,
@@ -86,7 +86,7 @@ const DocumentUploadIndex = ({
             setLoadingNext(true);
 
             const searchResults = await getDocumentSearchResults({
-                nhsNumber: patientDetails.nhsNumber,
+                nhsNumber: patientDetails!.nhsNumber,
                 baseUrl: baseUrl,
                 baseHeaders: baseHeaders,
                 docType,

@@ -613,7 +613,10 @@ describe('Upload Document Requests', () => {
                 birthDate: '1990-05-15',
             });
 
-            const result = generateStitchedFileName(patientDetails, docConfig as DOCUMENT_TYPE_CONFIG);
+            const result = generateStitchedFileName(
+                patientDetails,
+                docConfig as DOCUMENT_TYPE_CONFIG,
+            );
 
             expect(result).toBe(
                 '1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf',
@@ -628,9 +631,14 @@ describe('Upload Document Requests', () => {
                 birthDate: '1985-12-25',
             });
 
-            const result = generateStitchedFileName(patientDetails, docConfig as DOCUMENT_TYPE_CONFIG);
+            const result = generateStitchedFileName(
+                patientDetails,
+                docConfig as DOCUMENT_TYPE_CONFIG,
+            );
 
-            expect(result).toBe('1of1_Lloyd_George_Record_[Jane DOE]_[0987654321]_[25-12-1985].pdf');
+            expect(result).toBe(
+                '1of1_Lloyd_George_Record_[Jane DOE]_[0987654321]_[25-12-1985].pdf',
+            );
         });
 
         it('handles special characters in given name by replacing them with dashes', () => {
@@ -641,7 +649,10 @@ describe('Upload Document Requests', () => {
                 birthDate: '1975-03-10',
             });
 
-            const result = generateStitchedFileName(patientDetails, docConfig as DOCUMENT_TYPE_CONFIG);
+            const result = generateStitchedFileName(
+                patientDetails,
+                docConfig as DOCUMENT_TYPE_CONFIG,
+            );
 
             expect(result).toBe(
                 "1of1_Lloyd_George_Record_[Mary-Jane O'Connor SMITH-JONES]_[1111222233]_[10-03-1975].pdf",
@@ -656,7 +667,10 @@ describe('Upload Document Requests', () => {
                 birthDate: '2000-01-01',
             });
 
-            const result = generateStitchedFileName(patientDetails, docConfig as DOCUMENT_TYPE_CONFIG);
+            const result = generateStitchedFileName(
+                patientDetails,
+                docConfig as DOCUMENT_TYPE_CONFIG,
+            );
 
             expect(result).toBe(
                 '1of1_Lloyd_George_Record_[Test-Name- SAMPLE*FAMILY]_[5555666677]_[01-01-2000].pdf',
@@ -671,9 +685,14 @@ describe('Upload Document Requests', () => {
                 birthDate: '1965-07-20',
             });
 
-            const result = generateStitchedFileName(patientDetails, docConfig as DOCUMENT_TYPE_CONFIG);
+            const result = generateStitchedFileName(
+                patientDetails,
+                docConfig as DOCUMENT_TYPE_CONFIG,
+            );
 
-            expect(result).toBe('1of1_Lloyd_George_Record_[ ONLYFAMILY]_[9999888877]_[20-07-1965].pdf');
+            expect(result).toBe(
+                '1of1_Lloyd_George_Record_[ ONLYFAMILY]_[9999888877]_[20-07-1965].pdf',
+            );
         });
 
         it('handles birth date with single digit day and month', () => {
@@ -684,9 +703,14 @@ describe('Upload Document Requests', () => {
                 birthDate: '1992-02-05',
             });
 
-            const result = generateStitchedFileName(patientDetails, docConfig as DOCUMENT_TYPE_CONFIG);
+            const result = generateStitchedFileName(
+                patientDetails,
+                docConfig as DOCUMENT_TYPE_CONFIG,
+            );
 
-            expect(result).toBe('1of1_Lloyd_George_Record_[Alex WILSON]_[1122334455]_[05-02-1992].pdf');
+            expect(result).toBe(
+                '1of1_Lloyd_George_Record_[Alex WILSON]_[1122334455]_[05-02-1992].pdf',
+            );
         });
 
         it('throws an error when patient details is null', () => {
@@ -703,7 +727,10 @@ describe('Upload Document Requests', () => {
                 birthDate: '1980-06-15',
             });
 
-            const result = generateStitchedFileName(patientDetails, docConfig as DOCUMENT_TYPE_CONFIG);
+            const result = generateStitchedFileName(
+                patientDetails,
+                docConfig as DOCUMENT_TYPE_CONFIG,
+            );
 
             expect(result).toBe(
                 '1of1_Lloyd_George_Record_[Test-Name-With-Various-Characters-With-More---And-Finally- NORMALFAMILY]_[1234567890]_[15-06-1980].pdf',
@@ -718,7 +745,10 @@ describe('Upload Document Requests', () => {
                 birthDate: '1995-09-30',
             });
 
-            const result = generateStitchedFileName(patientDetails, docConfig as DOCUMENT_TYPE_CONFIG);
+            const result = generateStitchedFileName(
+                patientDetails,
+                docConfig as DOCUMENT_TYPE_CONFIG,
+            );
 
             expect(result).toBe(
                 '1of1_Lloyd_George_Record_[Supercalifragilisticexpialidocious AnExtremelyLongMiddleName ANEXTREMELYLONGFAMILYNAMETHATGOESONANDON]_[1111111111]_[30-09-1995].pdf',
@@ -733,9 +763,14 @@ describe('Upload Document Requests', () => {
                 birthDate: 'invalid-date',
             });
 
-            const result = generateStitchedFileName(patientDetails, docConfig as DOCUMENT_TYPE_CONFIG);
+            const result = generateStitchedFileName(
+                patientDetails,
+                docConfig as DOCUMENT_TYPE_CONFIG,
+            );
 
-            expect(result).toBe('1of1_Lloyd_George_Record_[Test USER]_[1234567890]_[NaN-NaN-NaN].pdf');
+            expect(result).toBe(
+                '1of1_Lloyd_George_Record_[Test USER]_[1234567890]_[NaN-NaN-NaN].pdf',
+            );
         });
 
         it('handles whitespace in names correctly', () => {
@@ -746,7 +781,10 @@ describe('Upload Document Requests', () => {
                 birthDate: '1990-01-01',
             });
 
-            const result = generateStitchedFileName(patientDetails, docConfig as DOCUMENT_TYPE_CONFIG);
+            const result = generateStitchedFileName(
+                patientDetails,
+                docConfig as DOCUMENT_TYPE_CONFIG,
+            );
 
             expect(result).toBe(
                 '1of1_Lloyd_George_Record_[  John     Michael     SMITH  ]_[1234567890]_[01-01-1990].pdf',

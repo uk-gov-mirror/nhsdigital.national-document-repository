@@ -4,7 +4,7 @@ export type UploadSession = {
 
 export type S3Upload = {
     url: string;
-    fields: S3UploadFields;
+    fields?: S3UploadFields;
 };
 
 export type S3UploadFields = {

@@ -3,11 +3,7 @@ import { endpoints } from '../../types/generic/endpoints';
 import { DOCUMENT_UPLOAD_STATE, UploadDocument } from '../../types/pages/UploadDocumentsPage/types';
 
 import axios, { AxiosError } from 'axios';
-import {
-    DocumentStatusResult,
-    S3Upload,
-    UploadSession,
-} from '../../types/generic/uploadResult';
+import { DocumentStatusResult, S3Upload, UploadSession } from '../../types/generic/uploadResult';
 import { Dispatch, SetStateAction } from 'react';
 import { extractUploadSession, setSingleDocument } from '../utils/uploadDocumentHelpers';
 import { PatientDetails } from '../../types/generic/patientDetails';

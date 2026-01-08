@@ -37,6 +37,11 @@ const PatientResultPage = (): React.JSX.Element => {
                 return;
             }
 
+            if (!patientDetails.canManageRecord && featureFlags.uploadDocumentIteration3Enabled) {
+                navigate(routes.DOCUMENT_UPLOAD);
+                return;
+            }
+
             if (patientDetails?.active) {
                 navigate(
                     featureFlags.uploadDocumentIteration3Enabled

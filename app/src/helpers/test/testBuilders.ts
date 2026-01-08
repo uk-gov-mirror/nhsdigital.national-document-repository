@@ -40,6 +40,7 @@ const buildPatientDetails = (patientDetailsOverride?: Partial<PatientDetails>): 
         restricted: false,
         active: true,
         deceased: false,
+        canManageRecord: true,
         ...patientDetailsOverride,
     };
 

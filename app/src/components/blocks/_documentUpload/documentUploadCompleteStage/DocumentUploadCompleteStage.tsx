@@ -42,12 +42,12 @@ const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): Reac
         ]);
 
     useEffect(() => {
-        if (!docsAreInFinishedState()) {
+        if (!docsAreInFinishedState() || patientDetails === null) {
             navigate(routes.HOME);
         }
-    }, [navigate, documents]);
+    }, [navigate, documents, patientDetails]);
 
-    if (!docsAreInFinishedState()) {
+    if (!docsAreInFinishedState() || patientDetails === null) {
         return <></>;
     }
 
@@ -108,7 +108,7 @@ const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): Reac
 
             <h3>What happens next</h3>
 
-            {journey === 'update' && (
+            {journey === 'update' && patientDetails.canManageRecord && (
                 <p>
                     You can now view the updated {documentConfig.displayName} for this patient in
                     this service by{' '}

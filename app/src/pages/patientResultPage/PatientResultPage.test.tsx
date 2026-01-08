@@ -258,6 +258,33 @@ describe('PatientResultPage', () => {
             });
         });
 
+        it('navigates to upload page after user selects patient they cannot manage when role is GP Clinical and feature flag is enabled', async () => {
+            const patient = buildPatientDetails({ canManageRecord: false });
+
+            mockedUsePatient.mockReturnValue(patient);
+            mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_CLINICAL);
+            mockedUseConfig.mockReturnValue({
+                featureFlags: {
+                    uploadLambdaEnabled: true,
+                    uploadArfWorkflowEnabled: false,
+                    uploadLloydGeorgeWorkflowEnabled: true,
+                    uploadDocumentIteration3Enabled: true,
+                },
+                mockLocal: {},
+            });
+
+            render(<PatientResultPage />);
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: CONFIRM_BUTTON_TEXT,
+                }),
+            );
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.DOCUMENT_UPLOAD);
+            });
+        });
+
         it.each([REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.GP_CLINICAL])(
             "navigates to Lloyd George Record page after user selects Active patient, when role is '%s' and uploadDocumentIteration3Enabled is false",
             async (role) => {
@@ -276,7 +303,7 @@ describe('PatientResultPage', () => {
         );
 
         it.each([REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.GP_CLINICAL])(
-            "navigates to patient documents page after user selects Active patient, when role is '%s' and uploadDocumentIteration3Enabled is true",
+            "navigates to patient documents page after user selects Active patient and canManageRecord, when role is '%s' and uploadDocumentIteration3Enabled is true",
             async (role) => {
                 const patient = buildPatientDetails({ active: true });
                 mockedUseRole.mockReturnValue(role);
