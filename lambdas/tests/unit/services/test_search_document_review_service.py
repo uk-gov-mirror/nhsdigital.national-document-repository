@@ -40,10 +40,6 @@ def search_document_review_service(set_env, mocker):
 
 
 def test_handle_gateway_api_request_happy_path(search_document_review_service, mocker):
-    mocker.patch.object(
-        search_document_review_service, "decode_start_key"
-    ).return_value = TEST_LAST_EVALUATED_KEY
-
     expected_refs = [
         DocumentUploadReviewReference.model_validate(item)
         for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
@@ -52,7 +48,7 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         search_document_review_service, "get_review_document_references"
     ).return_value = (
         expected_refs,
-        TEST_LAST_EVALUATED_KEY,
+        TEST_ENCODED_START_KEY,
     )
 
     expected = (
@@ -66,9 +62,9 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
                 "nhsNumber": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
                     "NhsNumber"
                 ],
-                "documentSnomedCodeType": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
-                    "Items"
-                ][0]["DocumentSnomedCodeType"],
+                "documentSnomedCodeType": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][
+                    0
+                ]["DocumentSnomedCodeType"],
                 "author": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]["Author"],
                 "uploadDate": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0][
                     "UploadDate"
@@ -83,9 +79,9 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
                 "nhsNumber": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
                     "NhsNumber"
                 ],
-                "documentSnomedCodeType": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
-                    "Items"
-                ][1]["DocumentSnomedCodeType"],
+                "documentSnomedCodeType": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][
+                    1
+                ]["DocumentSnomedCodeType"],
                 "author": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1]["Author"],
                 "uploadDate": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][1][
                     "UploadDate"
@@ -100,9 +96,9 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
                 "nhsNumber": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
                     "NhsNumber"
                 ],
-                "documentSnomedCodeType": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE[
-                    "Items"
-                ][2]["DocumentSnomedCodeType"],
+                "documentSnomedCodeType": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][
+                    2
+                ]["DocumentSnomedCodeType"],
                 "author": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2]["Author"],
                 "uploadDate": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][2][
                     "UploadDate"
@@ -117,12 +113,9 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
         ods_code=TEST_CURRENT_GP_ODS,
     )
 
-    search_document_review_service.decode_start_key.assert_called_with(
-        TEST_ENCODED_START_KEY
-    )
     search_document_review_service.get_review_document_references.assert_called_with(
         ods_code=TEST_CURRENT_GP_ODS,
-        start_key=TEST_LAST_EVALUATED_KEY,
+        start_key=TEST_ENCODED_START_KEY,
         limit=int(TEST_QUERY_LIMIT),
         uploader="Z67890",
         nhs_number=None,
@@ -134,10 +127,6 @@ def test_handle_gateway_api_request_happy_path(search_document_review_service, m
 def test_process_request_handles_invalid_limit_querystring(
     search_document_review_service, mocker
 ):
-    mocker.patch.object(
-        search_document_review_service, "decode_start_key"
-    ).return_value = TEST_LAST_EVALUATED_KEY
-
     with pytest.raises(DocumentReviewLambdaException) as e:
         search_document_review_service.process_request(
             params=MOCK_QUERYSTRING_PARAMS_INVALID_LIMIT, ods_code=TEST_CURRENT_GP_ODS
@@ -150,10 +139,6 @@ def test_process_request_handles_invalid_limit_querystring(
 def test_process_request_handles_validation_error(
     search_document_review_service, mocker
 ):
-    mocker.patch.object(
-        search_document_review_service, "decode_start_key"
-    ).return_value = TEST_LAST_EVALUATED_KEY
-
     mocker.patch.object(
         search_document_review_service, "get_review_document_references"
     ).side_effect = ValidationError("", [])
@@ -172,13 +157,13 @@ def test_service_queries_document_review_table_with_correct_args(
     search_document_review_service,
 ):
     search_document_review_service.get_review_document_references(
-        TEST_CURRENT_GP_ODS, int(TEST_QUERY_LIMIT), TEST_LAST_EVALUATED_KEY, None, None
+        TEST_CURRENT_GP_ODS, int(TEST_QUERY_LIMIT), TEST_ENCODED_START_KEY, None, None
     )
 
-    search_document_review_service.document_service.query_docs_pending_review_by_custodian_with_limit.assert_called_with(
+    search_document_review_service.document_service.query_docs_pending_review_with_paginator.assert_called_with(
         ods_code=TEST_CURRENT_GP_ODS,
         limit=int(TEST_QUERY_LIMIT),
-        start_key=TEST_LAST_EVALUATED_KEY,
+        start_key=TEST_ENCODED_START_KEY,
         nhs_number=None,
         uploader=None,
     )
@@ -191,9 +176,9 @@ def test_get_review_document_references_returns_document_references(
         DocumentUploadReviewReference.model_validate(item)
         for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
     ]
-    search_document_review_service.document_service.query_docs_pending_review_by_custodian_with_limit.return_value = (
+    search_document_review_service.document_service.query_docs_pending_review_with_paginator.return_value = (
         expected_references,
-        TEST_LAST_EVALUATED_KEY,
+        TEST_ENCODED_START_KEY,
     )
 
     actual = search_document_review_service.get_review_document_references(
@@ -202,7 +187,7 @@ def test_get_review_document_references_returns_document_references(
 
     expected = (
         expected_references,
-        TEST_LAST_EVALUATED_KEY,
+        TEST_ENCODED_START_KEY,
     )
 
     assert actual == expected
@@ -211,7 +196,7 @@ def test_get_review_document_references_returns_document_references(
 def test_get_review_document_references_handles_empty_result(
     search_document_review_service,
 ):
-    search_document_review_service.document_service.query_docs_pending_review_by_custodian_with_limit.return_value = (
+    search_document_review_service.document_service.query_docs_pending_review_with_paginator.return_value = (
         [],
         None,
     )
@@ -230,7 +215,7 @@ def test_get_review_document_references_handles_no_limit_passed(
         DocumentUploadReviewReference.model_validate(item)
         for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
     ]
-    search_document_review_service.document_service.query_docs_pending_review_by_custodian_with_limit.return_value = (
+    search_document_review_service.document_service.query_docs_pending_review_with_paginator.return_value = (
         expected_references,
         None,
     )
@@ -251,7 +236,7 @@ def test_get_review_document_references_throws_exception_client_error(
     search_document_review_service,
 ):
     (
-        search_document_review_service.document_service.query_docs_pending_review_by_custodian_with_limit
+        search_document_review_service.document_service.query_docs_pending_review_with_paginator
     ).side_effect = DocumentReviewLambdaException(500, LambdaError.DocumentReviewDB)
 
     with pytest.raises(DocumentReviewLambdaException) as e:
@@ -260,15 +245,3 @@ def test_get_review_document_references_throws_exception_client_error(
         )
         assert e.value.status_code == 500
         assert e.value.error == LambdaError.DocumentReviewDB
-
-
-def test_decode_start_key(search_document_review_service):
-    encoded_start_key = TEST_ENCODED_START_KEY
-
-    actual = search_document_review_service.decode_start_key(encoded_start_key)
-    assert actual == TEST_LAST_EVALUATED_KEY
-
-
-def test_encode_start_key(search_document_review_service):
-    actual = search_document_review_service.encode_start_key(TEST_LAST_EVALUATED_KEY)
-    assert actual == TEST_ENCODED_START_KEY

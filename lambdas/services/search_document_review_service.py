@@ -1,7 +1,3 @@
-import base64
-import decimal
-import json
-
 from enums.lambda_error import LambdaError
 from pydantic import ValidationError
 from services.document_upload_review_service import DocumentUploadReviewService
@@ -20,14 +16,13 @@ class SearchDocumentReviewService:
         self, ods_code: str, params: dict
     ) -> tuple[list[str], str | None]:
         try:
-
-            decoded_start_key = self.decode_start_key(params.get("nextPageToken", None))
+            start_key = params.get("nextPageToken", None)
 
             str_limit = params.get("limit", self.document_service.DEFAULT_QUERY_LIMIT)
             limit = int(str_limit)
 
             references, last_evaluated_key = self.get_review_document_references(
-                start_key=decoded_start_key,
+                start_key=start_key,
                 ods_code=ods_code,
                 limit=limit,
                 nhs_number=params.get("nhsNumber", None),
@@ -50,9 +45,7 @@ class SearchDocumentReviewService:
                 for reference in references
             ]
 
-            encoded_exclusive_start_key = self.encode_start_key(last_evaluated_key)
-
-            return output_refs, encoded_exclusive_start_key
+            return output_refs, last_evaluated_key
 
         except ValidationError as e:
             logger.error(e)
@@ -69,33 +62,14 @@ class SearchDocumentReviewService:
         self,
         ods_code: str,
         limit: int | None = None,
-        start_key: dict | None = None,
+        start_key: str | None = None,
         nhs_number: str | None = None,
         uploader: str | None = None,
     ):
-        return self.document_service.query_docs_pending_review_by_custodian_with_limit(
+        return self.document_service.query_docs_pending_review_with_paginator(
             ods_code=ods_code,
             limit=limit,
             start_key=start_key,
             nhs_number=nhs_number,
             uploader=uploader,
         )
-
-    def decode_start_key(self, encoded_start_key: str | None) -> dict[str, str] | None:
-        return (
-            json.loads(
-                base64.b64decode(encoded_start_key.encode("ascii")).decode("utf-8")
-            )
-            if encoded_start_key
-            else None
-        )
-
-    def encode_start_key(self, start_key: dict) -> str | None:
-        if start_key:
-            for key, value in start_key.items():
-                if isinstance(value, decimal.Decimal):
-                    start_key[key] = int(value)
-            return base64.b64encode(json.dumps(start_key).encode("ascii")).decode(
-                "utf-8"
-            )
-        return None

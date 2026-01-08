@@ -13,7 +13,7 @@ from services.document_service import DocumentService
 from utils.audit_logging_setup import LoggingService
 from utils.aws_transient_error_check import is_transient_error
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
-from utils.dynamo_utils import build_transaction_item
+from utils.dynamo_utils import build_mixed_condition_expression, build_transaction_item
 from utils.exceptions import DocumentReviewException
 
 logger = LoggingService(__name__)
@@ -41,34 +41,33 @@ class DocumentUploadReviewService(DocumentService):
     def s3_bucket(self) -> str:
         return self._s3_bucket
 
-    def query_docs_pending_review_by_custodian_with_limit(
+    def query_docs_pending_review_with_paginator(
         self,
         ods_code: str,
         limit: int = DEFAULT_QUERY_LIMIT,
-        start_key: dict | None = None,
+        start_key: str | None = None,
         nhs_number: str | None = None,
         uploader: str | None = None,
-    ) -> tuple[list[DocumentUploadReviewReference], dict | None]:
-        logger.info(f"Getting review document references for custodian: {ods_code}")
-
-        filter_expression = self.build_review_dynamo_filter(
-            nhs_number=nhs_number, uploader=uploader
-        )
+    ) -> tuple[list[DocumentUploadReviewReference], str | None]:
 
         try:
-            response = self.dynamo_service.query_table_single(
-                table_name=self.table_name,
+            logger.info(f"Getting review document references for custodian: {ods_code}")
+
+            filter_expression, condition_attribute_names, condition_attribute_values = (
+                self.build_paginator_query_filter(
+                    nhs_number=nhs_number, uploader=uploader
+                )
+            )
+            references, last_evaluated_key = self.query_table_with_paginator(
+                index_name="CustodianIndex",
                 search_key="Custodian",
                 search_condition=ods_code,
-                index_name="CustodianIndex",
+                filter_expression=filter_expression,
+                expression_attribute_names=condition_attribute_names,
+                expression_attribute_values=condition_attribute_values,
                 limit=limit,
                 start_key=start_key,
-                query_filter=filter_expression,
             )
-
-            references = self._validate_review_references(response["Items"])
-
-            last_evaluated_key = response.get("LastEvaluatedKey", None)
 
             return references, last_evaluated_key
 
@@ -88,6 +87,36 @@ class DocumentUploadReviewService(DocumentService):
         except ValidationError as e:
             logger.error(e)
             raise DocumentReviewException(ErrorMessage.FAILED_TO_VALIDATE.value)
+
+    def build_paginator_query_filter(
+        self, nhs_number: str | None = None, uploader: str | None = None
+    ):
+        conditions = [
+            {
+                "field": "ReviewStatus",
+                "operator": "=",
+                "value": DocumentReviewStatus.PENDING_REVIEW.value,
+            }
+        ]
+        if nhs_number:
+            conditions.append(
+                {
+                    "field": "NhsNumber",
+                    "operator": "=",
+                    "value": nhs_number,
+                }
+            )
+
+        if uploader:
+            conditions.append(
+                {
+                    "field": "Author",
+                    "operator": "=",
+                    "value": uploader,
+                }
+            )
+
+        return build_mixed_condition_expression(conditions)
 
     def get_document(
         self, document_id: str, version: int | None

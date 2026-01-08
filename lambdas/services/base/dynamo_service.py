@@ -11,6 +11,8 @@ from utils.dynamo_utils import (
     create_expression_attribute_values,
     create_expressions,
     create_update_expression,
+    deserialize_dynamodb_object,
+    serialize_dict_to_dynamodb_object,
 )
 from utils.exceptions import DynamoServiceException
 
@@ -29,6 +31,7 @@ class DynamoDBService:
     def __init__(self):
         if not self.initialised:
             self.dynamodb = boto3.resource("dynamodb", region_name="eu-west-2")
+            self.client = boto3.client("dynamodb")
             self.initialised = True
 
     def get_table(self, table_name: str):
@@ -196,7 +199,7 @@ class DynamoDBService:
         table_name: str,
         key_pair: dict[str, str],
         updated_fields: dict,
-        condition_expression: str | ConditionBase| None = None,
+        condition_expression: str | ConditionBase | None = None,
         expression_attribute_values: dict | None = None,
     ):
         table = self.get_table(table_name)
@@ -429,3 +432,57 @@ class DynamoDBService:
                 },
             }
         }
+
+    def query_table_with_paginator(
+        self,
+        table_name: str,
+        index_name: str,
+        key: str,
+        condition: str,
+        filter_expression: str | None = None,
+        expression_attribute_names: str | None = None,
+        expression_attribute_values: dict | None = None,
+        limit: int = 20,
+        page_size: int = 1,
+        start_key: str | None = None,
+    ) -> dict:
+
+        try:
+            query_params = {
+                "TableName": table_name,
+                "IndexName": index_name,
+                "KeyConditionExpression": f"{key}=:i",
+                "PaginationConfig": {
+                    "MaxItems": limit,
+                    "PageSize": page_size,
+                    "StartingToken": start_key,
+                },
+            }
+
+            if expression_attribute_values is None:
+                expression_attribute_values = {}
+
+            expression_attribute_values[":i"] = condition
+
+            if filter_expression:
+                query_params["FilterExpression"] = filter_expression
+
+            if expression_attribute_names:
+                query_params["ExpressionAttributeNames"] = expression_attribute_names
+
+            if expression_attribute_values:
+                query_params["ExpressionAttributeValues"] = (
+                    serialize_dict_to_dynamodb_object(expression_attribute_values)
+                )
+
+            paginator = self.client.get_paginator("query")
+            response = paginator.paginate(**query_params).build_full_result()
+
+            response["Items"] = [
+                deserialize_dynamodb_object(item) for item in response["Items"]
+            ]
+            return response
+
+        except Exception as e:
+            logger.error("Failed to query DynamoDB")
+            raise e

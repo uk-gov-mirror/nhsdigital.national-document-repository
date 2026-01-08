@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 
 import pytest
 from enums.lambda_error import LambdaError
@@ -26,11 +27,33 @@ from utils.dynamo_utils import (
     create_expression_value_placeholder,
     create_expressions,
     create_update_expression,
+    deserialize_dynamodb_object,
     parse_dynamo_record,
+    serialize_dict_to_dynamodb_object,
 )
 from utils.lambda_exceptions import InvalidDocTypeException
 
 from lambdas.enums.snomed_codes import SnomedCodes
+
+MOCK_PYTHON_DICT = {
+    "test_string": "hello",
+    "test_int": 123,
+    "test_bool": True,
+    "test_list": [1, 2, 3],
+    "test_dict": {"key1": "value1", "key2": 1},
+    "test_list_of_dicts": [{"key1": "value1"}, {"key2": 2}],
+}
+
+MOCK_DYNAMO_DB_OBJECT = {
+    "test_string": {"S": "hello"},
+    "test_int": {"N": "123"},
+    "test_bool": {"BOOL": True},
+    "test_list": {"L": [{"N": "1"}, {"N": "2"}, {"N": "3"}]},
+    "test_dict": {"M": {"key1": {"S": "value1"}, "key2": {"N": "1"}}},
+    "test_list_of_dicts": {
+        "L": [{"M": {"key1": {"S": "value1"}}}, {"M": {"key2": {"N": "2"}}}]
+    },
+}
 
 
 def test_create_expressions_correctly_creates_an_expression_of_one_field():
@@ -528,3 +551,27 @@ def test_build_transaction_item_delete_with_conditions():
         delete_item["ExpressionAttributeValues"][":Status_condition_val"] == "archived"
     )
     assert delete_item["ExpressionAttributeValues"][":Expired_condition_val"] is True
+
+
+def test_serialize_dict_to_dynamodb_object():
+    input = MOCK_PYTHON_DICT
+
+    expected = MOCK_DYNAMO_DB_OBJECT
+    actual = serialize_dict_to_dynamodb_object(input)
+    assert actual == expected
+
+
+def test_deserialize_dynamodb_object():
+    input = MOCK_DYNAMO_DB_OBJECT
+    expected = MOCK_PYTHON_DICT
+
+    actual = deserialize_dynamodb_object(input)
+    assert actual == expected
+
+
+def test_serialize_dynamodb_object_throws_error_unsupported_data_type():
+    unsupported_input = deepcopy(MOCK_PYTHON_DICT)
+    unsupported_input.update({"float": 1.23})
+
+    with pytest.raises(TypeError):
+        serialize_dict_to_dynamodb_object(unsupported_input)

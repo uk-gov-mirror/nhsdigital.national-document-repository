@@ -1,8 +1,8 @@
 import copy
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 import pytest
-from boto3.dynamodb.conditions import Attr, Equals, Key, And
+from boto3.dynamodb.conditions import And, Attr, Equals, Key
 from botocore.exceptions import ClientError
 from enums.dynamo_filter import AttributeOperator
 from enums.metadata_field_names import DocumentReferenceMetadataFields
@@ -17,14 +17,24 @@ from tests.unit.helpers.data.dynamo.dynamo_scan_response import (
     MOCK_RESPONSE,
     MOCK_RESPONSE_WITH_LAST_KEY,
 )
+from tests.unit.helpers.data.search_document_review.dynamo_response import (
+    MOCK_DOCUMENT_REVIEW_PAGINATOR_RESPONSE,
+    MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
+)
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
+from utils.dynamo_utils import (
+    build_mixed_condition_expression,
+    serialize_dict_to_dynamodb_object,
+)
 from utils.exceptions import DynamoServiceException
 
 
 @pytest.fixture
 def mock_service(set_env, mocker):
     mocker.patch("boto3.resource")
+    mock_client = MagicMock()
     service = DynamoDBService()
+    mocker.patch.object(service, "client", return_value=mock_client)
     yield service
     DynamoDBService.instance = None
 
@@ -1196,3 +1206,80 @@ def test_build_key_condition_non_matching_list_lengths(
         mock_service.build_key_condition(
             search_key=search_key, search_condition=search_condition
         )
+
+
+def test_query_table_using_paginator(mock_service):
+    mock_paginator = mock_service.client.get_paginator.return_value = MagicMock()
+
+    mock_paginator.paginate.return_value.build_full_result.return_value = (
+        MOCK_DOCUMENT_REVIEW_PAGINATOR_RESPONSE
+    )
+
+    expected = {
+        "Items": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"],
+        "NextToken": MOCK_DOCUMENT_REVIEW_PAGINATOR_RESPONSE["NextToken"],
+    }
+
+    actual = mock_service.query_table_with_paginator(
+        table_name=MOCK_TABLE_NAME,
+        index_name="NhsNumberIndex",
+        key="NhsNumber",
+        condition=TEST_NHS_NUMBER,
+    )
+
+    mock_paginator.paginate.assert_called_with(
+        TableName=MOCK_TABLE_NAME,
+        IndexName="NhsNumberIndex",
+        KeyConditionExpression="NhsNumber=:i",
+        ExpressionAttributeValues={":i": {"S": TEST_NHS_NUMBER}},
+        PaginationConfig={"MaxItems": 20, "PageSize": 1, "StartingToken": None},
+    )
+
+    assert actual == expected
+
+
+def test_query_table_using_pagination_with_filter_expression(mock_service):
+    mock_paginator = mock_service.client.get_paginator.return_value = MagicMock()
+
+    conditions = [
+        {
+            "field": "ReviewStatus",
+            "operator": "=",
+            "value": "PENDING_REVIEW",
+        },
+        {
+            "field": "NhsNumber",
+            "operator": "=",
+            "value": TEST_NHS_NUMBER,
+        },
+    ]
+    filter_expression, condition_attribute_names, condition_attribute_values = (
+        build_mixed_condition_expression(conditions=conditions)
+    )
+
+    serialized_condition_attribute_values = serialize_dict_to_dynamodb_object(
+        condition_attribute_values
+    )
+
+    mock_service.query_table_with_paginator(
+        table_name=MOCK_TABLE_NAME,
+        index_name="NhsNumberIndex",
+        key="NhsNumber",
+        condition=TEST_NHS_NUMBER,
+        filter_expression=filter_expression,
+        expression_attribute_names=condition_attribute_names,
+        expression_attribute_values=condition_attribute_values,
+    )
+
+    mock_paginator.paginate.assert_called_with(
+        TableName=MOCK_TABLE_NAME,
+        IndexName="NhsNumberIndex",
+        KeyConditionExpression="NhsNumber=:i",
+        FilterExpression=filter_expression,
+        ExpressionAttributeValues={
+            ":i": {"S": TEST_NHS_NUMBER},
+            **serialized_condition_attribute_values,
+        },
+        ExpressionAttributeNames=condition_attribute_names,
+        PaginationConfig={"MaxItems": 20, "PageSize": 1, "StartingToken": None},
+    )

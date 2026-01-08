@@ -1,4 +1,3 @@
-from boto3.dynamodb.types import TypeDeserializer
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from models.zip_trace import DocumentManifestZipTrace
@@ -9,6 +8,7 @@ from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
+from utils.dynamo_utils import deserialize_dynamodb_object
 from utils.lambda_exceptions import GenerateManifestZipException
 from utils.lambda_response import ApiGatewayResponse
 from utils.request_context import request_context
@@ -71,9 +71,4 @@ def manifest_zip_handler(zip_trace_item):
 
 
 def prepare_zip_trace_data(new_zip_trace: dict) -> dict:
-    deserialize = TypeDeserializer().deserialize
-    parsed_dynamodb_items = {
-        key: deserialize(dynamodb_value)
-        for key, dynamodb_value in new_zip_trace.items()
-    }
-    return parsed_dynamodb_items
+    return deserialize_dynamodb_object(new_zip_trace)

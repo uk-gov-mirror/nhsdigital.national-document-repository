@@ -294,3 +294,45 @@ class DocumentService:
         except (ValidationError, ClientError) as e:
             logger.error(e)
             raise e
+
+    def query_table_with_paginator(
+        self,
+        index_name: str,
+        search_key: str,
+        search_condition: str,
+        table_name: str | None = None,
+        filter_expression: str | None = None,
+        expression_attribute_names: dict | None = None,
+        expression_attribute_values: dict | None = None,
+        limit: int | None = None,
+        page_size: int = 1,
+        start_key: str | None = None,
+        model_class: BaseModel | None = None,
+    ) -> tuple[list[BaseModel], str | None]:
+
+        try:
+            table_name = table_name or self.table_name
+            model_class = model_class or self.model_class
+
+            response = self.dynamo_service.query_table_with_paginator(
+                table_name=table_name,
+                index_name=index_name,
+                key=search_key,
+                condition=search_condition,
+                filter_expression=filter_expression,
+                expression_attribute_names=expression_attribute_names,
+                expression_attribute_values=expression_attribute_values,
+                limit=limit,
+                page_size=page_size,
+                start_key=start_key,
+            )
+
+            references = [
+                model_class.model_validate(item) for item in response["Items"]
+            ]
+
+            return references, response.get("NextToken")
+
+        except (ValidationError, ClientError) as e:
+            logger.error(e)
+            raise e

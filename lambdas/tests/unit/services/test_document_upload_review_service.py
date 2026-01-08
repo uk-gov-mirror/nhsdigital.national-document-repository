@@ -15,7 +15,6 @@ from services.document_upload_review_service import DocumentUploadReviewService
 from tests.unit.conftest import (
     MOCK_DOCUMENT_REVIEW_BUCKET,
     MOCK_DOCUMENT_REVIEW_TABLE,
-    TEST_CURRENT_GP_ODS,
     TEST_NHS_NUMBER,
     TEST_UUID,
 )
@@ -536,227 +535,6 @@ def test_build_filter_handles_both_nhs_number_and_uploader(mock_service):
     assert actual == expected
 
 
-def test_query_review_documents_queries_dynamodb_with_filter_expression_nhs_number_passed(
-    mock_service, mocker
-):
-    mock_nhs_number_filter_builder = mocker.patch.object(
-        mock_service, "build_review_dynamo_filter"
-    )
-    mock_nhs_number_filter_builder.return_value = Attr("NhsNumber").eq(TEST_NHS_NUMBER)
-
-    mock_service.query_docs_pending_review_by_custodian_with_limit(
-        ods_code=TEST_ODS_CODE, nhs_number=TEST_NHS_NUMBER
-    )
-
-    mock_nhs_number_filter_builder.assert_called_with(
-        nhs_number=TEST_NHS_NUMBER, uploader=None
-    )
-    mock_service.dynamo_service.query_table_single.assert_called_with(
-        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
-        search_key="Custodian",
-        search_condition=TEST_ODS_CODE,
-        index_name="CustodianIndex",
-        limit=TEST_QUERY_LIMIT,
-        start_key=None,
-        query_filter=mock_nhs_number_filter_builder.return_value,
-    )
-
-
-def test_query_review_documents_queries_dynamodb_with_filter_expression_uploader_passed(
-    mock_service, mocker
-):
-    mock_uploader_filter_builder = mocker.patch.object(
-        mock_service, "build_review_dynamo_filter"
-    )
-    mock_uploader_filter_builder.return_value = Attr("Author").eq(NEW_ODS_CODE)
-    mock_service.query_docs_pending_review_by_custodian_with_limit(
-        ods_code=TEST_ODS_CODE, uploader=NEW_ODS_CODE
-    )
-    mock_uploader_filter_builder.assert_called_with(
-        nhs_number=None, uploader=NEW_ODS_CODE
-    )
-    mock_service.dynamo_service.query_table_single.assert_called_with(
-        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
-        search_key="Custodian",
-        search_condition=TEST_ODS_CODE,
-        index_name="CustodianIndex",
-        limit=TEST_QUERY_LIMIT,
-        start_key=None,
-        query_filter=mock_uploader_filter_builder.return_value,
-    )
-
-
-def test_query_review_documents_by_custodian_handles_filtering_by_nhs_number_and_uploader(
-    mock_service, mocker
-):
-    mock_uploader_filter_builder = mocker.patch.object(
-        mock_service, "build_review_dynamo_filter"
-    )
-    mock_uploader_filter_builder.return_value = Attr("Author").eq(NEW_ODS_CODE) & Attr(
-        "NhsNumber"
-    ).eq(TEST_NHS_NUMBER)
-    mock_service.query_docs_pending_review_by_custodian_with_limit(
-        ods_code=TEST_ODS_CODE, uploader=NEW_ODS_CODE, nhs_number=TEST_NHS_NUMBER
-    )
-    mock_uploader_filter_builder.assert_called_with(
-        nhs_number=TEST_NHS_NUMBER, uploader=NEW_ODS_CODE
-    )
-    mock_service.dynamo_service.query_table_single.assert_called_with(
-        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
-        search_key="Custodian",
-        search_condition=TEST_ODS_CODE,
-        index_name="CustodianIndex",
-        limit=TEST_QUERY_LIMIT,
-        start_key=None,
-        query_filter=mock_uploader_filter_builder.return_value,
-    )
-
-
-def test_update_document_review_status_success(mock_service, mocker):
-    mock_update_document = mocker.patch.object(mock_service, "update_document")
-
-    review_document = MagicMock(spec=DocumentUploadReviewReference)
-    review_document.id = "test-review-id"
-    review_document.version = 1
-
-    mock_service.update_document_review_status(review_document)
-    mock_update_document.assert_called_once_with(
-        document=review_document,
-        key_pair={"ID": review_document.id, "Version": review_document.version},
-        update_fields_name={"review_status", "files"},
-        condition_expression=None,
-    )
-
-
-def test_update_document_review_status_success_with_condition(mock_service, mocker):
-    mock_update_document = mocker.patch.object(mock_service, "update_document")
-
-    review_document = MagicMock(spec=DocumentUploadReviewReference)
-    review_document.id = "test-review-id"
-    review_document.version = 1
-    condition = Attr("ReviewStatus").eq("PENDING_REVIEW")
-    mock_service.update_document_review_status(review_document, condition)
-    mock_update_document.assert_called_once_with(
-        document=review_document,
-        key_pair={"ID": review_document.id, "Version": review_document.version},
-        update_fields_name={"review_status", "files"},
-        condition_expression=condition,
-    )
-
-
-def test_update_document_review_status_error_handling_transient(mock_service, mocker):
-    mock_update_document = mocker.patch.object(mock_service, "update_document")
-    mock_logger = mocker.patch("services.document_upload_review_service.logger")
-    mock_is_transient = mocker.patch(
-        "services.document_upload_review_service.is_transient_error"
-    )
-
-    review_document = MagicMock(spec=DocumentUploadReviewReference)
-    review_document.id = "test-review-id"
-    review_document.version = 1
-    mock_is_transient.return_value = True
-    transient_error = ClientError(
-        {
-            "Error": {
-                "Code": "InternalServerError",
-                "Message": "Internal server error",
-            },
-            "ResponseMetadata": {"HTTPStatusCode": 500},
-        },
-        "UpdateItem",
-    )
-    mock_update_document.side_effect = transient_error
-
-    with pytest.raises(ClientError) as exc_info:
-        mock_service.update_document_review_status(review_document)
-    assert exc_info.value == transient_error
-    mock_logger.error.assert_called_once_with(transient_error)
-
-
-def test_update_document_review_status_error_handling(mock_service, mocker):
-    mock_update_document = mocker.patch.object(mock_service, "update_document")
-    mock_logger = mocker.patch("services.document_upload_review_service.logger")
-    mock_is_transient = mocker.patch(
-        "services.document_upload_review_service.is_transient_error"
-    )
-
-    review_document = MagicMock(spec=DocumentUploadReviewReference)
-    review_document.id = "test-review-id"
-    review_document.version = 1
-    mock_is_transient.return_value = False
-    non_transient_error = ClientError(
-        {
-            "Error": {"Code": "ValidationException", "Message": "Validation error"},
-            "ResponseMetadata": {"HTTPStatusCode": 400},
-        },
-        "UpdateItem",
-    )
-    mock_update_document.side_effect = non_transient_error
-
-    with pytest.raises(DocumentReviewException) as exc_info:
-        mock_service.update_document_review_status(review_document)
-    assert str(exc_info.value) == "Error updating document review status"
-    mock_logger.error.assert_called_once_with(non_transient_error)
-
-
-@freeze_time("2023-10-30T10:25:00")
-def test_create_dynamo_entry_creates_review_document_reference_in_dynamodb_valid_reference(
-    mock_service,
-):
-    valid_review_document_reference = DocumentUploadReviewReference(
-        id=TEST_UUID,
-        author=TEST_CURRENT_GP_ODS,
-        custodian=TEST_CURRENT_GP_ODS,
-        files=[
-            DocumentReviewFileDetails(file_name="test_file.pdf", file_location="here")
-        ],
-        nhs_number=TEST_NHS_NUMBER,
-    )
-
-    mock_service.create_dynamo_entry(valid_review_document_reference)
-
-    mock_service.dynamo_service.create_item.assert_called_with(
-        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
-        item=valid_review_document_reference.model_dump(
-            by_alias=True, exclude_none=True
-        ),
-    )
-
-
-def test_create_dynamo_entry_throws_error_invalid_object_to_write_to_dynamodb(
-    mock_service,
-):
-    invalid_entry = {
-        "author": TEST_CURRENT_GP_ODS,
-        "other_key": "this model has missing data",
-    }
-
-    with pytest.raises(ValidationError):
-        mock_service.create_dynamo_entry(invalid_entry)
-
-    mock_service.dynamo_service.create_item.assert_not_called()
-
-
-def test_create_dynamo_entry_throws_error_dynamodb_error(
-    mock_service,
-):
-    mock_service.dynamo_service.create_item.side_effect = ClientError(
-        {"error": "test error message"}, "test"
-    )
-    valid_review_document_reference = DocumentUploadReviewReference(
-        id=TEST_UUID,
-        author=TEST_CURRENT_GP_ODS,
-        custodian=TEST_CURRENT_GP_ODS,
-        files=[
-            DocumentReviewFileDetails(file_name="test_file.pdf", file_location="here")
-        ],
-        nhs_number=TEST_NHS_NUMBER,
-    )
-
-    with pytest.raises(ClientError):
-        mock_service.create_dynamo_entry(valid_review_document_reference)
-
-
 def test_get_document_returns_review_document(mock_service):
     mock_service.dynamo_service.get_item.return_value = {
         "Item": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]
@@ -790,3 +568,105 @@ def test_get_document_by_id_raises_exception_client_error(mock_service):
 
     with pytest.raises(DocumentReviewException):
         mock_service.get_document(TEST_UUID, 1)
+
+
+@pytest.mark.parametrize(
+    "nhs_number, uploader, expected",
+    [
+        (
+            None,
+            None,
+            (
+                "#ReviewStatus_attr = :ReviewStatus_condition_val",
+                {"#ReviewStatus_attr": "ReviewStatus"},
+                {":ReviewStatus_condition_val": DocumentReviewStatus.PENDING_REVIEW},
+            ),
+        ),
+        (
+            TEST_NHS_NUMBER,
+            None,
+            (
+                "#ReviewStatus_attr = :ReviewStatus_condition_val AND #NhsNumber_attr = :NhsNumber_condition_val",
+                {"#ReviewStatus_attr": "ReviewStatus", "#NhsNumber_attr": "NhsNumber"},
+                {
+                    ":ReviewStatus_condition_val": DocumentReviewStatus.PENDING_REVIEW,
+                    ":NhsNumber_condition_val": TEST_NHS_NUMBER,
+                },
+            ),
+        ),
+        (
+            TEST_NHS_NUMBER,
+            TEST_ODS_CODE,
+            (
+                (
+                    "#ReviewStatus_attr = :ReviewStatus_condition_val AND #NhsNumber_attr = :NhsNumber_condition_val AND "
+                    "#Author_attr = :Author_condition_val"
+                ),
+                {
+                    "#ReviewStatus_attr": "ReviewStatus",
+                    "#NhsNumber_attr": "NhsNumber",
+                    "#Author_attr": "Author",
+                },
+                {
+                    ":ReviewStatus_condition_val": DocumentReviewStatus.PENDING_REVIEW,
+                    ":NhsNumber_condition_val": TEST_NHS_NUMBER,
+                    ":Author_condition_val": TEST_ODS_CODE,
+                },
+            ),
+        ),
+        (
+            None,
+            TEST_ODS_CODE,
+            (
+                "#ReviewStatus_attr = :ReviewStatus_condition_val AND #Author_attr = :Author_condition_val",
+                {"#ReviewStatus_attr": "ReviewStatus", "#Author_attr": "Author"},
+                {
+                    ":ReviewStatus_condition_val": DocumentReviewStatus.PENDING_REVIEW,
+                    ":Author_condition_val": TEST_ODS_CODE,
+                },
+            ),
+        ),
+    ],
+)
+def test_build_paginator_query_filter(mock_service, nhs_number, uploader, expected):
+    actual = mock_service.build_paginator_query_filter(
+        nhs_number=nhs_number, uploader=uploader
+    )
+
+    assert actual == expected
+
+
+def test_query_docs_pending_review_with_paginator(mock_service):
+    filter_expression, condition_attribute_names, condition_attribute_values = (
+        mock_service.build_paginator_query_filter()
+    )
+
+    mock_service.dynamo_service.query_table_with_paginator.return_value = {
+        "Items": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"],
+        "NextToken": TEST_UUID,
+    }
+
+    expected = (
+        [
+            DocumentUploadReviewReference(**item)
+            for item in MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"]
+        ],
+        TEST_UUID,
+    )
+
+    actual = mock_service.query_docs_pending_review_with_paginator(TEST_ODS_CODE)
+
+    mock_service.dynamo_service.query_table_with_paginator.assert_called_with(
+        table_name=MOCK_DOCUMENT_REVIEW_TABLE,
+        index_name="CustodianIndex",
+        key="Custodian",
+        condition=TEST_ODS_CODE,
+        filter_expression=filter_expression,
+        expression_attribute_names=condition_attribute_names,
+        expression_attribute_values=condition_attribute_values,
+        limit=50,
+        start_key=None,
+        page_size=1,
+    )
+
+    assert actual == expected

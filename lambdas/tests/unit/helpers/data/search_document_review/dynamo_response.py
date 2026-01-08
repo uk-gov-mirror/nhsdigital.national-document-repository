@@ -30,7 +30,7 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "UploadDate": 1704110400,
             "NhsNumber": TEST_NHS_NUMBER,
             "ReviewReason": DocumentReviewReason.FILE_COUNT_MISMATCH,
-            "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
+            "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW.value,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
             "DocumentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,
         },
@@ -52,7 +52,7 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "UploadDate": 1704110400,
             "NhsNumber": TEST_NHS_NUMBER,
             "ReviewReason": DocumentReviewReason.FILE_COUNT_MISMATCH,
-            "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
+            "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW.value,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
             "DocumentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,
         },
@@ -72,11 +72,9 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
             "Author": MOCK_PREVIOUS_ODS_CODE,
             "Custodian": TEST_CURRENT_GP_ODS,
             "UploadDate": 1704110400,
-            "Reviewer": None,
             "NhsNumber": TEST_NHS_NUMBER,
-            "ReviewDate": None,
             "ReviewReason": DocumentReviewReason.FILE_COUNT_MISMATCH,
-            "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW,
+            "ReviewStatus": DocumentReviewStatus.PENDING_REVIEW.value,
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
             "DocumentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,
         },
@@ -98,4 +96,106 @@ MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE = {
         "RetryAttempts": 0,
     },
     "LastEvaluatedKey": TEST_UUID,
+}
+
+MOCK_DOCUMENT_REVIEW_PAGINATOR_RESPONSE = {
+    "Items": [
+        {
+            "ID": {"S": "3d8683b9-1665-40d2-8499-6e8302d507ff"},
+            "Version": {"N": "1"},
+            "Files": {
+                "L": [
+                    {
+                        "M": {
+                            "FileLocation": {
+                                "S": f"s3://{MOCK_STAGING_STORE_BUCKET}/{TEST_NHS_NUMBER}/test-key-123"
+                            },
+                            "FileName": {"S": "document.csv"},
+                        }
+                    },
+                    {
+                        "M": {
+                            "FileLocation": {
+                                "S": f"s3://{MOCK_STAGING_STORE_BUCKET}/{TEST_NHS_NUMBER}/test-key-223"
+                            },
+                            "FileName": {"S": "results.pdf"},
+                        }
+                    },
+                ]
+            },
+            "Author": {"S": MOCK_PREVIOUS_ODS_CODE},
+            "Custodian": {"S": TEST_CURRENT_GP_ODS},
+            "UploadDate": {"N": "1704110400"},
+            "NhsNumber": {"S": TEST_NHS_NUMBER},
+            "ReviewReason": {"S": DocumentReviewReason.FILE_COUNT_MISMATCH},
+            "ReviewStatus": {"S": DocumentReviewStatus.PENDING_REVIEW.value},
+            "LastUpdated": {"N": "1704110400"},
+            "DocumentSnomedCodeType": {"S": SnomedCodes.LLOYD_GEORGE.value.code},
+        },
+        {
+            "ID": {"S": "4d8683b9-1665-40d2-8499-6e8302d507ff"},
+            "Version": {"N": "2"},
+            "Files": {
+                "L": [
+                    {
+                        "M": {
+                            "FileLocation": {
+                                "S": f"s3://{MOCK_STAGING_STORE_BUCKET}/{TEST_NHS_NUMBER}/test-key-123"
+                            },
+                            "FileName": {"S": "document.csv"},
+                        }
+                    },
+                    {
+                        "M": {
+                            "FileLocation": {
+                                "S": f"s3://{MOCK_STAGING_STORE_BUCKET}/{TEST_NHS_NUMBER}/test-key-223"
+                            },
+                            "FileName": {"S": "results.pdf"},
+                        }
+                    },
+                ]
+            },
+            "Author": {"S": MOCK_PREVIOUS_ODS_CODE},
+            "Custodian": {"S": TEST_CURRENT_GP_ODS},
+            "UploadDate": {"N": "1704110400"},
+            "NhsNumber": {"S": TEST_NHS_NUMBER},
+            "ReviewReason": {"S": DocumentReviewReason.FILE_COUNT_MISMATCH},
+            "ReviewStatus": {"S": DocumentReviewStatus.PENDING_REVIEW.value},
+            "LastUpdated": {"N": "1704110400"},
+            "DocumentSnomedCodeType": {"S": SnomedCodes.LLOYD_GEORGE.value.code},
+        },
+        {
+            "ID": {"S": "5d8683b9-1665-40d2-8499-6e8302d507ff"},
+            "Version": {"N": "3"},
+            "Files": {
+                "L": [
+                    {
+                        "M": {
+                            "FileLocation": {
+                                "S": f"s3://{MOCK_STAGING_STORE_BUCKET}/{TEST_NHS_NUMBER}/test-key-123"
+                            },
+                            "FileName": {"S": "document.csv"},
+                        }
+                    },
+                    {
+                        "M": {
+                            "FileLocation": {
+                                "S": f"s3://{MOCK_STAGING_STORE_BUCKET}/{TEST_NHS_NUMBER}/test-key-223"
+                            },
+                            "FileName": {"S": "results.pdf"},
+                        }
+                    },
+                ]
+            },
+            "Author": {"S": MOCK_PREVIOUS_ODS_CODE},
+            "Custodian": {"S": TEST_CURRENT_GP_ODS},
+            "UploadDate": {"N": "1704110400"},
+            "NhsNumber": {"S": TEST_NHS_NUMBER},
+            "ReviewReason": {"S": DocumentReviewReason.FILE_COUNT_MISMATCH},
+            "ReviewStatus": {"S": DocumentReviewStatus.PENDING_REVIEW.value},
+            "LastUpdated": {"N": "1704110400"},
+            "DocumentSnomedCodeType": {"S": SnomedCodes.LLOYD_GEORGE.value.code},
+        },
+    ],
+    "NextToken": TEST_UUID,
 }
