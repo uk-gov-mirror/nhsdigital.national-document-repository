@@ -11,9 +11,11 @@ from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.decorators.validate_patient_id import validate_patient_id
+from utils.exceptions import OdsErrorException
 from utils.lambda_exceptions import UpdateDocumentReviewException
 from utils.lambda_handler_utils import validate_review_path_parameters
 from utils.lambda_response import ApiGatewayResponse
+from utils.ods_utils import extract_ods_code_from_request_context
 from utils.request_context import request_context
 
 logger = LoggingService(__name__)
@@ -46,12 +48,10 @@ def lambda_handler(event, context):
 
     document_id, document_version = validate_review_path_parameters(event)
 
-    reviewer_ods_code = request_context.authorization.get(
-        "selected_organisation", {}
-    ).get("org_ods_code")
+    try:
+        reviewer_ods_code = extract_ods_code_from_request_context()
 
-    if not reviewer_ods_code:
-        logger.error("Missing ODS code in authorization token")
+    except OdsErrorException:
         raise UpdateDocumentReviewException(
             401, LambdaError.DocumentReferenceUnauthorised
         )

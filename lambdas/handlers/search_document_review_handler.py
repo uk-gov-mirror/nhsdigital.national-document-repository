@@ -15,7 +15,7 @@ from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.exceptions import OdsErrorException
 from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_response import ApiGatewayResponse
-from utils.request_context import request_context
+from utils.ods_utils import extract_ods_code_from_request_context
 
 logger = LoggingService(__name__)
 
@@ -56,7 +56,7 @@ def lambda_handler(event, context):
             logger.info("Feature flag not enabled, event will not be processed")
             raise DocumentReviewLambdaException(403, LambdaError.FeatureFlagDisabled)
 
-        ods_code = get_ods_code_from_request_context()
+        ods_code = extract_ods_code_from_request_context()
 
         params = parse_querystring_parameters(event)
 
@@ -84,22 +84,6 @@ def lambda_handler(event, context):
             body=LambdaError.DocumentReviewMissingODS.create_error_body(),
             methods="GET",
         ).create_api_gateway_response()
-
-
-def get_ods_code_from_request_context():
-    logger.info("Getting ODS code from request context")
-    try:
-        ods_code = request_context.authorization.get("selected_organisation", {}).get(
-            "org_ods_code"
-        )
-        if not ods_code:
-            raise OdsErrorException()
-
-        return ods_code
-
-    except AttributeError as e:
-        logger.error(e)
-        raise DocumentReviewLambdaException(401, LambdaError.DocumentReviewMissingODS)
 
 
 def parse_querystring_parameters(event):

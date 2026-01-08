@@ -5,7 +5,7 @@ from utils.exceptions import OdsErrorException
 from utils.ods_utils import (
     extract_ods_code_from_request_context,
     extract_ods_role_code_with_r_prefix_from_role_codes_string,
-    is_ods_code_active,
+    is_ods_code_active
 )
 
 

@@ -4,6 +4,8 @@ import pytest
 from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
 from handlers.patch_document_review_handler import lambda_handler
+from tests.unit.conftest import TEST_CURRENT_GP_ODS
+from utils.exceptions import OdsErrorException
 from utils.lambda_exceptions import UpdateDocumentReviewException
 from utils.lambda_response import ApiGatewayResponse
 
@@ -130,25 +132,18 @@ def mocked_service(set_env, mocker):
 
 @pytest.fixture
 def mock_authorization(mocker):
-    mocked_context = mocker.MagicMock()
-    mocked_context.authorization = {
-        "selected_organisation": {"org_ods_code": TEST_REVIEWER_ODS_CODE},
-    }
-    yield mocker.patch(
-        "handlers.patch_document_review_handler.request_context", mocked_context
+    return mocker.patch(
+        "handlers.patch_document_review_handler.extract_ods_code_from_request_context"
     )
 
 
 @pytest.fixture
 def mock_missing_authorization(mocker):
-    mocked_context = mocker.MagicMock()
-    mocked_context.authorization = {
-        "selected_organisation": {"org_ods_code": None},
-    }
-    yield mocker.patch(
-        "handlers.patch_document_review_handler.request_context", mocked_context
+    mock_auth =  mocker.patch(
+        "handlers.patch_document_review_handler.extract_ods_code_from_request_context"
     )
-
+    mock_auth.side_effect = OdsErrorException()
+    yield mock_auth
 
 def test_lambda_handler_returns_200_when_document_review_approved(
     mocked_service,
@@ -159,6 +154,7 @@ def test_lambda_handler_returns_200_when_document_review_approved(
     mock_upload_document_iteration_3_enabled,
 ):
     mocked_service.update_document_review.return_value = None
+    mock_authorization.return_value = TEST_CURRENT_GP_ODS
 
     expected = ApiGatewayResponse(200, "", "PATCH").create_api_gateway_response()
 
@@ -186,6 +182,7 @@ def test_lambda_handler_returns_200_when_document_review_rejected(
     mock_upload_document_iteration_3_enabled,
 ):
     mocked_service.update_document_review.return_value = None
+    mock_authorization.return_value = TEST_CURRENT_GP_ODS
 
     expected = ApiGatewayResponse(200, "", "PATCH").create_api_gateway_response()
 
@@ -209,6 +206,8 @@ def test_lambda_handler_returns_400_when_patient_id_missing(
     mock_authorization,
     mock_upload_document_iteration_3_enabled,
 ):
+    mock_authorization.return_value = TEST_CURRENT_GP_ODS
+
     actual = lambda_handler(missing_patient_id_event, context)
 
     expected = ApiGatewayResponse(

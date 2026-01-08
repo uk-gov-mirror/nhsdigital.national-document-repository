@@ -4,7 +4,6 @@ import json
 import pytest
 from enums.lambda_error import LambdaError
 from handlers.search_document_review_handler import (
-    get_ods_code_from_request_context,
     lambda_handler,
     parse_querystring_parameters,
 )
@@ -13,6 +12,7 @@ from tests.unit.conftest import MOCK_INTERACTION_ID, TEST_CURRENT_GP_ODS, TEST_U
 from tests.unit.helpers.data.search_document_review.dynamo_response import (
     MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE,
 )
+from utils.exceptions import OdsErrorException
 from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_response import ApiGatewayResponse
 
@@ -91,43 +91,25 @@ def event_with_all_params():
 
 
 @pytest.fixture()
-def mocked_request_context_with_ods(mocker):
-    mocked_context = mocker.MagicMock()
-    mocked_context.authorization = {
-        "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS},
-    }
-    yield mocker.patch(
-        "handlers.search_document_review_handler.request_context", mocked_context
+def mocked_extract_ods_with_ods_code(mocker):
+    mock_extract = mocker.patch(
+        "handlers.search_document_review_handler.extract_ods_code_from_request_context"
     )
+    mock_extract.return_value = TEST_CURRENT_GP_ODS
+    yield mock_extract
 
 
 @pytest.fixture()
-def mocked_request_context_without_ods(mocker):
-    mocked_context = mocker.MagicMock()
-    mocked_context.authorization = {
-        "selected_organisation": {"org_ods_code": ""},
-    }
-    yield mocker.patch(
-        "handlers.search_document_review_handler.request_context", mocked_context
+def mocked_extract_ods_code_error(mocker):
+    mocked_extract =  mocker.patch(
+        "handlers.search_document_review_handler.extract_ods_code_from_request_context",
     )
-
-
-def test_get_ods_code_from_request(mocked_request_context_with_ods):
-
-    assert get_ods_code_from_request_context() == TEST_CURRENT_GP_ODS
-
-
-def test_get_ods_code_from_request_throws_exception_no_auth(mocker):
-    mocker.patch("handlers.search_document_review_handler.request_context", {})
-
-    with pytest.raises(DocumentReviewLambdaException) as e:
-        get_ods_code_from_request_context()
-
-    assert e.value.status_code == 401
+    mocked_extract.side_effect = OdsErrorException()
+    yield mocked_extract
 
 
 def test_handler_returns_401_response_no_ods_code_in_request_context(
-    set_env, context, event, mock_service, mocked_request_context_without_ods
+    set_env, context, event, mock_service, mocked_extract_ods_code_error
 ):
     body = json.dumps(
         {
@@ -178,7 +160,7 @@ def test_process_request_called_with_correct_arguments(
     context,
     set_env,
     event_with_all_params,
-    mocked_request_context_with_ods,
+        mocked_extract_ods_with_ods_code,
 ):
 
     lambda_handler(event_with_all_params, context)
@@ -191,7 +173,7 @@ def test_process_request_called_with_correct_arguments(
 
 
 def test_handler_returns_empty_list_of_references_no_dynamo_results_no_limit_in_query_params(
-    mock_service, context, set_env, mocked_request_context_with_ods, event
+    mock_service, context, set_env, mocked_extract_ods_with_ods_code, event
 ):
 
     mock_service.process_request.return_value = ([], None)
@@ -213,7 +195,7 @@ def test_handler_returns_empty_list_of_references_no_dynamo_results_no_limit_in_
 
 
 def test_handler_returns_list_of_references_last_evaluated_key_more_results_available(
-    mock_service, context, set_env, mocked_request_context_with_ods, event_with_limit
+    mock_service, context, set_env, mocked_extract_ods_with_ods_code, event_with_limit
 ):
 
     references = [
@@ -248,7 +230,7 @@ def test_handler_returns_list_of_references_last_evaluated_key_more_results_avai
 
 
 def test_handler_returns_list_of_references_no_limit_passed(
-    mock_service, context, set_env, mocked_request_context_with_ods, event
+    mock_service, context, set_env, mocked_extract_ods_with_ods_code, event
 ):
     references = [
         DocumentUploadReviewReference.model_validate(item).model_dump_camel_case(
@@ -278,7 +260,7 @@ def test_handler_returns_list_of_references_no_limit_passed(
 
 
 def test_handler_returns_500_response_error_raised(
-    mock_service, context, set_env, mocked_request_context_with_ods, event_with_limit
+    mock_service, context, set_env, mocked_extract_ods_with_ods_code, event_with_limit
 ):
 
     mock_service.process_request.side_effect = DocumentReviewLambdaException(
