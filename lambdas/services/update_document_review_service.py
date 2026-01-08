@@ -35,8 +35,6 @@ class UpdateDocumentReviewService:
         DocumentReviewStatus.APPROVED,
     ]
 
-    APPROVED_PENDING_REVIEW_STATUSES = [DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS]
-
     UNKNOWN_NHS_NUMBER = "0000000000"
 
     FAILED_LOG_MESSAGE = "Failed to update document review"
@@ -112,7 +110,6 @@ class UpdateDocumentReviewService:
     def _validate_review_status(self, document):
         if document.review_status not in [
             DocumentReviewStatus.PENDING_REVIEW,
-            DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS,
         ]:
             logger.error(
                 f"Invalid review status for document_id: {document.id}. "
@@ -133,17 +130,6 @@ class UpdateDocumentReviewService:
                 403, LambdaError.DocumentReferenceUnauthorised
             )
 
-    def _ensure_approved_status_follows_pending_review(self, document, update_data):
-        is_approved_pending_review = document.review_status == DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS
-        is_update_status_approved = update_data.review_status == DocumentReviewStatus.APPROVED
-
-        is_invalid_approved_pending_transition = is_approved_pending_review and not is_update_status_approved
-        is_approved_status_not_follows_pending_review = is_update_status_approved and not is_approved_pending_review
-        if is_approved_status_not_follows_pending_review or is_invalid_approved_pending_transition:
-            raise UpdateDocumentReviewException(
-                400, LambdaError.UpdateDocStatusUnavailable
-            )
-
     def _process_review_status_update(
         self,
         document,
@@ -151,7 +137,6 @@ class UpdateDocumentReviewService:
         document_id: str,
         reviewer_ods_code: str,
     ):
-        self._ensure_approved_status_follows_pending_review(document, update_data)
         self._set_review_metadata(document, update_data, reviewer_ods_code)
         self._execute_status_action(document, update_data, document_id)
 
@@ -169,11 +154,9 @@ class UpdateDocumentReviewService:
         elif document.review_status in self.APPROVED_REVIEW_STATUSES:
             document.document_reference_id = update_data.document_reference_id
             update_fields.add("document_reference_id")
-            self._handle_approval(document, update_fields)
+            self._handle_rejection_or_approval(document, update_fields)
         elif document.review_status in self.REJECTED_REVIEW_STATUSES:
-            self._handle_rejection(document, update_fields)
-        elif document.review_status in self.APPROVED_PENDING_REVIEW_STATUSES:
-            self._handle_approved_pending(document, update_fields)
+            self._handle_rejection_or_approval(document, update_fields)
         else:
             logger.error(
                 f"Invalid status update attempted: {document.review_status}",
@@ -183,22 +166,11 @@ class UpdateDocumentReviewService:
                 400, LambdaError.DocumentReviewGeneralError
             )
 
-    def _handle_rejection(self, document, update_fields):
+    def _handle_rejection_or_approval(self, document, update_fields):
         self.document_review_service.update_pending_review_status(
             review_update=document, field_names=update_fields
         )
         self._handle_soft_delete(document)
-
-    def _handle_approval(self, document, update_fields):
-        self.document_review_service.update_approved_pending_review_status(
-            review_update=document, field_names=update_fields
-        )
-        self._handle_soft_delete(document)
-
-    def _handle_approved_pending(self, document, update_fields):
-        self.document_review_service.update_pending_review_status(
-            review_update=document, field_names=update_fields
-        )
 
     def _handle_soft_delete(self, review_document: DocumentUploadReviewReference):
         logger.info(

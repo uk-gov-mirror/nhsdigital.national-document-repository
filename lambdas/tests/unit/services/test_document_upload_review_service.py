@@ -251,7 +251,7 @@ def test_update_document_review_for_patient_conditional_check_failed(
     field_names = {"review_status"}
 
     with pytest.raises(DocumentReviewException):
-        mock_service.update_approved_pending_review_status(
+        mock_service.update_pending_review_status(
             review_update=mock_review_update,
             field_names=field_names,
         )
@@ -262,7 +262,7 @@ def test_update_document_review_for_patient_conditional_check_failed(
     expected_condition = (
         Attr(DocumentReferenceMetadataFields.ID.value).exists()
         & Attr("NhsNumber").eq(mock_review_update.nhs_number)
-        & Attr("ReviewStatus").eq(DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS)
+        & Attr("ReviewStatus").eq(DocumentReviewStatus.PENDING_REVIEW)
     )
 
     assert condition_expr == expected_condition
@@ -287,7 +287,7 @@ def test_update_document_review_for_patient_other_client_error(
     field_names = {"review_status"}
 
     with pytest.raises(DocumentReviewException):
-        mock_service.update_approved_pending_review_status(
+        mock_service.update_pending_review_status(
             review_update=mock_review_update,
             field_names=field_names,
         )

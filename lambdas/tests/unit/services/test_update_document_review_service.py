@@ -89,7 +89,7 @@ def mock_pds_service(mocker):
 def test_update_document_review_successfully_approves_document(
     mock_service, mock_document_review
 ):
-    mock_document_review.review_status = DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS
+    mock_document_review.review_status = DocumentReviewStatus.PENDING_REVIEW
     update_data = PatchDocumentReviewRequest(
         review_status=DocumentReviewStatus.APPROVED,
         document_reference_id=TEST_DOCUMENT_REFERENCE_ID,
@@ -109,10 +109,10 @@ def test_update_document_review_successfully_approves_document(
     mock_service.document_review_service.get_document_review_by_id.assert_called_once_with(
         document_id=TEST_DOCUMENT_ID, document_version=TEST_VERSION
     )
-    mock_service.document_review_service.update_approved_pending_review_status.assert_called_once()
+    mock_service.document_review_service.update_pending_review_status.assert_called_once()
 
     call_args = (
-        mock_service.document_review_service.update_approved_pending_review_status.call_args
+        mock_service.document_review_service.update_pending_review_status.call_args
     )
     updated_doc = call_args.kwargs["review_update"]
     assert updated_doc.review_status == DocumentReviewStatus.APPROVED
@@ -252,38 +252,6 @@ def test_update_document_review_successfully_reassigns_document_when_patient_unk
     assert existing_review.nhs_number == TEST_NHS_NUMBER
 
 
-@freeze_time(TEST_FROZEN_TIME)
-def test_update_document_review_successfully_sets_approved_pending_documents_status(
-    mock_service, mock_document_review
-):
-    update_data = PatchDocumentReviewRequest(
-        review_status=DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS,
-    )
-    mock_service.document_review_service.get_document_review_by_id.return_value = (
-        mock_document_review
-    )
-
-    mock_service.update_document_review(
-        patient_id=TEST_NHS_NUMBER,
-        document_id=TEST_DOCUMENT_ID,
-        document_version=TEST_VERSION,
-        update_data=update_data,
-        reviewer_ods_code=TEST_REVIEWER_ODS_CODE,
-    )
-
-    mock_service.document_review_service.update_pending_review_status.assert_called_once()
-    call_args = (
-        mock_service.document_review_service.update_pending_review_status.call_args
-    )
-    updated_doc = call_args.kwargs["review_update"]
-    assert updated_doc.review_status == DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS
-    assert updated_doc.reviewer == TEST_REVIEWER_ODS_CODE
-    assert updated_doc.review_date == TEST_FROZEN_TIME_TIMESTAMP
-    assert "document_reference_id" not in call_args.kwargs["field_names"]
-    assert "reviewer" in call_args.kwargs["field_names"]
-    assert "review_date" in call_args.kwargs["field_names"]
-
-
 def test_update_document_review_raises_exception_when_document_not_found(mock_service):
     update_data = PatchDocumentReviewRequest(
         review_status=DocumentReviewStatus.APPROVED,
@@ -305,31 +273,6 @@ def test_update_document_review_raises_exception_when_document_not_found(mock_se
     mock_service.document_review_service.get_document_review_by_id.assert_called_once_with(
         document_id=TEST_DOCUMENT_ID, document_version=TEST_VERSION
     )
-    mock_service.document_review_service.update_pending_review_status.assert_not_called()
-
-
-def test_update_document_review_raises_exception_when_approving_from_pending_review(
-    mock_service, mock_document_review
-):
-    update_data = PatchDocumentReviewRequest(
-        review_status=DocumentReviewStatus.APPROVED,
-        document_reference_id=TEST_DOCUMENT_REFERENCE_ID,
-    )
-    mock_service.document_review_service.get_document_review_by_id.return_value = (
-        mock_document_review
-    )
-
-    with pytest.raises(UpdateDocumentReviewException) as exc_info:
-        mock_service.update_document_review(
-            patient_id=TEST_NHS_NUMBER,
-            document_id=TEST_DOCUMENT_ID,
-            document_version=TEST_VERSION,
-            update_data=update_data,
-            reviewer_ods_code=TEST_REVIEWER_ODS_CODE,
-        )
-
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.error == LambdaError.UpdateDocStatusUnavailable
     mock_service.document_review_service.update_pending_review_status.assert_not_called()
 
 
@@ -383,7 +326,6 @@ def test_validate_patient_id_match_raises_exception_when_nhs_numbers_dont_match(
     "valid_status",
     [
         DocumentReviewStatus.PENDING_REVIEW,
-        DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS,
     ],
 )
 def test_validate_review_status_passes_when_status_is_valid(
@@ -526,30 +468,10 @@ def test_create_reassigned_document_preserves_document_id(
 
 
 @freeze_time(TEST_FROZEN_TIME)
-def test_process_review_status_update_sets_review_date_and_reviewer(
-    mock_service, mock_document_review
-):
-    update_data = PatchDocumentReviewRequest(
-        review_status=DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS,
-    )
-
-    mock_service._process_review_status_update(
-        mock_document_review, update_data, TEST_DOCUMENT_ID, TEST_REVIEWER_ODS_CODE
-    )
-
-    assert mock_document_review.review_date == TEST_FROZEN_TIME_TIMESTAMP
-    assert mock_document_review.reviewer == TEST_REVIEWER_ODS_CODE
-    assert (
-        mock_document_review.review_status
-        == DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS
-    )
-
-
-@freeze_time(TEST_FROZEN_TIME)
 def test_process_review_status_update_calls_approved_service_for_approval(
     mock_service, mock_document_review
 ):
-    mock_document_review.review_status = DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS
+    mock_document_review.review_status = DocumentReviewStatus.PENDING_REVIEW
     update_data = PatchDocumentReviewRequest(
         review_status=DocumentReviewStatus.APPROVED,
         document_reference_id=TEST_DOCUMENT_REFERENCE_ID,
@@ -559,9 +481,9 @@ def test_process_review_status_update_calls_approved_service_for_approval(
         mock_document_review, update_data, TEST_DOCUMENT_ID, TEST_REVIEWER_ODS_CODE
     )
 
-    mock_service.document_review_service.update_approved_pending_review_status.assert_called_once()
+    mock_service.document_review_service.update_pending_review_status.assert_called_once()
     call_args = (
-        mock_service.document_review_service.update_approved_pending_review_status.call_args
+        mock_service.document_review_service.update_pending_review_status.call_args
     )
     assert (
         call_args.kwargs["review_update"].document_reference_id
@@ -624,30 +546,12 @@ def test_process_review_status_update_calls_handle_reassignment_for_reassignment
     )
 
 
-@freeze_time(TEST_FROZEN_TIME)
-def test_process_review_status_update_raises_exception_when_approving_from_wrong_status(
-    mock_service, mock_document_review
-):
-    mock_document_review.review_status = DocumentReviewStatus.PENDING_REVIEW
-    update_data = PatchDocumentReviewRequest(
-        review_status=DocumentReviewStatus.APPROVED,
-        document_reference_id=TEST_DOCUMENT_REFERENCE_ID,
-    )
-
-    with pytest.raises(UpdateDocumentReviewException) as exc_info:
-        mock_service._process_review_status_update(
-            mock_document_review, update_data, TEST_DOCUMENT_ID, TEST_REVIEWER_ODS_CODE
-        )
-
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.error == LambdaError.UpdateDocStatusUnavailable
-
 
 @freeze_time(TEST_FROZEN_TIME)
 def test_process_review_status_update_calls_soft_delete_for_approval(
     mock_service, mock_document_review, mocker
 ):
-    mock_document_review.review_status = DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS
+    mock_document_review.review_status = DocumentReviewStatus.PENDING_REVIEW
     update_data = PatchDocumentReviewRequest(
         review_status=DocumentReviewStatus.APPROVED,
         document_reference_id=TEST_DOCUMENT_REFERENCE_ID,
@@ -726,11 +630,10 @@ def test_handle_reassignment_status_creates_new_document_and_updates_with_transa
         DocumentReviewStatus.REASSIGNED_PATIENT_UNKNOWN,
     ],
 )
-def test_update_document_review_raises_exception_when_updating_approved_pending_to_invalid_status(
+def test_update_document_review_raises_exception_when_updating_approved_to_invalid_status(
     mock_service, mock_document_review, invalid_target_status
 ):
-    """Test that APPROVED_PENDING_DOCUMENTS can only transition to APPROVED"""
-    mock_document_review.review_status = DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS
+    mock_document_review.review_status = DocumentReviewStatus.APPROVED
     update_data = PatchDocumentReviewRequest(
         review_status=invalid_target_status,
         nhs_number=(
@@ -769,7 +672,6 @@ def test_update_document_review_raises_exception_when_updating_approved_pending_
 def test_update_document_review_raises_exception_when_approving_from_non_approved_pending_status(
     mock_service, mock_document_review, from_status
 ):
-    """Test that only APPROVED_PENDING_DOCUMENTS can transition to APPROVED"""
     mock_document_review.review_status = from_status
     update_data = PatchDocumentReviewRequest(
         review_status=DocumentReviewStatus.APPROVED,

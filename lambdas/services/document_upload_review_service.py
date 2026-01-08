@@ -154,15 +154,6 @@ class DocumentUploadReviewService(DocumentService):
             DocumentReviewStatus.PENDING_REVIEW,
         )
 
-    def update_approved_pending_review_status(
-        self, review_update: DocumentUploadReviewReference, field_names: set[str]
-    ) -> None:
-        self.update_review_document_with_status_filter(
-            review_update,
-            field_names,
-            DocumentReviewStatus.APPROVED_PENDING_DOCUMENTS,
-        )
-
     def update_review_document_with_status_filter(
         self,
         review_update: DocumentUploadReviewReference,
