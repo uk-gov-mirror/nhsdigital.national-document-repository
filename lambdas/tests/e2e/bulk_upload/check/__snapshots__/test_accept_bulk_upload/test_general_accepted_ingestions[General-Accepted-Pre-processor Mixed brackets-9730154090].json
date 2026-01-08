@@ -1,0 +1,26 @@
+{
+  "_description": "General-Accepted-Pre-processor Mixed brackets",
+  "bulk_upload_report": {
+    "NhsNumber": "9730154090",
+    "PdsOdsCode": "H81109",
+    "UploadStatus": "complete",
+    "UploaderOdsCode": "H81109"
+  },
+  "metadata": {
+    "Author": "H81109",
+    "ContentType": "application/pdf",
+    "CurrentGpOds": "H81109",
+    "Custodian": "H81109",
+    "DocStatus": "final",
+    "DocumentScanCreation": "2023-01-01",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileName": "1of1_Lloyd_George_Record_[Tarina Sybill LEVY]_[9730154090]_[14-09-1961].pdf",
+    "FileSize": "Decimal('173760')",
+    "NhsNumber": "9730154090",
+    "Status": "current",
+    "Uploaded": true,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+  },
+  "unstitched": []
+}

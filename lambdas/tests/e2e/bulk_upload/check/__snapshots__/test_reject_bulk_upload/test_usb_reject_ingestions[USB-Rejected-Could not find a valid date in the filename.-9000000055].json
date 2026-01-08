@@ -1,0 +1,14 @@
+{
+  "_description": "USB-Rejected-Could not find a valid date in the filename.",
+  "bulk_upload_report": {
+    "FilePath": "1253617284 Adam Thomas 07-Nov-99/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000055.pdf",
+    "NhsNumber": "9000000055",
+    "PdsOdsCode": "",
+    "Reason": "Could not find a valid date in the filename",
+    "StoredFileName": "1253617284 Adam Thomas 07-Nov-99/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000055.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "unstitched": null
+}

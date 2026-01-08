@@ -1,0 +1,14 @@
+{
+  "_description": "General-Rejected-Invalid date format",
+  "bulk_upload_report": {
+    "FilePath": "01 of 02_Lloyd_George_Record_Jaimie Stevens_9000000001_300.4.2010.pdf",
+    "NhsNumber": "9000000051",
+    "PdsOdsCode": "",
+    "Reason": "Could not find a valid date in the filename",
+    "StoredFileName": "01 of 02_Lloyd_George_Record_Jaimie Stevens_9000000001_300.4.2010.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "H81109"
+  },
+  "metadata": null,
+  "unstitched": null
+}

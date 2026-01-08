@@ -3,6 +3,7 @@ import uuid
 
 import requests
 from syrupy.filters import paths
+
 from tests.e2e.conftest import (
     API_ENDPOINT,
     API_KEY,
@@ -62,9 +63,7 @@ def test_large_file(test_data, snapshot_json):
     expected_presign_uri = f"https://{LLOYD_GEORGE_S3_BUCKET}.s3.eu-west-2.amazonaws.com/{lloyd_george_record['nhs_number']}/{lloyd_george_record['id']}"
     assert expected_presign_uri in json["content"][0]["attachment"]["url"]
 
-    assert json == snapshot_json(
-        exclude=paths("date", "id", "content.0.attachment.url")
-    )
+    assert json == snapshot_json(exclude=paths("date", "id", "content.0.attachment.url"))
 
 
 def test_no_file_found(snapshot_json):

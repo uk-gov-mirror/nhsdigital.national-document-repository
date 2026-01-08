@@ -1,0 +1,27 @@
+{
+  "_description": "SCOD-Accept",
+  "bulk_upload_report": {
+    "FilePath": "expedite/1of1_Lloyd_George_Record_[Felix Alfred VOS]_[9730787158]_[03-01-2016].pdf",
+    "NhsNumber": "9730787158",
+    "PdsOdsCode": "M85143",
+    "StoredFileName": "expedite/1of1_Lloyd_George_Record_[Felix Alfred VOS]_[9730787158]_[03-01-2016].pdf",
+    "UploadStatus": "complete",
+    "UploaderOdsCode": "expedite"
+  },
+  "metadata": {
+    "Author": "expedite",
+    "ContentType": "application/pdf",
+    "CurrentGpOds": "M85143",
+    "Custodian": "M85143",
+    "DocStatus": "final",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileName": "1of1_Lloyd_George_Record_[Felix Alfred VOS]_[9730787158]_[03-01-2016].pdf",
+    "FileSize": "Decimal('173760')",
+    "NhsNumber": "9730787158",
+    "Status": "current",
+    "Uploaded": true,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+  },
+  "unstitched": []
+}

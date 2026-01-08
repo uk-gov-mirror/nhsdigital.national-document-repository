@@ -1,0 +1,14 @@
+{
+  "_description": "General-Rejected-Nhs Not in PDS",
+  "bulk_upload_report": {
+    "FilePath": "reject/1of1_Lloyd_George_Record_[Josh Lucien PLATT]_[9596333437]_[23-10-1979].pdf",
+    "NhsNumber": "9596333437",
+    "PdsOdsCode": "",
+    "Reason": "Could not find the given patient on PDS",
+    "StoredFileName": "1of1_Lloyd_George_Record_[Josh Lucien PLATT]_[9596333437]_[23-10-1979].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "unstitched": null
+}

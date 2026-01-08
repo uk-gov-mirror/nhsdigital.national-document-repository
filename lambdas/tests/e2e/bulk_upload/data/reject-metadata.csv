@@ -1,0 +1,11 @@
+Test-Description,FILEPATH,PAGE COUNT,GP-PRACTICE-CODE,NHS-NO,SECTION,SUB-SECTION,SCAN-DATE,SCAN-ID,USER-ID,UPLOAD
+General-Rejected-invalid date format - Invalid Month,01 of 02_Lloyd_George_Record_Steph Stevens_9000000001_12.25.2010.pdf,1,H81109,9000000101,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Rejected-incorrect NHS number or date format - Invalid Format,01 of 02_Lloyd_George_Record_Andrew Stevens_9000000001_12.10.21.pdf,1,H81109,9000000201,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Rejected-Invalid date format,01 of 02_Lloyd_George_Record_Jaimie Stevens_9000000001_300.4.2010.pdf,1,H81109,9000000051,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Rejected-Invalid NHS number,01 of 02_Lloyd_George_Record_Jane Stevens_900_000_0001_11.10.2010.pdf,1,H81109,9000000061,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Rejected-incorrect NHS number or date format,01 of 02_Lloyd_George_Record_Patricia Stevens_9000000001_2_11.10.2010.pdf,1,H81109,9000000071,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Rejected-incorrect document path format,103/01 02_Lloyd_George_Record_Charles Stevens_9000000001_22.10.2010.pdf,1,H81109,9000000081,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Rejected-Missing 'lloyd george record',1093/01 of 02_Phineas Stevens_9000000001_22.10.2010.pdf,1,H81109,9500000001,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Rejected-Nhs Not in PDS,1of1_Lloyd_George_Record_[Josh Lucien PLATT]_[9596333437]_[23-10-1979].pdf,1,M85143,9596333437,LG,,01/01/2023,NEC,NEC,29/10/2025
+General-Rejected-Infected,1of1_Lloyd_George_Record_[Moses Ivan WELLS]_[9730788529]_[20-03-1994].pdf,1,M85143,9730788529,LG,,01/01/2023,NEC,NEC,29/10/2025
+General-Rejected-Corrupted,test/9730788022/1of1_Lloyd_George_Record_[Cath YOUDS]_[9730788022]_[05-05-1965].pdf,1,M85143,9730788022,LG,,01/01/2023,NEC,NEC,21/11/2025

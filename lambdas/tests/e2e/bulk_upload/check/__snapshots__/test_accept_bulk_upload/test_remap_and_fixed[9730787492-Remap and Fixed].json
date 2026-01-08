@@ -1,0 +1,28 @@
+{
+  "_description": "Remap and Fixed",
+  "bulk_upload_report": {
+    "FilePath": "accept-remap-and-fixed/test/9730787492/1of1_Lloyd_George_Record_[Bob SPEAR]_[9730787492]_[05-08-1968].pdf",
+    "NhsNumber": "9730787492",
+    "PdsOdsCode": "M85143",
+    "StoredFileName": "test/9730787492/1of1_Lloyd_George_Record_[Bob SPEAR]_[9730787492]_[05-08-1968].pdf",
+    "UploadStatus": "complete",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": {
+    "Author": "M85143",
+    "ContentType": "application/pdf",
+    "CurrentGpOds": "M85143",
+    "Custodian": "M85143",
+    "DocStatus": "final",
+    "DocumentScanCreation": "2022-01-01",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileName": "1of1_Lloyd_George_Record_[Bob SPEAR]_[9730787492]_[05-08-1968].pdf",
+    "FileSize": "Decimal('173760')",
+    "NhsNumber": "9730787492",
+    "Status": "current",
+    "Uploaded": true,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+  },
+  "unstitched": []
+}

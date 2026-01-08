@@ -1,0 +1,14 @@
+{
+  "_description": "USB-Rejected-Invalid patient name",
+  "bulk_upload_report": {
+    "FilePath": "9730153 Louisa Gables 07-Nov-1999/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000008.pdf",
+    "NhsNumber": "9000000008",
+    "PdsOdsCode": "",
+    "Reason": "Invalid NHS number",
+    "StoredFileName": "9730153 Louisa Gables 07-Nov-1999/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000008.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "unstitched": null
+}

@@ -4,12 +4,13 @@ import os
 from urllib.parse import parse_qs, quote, urlparse
 
 import requests
+
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
 
 
-class LloydGeorgeMockcis2Helper:
+class MockCis2Helper:
     def __init__(self, ods, repository_role):
         self.mock_key = os.environ.get("MOCK_CIS2_KEY") or ""
         self.api_endpoint = data_helper.api_endpoint
@@ -24,9 +25,7 @@ class LloydGeorgeMockcis2Helper:
         pass
 
     def get_state(self):
-        login_response = requests.get(
-            f"https://{self.api_endpoint}/Auth/Login", allow_redirects=False
-        )
+        login_response = requests.get(f"https://{self.api_endpoint}/Auth/Login", allow_redirects=False)
         location = login_response.headers.get("Location")
 
         parsed_url = urlparse(location)

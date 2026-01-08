@@ -1,0 +1,69 @@
+{
+  "_description": "General-Accepted-Multi File Upload 1of3",
+  "bulk_upload_report": {
+    "NhsNumber": "9730786976",
+    "PdsOdsCode": "M85143",
+    "UploadStatus": "complete",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": {
+    "Author": "M85143",
+    "ContentType": "application/pdf",
+    "CurrentGpOds": "M85143",
+    "Custodian": "M85143",
+    "DocStatus": "final",
+    "DocumentScanCreation": "2023-01-01",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileName": "1of1_Lloyd_George_Record_[Lena Rena LAWLER]_[9730786976]_[24-07-1924].pdf",
+    "FileSize": "Decimal('578652')",
+    "NhsNumber": "9730786976",
+    "Status": "current",
+    "Uploaded": true,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+  },
+  "unstitched": [
+    {
+      "Author": "M85143",
+      "ContentType": "application/pdf",
+      "Custodian": "M85143",
+      "DocStatus": "final",
+      "DocumentScanCreation": "2023-01-01",
+      "DocumentSnomedCodeType": "16521000000101",
+      "FileSize": "Decimal('173760')",
+      "NhsNumber": "9730786976",
+      "Status": "current",
+      "Uploaded": true,
+      "Version": "1",
+      "VirusScannerResult": "Clean"
+    },
+    {
+      "Author": "M85143",
+      "ContentType": "application/pdf",
+      "Custodian": "M85143",
+      "DocStatus": "final",
+      "DocumentScanCreation": "2023-01-01",
+      "DocumentSnomedCodeType": "16521000000101",
+      "FileSize": "Decimal('173760')",
+      "NhsNumber": "9730786976",
+      "Status": "current",
+      "Uploaded": true,
+      "Version": "1",
+      "VirusScannerResult": "Clean"
+    },
+    {
+      "Author": "M85143",
+      "ContentType": "application/pdf",
+      "Custodian": "M85143",
+      "DocStatus": "final",
+      "DocumentScanCreation": "2023-01-01",
+      "DocumentSnomedCodeType": "16521000000101",
+      "FileSize": "Decimal('173760')",
+      "NhsNumber": "9730786976",
+      "Status": "current",
+      "Uploaded": true,
+      "Version": "1",
+      "VirusScannerResult": "Clean"
+    }
+  ]
+}

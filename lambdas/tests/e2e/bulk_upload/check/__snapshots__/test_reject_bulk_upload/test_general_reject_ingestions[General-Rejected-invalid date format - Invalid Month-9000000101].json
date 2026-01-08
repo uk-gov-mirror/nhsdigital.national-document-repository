@@ -1,0 +1,14 @@
+{
+  "_description": "General-Rejected-invalid date format - Invalid Month",
+  "bulk_upload_report": {
+    "FilePath": "01 of 02_Lloyd_George_Record_Steph Stevens_9000000001_12.25.2010.pdf",
+    "NhsNumber": "9000000101",
+    "PdsOdsCode": "",
+    "Reason": "Invalid date format",
+    "StoredFileName": "01 of 02_Lloyd_George_Record_Steph Stevens_9000000001_12.25.2010.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "H81109"
+  },
+  "metadata": null,
+  "unstitched": null
+}

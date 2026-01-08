@@ -4,6 +4,7 @@ import time
 import pytest
 import requests
 from syrupy.extensions.json import JSONSnapshotExtension
+
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
@@ -11,10 +12,10 @@ data_helper = LloydGeorgeDataHelper()
 LLOYD_GEORGE_SNOMED = data_helper.snomed_code
 API_ENDPOINT = data_helper.api_endpoint
 API_KEY = os.environ.get("NDR_API_KEY")
+
 LG_METADATA_TABLE = data_helper.dynamo_table
-LG_UNSTITCHED_TABLE = os.environ.get("LG_UNSTITCHED_TABLE")
-BULK_REPORT_TABLE = os.environ.get("BULK_REPORT_TABLE")
 LLOYD_GEORGE_S3_BUCKET = data_helper.s3_bucket
+
 APIM_ENDPOINT = data_helper.apim_url
 
 

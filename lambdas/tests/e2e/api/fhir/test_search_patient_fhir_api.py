@@ -1,23 +1,20 @@
 import pytest
 
-from lambdas.tests.e2e.api.fhir.conftest import (
+from tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
     PDM_SNOMED,
     create_and_store_pdm_record,
     create_mtls_session,
 )
-from lambdas.tests.e2e.conftest import APIM_ENDPOINT
-from lambdas.tests.e2e.helpers.data_helper import PdmDataHelper
+from tests.e2e.conftest import APIM_ENDPOINT
+from tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
 
 
 def search_document_reference(nhs_number, client_cert_path=None, client_key_path=None):
     """Helper to perform search by NHS number with optional mTLS certs."""
-    url = (
-        f"https://{MTLS_ENDPOINT}/DocumentReference?"
-        f"subject:identifier=https://fhir.nhs.uk/Id/nhs-number|{nhs_number}"
-    )
+    url = f"https://{MTLS_ENDPOINT}/DocumentReference?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|{nhs_number}"
     headers = {
         "X-Correlation-Id": "1234",
     }
@@ -56,11 +53,7 @@ def test_search_patient_details(test_data):
 
     # Find the entry with the matching record_id
     matching_entry = next(
-        (
-            e
-            for e in entries
-            if e["resource"].get("id") == f"{PDM_SNOMED}~{expected_record_id}"
-        ),
+        (e for e in entries if e["resource"].get("id") == f"{PDM_SNOMED}~{expected_record_id}"),
         None,
     )
     assert matching_entry
@@ -73,10 +66,7 @@ def test_search_patient_details(test_data):
 
 
 def test_multiple_cancelled_search_patient_details(test_data):
-    record_ids = [
-        create_and_store_pdm_record(test_data, doc_status="cancelled")["id"]
-        for _ in range(2)
-    ]
+    record_ids = [create_and_store_pdm_record(test_data, doc_status="cancelled")["id"] for _ in range(2)]
 
     response = search_document_reference("9912003071")
     assert response.status_code == 200
@@ -88,11 +78,7 @@ def test_multiple_cancelled_search_patient_details(test_data):
     # Validate all created records exist and have status cancelled
     for record_id in record_ids:
         entry = next(
-            (
-                e
-                for e in entries
-                if e["resource"].get("id") == f"{PDM_SNOMED}~{record_id}"
-            ),
+            (e for e in entries if e["resource"].get("id") == f"{PDM_SNOMED}~{record_id}"),
             None,
         )
         assert entry
@@ -106,9 +92,7 @@ def test_multiple_cancelled_search_patient_details(test_data):
         ("123", 400, "INVALID_SEARCH_DATA", "Invalid patient number 123"),
     ],
 )
-def test_search_edge_cases(
-    nhs_number, expected_status, expected_code, expected_diagnostics
-):
+def test_search_edge_cases(nhs_number, expected_status, expected_code, expected_diagnostics):
     response = search_document_reference(nhs_number)
     assert response.status_code == expected_status
 
@@ -127,9 +111,7 @@ def test_search_patient_unauthorized_mtls(test_data, temp_cert_and_key):
     # Use an invalid cert that is trusted by TLS but fails truststore validation
     cert_path, key_path = temp_cert_and_key
 
-    response = search_document_reference(
-        "9912003071", client_cert_path=cert_path, client_key_path=key_path
-    )
+    response = search_document_reference("9912003071", client_cert_path=cert_path, client_key_path=key_path)
 
     body = response.json()
     assert response.status_code == 403

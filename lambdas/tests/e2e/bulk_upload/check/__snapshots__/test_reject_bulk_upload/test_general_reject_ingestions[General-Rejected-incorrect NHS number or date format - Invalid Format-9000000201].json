@@ -1,0 +1,14 @@
+{
+  "_description": "General-Rejected-incorrect NHS number or date format - Invalid Format",
+  "bulk_upload_report": {
+    "FilePath": "01 of 02_Lloyd_George_Record_Andrew Stevens_9000000001_12.10.21.pdf",
+    "NhsNumber": "9000000201",
+    "PdsOdsCode": "",
+    "Reason": "Incorrect NHS number or date format",
+    "StoredFileName": "01 of 02_Lloyd_George_Record_Andrew Stevens_9000000001_12.10.21.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "H81109"
+  },
+  "metadata": null,
+  "unstitched": null
+}

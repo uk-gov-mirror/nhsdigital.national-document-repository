@@ -104,11 +104,25 @@ else
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/api --ignore=tests/e2e/api/fhir --snapshot-update
 endif
 
+initiate-bulk-upload:
+ifeq ($(CONTAINER), true)
+	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/bulk_upload/upload -vv
+else
+	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/bulk_upload/upload -vv
+endif
+
 test-bulk-upload-e2e:
 ifeq ($(CONTAINER), true)
-	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/bulk_upload -vv
+	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/bulk_upload/check -vv
 else
-	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/bulk_upload -vv
+	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/bulk_upload/check -vv
+endif
+
+test-bulk-upload-e2e-snapshots:
+ifeq ($(CONTAINER), true)
+	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/bulk_upload/check --snapshot-update
+else
+	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/bulk_upload/check --snapshot-update
 endif
 
 test-unit:

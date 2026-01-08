@@ -1,0 +1,14 @@
+{
+  "_description": "General-Rejected-Invalid NHS number",
+  "bulk_upload_report": {
+    "FilePath": "01 of 02_Lloyd_George_Record_Jane Stevens_900_000_0001_11.10.2010.pdf",
+    "NhsNumber": "9000000061",
+    "PdsOdsCode": "",
+    "Reason": "Invalid NHS number",
+    "StoredFileName": "01 of 02_Lloyd_George_Record_Jane Stevens_900_000_0001_11.10.2010.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "H81109"
+  },
+  "metadata": null,
+  "unstitched": null
+}
