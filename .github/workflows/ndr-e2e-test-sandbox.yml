@@ -57,3 +57,12 @@ jobs:
       sandbox: ${{ inputs.sandbox }}
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  services-mns-e2etest:
+    uses: ./.github/workflows/base-e2e-mns.yml
+    with:
+      build_branch: ${{ inputs.build_branch }}
+      environment: ${{ inputs.environment }}
+      sandbox: ${{ inputs.sandbox }}
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}

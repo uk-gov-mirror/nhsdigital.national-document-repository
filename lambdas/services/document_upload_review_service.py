@@ -1,9 +1,11 @@
 import os
+from datetime import datetime, timezone
 
 from boto3.dynamodb.conditions import Attr, ConditionBase
 from botocore.exceptions import ClientError
 from enums.document_review_status import DocumentReviewStatus
 from enums.dynamo_filter import AttributeOperator
+from enums.lambda_error import LambdaError, ErrorMessage
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from models.document_reference import S3_PREFIX
 from models.document_review import DocumentUploadReviewReference
@@ -73,7 +75,7 @@ class DocumentUploadReviewService(DocumentService):
 
         except ClientError as e:
             logger.error(e)
-            raise DocumentReviewException("Error querying document review references")
+            raise DocumentReviewException(ErrorMessage.FAILED_TO_QUERY_DYNAMO)
 
     def _validate_review_references(
         self, items: list[dict]
@@ -86,7 +88,9 @@ class DocumentUploadReviewService(DocumentService):
             return review_references
         except ValidationError as e:
             logger.error(e)
-            raise DocumentReviewException("Error validating document review references")
+            raise DocumentReviewException(
+                ErrorMessage.FAILED_TO_VALIDATE.value
+            )
 
     def get_document(
         self, document_id: str, version: int | None
@@ -107,21 +111,78 @@ class DocumentUploadReviewService(DocumentService):
         patient_documents: list[DocumentUploadReviewReference],
         updated_ods_code: str,
     ):
-        review_update_field = {"custodian"}
         if not patient_documents:
+            logger.info("No documents to update")
             return
+        review_update_field = {"custodian"}
 
         for review in patient_documents:
-            logger.info("Updating document review custodian...")
-
-            if review.custodian != updated_ods_code:
-                review.custodian = updated_ods_code
-
-                self.update_document(
-                    document=review,
-                    key_pair={"ID": review.id, "Version": review.version},
-                    update_fields_name=review_update_field,
+            if review.custodian == updated_ods_code:
+                logger.info(
+                    f"Custodian {updated_ods_code} already assigned to review ID: {review.id}"
                 )
+                continue
+
+            try:
+                logger.info(
+                    f"Updating document review custodian for review ID: {review.id}",
+                    {
+                        "current_custodian": review.custodian,
+                        "new_custodian": updated_ods_code,
+                    },
+                )
+
+                if review.review_status == DocumentReviewStatus.PENDING_REVIEW:
+                    self._handle_pending_review_custodian_update(
+                        review, updated_ods_code, review_update_field
+                    )
+                else:
+                    self._handle_standard_custodian_update(
+                        review, updated_ods_code, review_update_field
+                    )
+
+            except (ClientError, DocumentReviewException) as e:
+                logger.error(
+                    f"Failed to update custodian for review ID: {review.id}",
+                    {"error": str(e)},
+                )
+                continue
+
+    def _handle_pending_review_custodian_update(
+        self,
+        review: DocumentUploadReviewReference,
+        updated_ods_code: str,
+        review_update_field: set[str],
+    ) -> None:
+        new_document_review = review.model_copy(deep=True)
+        new_document_review.version = review.version + 1
+        new_document_review.custodian = updated_ods_code
+
+        review_date = int(datetime.now(timezone.utc).timestamp())
+        review.review_status = DocumentReviewStatus.NEVER_REVIEWED
+        review.review_date = review_date
+        review.reviewer = review.custodian
+        review.custodian = updated_ods_code
+
+        self.update_document_review_with_transaction(
+            new_review_item=new_document_review,
+            existing_review_item=review,
+            additional_update_fields=review_update_field,
+        )
+
+    def _handle_standard_custodian_update(
+        self,
+        review: DocumentUploadReviewReference,
+        updated_ods_code: str,
+        update_fields: set[str],
+    ) -> None:
+        review.custodian = updated_ods_code
+
+        self.update_document(
+            document=review,
+            key_pair={"ID": review.id, "Version": review.version},
+            update_fields_name=update_fields,
+        )
 
     def update_document_review_status(
         self,
@@ -184,24 +245,22 @@ class DocumentUploadReviewService(DocumentService):
             )
         except ClientError as e:
             error_code = e.response.get("Error", {}).get("Code", "")
-
+            logger.error(e)
             if error_code == "ConditionalCheckFailedException":
                 logger.error(
                     f"Condition check failed: Document ID {review_update.id}",
                     {"Result": "Failed to update document review"},
                 )
-                raise DocumentReviewException(
-                    f"Document ID {review_update.id} does not meet the required conditions for update"
-                )
+                raise DocumentReviewException(ErrorMessage.FAILED_TO_UPDATE_DYNAMO)
 
             logger.error(
                 f"DynamoDB error updating document review: {str(e)}",
                 {"Result": "Failed to update document review"},
             )
-            raise DocumentReviewException(f"Failed to update document review: {str(e)}")
+            raise DocumentReviewException(ErrorMessage.FAILED_TO_UPDATE_DYNAMO)
 
     def update_document_review_with_transaction(
-        self, new_review_item, existing_review_item
+        self, new_review_item, existing_review_item, additional_update_fields=None
     ):
         transact_items = []
         try:
@@ -221,6 +280,8 @@ class DocumentUploadReviewService(DocumentService):
                 "review_date",
                 "reviewer",
             }
+            if additional_update_fields:
+                existing_update_fields.update(additional_update_fields)
             existing_doc_transaction = build_transaction_item(
                 table_name=self.table_name,
                 action="Update",
@@ -245,26 +306,27 @@ class DocumentUploadReviewService(DocumentService):
                     {
                         "field": "Custodian",
                         "operator": "=",
-                        "value": existing_review_item.custodian,
+                        "value": existing_review_item.reviewer,
                     },
                 ],
             )
         except ValueError as e:
             logger.error(f"Failed to build transaction item: {str(e)}")
-            raise DocumentReviewException(f"Failed to build transaction item: {str(e)}")
+            raise DocumentReviewException(ErrorMessage.FAILED_TO_CREATE_TRANSACTION)
         transact_items.append(existing_doc_transaction)
 
         try:
             response = self.dynamo_service.transact_write_items(transact_items)
             logger.info("Transaction completed successfully")
         except ClientError as e:
+            logger.error(f"Transaction failed: {str(e)}")
             error_code = e.response.get("Error", {}).get("Code", "")
             if error_code == "TransactionCanceledException":
                 logger.error(
                     f"Condition check failed: Document ID {existing_review_item.id}  ",
                     {"Result": "Failed to update document review"},
                 )
-            raise DocumentReviewException(f"Failed to update document review: {str(e)}")
+            raise DocumentReviewException(ErrorMessage.FAILED_TO_UPDATE_DYNAMO)
         return response
 
     def delete_document_review_files(

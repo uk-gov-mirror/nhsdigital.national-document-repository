@@ -1,15 +1,20 @@
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Optional
 
 from enums.fhir.fhir_issue_type import FhirIssueCoding, UKCoreSpineError
 from utils.error_response import ErrorResponse
 from utils.request_context import request_context
 
-
-class LambdaError(Enum):
+class ErrorMessage(StrEnum):
     MISSING_POST = "Missing POST request body"
     MISSING_KEY = "An error occurred due to missing key"
     RETRIEVE_DOCUMENTS = "Unable to retrieve documents for patient"
+    FAILED_TO_QUERY_DYNAMO = "Failed to query DynamoDB"
+    FAILED_TO_VALIDATE = "Failed to validate data"
+    FAILED_TO_UPDATE_DYNAMO = "Failed to update DynamoDB"
+    FAILED_TO_CREATE_TRANSACTION = "Failed to create transaction"
+
+class LambdaError(Enum):
 
     def create_error_response(
         self, params: Optional[dict] = None, **kwargs
@@ -240,7 +245,7 @@ class LambdaError(Enum):
     }
     ManifestMissingBody = {
         "err_code": "DMS_4002",
-        "message": MISSING_POST,
+        "message": ErrorMessage.MISSING_POST,
     }
     ManifestFilterDocumentReferences = {
         "err_code": "DMS_4003",
@@ -248,7 +253,7 @@ class LambdaError(Enum):
     }
     ManifestMissingJobId = {
         "err_code": "DMS_4004",
-        "message": MISSING_KEY,
+        "message": ErrorMessage.MISSING_KEY,
     }
     ManifestMissingJob = {
         "err_code": "DMS_4005",
@@ -272,7 +277,7 @@ class LambdaError(Enum):
     }
     StitchNoService = {
         "err_code": "LGS_5001",
-        "message": RETRIEVE_DOCUMENTS,
+        "message": ErrorMessage.RETRIEVE_DOCUMENTS,
     }
     StitchClient = {
         "err_code": "LGS_5002",
@@ -280,11 +285,11 @@ class LambdaError(Enum):
     }
     StitchDB = {
         "err_code": "LGS_5003",
-        "message": RETRIEVE_DOCUMENTS,
+        "message": ErrorMessage.RETRIEVE_DOCUMENTS,
     }
     StitchValidation = {
         "err_code": "LGS_5004",
-        "message": RETRIEVE_DOCUMENTS,
+        "message": ErrorMessage.RETRIEVE_DOCUMENTS,
     }
     StitchCloudFront = {
         "err_code": "LGS_5005",
@@ -325,7 +330,7 @@ class LambdaError(Enum):
     """
     FeedbackMissingBody = {
         "err_code": "SFB_4001",
-        "message": MISSING_POST,
+        "message": ErrorMessage.MISSING_POST,
     }
 
     FeedbackInvalidBody = {
@@ -612,7 +617,7 @@ class LambdaError(Enum):
     }
     DocTypeKey = {
         "err_code": "VDT_4003",
-        "message": MISSING_KEY,
+        "message": ErrorMessage.MISSING_KEY,
     }
     PatientIdInvalid = {
         "err_code": "PN_4001",
@@ -621,7 +626,7 @@ class LambdaError(Enum):
     }
     PatientIdNoKey = {
         "err_code": "PN_4002",
-        "message": MISSING_KEY,
+        "message": ErrorMessage.MISSING_KEY,
         "fhir_coding": UKCoreSpineError.MISSING_VALUE,
     }
     PatientIdMismatch = {
@@ -671,7 +676,7 @@ class LambdaError(Enum):
     """
     DocumentReviewDB = {
         "err_code": "UDR_5001",
-        "message": RETRIEVE_DOCUMENTS,
+        "message": ErrorMessage.RETRIEVE_DOCUMENTS,
     }
 
     DocumentReviewValidation = {

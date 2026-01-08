@@ -138,6 +138,16 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
+  run_mns_e2etest:
+    uses: ./.github/workflows/base-e2e-mns.yml
+    needs: ["disable_fhir_stub"]
+    with:
+      build_branch: ${{ inputs.build_branch }}
+      environment: development
+      sandbox: ${{ inputs.sandbox }}
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
   deploy_ui:
     name: Deploy UI
     uses: ./.github/workflows/base-deploy-ui.yml

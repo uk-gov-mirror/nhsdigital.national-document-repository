@@ -27,7 +27,6 @@ class MNSNotificationService:
         self.sqs_service = SQSService()
         self.queue = os.getenv("MNS_NOTIFICATION_QUEUE_URL")
         self.feature_flag_service = FeatureFlagService()
-        self.is_review_feature_enabled = self.check_if_review_feature_enabled()
 
     def handle_mns_notification(self, message: MNSSQSMessage):
         try:
@@ -118,14 +117,12 @@ class MNSNotificationService:
                 nhs_number
             )
         )
-        if self.is_review_feature_enabled:
-            review_documents = (
-                self.document_review_service.fetch_documents_from_table_with_nhs_number(
-                    nhs_number
-                )
+        review_documents = (
+            self.document_review_service.fetch_documents_from_table_with_nhs_number(
+                nhs_number
             )
-        else:
-            review_documents = []
+        )
+
         return lg_documents, review_documents
 
     def update_all_patient_documents(
@@ -139,18 +136,8 @@ class MNSNotificationService:
             self.lg_document_service.update_patient_ods_code(
                 lg_documents, updated_ods_code
             )
-        if review_documents and self.is_review_feature_enabled:
+        if review_documents:
             self.document_review_service.update_document_review_custodian(
                 review_documents, updated_ods_code
             )
 
-    def check_if_review_feature_enabled(self) -> bool:
-        upload_lambda_enabled_flag_object = (
-            self.feature_flag_service.get_feature_flags_by_flag(
-                FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
-            )
-        )
-
-        return upload_lambda_enabled_flag_object[
-            FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
-        ]

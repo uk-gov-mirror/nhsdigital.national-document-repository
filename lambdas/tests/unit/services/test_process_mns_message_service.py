@@ -2,12 +2,10 @@ from unittest.mock import MagicMock
 
 import pytest
 from botocore.exceptions import ClientError
-from enums.feature_flags import FeatureFlags
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from models.document_reference import DocumentReference
 from models.document_review import DocumentUploadReviewReference
 from models.sqs.mns_sqs_message import MNSSQSMessage
-from services.feature_flags_service import FeatureFlagService
 from services.process_mns_message_service import MNSNotificationService
 from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_NHS_NUMBER
 from tests.unit.handlers.test_mns_notification_handler import (
@@ -20,7 +18,7 @@ from utils.exceptions import PdsErrorException
 
 
 @pytest.fixture
-def mns_service(mocker, set_env, monkeypatch, mock_upload_document_iteration_3_enabled):
+def mns_service(mocker, set_env, monkeypatch):
     monkeypatch.setenv("PDS_FHIR_IS_STUBBED", "False")
     service = MNSNotificationService()
     mocker.patch.object(service, "pds_service")
@@ -32,7 +30,7 @@ def mns_service(mocker, set_env, monkeypatch, mock_upload_document_iteration_3_e
 
 @pytest.fixture
 def mns_service_feature_disabled(
-    mocker, set_env, monkeypatch, mock_upload_document_iteration_3_disabled
+    mocker, set_env, monkeypatch
 ):
     monkeypatch.setenv("PDS_FHIR_IS_STUBBED", "False")
     service = MNSNotificationService()
@@ -81,24 +79,6 @@ def mock_document_review_references(mocker):
         review.custodian = TEST_CURRENT_GP_ODS
         reviews.append(review)
     return reviews
-
-
-@pytest.fixture
-def mock_upload_document_iteration_3_enabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_feature_flag = mock_function.return_value = {
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: True
-    }
-    yield mock_feature_flag
-
-
-@pytest.fixture
-def mock_upload_document_iteration_3_disabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_feature_flag = mock_function.return_value = {
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: False
-    }
-    yield mock_feature_flag
 
 
 MOCK_UPDATE_TIME = "2024-01-01 12:00:00"
@@ -377,7 +357,6 @@ def test_update_all_patient_documents_with_only_review_documents(
 def test_handle_gp_change_notification_with_only_lg_documents(
     mns_service, mock_document_references, mocker
 ):
-    """Test GP change when only LG documents exist (no review documents)"""
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mns_service.get_all_patient_documents.return_value = (
         mock_document_references,
@@ -403,7 +382,6 @@ def test_handle_gp_change_notification_with_only_lg_documents(
 def test_handle_gp_change_notification_with_only_review_documents(
     mns_service, mock_document_review_references, mocker
 ):
-    """Test GP change when only review documents exist (no LG documents)"""
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mns_service.get_all_patient_documents.return_value = (
         [],
@@ -429,7 +407,6 @@ def test_handle_gp_change_notification_with_only_review_documents(
 def test_handle_death_notification_formal_with_only_lg_documents(
     mns_service, mock_document_references, mocker
 ):
-    """Test formal death notification when only LG documents exist"""
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mocker.patch.object(mns_service, "get_updated_gp_ods")
     mocker.patch.object(mns_service, "update_all_patient_documents")
@@ -454,7 +431,6 @@ def test_handle_death_notification_formal_with_only_lg_documents(
 def test_handle_death_notification_formal_with_only_review_documents(
     mns_service, mock_document_review_references, mocker
 ):
-    """Test formal death notification when only review documents exist"""
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mocker.patch.object(mns_service, "get_updated_gp_ods")
     mocker.patch.object(mns_service, "update_all_patient_documents")
@@ -479,7 +455,6 @@ def test_handle_death_notification_formal_with_only_review_documents(
 def test_handle_death_notification_removed_with_only_lg_documents(
     mns_service, mock_document_references, mocker
 ):
-    """Test removed death notification when only LG documents exist"""
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mocker.patch.object(mns_service, "get_updated_gp_ods")
     mocker.patch.object(mns_service, "update_all_patient_documents")
@@ -505,7 +480,6 @@ def test_handle_death_notification_removed_with_only_lg_documents(
 def test_handle_death_notification_removed_with_only_review_documents(
     mns_service, mock_document_review_references, mocker
 ):
-    """Test removed death notification when only review documents exist"""
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mocker.patch.object(mns_service, "get_updated_gp_ods")
     mocker.patch.object(mns_service, "update_all_patient_documents")
@@ -527,92 +501,3 @@ def test_handle_death_notification_removed_with_only_review_documents(
         [], mock_document_review_references, NEW_ODS_CODE
     )
 
-
-def test_get_all_patient_documents_when_feature_disabled(
-    mns_service_feature_disabled, mocker
-):
-    """Test that review documents are not fetched when feature flag is disabled"""
-    expected_lg_docs = [MagicMock(spec=DocumentReference)]
-
-    mns_service_feature_disabled.lg_document_service.fetch_documents_from_table_with_nhs_number.return_value = (
-        expected_lg_docs
-    )
-
-    lg_docs, review_docs = mns_service_feature_disabled.get_all_patient_documents(
-        TEST_NHS_NUMBER
-    )
-
-    assert lg_docs == expected_lg_docs
-    assert review_docs == []
-    mns_service_feature_disabled.lg_document_service.fetch_documents_from_table_with_nhs_number.assert_called_once_with(
-        TEST_NHS_NUMBER
-    )
-    mns_service_feature_disabled.document_review_service.fetch_documents_from_table_with_nhs_number.assert_not_called()
-
-
-def test_update_all_patient_documents_when_feature_disabled(
-    mns_service_feature_disabled,
-    mock_document_references,
-    mock_document_review_references,
-    mocker,
-):
-    """Test that review documents are not updated when feature flag is disabled"""
-    mns_service_feature_disabled.update_all_patient_documents(
-        mock_document_references, mock_document_review_references, NEW_ODS_CODE
-    )
-
-    mns_service_feature_disabled.lg_document_service.update_patient_ods_code.assert_called_once_with(
-        mock_document_references, NEW_ODS_CODE
-    )
-    mns_service_feature_disabled.document_review_service.update_document_review_custodian.assert_not_called()
-
-
-def test_handle_gp_change_notification_when_feature_disabled(
-    mns_service_feature_disabled, mock_document_references, mocker
-):
-    """Test GP change notification handling when feature flag is disabled"""
-    mocker.patch.object(mns_service_feature_disabled, "get_all_patient_documents")
-    mns_service_feature_disabled.get_all_patient_documents.return_value = (
-        mock_document_references,
-        [],
-    )
-    mocker.patch.object(mns_service_feature_disabled, "get_updated_gp_ods")
-    mns_service_feature_disabled.get_updated_gp_ods.return_value = NEW_ODS_CODE
-    mocker.patch.object(mns_service_feature_disabled, "update_all_patient_documents")
-
-    mns_service_feature_disabled.handle_gp_change_notification(gp_change_message)
-
-    mns_service_feature_disabled.get_all_patient_documents.assert_called_once_with(
-        gp_change_message.subject.nhs_number
-    )
-    mns_service_feature_disabled.get_updated_gp_ods.assert_called_once_with(
-        gp_change_message.subject.nhs_number
-    )
-    mns_service_feature_disabled.update_all_patient_documents.assert_called_once_with(
-        mock_document_references, [], NEW_ODS_CODE
-    )
-
-
-def test_handle_death_notification_formal_when_feature_disabled(
-    mns_service_feature_disabled, mock_document_references, mocker
-):
-    """Test formal death notification when feature flag is disabled"""
-    mocker.patch.object(mns_service_feature_disabled, "get_all_patient_documents")
-    mocker.patch.object(mns_service_feature_disabled, "get_updated_gp_ods")
-    mocker.patch.object(mns_service_feature_disabled, "update_all_patient_documents")
-    mns_service_feature_disabled.get_all_patient_documents.return_value = (
-        mock_document_references,
-        [],
-    )
-
-    mns_service_feature_disabled.handle_death_notification(death_notification_message)
-
-    mns_service_feature_disabled.get_all_patient_documents.assert_called_once_with(
-        death_notification_message.subject.nhs_number
-    )
-    mns_service_feature_disabled.update_all_patient_documents.assert_called_once_with(
-        mock_document_references,
-        [],
-        PatientOdsInactiveStatus.DECEASED,
-    )
-    mns_service_feature_disabled.get_updated_gp_ods.assert_not_called()
