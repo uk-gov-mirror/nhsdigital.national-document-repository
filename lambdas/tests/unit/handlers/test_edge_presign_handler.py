@@ -21,7 +21,7 @@ def mock_edge_presign_service(mocker):
     return mock_edge_service_instance
 
 
-def test_lambda_handler_success(valid_event, context, mock_edge_presign_service):
+def test_lambda_handler_get_success(valid_event, context, mock_edge_presign_service):
     request_body = valid_event["Records"][0]["cf"]["request"]
     modified_request = copy.deepcopy(request_body)
     modified_request["uri"] = "/path/to/resource"
@@ -41,7 +41,7 @@ def test_lambda_handler_success(valid_event, context, mock_edge_presign_service)
     assert response["querystring"] == "key=value"
 
 
-def test_lambda_handler_exception(valid_event, context, mock_edge_presign_service):
+def test_lambda_handler_get_exception(valid_event, context, mock_edge_presign_service):
     mock_edge_presign_service.use_presigned.side_effect = CloudFrontEdgeException(
         400, LambdaError.MockError
     )
@@ -54,3 +54,13 @@ def test_lambda_handler_exception(valid_event, context, mock_edge_presign_servic
     assert actual_status == 400
     assert actual_response["message"] == "Client error"
     assert actual_response["err_code"] == "AB_XXXX"
+
+def test_lambda_handler_options_success(valid_event, context, mock_edge_presign_service):
+    valid_event["Records"][0]["cf"]["request"]["method"] = "OPTIONS"
+
+    response = lambda_handler(valid_event, context)
+
+    mock_edge_presign_service.use_presigned.assert_not_called()
+    mock_edge_presign_service.update_s3_headers.assert_not_called()
+
+    assert response == valid_event["Records"][0]["cf"]["request"]

@@ -42,6 +42,7 @@ MOCK_S3_EDGE_EVENT = {
         {
             "cf": {
                 "request": {
+                    "method": "GET",
                     "headers": MOCKED_HEADERS,
                     "querystring": "",
                     "uri": "/some/path",

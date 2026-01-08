@@ -15,6 +15,10 @@ def lambda_handler(event, context):
     logger.info("Edge received S3 request")
     logger.info(f"Request: {request}")
 
+    if request['method'] == 'OPTIONS':
+        logger.info("Edge received OPTIONS request, forwarding without modification")
+        return request
+
     environment = context.function_name.split(".")[-1].split("_")[0]
 
     edge_presign_service = EdgePresignService(environment)
