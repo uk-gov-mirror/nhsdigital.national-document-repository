@@ -164,38 +164,23 @@ class UploadDocumentReferenceService:
             preliminary_document_reference.uploaded = True
             preliminary_document_reference.uploading = False
 
-            if self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
-                updated_doc_status = None
-                if virus_scan_result != VirusScanResult.CLEAN:
-                    updated_doc_status = "cancelled"
+            preliminary_document_reference.doc_status = (
+                "cancelled" if virus_scan_result != VirusScanResult.CLEAN else "final"
+            )
 
-                    preliminary_document_reference.doc_status = updated_doc_status
-                    self._update_dynamo_table(preliminary_document_reference)
-                else:
-                    updated_doc_status = "final"
-                    preliminary_document_reference.doc_status = updated_doc_status
+            if (
+                preliminary_document_reference.doc_status == "final"
+                and self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code
+            ):
+                self._finalize_and_supersede_with_transaction(
+                    preliminary_document_reference
+                )
 
-                    self._finalize_and_supersede_with_transaction(
-                        preliminary_document_reference
-                    )
-
-                    # Update NRL Pointer
-                    # TODO: PRMP-390
-                    #
+                # Update NRL Pointer
+                # TODO: PRMP-390
+                #
             else:
-                try:
-                    preliminary_document_reference.doc_status = (
-                        "cancelled"
-                        if virus_scan_result != VirusScanResult.CLEAN
-                        else "final"
-                    )
-
-                    self._update_dynamo_table(preliminary_document_reference)
-                except Exception as e:
-                    logger.error(
-                        f"Error processing document reference {preliminary_document_reference.id}: {str(e)}"
-                    )
-                    raise
+                self._update_dynamo_table(preliminary_document_reference)
 
         except TransactionConflictException as e:
             logger.error(
@@ -390,8 +375,13 @@ class UploadDocumentReferenceService:
         """Copy files from staging bucket to destination bucket"""
         try:
             logger.info("Copying files from staging bucket")
-            dest_file_key = f"{document_reference.nhs_number}/{document_reference.id}"
-            if self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
+
+            if self.doc_type.code == SnomedCodes.PATIENT_DATA.value.code:
+                dest_file_key = (
+                    f"{document_reference.nhs_number}/{document_reference.id}"
+                )
+                document_reference.s3_file_key = dest_file_key
+            else:
                 dest_file_key = document_reference.s3_file_key
 
             copy_result = self.s3_service.copy_across_bucket(
@@ -400,8 +390,6 @@ class UploadDocumentReferenceService:
                 dest_bucket=self.destination_bucket_name,
                 dest_file_key=dest_file_key,
             )
-            if self.doc_type.code == SnomedCodes.PATIENT_DATA.value.code:
-                document_reference.s3_file_key = dest_file_key
             document_reference.s3_bucket_name = self.destination_bucket_name
             document_reference.file_location = document_reference._build_s3_location(
                 self.destination_bucket_name, dest_file_key
