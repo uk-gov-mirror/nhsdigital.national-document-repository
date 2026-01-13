@@ -5,6 +5,11 @@ import { AuthHeaders } from '../../types/blocks/authHeaders';
 import { endpoints } from '../../types/generic/endpoints';
 
 vi.mock('axios');
+vi.mock('../utils/isLocal', () => ({
+    isLocal: false,
+    isMock: (): boolean => false,
+    isRunningInCypress: (): boolean => false,
+}));
 const mockedAxios = axios as Mocked<typeof axios>;
 
 describe('getDocument', () => {
@@ -72,5 +77,27 @@ describe('getDocument', () => {
                 },
             }),
         );
+    });
+
+    describe('when isLocal is true', () => {
+        beforeEach(async () => {
+            vi.resetModules();
+            vi.doMock('../utils/isLocal', () => ({
+                isLocal: true,
+                isMock: (): boolean => false,
+                isRunningInCypress: (): boolean => false,
+            }));
+        });
+
+        it('should return local test file without making API call', async () => {
+            const getDocumentModule = await import('./getDocument');
+            const result = await getDocumentModule.default(mockArgs);
+
+            expect(result).toEqual({
+                url: '/dev/testFile.pdf',
+                contentType: 'application/pdf',
+            });
+            expect(mockedAxios.get).not.toHaveBeenCalled();
+        });
     });
 });

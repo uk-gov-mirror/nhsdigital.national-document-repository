@@ -21,5 +21,4 @@ export enum endpoints {
     MOCK_LOGIN = 'Auth/MockLogin',
 
     DOCUMENT_REVIEW = '/DocumentReview',
-    REVIEW_LIST = '/SearchDocumentReviews',
 }

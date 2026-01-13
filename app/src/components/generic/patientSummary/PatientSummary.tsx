@@ -16,6 +16,7 @@ type PatientSummaryProps = {
     showDeceasedTag?: boolean;
     children?: ReactNode;
     oneLine?: boolean;
+    reviewPatientDetails?: PatientDetails | null;
 };
 
 // Context for sharing patient data and configuration
@@ -126,8 +127,12 @@ const PatientSummary = ({
     showDeceasedTag = false,
     children,
     oneLine,
+    reviewPatientDetails,
 }: PatientSummaryProps): JSX.Element => {
-    const patientDetails = usePatient();
+    let patientDetails = usePatient();
+    if (reviewPatientDetails) {
+        patientDetails = reviewPatientDetails;
+    }
     const patientDetailsContextValue = useMemo(() => ({ patientDetails }), [patientDetails]);
 
     if (oneLine) {

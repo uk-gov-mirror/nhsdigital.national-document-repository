@@ -1,0 +1,36 @@
+import PDFMerger from 'pdf-merger-js';
+import { DOWNLOAD_STAGE } from '../../types/generic/downloadStage';
+import { SetStateAction } from 'react';
+import { ReviewUploadDocument } from '../../types/pages/UploadDocumentsPage/types';
+
+export const mergePdfsFromUploadDocuments = async (
+    uploadDocuments: ReviewUploadDocument[],
+    setPdfObjectUrl: (value: SetStateAction<string>) => void,
+    setDownloadStage: (value: SetStateAction<DOWNLOAD_STAGE>) => void,
+): Promise<Blob | undefined> => {
+    if (uploadDocuments.length === 0) {
+        setDownloadStage(DOWNLOAD_STAGE.FAILED);
+        return;
+    }
+
+    const merger = new PDFMerger();
+    // Fetch all PDFs and add them to the merger
+    for (const uploadDocument of uploadDocuments) {
+        if (!uploadDocument.blob) {
+            await merger.add(uploadDocument.file);
+        }
+        await merger.add(uploadDocument.blob ?? uploadDocument.file);
+    }
+
+    // Get the merged PDF as a Uint8Array
+    const mergedPdfBuffer = await merger.saveAsBuffer();
+
+    // Create a blob from the buffer (convert to Uint8Array first to ensure compatibility)
+    const uint8Array = new Uint8Array(mergedPdfBuffer);
+    const mergedPdfBlob = new Blob([uint8Array], { type: 'application/pdf' });
+
+    // Create object URL from the merged blob
+    const objectUrl = URL.createObjectURL(mergedPdfBlob);
+    setPdfObjectUrl(objectUrl);
+    return mergedPdfBlob;
+};

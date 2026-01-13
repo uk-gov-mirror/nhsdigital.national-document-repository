@@ -1,8 +1,9 @@
 import { AuthHeaders } from '../../types/blocks/authHeaders';
 import { endpoints } from '../../types/generic/endpoints';
 import axios, { AxiosError } from 'axios';
+import { isLocal } from '../utils/isLocal';
 
-type Args = {
+export type GetDocumentArgs = {
     nhsNumber: string;
     baseUrl: string;
     baseHeaders: AuthHeaders;
@@ -19,7 +20,14 @@ const getDocument = async ({
     baseUrl,
     baseHeaders,
     documentId,
-}: Args): Promise<GetDocumentResponse> => {
+}: GetDocumentArgs): Promise<GetDocumentResponse> => {
+    if (isLocal) {
+        return {
+            url: '/dev/testFile.pdf',
+            contentType: 'application/pdf',
+        };
+    }
+
     const gatewayUrl = baseUrl + endpoints.DOCUMENT_REFERENCE + `/${documentId}`;
 
     try {

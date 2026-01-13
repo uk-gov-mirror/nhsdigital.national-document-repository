@@ -14,6 +14,9 @@ export const RecordLoader = ({
     childrenIfFailiure,
 }: RecordLoaderProps): React.JSX.Element => {
     const [{ isFullscreen }] = useSessionContext();
+    const detailsProps = {
+        lastUpdated,
+    };
 
     switch (downloadStage) {
         case DOWNLOAD_STAGE.INITIAL:
@@ -26,14 +29,16 @@ export const RecordLoader = ({
                 return <></>;
             }
 
-            const detailsProps = {
-                lastUpdated,
-            };
             return <RecordDetails {...detailsProps} />;
         }
 
         default:
-            return childrenIfFailiure;
+            return (
+                <>
+                    <RecordDetails {...detailsProps} />
+                    {childrenIfFailiure}
+                </>
+            );
     }
 };
 

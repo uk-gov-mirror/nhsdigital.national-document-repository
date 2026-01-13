@@ -50,12 +50,6 @@ describe('documentType', () => {
             expect(config.multifileUpload).toBe(true);
         });
 
-        it('should throw error for unsupported document type', () => {
-            expect(() => getConfigForDocType(DOCUMENT_TYPE.LETTERS_AND_DOCS)).toThrow(
-                `No config found for document type: ${DOCUMENT_TYPE.LETTERS_AND_DOCS}`,
-            );
-        });
-
         it('should throw error for unknown document type', () => {
             expect(() => getConfigForDocType('unknown' as DOCUMENT_TYPE)).toThrow(
                 'No config found for document type: unknown',

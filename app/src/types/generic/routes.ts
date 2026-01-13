@@ -78,6 +78,8 @@ export enum routeChildren {
     ADMIN_REVIEW_UPLOAD_ADDITIONAL_FILES = '/admin/reviews/:reviewId/upload-additional-files',
     ADMIN_REVIEW_UPLOAD_FILE_ORDER = '/admin/reviews/:reviewId/upload-file-order',
     ADMIN_REVIEW_UPLOAD = '/admin/reviews/:reviewId/upload',
+
+    REVIEWS = 'reviews/*',
 }
 
 export const navigateUrlParam = (

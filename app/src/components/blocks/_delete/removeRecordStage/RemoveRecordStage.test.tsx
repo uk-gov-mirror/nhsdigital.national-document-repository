@@ -12,6 +12,11 @@ import { DOCUMENT_TYPE, getDocumentTypeLabel } from '../../../../helpers/utils/d
 import useConfig from '../../../../helpers/hooks/useConfig';
 
 vi.mock('axios');
+vi.mock('../../../../helpers/utils/isLocal', () => ({
+    isLocal: false,
+    isMock: (): boolean => false,
+    isRunningInCypress: (): boolean => false,
+}));
 Date.now = (): number => new Date('2020-01-01T00:00:00.000Z').getTime();
 vi.mock('react-router-dom', async () => ({
     ...(await vi.importActual('react-router-dom')),

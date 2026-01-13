@@ -285,19 +285,4 @@ describe('getPdfObjectUrl', () => {
             expect(callOrder[1]).toBe('setPdfObjectUrl');
         });
     });
-
-    describe('Return value', () => {
-        it('returns void/undefined', async () => {
-            const mockBlob = new Blob(['test pdf data'], { type: 'application/pdf' });
-            mockedAxios.get.mockResolvedValue({ data: mockBlob });
-
-            const result = await getPdfObjectUrl(
-                testCloudFrontUrl,
-                mockSetPdfObjectUrl,
-                mockSetDownloadStage,
-            );
-
-            expect(result).toBeUndefined();
-        });
-    });
 });

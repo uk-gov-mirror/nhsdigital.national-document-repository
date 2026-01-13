@@ -88,7 +88,6 @@ export const handleSearch = async ({
             errorCode = 'Enter a valid patient NHS number.';
             statusCode = 400;
         } else if (error.response?.status === 403) {
-            errorCode = null;
             statusCode = 403;
         } else if (error.response?.status === 404) {
             errorCode = errorCodes['SP_4003'];
@@ -104,11 +103,11 @@ export const handlePatientSearchError = (
     setFailedSubmitState: (statusCode: number | null) => void,
     error?: AxiosError,
 ): void => {
-    if (error !== undefined) {
+    if (error) {
         if (statusCode === 403) {
             navigate(routes.SESSION_EXPIRED);
         } else {
-            navigate(routes.SERVER_ERROR + errorToParams(error!));
+            navigate(routes.SERVER_ERROR + errorToParams(error));
         }
     }
     setFailedSubmitState(error!.response?.status ?? null);

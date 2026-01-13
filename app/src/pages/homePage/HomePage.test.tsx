@@ -16,7 +16,7 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../../helpers/hooks/useConfig');
 vi.mock('../../styles/right-chevron-circle.svg', () => ({
-    ReactComponent: () => 'svg',
+    ReactComponent: (): string => 'svg',
 }));
 const mockUseConfig = useConfig as Mock;
 

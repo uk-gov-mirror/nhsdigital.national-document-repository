@@ -77,7 +77,7 @@ describe('getMockResponses', () => {
         // Second page
         const params2 = new URLSearchParams();
         params2.set('limit', '2');
-        params2.set('startKey', nextPageToken);
+        params2.set('startKey', nextPageToken!);
         const response2 = await getMockResponses(params2);
 
         expect(response2.documentReviewReferences).toHaveLength(2);

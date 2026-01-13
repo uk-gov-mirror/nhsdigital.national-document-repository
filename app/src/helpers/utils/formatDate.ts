@@ -14,5 +14,8 @@ export const getFormattedDateFromString = (dateString: string | undefined): stri
     if (!dateString) {
         return '';
     }
-    return getFormattedDate(new Date(dateString));
+    if (Number.isNaN(Number(dateString))) {
+        return getFormattedDate(new Date(dateString));
+    }
+    return getFormattedDate(new Date(Number(dateString)));
 };

@@ -9,7 +9,6 @@ import { handleSearch, PATIENT_SEARCH_STATES } from '../../../../helpers/utils/h
 import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
 import PatientVerifyPage from './PatientVerifyPage';
 
-// Mock hooks
 const mockNavigate = vi.fn();
 const mockUsePatient = vi.fn();
 const mockUseRole = vi.fn();
@@ -264,7 +263,6 @@ describe('PatientVerifyPage', () => {
 
             render(<PatientVerifyPage onSubmit={mockOnSubmit} />);
 
-            // Component renders successfully for GP Admin role
             expect(screen.getByRole('heading', { name: 'Patient details' })).toBeInTheDocument();
         });
 
@@ -273,7 +271,6 @@ describe('PatientVerifyPage', () => {
 
             render(<PatientVerifyPage onSubmit={mockOnSubmit} />);
 
-            // Component renders successfully for GP Clinical role
             expect(screen.getByRole('heading', { name: 'Patient details' })).toBeInTheDocument();
         });
     });

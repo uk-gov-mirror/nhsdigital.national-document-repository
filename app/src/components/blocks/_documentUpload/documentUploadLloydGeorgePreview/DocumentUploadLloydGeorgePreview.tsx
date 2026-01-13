@@ -10,6 +10,7 @@ type Props = {
     setMergedPdfBlob?: (blob: Blob) => void;
     stitchedBlobLoaded?: (value: boolean) => void;
     documentConfig: DOCUMENT_TYPE_CONFIG;
+    isReview?: boolean;
 };
 
 const DocumentUploadLloydGeorgePreview = ({
@@ -17,6 +18,7 @@ const DocumentUploadLloydGeorgePreview = ({
     setMergedPdfBlob,
     stitchedBlobLoaded,
     documentConfig,
+    isReview = false,
 }: Props): JSX.Element => {
     const [mergedPdfUrl, setMergedPdfUrl] = useState('');
     const journey = getJourney();
@@ -62,26 +64,34 @@ const DocumentUploadLloydGeorgePreview = ({
 
     return (
         <>
-            <h2>{documentConfig.content.previewUploadTitle}</h2>
-            {documentConfig.stitched ? (
+            {!isReview && <h2>{documentConfig.content.previewUploadTitle}</h2>}
+            {!isReview && (
                 <>
-                    <p>
-                        This shows how the final record will look when combined into a single
-                        document.{' '}
-                        {journey === 'update' &&
-                            `Any files added will appear after the existing ${documentConfig.displayName}.`}
-                    </p>
-                    <p>
-                        Preview may take longer to load if there are many files or if individual
-                        files are large.
-                    </p>
+                    {documentConfig.stitched ? (
+                        <>
+                            <p>
+                                This shows how the final record will look when combined into a
+                                single document.{' '}
+                                {journey === 'update' &&
+                                    `Any files added will appear after the existing ${documentConfig.displayName}.`}
+                            </p>
+                            <p>
+                                Preview may take longer to load if there are many files or if
+                                individual files are large.
+                            </p>
+                        </>
+                    ) : (
+                        <p>
+                            The preview is currently displaying the file: {documents[0]?.file.name}
+                        </p>
+                    )}
                 </>
-            ) : (
-                <p>The preview is currently displaying the file: {documents[0]?.file.name}</p>
             )}
             {documents && mergedPdfUrl && (
                 <PdfViewer customClasses={['upload-preview']} fileUrl={mergedPdfUrl} />
             )}
+            {!documents && <div>No documents to preview</div>}
+            {!mergedPdfUrl && <div>No merged PDF available</div>}
         </>
     );
 };

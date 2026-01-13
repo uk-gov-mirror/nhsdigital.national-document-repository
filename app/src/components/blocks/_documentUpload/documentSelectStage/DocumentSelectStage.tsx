@@ -32,6 +32,8 @@ export type Props = {
     documentType: DOCUMENT_TYPE;
     filesErrorRef: RefObject<boolean>;
     documentConfig: DOCUMENT_TYPE_CONFIG;
+    onSuccessOverride?: () => void;
+    backLinkOverride?: string;
 };
 
 type UploadFilesError = ErrorMessageListItem<UPLOAD_FILE_ERROR_TYPE>;
@@ -42,6 +44,8 @@ const DocumentSelectStage = ({
     documentType,
     filesErrorRef,
     documentConfig,
+    onSuccessOverride,
+    backLinkOverride,
 }: Props): JSX.Element => {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [noFilesSelected, setNoFilesSelected] = useState<boolean>(false);
@@ -218,6 +222,11 @@ const DocumentSelectStage = ({
             return;
         }
 
+        if (onSuccessOverride) {
+            onSuccessOverride();
+            return;
+        }
+
         if (documentConfig.stitched) {
             navigate.withParams(routeChildren.DOCUMENT_UPLOAD_SELECT_ORDER);
             return;
@@ -300,7 +309,10 @@ const DocumentSelectStage = ({
 
     return (
         <>
-            <BackButton toLocation={routes.VERIFY_PATIENT} dataTestid="back-button" />
+            <BackButton
+                toLocation={backLinkOverride ?? routes.VERIFY_PATIENT}
+                dataTestid="back-button"
+            />
 
             {(errorDocs().length > 0 || noFilesSelected || tooManyFilesAdded) && (
                 <ErrorBox

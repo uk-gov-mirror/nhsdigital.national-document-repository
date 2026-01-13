@@ -207,15 +207,9 @@ const buildDocumentConfig = (
             confirmFilesTitle: 'Check your files before uploading',
             beforeYouUploadTitle: 'Before you upload',
             previewUploadTitle: 'Preview this scanned paper notes record',
-            addFilesSuccessMessage:
-                'You have successfully added additional files to the Scanned paper notes record for:',
-            uploadFilesSuccessMessage:
-                'You have successfully uploaded a Scanned paper notes record for:',
             uploadFilesExtraParagraph:
                 "You can add a note to the patient's electronic health record to say their Lloyd George record is stored in this service. Use SNOMED code 16521000000101.",
-            uploadReviewSuccessMessage:
-                'You have successfully uploaded a Scanned paper notes record for:',
-        },
+        } as any,
         ...configOverride,
     };
 };

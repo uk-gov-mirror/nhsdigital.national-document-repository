@@ -4,8 +4,9 @@ import { SearchResult } from '../../types/generic/searchResult';
 
 import axios, { AxiosError } from 'axios';
 import { DOCUMENT_TYPE } from '../utils/documentType';
+import { isLocal } from '../utils/isLocal';
 
-type Args = {
+export type DocumentSearchResultsArgs = {
     nhsNumber: string;
     baseUrl: string;
     baseHeaders: AuthHeaders;
@@ -21,7 +22,7 @@ const getDocumentSearchResults = async ({
     baseUrl,
     baseHeaders,
     docType = DOCUMENT_TYPE.ALL,
-}: Args): Promise<Array<SearchResult>> => {
+}: DocumentSearchResultsArgs): Promise<Array<SearchResult>> => {
     const gatewayUrl = baseUrl + endpoints.DOCUMENT_SEARCH;
 
     try {
@@ -30,12 +31,26 @@ const getDocumentSearchResults = async ({
                 ...baseHeaders,
             },
             params: {
-                patientId: nhsNumber,
+                patientId: nhsNumber?.replaceAll(/\s/g, ''), // replace whitespace
                 docType: docType,
             },
         });
         return response?.data;
     } catch (e) {
+        if (isLocal) {
+            return [
+                {
+                    fileName: 'Mock Document 1',
+                    created: '2023-01-01T12:00:00Z',
+                    virusScannerResult: 'CLEAN',
+                    id: 'mock-document-id-1',
+                    fileSize: 1024,
+                    version: '1.0',
+                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    contentType: 'application/pdf',
+                },
+            ];
+        }
         const error = e as AxiosError;
         throw error;
     }

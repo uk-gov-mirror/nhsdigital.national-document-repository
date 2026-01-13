@@ -10,8 +10,20 @@ export enum DOCUMENT_TYPE {
     ALL = '16521000000101,717301000000104,24511000000107,162931000000103', // TBC
 }
 
-export type ContentKey = 'reviewList';
-export interface IndividualDocumentTypeContent extends Record<ContentKey, string> {}
+export type ContentKey =
+    | 'reviewList'
+    | 'viewDocumentTitle'
+    | 'addFilesSelectTitle'
+    | 'uploadFilesSelectTitle'
+    | 'chooseFilesMessage'
+    | 'chooseFilesButtonLabel'
+    | 'chooseFilesWarningText'
+    | 'confirmFilesTitle'
+    | 'beforeYouUploadTitle'
+    | 'previewUploadTitle'
+    | 'uploadFilesExtraParagraph'
+    | 'uploadFilesBulletPoints';
+export interface IndividualDocumentTypeContent extends Record<ContentKey, string | string[]> {}
 
 // The individual config for each document type
 export type DOCUMENT_TYPE_CONFIG = {
@@ -29,7 +41,7 @@ export type DOCUMENT_TYPE_CONFIG = {
     singleDocumentOnly: boolean;
     stitchedFilenamePrefix?: string;
     acceptedFileTypes: string[];
-    content: { [key: string]: string | string[] };
+    content: IndividualDocumentTypeContent;
 };
 
 export type DocumentTypeContentKey = 'upload_title' | 'upload_description';

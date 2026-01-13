@@ -1,24 +1,70 @@
-import { ReactElement, useState } from 'react';
+import { ReactElement, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { ReviewDetails } from '../../../../types/generic/reviews';
+import { routeChildren } from '../../../../types/generic/routes';
+import {
+    SetUploadDocuments,
+    UploadDocument,
+} from '../../../../types/pages/UploadDocumentsPage/types';
+import Spinner from '../../../generic/spinner/Spinner';
 import DocumentSelectOrderStage from '../../_documentUpload/documentSelectOrderStage/DocumentSelectOrderStage';
-import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
-import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
+import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 
 type Props = {
-    reviewSnoMed?: DOCUMENT_TYPE;
+    reviewData: ReviewDetails | null;
+    documents: UploadDocument[];
+    existingDocuments: UploadDocument[];
+    setDocuments: SetUploadDocuments;
 };
 
-const ReviewDetailsDocumentSelectOrderStage = ({ reviewSnoMed }: Props): ReactElement => {
-    const [documents, setDocuments] = useState<Array<UploadDocument>>([]);
-    const [, setMergedPdfBlob] = useState<Blob | undefined>(undefined);
+const ReviewDetailsDocumentSelectOrderStage = ({
+    reviewData,
+    documents,
+    setDocuments,
+    existingDocuments,
+}: Props): ReactElement => {
+    const [documentsInitialised, setDocumentsInitialised] = useState(false);
+    const navigate = useNavigate();
+
+    const reviewKey = reviewData ? `${reviewData.id}.${reviewData.version}` : '';
+
+    useEffect(() => {
+        setDocumentsInitialised(false);
+    }, [reviewKey]);
+
+    useEffect(() => {
+        if (!documentsInitialised && documents.length > 0) {
+            setDocumentsInitialised(true);
+        }
+    }, [documents.length, documentsInitialised]);
+
+    const onSuccess = (): void => {
+        const updatedDocs = [...existingDocuments, ...documents].sort(
+            (a, b) => a.position! - b.position!,
+        );
+        setDocuments(updatedDocs);
+        navigate(
+            routeChildren.ADMIN_REVIEW_UPLOAD.replaceAll(
+                ':reviewId',
+                reviewData ? `${reviewData.id}.${reviewData.version}` : '',
+            ),
+        );
+    };
+
+    if (reviewData?.files === null || !documentsInitialised || !reviewData?.snomedCode) {
+        return <Spinner status={'Loading'} />;
+    }
 
     return (
         <DocumentSelectOrderStage
             documents={documents}
             setDocuments={setDocuments}
-            setMergedPdfBlob={setMergedPdfBlob}
-            existingDocuments={undefined}
-            documentConfig={getConfigForDocType(reviewSnoMed!)}
+            setMergedPdfBlob={(): void => {}}
+            existingDocuments={existingDocuments}
+            documentConfig={getConfigForDocType(reviewData.snomedCode)}
             confirmFiles={(): void => {}}
+            onSuccess={onSuccess}
+            isReview={true}
         />
     );
 };

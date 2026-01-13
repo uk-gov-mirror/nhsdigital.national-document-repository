@@ -30,6 +30,8 @@ type Props = {
     existingDocuments: UploadDocument[] | undefined;
     documentConfig: DOCUMENT_TYPE_CONFIG;
     confirmFiles: () => void;
+    onSuccess?: () => void;
+    isReview?: boolean;
 };
 
 type FormData = {
@@ -45,6 +47,8 @@ const DocumentSelectOrderStage = ({
     existingDocuments,
     documentConfig,
     confirmFiles,
+    onSuccess,
+    isReview = false,
 }: Readonly<Props>): JSX.Element => {
     const navigate = useEnhancedNavigate();
     const journey = getJourney();
@@ -163,7 +167,6 @@ const DocumentSelectOrderStage = ({
         unregister(key);
 
         updatedDocList.splice(index, 1);
-
         if (docToRemove.position) {
             updatedDocList = updatedDocList.map((doc) => {
                 if (doc.position && +doc.position > +docToRemove.position!) {
@@ -173,7 +176,6 @@ const DocumentSelectOrderStage = ({
                 return doc;
             });
         }
-
         setDocuments(updatedDocList);
     };
 
@@ -190,6 +192,10 @@ const DocumentSelectOrderStage = ({
 
     const submitDocuments = (): void => {
         updateDocumentPositions();
+        if (onSuccess) {
+            onSuccess();
+            return;
+        }
         if (documents.length === 1) {
             confirmFiles();
             return;
@@ -297,7 +303,7 @@ const DocumentSelectOrderStage = ({
     const getDocumentsForPreview = (): UploadDocument[] => {
         const docs = [];
 
-        if (journey === 'update') {
+        if (isReview || journey === 'update') {
             docs.push(...existingDocuments!);
         }
 
@@ -386,7 +392,7 @@ const DocumentSelectOrderStage = ({
                     </Table.Head>
 
                     <Table.Body>
-                        {journey === 'update' &&
+                        {(journey === 'update' || isReview) &&
                             existingDocuments &&
                             // Existing record row
                             renderFileRow({
@@ -426,7 +432,7 @@ const DocumentSelectOrderStage = ({
                 <div>
                     <DocumentUploadLloydGeorgePreview
                         documents={getDocumentsForPreview()}
-                        setMergedPdfBlob={(blob) => {
+                        setMergedPdfBlob={(blob): void => {
                             if (documentConfig.stitched) {
                                 setMergedPdfBlob(blob);
                             }

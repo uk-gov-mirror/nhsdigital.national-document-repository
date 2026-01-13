@@ -6,15 +6,74 @@ import { LG_RECORD_STAGE } from '../../../types/blocks/lloydGeorgeStages';
 import RecordMenuCard from '../recordMenuCard/RecordMenuCard';
 import Spinner from '../spinner/Spinner';
 
-export type Props = {
+export type RecordCardProps = RecordLayoutProps & {
+    pdfObjectUrl: string;
+};
+
+export type RecordLayoutProps = {
     heading: string;
     fullScreenHandler: () => void;
     detailsElement: ReactNode;
     isFullScreen: boolean;
-    pdfObjectUrl: string;
     recordLinks?: Array<LGRecordActionLink>;
     setStage?: Dispatch<SetStateAction<LG_RECORD_STAGE>>;
     showMenu?: boolean;
+    children?: ReactNode;
+};
+
+export const RecordLayout = ({
+    isFullScreen,
+    detailsElement,
+    heading,
+    fullScreenHandler,
+    recordLinks = [],
+    setStage = (): void => {},
+    showMenu = false,
+    children,
+}: RecordLayoutProps): React.JSX.Element => {
+    if (isFullScreen) {
+        return (
+            <>
+                {detailsElement}
+                {children}
+            </>
+        );
+    } else {
+        return (
+            <Card className="lloydgeorge_record-stage_pdf">
+                <Card.Content
+                    data-testid="pdf-card"
+                    className="lloydgeorge_record-stage_pdf-content"
+                >
+                    <Card.Heading
+                        className="lloydgeorge_record-stage_pdf-content-label"
+                        headingLevel="h2"
+                        tabIndex={0}
+                    >
+                        {heading}
+                    </Card.Heading>
+                    {fullScreenHandler && (
+                        <button
+                            className="lloydgeorge_record-stage_pdf-content-button link-button clickable full-screen"
+                            data-testid="full-screen-btn"
+                            onClick={fullScreenHandler}
+                        >
+                            View in full screen
+                        </button>
+                    )}
+
+                    {detailsElement}
+
+                    <RecordMenuCard
+                        recordLinks={recordLinks}
+                        setStage={setStage}
+                        showMenu={showMenu}
+                    />
+                </Card.Content>
+                <div>{children}</div>
+            </Card>
+        );
+    }
 };
 
 const RecordCard = ({
@@ -26,7 +85,7 @@ const RecordCard = ({
     recordLinks = [],
     setStage = (): void => {},
     showMenu = false,
-}: Props): React.JSX.Element => {
+}: RecordCardProps): React.JSX.Element => {
     const Record = (): React.JSX.Element => {
         switch (pdfObjectUrl) {
             case '':
@@ -42,53 +101,16 @@ const RecordCard = ({
         }
     };
 
-    const RecordLayout = ({ children }: { children: ReactNode }): React.JSX.Element => {
-        if (isFullScreen) {
-            return (
-                <>
-                    {detailsElement}
-                    {children}
-                </>
-            );
-        } else {
-            return (
-                <Card className="lloydgeorge_record-stage_pdf">
-                    <Card.Content
-                        data-testid="pdf-card"
-                        className="lloydgeorge_record-stage_pdf-content"
-                    >
-                        <Card.Heading
-                            className="lloydgeorge_record-stage_pdf-content-label"
-                            headingLevel="h2"
-                            tabIndex={0}
-                        >
-                            {heading}
-                        </Card.Heading>
-                        {pdfObjectUrl && (
-                            <button
-                                className="lloydgeorge_record-stage_pdf-content-button link-button clickable full-screen"
-                                data-testid="full-screen-btn"
-                                onClick={fullScreenHandler}
-                            >
-                                View in full screen
-                            </button>
-                        )}
-
-                        {detailsElement}
-
-                        <RecordMenuCard
-                            recordLinks={recordLinks}
-                            setStage={setStage}
-                            showMenu={showMenu}
-                        />
-                    </Card.Content>
-                    <div>{children}</div>
-                </Card>
-            );
-        }
-    };
     return (
-        <RecordLayout>
+        <RecordLayout
+            isFullScreen={isFullScreen}
+            detailsElement={detailsElement}
+            heading={heading}
+            fullScreenHandler={fullScreenHandler}
+            recordLinks={recordLinks}
+            setStage={setStage}
+            showMenu={showMenu}
+        >
             <Record />
         </RecordLayout>
     );

@@ -9,14 +9,22 @@ import usePatient from '../../../../helpers/hooks/usePatient';
 import useRole from '../../../../helpers/hooks/useRole';
 import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
+import { PatientDetails } from '../../../../types/generic/patientDetails';
 
 type PatientVerifyPageProps = {
     onSubmit: (setInputError: Dispatch<SetStateAction<string>>) => void;
+    reviewPatientDetails?: PatientDetails;
 };
 
-const PatientVerifyPage = ({ onSubmit }: PatientVerifyPageProps): JSX.Element => {
+const PatientVerifyPage = ({
+    onSubmit,
+    reviewPatientDetails,
+}: PatientVerifyPageProps): JSX.Element => {
     const role = useRole();
-    const patientDetails = usePatient();
+    let patientDetails = usePatient();
+    if (reviewPatientDetails) {
+        patientDetails = reviewPatientDetails;
+    }
     const userIsPCSE = role === REPOSITORY_ROLE.PCSE;
     const [inputError, setInputError] = useState('');
     const { handleSubmit } = useForm();
@@ -47,10 +55,10 @@ const PatientVerifyPage = ({ onSubmit }: PatientVerifyPageProps): JSX.Element =>
                             ? 'This record is for a deceased patient'
                             : 'Information'}
                     </WarningCallout.Label>
-                    {patientDetails.superseded && (
+                    {patientDetails?.superseded && (
                         <p>The NHS number for this patient has changed.</p>
                     )}
-                    {patientDetails.restricted && (
+                    {patientDetails?.restricted && (
                         <p>
                             Certain details about this patient cannot be displayed without the
                             necessary access.
@@ -75,7 +83,7 @@ const PatientVerifyPage = ({ onSubmit }: PatientVerifyPageProps): JSX.Element =>
                 </WarningCallout>
             )}
 
-            <PatientSummary showDeceasedTag={userIsPCSE} />
+            <PatientSummary showDeceasedTag={userIsPCSE} reviewPatientDetails={patientDetails} />
 
             <form
                 onSubmit={handleSubmit(() => onSubmit(setInputError))}

@@ -1,22 +1,114 @@
 import { Button, ErrorMessage, Table, TextInput } from 'nhsuk-react-components';
-import { useEffect, useRef, useState } from 'react';
+import { Dispatch, JSX, SetStateAction, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
+import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import getReviews from '../../../../helpers/requests/getReviews';
+import { getConfigForDocType } from '../../../../helpers/utils/documentType';
+import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
-import { ReviewListItem, ReviewListItemDto } from '../../../../types/generic/reviews';
+import { usePatientDetailsContext } from '../../../../providers/patientProvider/PatientProvider';
+import {
+    ReviewDetails,
+    ReviewListItem,
+    ReviewListItemDto,
+} from '../../../../types/generic/reviews';
 import { routes } from '../../../../types/generic/routes';
 import BackButton from '../../../generic/backButton/BackButton';
 import { Pagination } from '../../../generic/paginationV2/Pagination';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import SpinnerV2 from '../../../generic/spinnerV2/SpinnerV2';
-import { usePatientDetailsContext } from '../../../../providers/patientProvider/PatientProvider';
-import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 
-export const ReviewsPage = (): React.JSX.Element => {
+export type ReviewsPageProps = {
+    setReviewData: Dispatch<SetStateAction<ReviewDetails | null>>;
+};
+
+type ReviewTableRowsProps = {
+    reviews: ReviewListItem[];
+    isLoading: boolean;
+    failedLoading: boolean;
+    setReviewData: Dispatch<SetStateAction<ReviewDetails | null>>;
+};
+
+const ReviewTableRows = ({
+    reviews,
+    isLoading,
+    failedLoading,
+    setReviewData,
+}: ReviewTableRowsProps): JSX.Element | null => {
+    if (failedLoading) {
+        return (
+            <Table.Row>
+                <Table.Cell colSpan={6}>
+                    <ErrorMessage>Failed to load reviews</ErrorMessage>
+                </Table.Cell>
+            </Table.Row>
+        );
+    }
+
+    if (reviews.length > 0 && !isLoading) {
+        return (
+            <>
+                {reviews.map((review): JSX.Element => {
+                    let dateUploaded: Date;
+                    if (Number.isNaN(Number(review.dateUploaded))) {
+                        dateUploaded = new Date(review.dateUploaded);
+                    } else {
+                        dateUploaded = new Date(Number(review.dateUploaded));
+                    }
+
+                    return (
+                        <Table.Row key={review.id}>
+                            <Table.Cell>
+                                {review.nhsNumber === '0000000000'
+                                    ? 'N/A'
+                                    : formatNhsNumber(review.nhsNumber)}
+                            </Table.Cell>
+                            <Table.Cell>{review.recordType}</Table.Cell>
+                            <Table.Cell>{review.uploader}</Table.Cell>
+                            <Table.Cell>{getFormattedDate(dateUploaded)}</Table.Cell>
+                            <Table.Cell className="nowrap">
+                                <Link
+                                    to={`${review.id}.${review.version}`}
+                                    data-testid={`view-record-link-${review.id}`}
+                                    onClick={(e): void => {
+                                        const newReviewData = new ReviewDetails(
+                                            review.id,
+                                            review.snomedCode,
+                                            `${review.dateUploaded}`,
+                                            review.uploader,
+                                            `${review.dateUploaded}`,
+                                            review.reviewReason,
+                                            review.version,
+                                            review.nhsNumber,
+                                        );
+                                        setReviewData(newReviewData);
+                                    }}
+                                >
+                                    View
+                                </Link>
+                            </Table.Cell>
+                        </Table.Row>
+                    );
+                })}
+            </>
+        );
+    }
+
+    return (
+        <Table.Row>
+            <Table.Cell colSpan={6}>
+                {isLoading ? <SpinnerV2 status="Loading..." /> : <>No documents to review</>}
+            </Table.Cell>
+        </Table.Row>
+    );
+};
+
+export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Element => {
     useTitle({ pageTitle: 'Admin - Reviews' });
     const baseUrl = useBaseAPIUrl();
+    const baseHeaders = useBaseAPIHeaders();
     const [, setPatientDetails] = usePatientDetailsContext();
     const inputRef = useRef<HTMLInputElement | null>(null);
     const pageLimit = 10;
@@ -29,10 +121,13 @@ export const ReviewsPage = (): React.JSX.Element => {
     const [failedLoading, setFailedLoading] = useState(false);
     const [count, setCount] = useState(0);
 
-    // Store page tokens: index is page number - 1, value is the startKey for that page
     const [pageTokens, setPageTokens] = useState<string[]>(['']);
 
     const isLastPage = (): boolean => !nextPageToken || count < pageLimit;
+
+    useEffect(() => {
+        setNextPageToken('');
+    }, [inputValue]);
 
     const fetchPage = async (
         pageNumber: number,
@@ -41,20 +136,27 @@ export const ReviewsPage = (): React.JSX.Element => {
     ): Promise<void> => {
         setIsLoading(true);
         try {
-            const response = await getReviews(baseUrl, searchQuery, startKey, pageLimit);
+            const response = await getReviews(
+                baseUrl,
+                baseHeaders,
+                searchQuery,
+                startKey,
+                pageLimit,
+            );
             const reviews = reviewDtosToReview(response.documentReviewReferences);
             setFailedLoading(false);
             setReviews(reviews);
-            setNextPageToken(response.nextPageToken);
+            if (response.nextPageToken) {
+                setNextPageToken(response.nextPageToken);
+            }
             setCount(response.count);
             setCurrentPage(pageNumber);
 
-            // If we got a nextPageToken and don't have it stored yet, add it to our history
-            const hasNextPage = nextPageToken.includes(response.nextPageToken);
+            const hasNextPage = nextPageToken.includes(response.nextPageToken || '');
             if (!hasNextPage || (response.nextPageToken && !pageTokens[pageNumber])) {
                 setPageTokens((prev) => {
                     const newTokens = [...prev];
-                    newTokens[pageNumber] = response.nextPageToken;
+                    newTokens[pageNumber] = response?.nextPageToken || '';
                     return newTokens;
                 });
             }
@@ -70,7 +172,6 @@ export const ReviewsPage = (): React.JSX.Element => {
     };
 
     const handleSearch = async (): Promise<void> => {
-        // Reset pagination when searching
         setIsLoading(true);
         setSearchValue(inputValue);
         setCurrentPage(1);
@@ -103,15 +204,19 @@ export const ReviewsPage = (): React.JSX.Element => {
         documentReviewReferences: ReviewListItemDto[],
     ): ReviewListItem[] => {
         return documentReviewReferences.map((dto): ReviewListItem => {
-            const nhsNumber =
-                dto.nhsNumber === '0000000000' ? 'N/A' : formatNhsNumber(dto.nhsNumber);
+            let recordType: string = '';
+            try {
+                recordType = getConfigForDocType(dto.documentSnomedCodeType).content
+                    .reviewList as string;
+            } catch {}
             return {
                 id: dto.id,
-                nhsNumber,
-                recordType: getConfigForDocType(dto.document_snomed_code_type).content.reviewList as string,
-                snomedCode: dto.document_snomed_code_type,
-                uploader: dto.odsCode,
-                dateUploaded: dto.dateUploaded,
+                version: dto.version,
+                nhsNumber: dto.nhsNumber,
+                recordType: recordType,
+                snomedCode: dto.documentSnomedCodeType,
+                uploader: dto.author,
+                dateUploaded: `${dto.uploadDate}000`, // python provides time in seconds, JS uses ms
                 reviewReason: dto.reviewReason,
             };
         });
@@ -210,10 +315,11 @@ export const ReviewsPage = (): React.JSX.Element => {
                         </Table.Row>
                     </Table.Head>
                     <Table.Body>
-                        <TableRows
+                        <ReviewTableRows
                             reviews={reviews}
                             isLoading={isLoading}
                             failedLoading={failedLoading}
+                            setReviewData={setReviewData}
                         />
                     </Table.Body>
                 </Table>
@@ -229,20 +335,22 @@ export const ReviewsPage = (): React.JSX.Element => {
                         />
                     )}
                     {/* previous page items */}
-                    {pageTokens.map((_, index) => {
-                        const pageNumber = index + 1;
-                        return (
-                            <Pagination.Item
-                                key={pageNumber}
-                                current={pageNumber === currentPage}
-                                onClick={(e): void => {
-                                    e.preventDefault();
-                                    goToPage(pageNumber);
-                                }}
-                                number={pageNumber}
-                            />
-                        );
-                    })}
+                    {pageTokens
+                        .filter((token) => token !== '')
+                        .map((_, index) => {
+                            const pageNumber = index + 1;
+                            return (
+                                <Pagination.Item
+                                    key={pageNumber}
+                                    current={pageNumber === currentPage}
+                                    onClick={(e): void => {
+                                        e.preventDefault();
+                                        goToPage(pageNumber);
+                                    }}
+                                    number={pageNumber}
+                                />
+                            );
+                        })}
                     {/* next link */}
                     {!isLastPage() && (
                         <Pagination.Link
@@ -256,59 +364,5 @@ export const ReviewsPage = (): React.JSX.Element => {
                 </Pagination>
             </Table.Panel>
         </>
-    );
-};
-
-type TableRowsProps = {
-    reviews: ReviewListItem[];
-    isLoading: boolean;
-    failedLoading: boolean;
-};
-const TableRows = ({ reviews, isLoading, failedLoading }: TableRowsProps): React.JSX.Element => {
-    if (isLoading) {
-        return (
-            <Table.Row>
-                <Table.Cell colSpan={6}>
-                    <SpinnerV2 status="Loading..." />
-                </Table.Cell>
-            </Table.Row>
-        );
-    }
-
-    if (reviews.length > 0) {
-        return (
-            <>
-                {reviews.map((review) => (
-                    <Table.Row key={review.id}>
-                        <Table.Cell>{review.nhsNumber}</Table.Cell>
-                        <Table.Cell>{review.recordType}</Table.Cell>
-                        <Table.Cell>{review.uploader}</Table.Cell>
-                        <Table.Cell>{review.dateUploaded}</Table.Cell>
-                        <Table.Cell>{review.reviewReason}</Table.Cell>
-                        <Table.Cell className="nowrap">
-                            <Link to={review.id} data-testid={`view-record-link-${review.id}`}>
-                                View
-                            </Link>
-                        </Table.Cell>
-                    </Table.Row>
-                ))}
-            </>
-        );
-    }
-
-    if (failedLoading) {
-        return (
-            <Table.Row>
-                <Table.Cell colSpan={6}>
-                    <ErrorMessage>Failed to load reviews</ErrorMessage>
-                </Table.Cell>
-            </Table.Row>
-        );
-    }
-
-    return (
-        <Table.Row>
-            <Table.Cell colSpan={6}>No documents to review</Table.Cell>
-        </Table.Row>
     );
 };

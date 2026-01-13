@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
+import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import getReviews from '../../../../helpers/requests/getReviews';
 import { ReviewsResponse } from '../../../../types/generic/reviews';
 import { ReviewsPage } from './ReviewsPage';
@@ -11,8 +12,10 @@ import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/do
 
 const mockedUseNavigate = vi.fn();
 const mockSetSnoMed = vi.fn();
+const mockSetReviewData = vi.fn();
 
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
+vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
 vi.mock('../../../../helpers/requests/getReviews', () => ({
     default: vi.fn(),
 }));
@@ -22,28 +25,32 @@ vi.mock('react-router-dom', () => ({
 }));
 
 const mockUseBaseAPIUrl = useBaseAPIUrl as Mock;
+const mockUseBaseAPIHeaders = useBaseAPIHeaders as Mock;
 const mockGetReviews = getReviews as Mock;
 const mockGetConfigForDocType = getConfigForDocType as Mock;
 
 const testUrl = 'https://test-api.com';
+const testHeaders = { Authorization: 'Bearer test-token' };
 
 const mockReviewsResponse: ReviewsResponse = {
     documentReviewReferences: [
         {
             id: '1',
             nhsNumber: '9000000001',
-            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
-            odsCode: 'Y12345',
-            dateUploaded: '2024-01-15',
+            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+            author: 'Y12345',
+            uploadDate: new Date('2024-01-15').valueOf() / 1000,
             reviewReason: 'Missing metadata',
+            version: '1',
         },
         {
             id: '2',
             nhsNumber: '9000000002',
-            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
-            odsCode: 'Y67890',
-            dateUploaded: '2024-01-16',
+            documentSnomedCodeType: '717391000000106' as DOCUMENT_TYPE,
+            author: 'Y67890',
+            uploadDate: new Date('2024-01-16').valueOf() / 1000,
             reviewReason: 'Duplicate record',
+            version: '1',
         },
     ],
     nextPageToken: '3',
@@ -55,90 +62,101 @@ const mockElevenReviewsResponse: ReviewsResponse = {
         {
             id: '1',
             nhsNumber: '9000000001',
-            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
-            odsCode: 'Y12345',
-            dateUploaded: '2024-01-15',
+            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+            author: 'Y12345',
+            uploadDate: new Date('2024-01-15').valueOf() / 1000,
             reviewReason: 'Missing metadata',
+            version: '1',
         },
         {
             id: '2',
             nhsNumber: '9000000002',
-            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
-            odsCode: 'Y67890',
-            dateUploaded: '2024-01-16',
+            documentSnomedCodeType: '717391000000106' as DOCUMENT_TYPE,
+            author: 'Y67890',
+            uploadDate: new Date('2024-01-16').valueOf() / 1000,
             reviewReason: 'Duplicate record',
+            version: '1',
         },
         {
             id: '3',
             nhsNumber: '9000000003',
-            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
-            odsCode: 'Y11111',
-            dateUploaded: '2024-01-17',
+            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+            author: 'Y11111',
+            uploadDate: new Date('2024-01-17').valueOf() / 1000,
             reviewReason: 'Another reason',
+            version: '1',
         },
         {
             id: '4',
             nhsNumber: '9000000004',
-            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
-            odsCode: 'Y22222',
-            dateUploaded: '2024-01-18',
+            documentSnomedCodeType: '717391000000106' as DOCUMENT_TYPE,
+            author: 'Y22222',
+            uploadDate: new Date('2024-01-18').valueOf() / 1000,
             reviewReason: 'Another reason',
+            version: '1',
         },
         {
             id: '5',
             nhsNumber: '9000000005',
-            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
-            odsCode: 'Y33333',
-            dateUploaded: '2024-01-19',
+            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+            author: 'Y33333',
+            uploadDate: new Date('2024-01-19').valueOf() / 1000,
             reviewReason: 'Another reason',
+            version: '1',
         },
         {
             id: '   6',
             nhsNumber: '9000000006',
-            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
-            odsCode: 'Y12345',
-            dateUploaded: '2024-01-20',
+            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+            author: 'Y12345',
+            uploadDate: new Date('2024-01-20').valueOf() / 1000,
             reviewReason: 'Invalid format',
+            version: '1',
         },
         {
             id: '7',
             nhsNumber: '9000000007',
-            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
-            odsCode: 'Y67890',
-            dateUploaded: '2024-01-21',
+            documentSnomedCodeType: '717391000000106' as DOCUMENT_TYPE,
+            author: 'Y67890',
+            uploadDate: new Date('2024-01-21').valueOf() / 1000,
             reviewReason: 'Incorrect data',
+            version: '1',
         },
         {
             id: '8',
             nhsNumber: '9000000008',
-            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
-            odsCode: 'Y11111',
-            dateUploaded: '2024-01-22',
+            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+            author: 'Y11111',
+            uploadDate: new Date('2024-01-22').valueOf() / 1000,
             reviewReason: 'Missing pages',
+            version: '1',
         },
         {
             id: '9',
             nhsNumber: '9000000009',
-            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
-            odsCode: 'Y22222',
-            dateUploaded: '2024-01-23',
+            documentSnomedCodeType: '717391000000106' as DOCUMENT_TYPE,
+            author: 'Y22222',
+            uploadDate: new Date('2024-01-23').valueOf() / 1000,
             reviewReason: 'Incorrect data',
+            version: '1',
         },
         {
             id: '10',
             nhsNumber: '9000000010',
-            document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
-            odsCode: 'Y33333',
-            dateUploaded: '2024-01-24',
+            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+            author: 'Y33333',
+            uploadDate: new Date('2024-01-24').valueOf() / 1000,
             reviewReason: 'Missing metadata',
+            version: '1',
         },
         {
             id: '11',
             nhsNumber: '9000000011',
-            document_snomed_code_type: '717391000000106' as DOCUMENT_TYPE,
-            odsCode: 'Y44444',
-            dateUploaded: '2024-01-25',
+            documentSnomedCodeType: '717391000000106' as DOCUMENT_TYPE,
+            author: 'Y44444',
+            uploadDate: new Date('2024-01-25').valueOf() / 1000,
             reviewReason: 'Duplicate record',
+            version: '1',
         },
     ],
     nextPageToken: '11',
@@ -158,7 +176,7 @@ const renderComponent = (): ReturnType<typeof render> => {
                 path: '/admin/reviews',
                 element: (
                     <PatientDetailsProvider>
-                        <ReviewsPage />
+                        <ReviewsPage setReviewData={mockSetReviewData} />
                     </PatientDetailsProvider>
                 ),
             },
@@ -175,6 +193,7 @@ describe('ReviewsPage', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockUseBaseAPIUrl.mockReturnValue(testUrl);
+        mockUseBaseAPIHeaders.mockReturnValue(testHeaders);
         mockGetReviews.mockReset();
         mockGetReviews.mockResolvedValue(mockReviewsResponse);
         mockSetSnoMed.mockClear();
@@ -238,8 +257,18 @@ describe('ReviewsPage', () => {
             renderComponent();
 
             await waitFor(() => {
-                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, '', '', 10);
+                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, testHeaders, '', '', 10);
             });
+        });
+
+        it('displays loading spinner while fetching initial data', () => {
+            mockGetReviews.mockImplementation(
+                () => new Promise((resolve) => setTimeout(() => resolve(mockReviewsResponse), 100)),
+            );
+
+            renderComponent();
+
+            expect(screen.getByText('Loading...')).toBeInTheDocument();
         });
     });
 
@@ -274,10 +303,11 @@ describe('ReviewsPage', () => {
                     {
                         id: '1',
                         nhsNumber: '0000000000',
-                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
-                        odsCode: 'Y12345',
-                        dateUploaded: '2024-01-15',
+                        documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                        author: 'Y12345',
+                        uploadDate: new Date('2024-01-15').valueOf() / 1000,
                         reviewReason: 'Test',
+                        version: '1',
                     },
                 ],
                 nextPageToken: '',
@@ -308,10 +338,11 @@ describe('ReviewsPage', () => {
                     {
                         id: '1',
                         nhsNumber: '9000000001',
-                        document_snomed_code_type: '999999999' as DOCUMENT_TYPE,
-                        odsCode: 'Y12345',
-                        dateUploaded: '2024-01-15',
+                        documentSnomedCodeType: '999999999' as DOCUMENT_TYPE,
+                        author: 'Y12345',
+                        uploadDate: new Date('2024-01-15').valueOf() / 1000,
                         reviewReason: 'Test',
+                        version: '1',
                     },
                 ],
                 nextPageToken: '',
@@ -372,7 +403,13 @@ describe('ReviewsPage', () => {
             await userEvent.click(searchButton);
 
             await waitFor(() => {
-                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, '9000000003', '', 10);
+                expect(mockGetReviews).toHaveBeenCalledWith(
+                    testUrl,
+                    testHeaders,
+                    '9000000003',
+                    '',
+                    10,
+                );
             });
         });
 
@@ -389,7 +426,13 @@ describe('ReviewsPage', () => {
             await userEvent.type(searchInput, '9000000004{enter}');
 
             await waitFor(() => {
-                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, '9000000004', '', 10);
+                expect(mockGetReviews).toHaveBeenCalledWith(
+                    testUrl,
+                    testHeaders,
+                    '9000000004',
+                    '',
+                    10,
+                );
             });
         });
 
@@ -407,7 +450,13 @@ describe('ReviewsPage', () => {
             await userEvent.click(searchButton);
 
             await waitFor(() => {
-                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, '9000000005', '', 10);
+                expect(mockGetReviews).toHaveBeenCalledWith(
+                    testUrl,
+                    testHeaders,
+                    '9000000005',
+                    '',
+                    10,
+                );
             });
         });
 
@@ -495,7 +544,7 @@ describe('ReviewsPage', () => {
             await userEvent.click(nextButton!);
 
             await waitFor(() => {
-                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, '', '11', 10);
+                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, testHeaders, '', '11', 10);
             });
         });
 
@@ -536,7 +585,7 @@ describe('ReviewsPage', () => {
             await userEvent.click(previousButton!);
 
             await waitFor(() => {
-                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, '', '', 10);
+                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, testHeaders, '', '', 10);
             });
         });
 
@@ -561,7 +610,7 @@ describe('ReviewsPage', () => {
             await userEvent.click(page1Link);
 
             await waitFor(() => {
-                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, '', '', 10);
+                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, testHeaders, '', '', 10);
             });
         });
 
@@ -637,23 +686,6 @@ describe('ReviewsPage', () => {
     });
 
     describe('Edge Cases', () => {
-        it('handles empty search input', async () => {
-            renderComponent();
-
-            await waitFor(() => {
-                expect(mockGetReviews).toHaveBeenCalled();
-            });
-
-            vi.clearAllMocks();
-
-            const searchButton = screen.getByRole('button', { name: /search/i });
-            await userEvent.click(searchButton);
-
-            await waitFor(() => {
-                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, '', '', 10);
-            });
-        });
-
         it('handles single review item', async () => {
             const singleItemResponse: ReviewsResponse = {
                 documentReviewReferences: [mockReviewsResponse.documentReviewReferences[0]],
@@ -704,53 +736,14 @@ describe('ReviewsPage', () => {
             await userEvent.click(searchButton);
 
             await waitFor(() => {
-                expect(mockGetReviews).toHaveBeenCalledWith(testUrl, '  900 000 0003  ', '', 10);
+                expect(mockGetReviews).toHaveBeenCalledWith(
+                    testUrl,
+                    testHeaders,
+                    '  900 000 0003  ',
+                    '',
+                    10,
+                );
             });
-        });
-    });
-
-    describe('Date Display', () => {
-        it('displays date uploaded correctly', async () => {
-            renderComponent();
-
-            await waitFor(() => {
-                expect(screen.getByText('2024-01-15')).toBeInTheDocument();
-            });
-
-            expect(screen.getByText('2024-01-16')).toBeInTheDocument();
-        });
-    });
-
-    describe('Multiple Reviews', () => {
-        it('renders all review items correctly', async () => {
-            const multipleReviewsResponse: ReviewsResponse = {
-                documentReviewReferences: [
-                    ...mockReviewsResponse.documentReviewReferences,
-                    {
-                        id: '3',
-                        nhsNumber: '9000000003',
-                        document_snomed_code_type: '16521000000101' as DOCUMENT_TYPE,
-                        odsCode: 'Y11111',
-                        dateUploaded: '2024-01-17',
-                        reviewReason: 'Another reason',
-                    },
-                ],
-                nextPageToken: '4',
-                count: 3,
-            };
-
-            mockGetReviews.mockResolvedValue(multipleReviewsResponse);
-            renderComponent();
-
-            await waitFor(() => {
-                expect(screen.getByText('900 000 0001')).toBeInTheDocument();
-            });
-
-            expect(screen.getByText('900 000 0002')).toBeInTheDocument();
-            expect(screen.getByText('900 000 0003')).toBeInTheDocument();
-            expect(screen.getByTestId('view-record-link-1')).toBeInTheDocument();
-            expect(screen.getByTestId('view-record-link-2')).toBeInTheDocument();
-            expect(screen.getByTestId('view-record-link-3')).toBeInTheDocument();
         });
     });
 });

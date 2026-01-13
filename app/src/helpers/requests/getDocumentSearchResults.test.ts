@@ -2,14 +2,23 @@ import axios, { AxiosError } from 'axios';
 import getDocumentSearchResults from './getDocumentSearchResults';
 import { SearchResult } from '../../types/generic/searchResult';
 import { buildSearchResult } from '../test/testBuilders';
-import { describe, expect, test, vi, Mocked } from 'vitest';
+import { beforeEach, describe, expect, test, vi, Mocked } from 'vitest';
 
 vi.mock('axios');
+vi.mock('../utils/isLocal', () => ({
+    isLocal: false,
+    isMock: (): boolean => false,
+    isRunningInCypress: (): boolean => false,
+}));
 const mockedAxios = axios as Mocked<typeof axios>;
 
 // ...
 
 describe('[GET] getDocumentSearchResults', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     test('Document search results handles a 2XX response', async () => {
         const searchResult = buildSearchResult();
         const mockResults = [searchResult];

@@ -24,7 +24,7 @@ const RoleGuard = ({ children }: Props): JSX.Element => {
 
             // For dynamic routes with params like /admin/review/:id
             // Convert route pattern to regex: /admin/review/:id -> /admin/review/[^/]+
-            const pattern = childRoute.route.replace(/:[^/]+/g, '[^/]+');
+            const pattern = childRoute.route.replaceAll(/:[^/]+/g, '[^/]+');
             const regex = new RegExp(`^${pattern}$`);
 
             return regex.test(routeKey);

@@ -82,7 +82,7 @@ describe('documentUpload', () => {
                 canBeDiscarded: false,
                 singleDocumentOnly: true,
                 acceptedFileTypes: [],
-                content: {},
+                content: {} as any,
             };
 
             vi.mocked(generateStitchedFileName).mockReturnValue('stitched_file.pdf');
@@ -126,7 +126,7 @@ describe('documentUpload', () => {
                 canBeDiscarded: false,
                 singleDocumentOnly: true,
                 acceptedFileTypes: [],
-                content: {},
+                content: {} as any,
             };
 
             const mockZippedBlob = new Blob(['zipped content'], { type: 'application/zip' });
@@ -169,7 +169,7 @@ describe('documentUpload', () => {
                 canBeDiscarded: false,
                 singleDocumentOnly: true,
                 acceptedFileTypes: [],
-                content: {},
+                content: {} as any,
             };
 
             const result = await reduceDocumentsForUpload(
@@ -199,7 +199,7 @@ describe('documentUpload', () => {
                 canBeDiscarded: false,
                 singleDocumentOnly: true,
                 acceptedFileTypes: [],
-                content: {},
+                content: {} as any,
             };
 
             const mockZippedBlob = new Blob([''], { type: 'application/zip' });

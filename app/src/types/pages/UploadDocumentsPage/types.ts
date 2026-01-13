@@ -12,6 +12,7 @@ export enum UPLOAD_STAGE {
 }
 
 export enum DOCUMENT_UPLOAD_STATE {
+    UNSELECTED = 'UNSELECTED',
     SELECTED = 'SELECTED',
     UPLOADING = 'UPLOADING',
     SUCCEEDED = 'SUCCEEDED',
@@ -28,6 +29,16 @@ export enum DOCUMENT_STATUS {
     INFECTED = 'infected',
     NOT_FOUND = 'not-found',
 }
+
+export enum UploadDocumentType {
+    REVIEW = 'REVIEW',
+    EXISTING = 'EXISTING',
+}
+
+export type ReviewUploadDocument = UploadDocument & {
+    type?: UploadDocumentType;
+    blob?: Blob;
+};
 
 export type UploadDocument = {
     state: DOCUMENT_UPLOAD_STATE;
