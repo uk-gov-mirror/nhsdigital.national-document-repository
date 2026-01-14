@@ -1,4 +1,4 @@
-name: "Z-BASE FHIR API E2E Test: E2e shared actions for running FHIR API tests on the NDR Backend"
+name: "Z-BASE E2E Test: E2E shared actions for running Core FHIR API E2E tests on the NDR Backend"
 
 run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.environment }} | ${{ github.event.inputs.sandbox }}"
 
@@ -27,7 +27,7 @@ permissions:
   contents: read
 
 jobs:
-  e2e-test:
+  core-fhir-e2e-test:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     outputs:
@@ -62,5 +62,5 @@ jobs:
           source ./lambdas/venv/bin/activate
           echo PATH=$PATH >> $GITHUB_ENV
 
-      - name: Run E2e Tests
+      - name: Run Core FHIR API E2E tests
         run: make test-fhir-api-e2e WORKSPACE=${{ inputs.sandbox }}

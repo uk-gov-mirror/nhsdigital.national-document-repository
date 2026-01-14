@@ -1,4 +1,4 @@
-name: "Z-BASE E2e Test: E2e shared actions for running tests on the NDR Backend"
+name: "Z-BASE E2E Test: E2E shared actions for running Lloyd George FHIR API E2E tests on the NDR Backend"
 
 run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.environment }} | ${{ github.event.inputs.sandbox }}"
 
@@ -27,7 +27,7 @@ permissions:
   contents: read
 
 jobs:
-  e2e-test:
+  lg-fhir-e2e-test:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
@@ -82,6 +82,6 @@ jobs:
         env:
           SANDBOX: ${{ inputs.sandbox }}
 
-      - name: Run E2e Tests
+      - name: Run Lloyd George FHIR API E2E tests
         run: |
           make test-api-e2e
