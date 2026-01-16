@@ -1,6 +1,6 @@
 # 🧪 End-to-End Testing Setup
 
-These tests focus on the features of the NDR. This will serve as a blended suite of integration and end-to-end (E2E) tests, with the aim to validate API functionality and snapshot comparisons.
+These tests serve as a suite of end-to-end (E2E) tests to validate FHIR API functionality and snapshot comparisons.
 
 There are 2 suites which separately test
 
@@ -11,15 +11,9 @@ as well as APIM E2E tests `lambdas/tests/e2e/apim/`.
 
 ## 🔐 AWS Authentication
 
-You must be authenticated with AWS to run the api tests. Use the following commands with a configured profile set up in ~/.aws/config to authenticate:
+You must be authenticated with AWS to run the api tests.
 
-```bash
-aws sso login --profile <your-aws-profile>
-
-export AWS_PROFILE=<your-aws-profile>
-```
-
-An example profile:
+Before authenticating, ensure you have a valid AWS profile configured:
 
 ```bash
 [sso-session PRM]
@@ -34,19 +28,49 @@ region=eu-west-2
 output=json
 ```
 
-Make sure your AWS profile has access to the required resources.
+Your profile name (e.g. NDR-Dev-RW) must match what you use in the commands below. Make sure your AWS profile has access to the required resources.
 
-## Using the dev container
+### Inside the dev container (preferred method): aws-vault
 
-All of the below make commands can be used in the dev container. To run the below commands you need to append `CONTAINER=true`.
+Use `aws-vault` to assume the profile with a secure, temporary-session subshell.
+
+```bash
+List configured profiles::
+  'aws-vault list'
+
+Start an authenticated session::
+  'aws-vault exec <your-aws-profile>'
+
+If the session expires, start a new one:
+  'exit'
+  'aws-vault exec <your-aws-profile>'
+```
+
+### Alternative outside the dev container: AWS SSO CLI
+
+Authenticate your profile and set it as the active one:
+
+```bash
+aws sso login --profile <your-aws-profile>
+
+export AWS_PROFILE=<your-aws-profile>
+```
 
 ## 🔧 Available Make Commands
 
-- `make test-fhir-api-e2e WORKSPACE=<workspace>` — Runs the FHIR API E2E tests with mTLS against a given workspace
+All of the below make commands can be run either inside or outside the dev container. It is preferable to work inside the dev container as a developer tool to ensure code formatting and pre-commits are consistent throughout the team, keeping a high standard.
 
-- `make test-api-e2e` — Runs the E2E tests without mTLS
+* To run inside the dev container append `CONTAINER=true` to each command
 
-- `make test-apim-e2e` - Runs the APIM E2E tests
+* If you need to work outside the dev container you **must** run `make env` first to set up your venv and any required dependencies
+
+```bash
+make test-fhir-api-e2e WORKSPACE=<workspace> CONTIANER=true
+
+make test-api-e2e
+
+make test-apim-e2e
+ ```
 
 ### Snapshots
 
@@ -54,43 +78,48 @@ Snapshots reduce the amount of individual assertions by comparing pre and post a
 
 Snapshot testing is used in the non mTLS test suite only. To update snapshots you can run the following make command:
 
-- `make test-api-e2e-snapshots` — Runs snapshot comparison tests
+```bash
+make test-api-e2e-snapshots
+```
 
-This runs pytest with the additional argument `--snapshot-update` which will replace the existing snapshots.
+This runs pytest with the additional argument `--snapshot-update` which will update and replace the existing snapshots.
 
 ### Certificate inspection
 
-You can download the mTLS certificates used in the requests if you need to inspect them by running
+You can download the mTLS certificates used in the FHIR api requests if you need to inspect them
 
-- `make download-api-certs WORKSPACE=<workspace>` — Downloads mTLS client cert and client key used in the request
+```bash
+make download-api-certs WORKSPACE=<workspace>
+```
 
 ❗ Always delete these after use and never commit them.
 
 ## 🌍 Required Environment Variables
 
-In order to execute the E2E tests without mTLS (i.e. `make test-api-e2e`) you will need to ensure the following environment variables are set. You can export them in your shell configuration file (`~/.zshrc` or `~/.bashrc`) or **temporarily** add them to the `conftest.py`:
+In order to execute the Lloyd George API E2E tests (i.e. `make test-api-e2e`) you will need to ensure the following environment variables are set.
+
+You can export them inside the subshell started by aws-vault exec - these will be scoped to your session and won’t leak to your host environment. Or equivalently, for working outside the dev container, export them in your shell configuration file (`~/.zshrc` or `~/.bashrc`). Or you can **temporarily** add them to the `conftest.py`, but do not commit these:
 
 | Environment Variable | Description                                                                                                                       |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `NDR_API_KEY`          | The API key required to authenticate requests to the NDR API. API Gateway → API Keys for associated env e.g. ndr-dev_apim-api-key |
-| `NDR_API_ENDPOINT`     | The URI string used to connect to the NDR API.                                                                                    |
 | `AWS_WORKSPACE`      | The workspace that is being tested.                                                                                               |
 | `MOCK_CIS2_KEY`        | The value of the Mock CIS2 Key. Found in Parameter Store: /auth/password/MOCK_KEY                                                 |
 
-After updating your shell config, reload it:
+If you update your shell config, remember to reload it:
 
 ```bash
-source ~/.zshrc   # or source ~/.bashrc
+source ~/.zshrc   # ~/.bashrc
 ```
 
 ## APIM E2E Tests
 
 The **APIM E2E tests** validate the full integration and behavior of the API Management layer within the system. These tests ensure that:
 
-- FHIR API endpoints (/DocumentReference) are correctly exposed and accessible via APIM.
-- mTLS authentication and authorization mechanisms are functioning as expected.
-- The routing and transformation logic configured in APIM behaves correctly.
-- The downstream services respond appropriately when accessed through APIM.
+* FHIR API endpoints (/DocumentReference) are correctly exposed and accessible via APIM.
+* mTLS authentication and authorization mechanisms are functioning as expected.
+* The routing and transformation logic configured in APIM behaves correctly.
+* The downstream services respond appropriately when accessed through APIM.
 
 ### Running the Tests
 
@@ -128,14 +157,14 @@ cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/apim -vv \
 
 ### Arguments
 
-- `api-name`: Specifies the name of the API being tested. In this case, it's the National Document Repository FHIR R4 API.
-- `proxy-name`: Indicates the APIM proxy configuration to use during testing. This ensures the tests target the correct APIM instance and environment.
+* `api-name`: Specifies the name of the API being tested. In this case, it's the National Document Repository FHIR R4 API.
+* `proxy-name`: Indicates the APIM proxy configuration to use during testing. This ensures the tests target the correct APIM instance and environment.
 
 ### Important Notes
 
-- Environment Configuration: Make sure your test environment is properly configured with access to APIM and any required secrets or credentials.
+* Environment Configuration: Make sure your test environment is properly configured with access to APIM and any required secrets or credentials.
 
-  - You can test your proxygen set up via `proxygen instance list` and expect to see `national-document-repository_FHIR_R4` listed.
+  * You can test your proxygen set up via `proxygen instance list` and expect to see `national-document-repository_FHIR_R4` listed.
     For more information on proxygen credentials see: <https://nhsd-confluence.digital.nhs.uk/pages/viewpage.action?spaceKey=APM&title=Proxygen+CLI+user+guide>
 
-- Dependencies: These tests rely on other services being up and running (e.g. backend API, databases). Ensure all dependencies are available before running the tests.
+* Dependencies: These tests rely on other services being up and running (e.g. backend API, databases). Ensure all dependencies are available before running the tests.

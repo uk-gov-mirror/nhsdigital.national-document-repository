@@ -34,7 +34,7 @@ class DataHelper:
 
     def build_env(self, table_name, bucket_name):
         if not self.workspace:
-            raise ValueError("WORKSPACE environment variable is missing or empty.")
+            raise ValueError("AWS_WORKSPACE environment variable is missing or empty.")
         self.dynamo_table = f"{self.workspace}_{table_name}"
         self.s3_bucket = f"{self.workspace}-{bucket_name}"
 

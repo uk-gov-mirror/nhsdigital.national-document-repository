@@ -18,12 +18,44 @@ ZIP_BASE_PATH = ./$(LAMBDAS_BUILD_PATH)/$(lambda_name)/tmp
 ZIP_COMMON_FILES = lambdas/utils lambdas/models lambdas/services lambdas/repositories lambdas/enums lambdas/scripts
 CONTAINER ?= false
 
-.PHONY: install clean help format list requirements ruff build-and-deploy-sandbox
+.PHONY: \
+	install clean help format list requirements ruff build-and-deploy-sandbox \
+	aws-login download-api-certs \
+	test-api-e2e test-fhir-api-e2e test-apim-e2e test-api-e2e-snapshots \
+	initiate-bulk-upload test-bulk-upload-e2e test-bulk-upload-e2e-snapshots \
+	test-unit test-unit-coverage test-unit-coverage-html test-unit-collect \
+	env github_env edge_env \
+	package edge_zip lambda_layer_zip zip \
+	install-asdf install-poetry install-dev \
+	start test-ui test-ui-coverage build build-env-check \
+	docker-up docker-up-rebuild docker-down \
+	cypress-open cypress-run cypress-report install-cypress
 
 default: help
 
-help: ## This is a help message
-	@grep -E --no-filename '^[a-zA-Z-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-42s\033[0m %s\n", $$1, $$2}'
+help: ## Show available targets and usage.
+	@echo ""
+	@echo "Available commands (documented):"
+	@echo "--------------------------------"
+	@grep -E --no-filename '^[a-zA-Z0-9_.-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		sort | \
+		awk 'BEGIN {FS = ":.*?## "}; { \
+			desc = $$2; \
+			if (index(desc, "Usage:") > 0) { \
+				split(desc, parts, "Usage:"); \
+				printf "\033[36m%-30s\033[0m\n    %s\n    \033[1mUsage:\033[0m%s\n\n", $$1, parts[1], parts[2]; \
+			} else { \
+				printf "\033[36m%-30s\033[0m\n    %s\n\n", $$1, desc; \
+			} \
+		}'
+	@echo "Tip: Add  \033[33m## description ... Usage: ...\033[0m  to a target line to include it in the documented list."
+	@echo ""
+
+guard-%:
+	@ if [ "${${*}}" = "" ]; then \
+		echo "❌ $* is a required parameter. See make help for usage."; \
+		exit 1; \
+	fi
 
 aws-login: ## Login to AWS. Usage: make aws-login AWS_PROFILE=<AWS_PROFILE>
 	aws sso login --profile $(PROFILE) && export AWS_PROFILE=$(PROFILE)
@@ -83,14 +115,14 @@ download-api-certs: ## Downloads mTLS certificates (use with dev envs only). Usa
 	rm -rf ./lambdas/mtls_env_certs/$(WORKSPACE)
 	./scripts/aws/download-api-certs.sh $(WORKSPACE)
 
-test-api-e2e:
+test-api-e2e: ## Runs LG FHIR API E2E tests. See readme for required environment variables. Usage: make test-api-e2e CONTAINER=<true|false>
 ifeq ($(CONTAINER), true)
 	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/api --ignore=tests/e2e/api/fhir -vv
 else
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/api --ignore=tests/e2e/api/fhir -vv
 endif
 
-test-fhir-api-e2e: ## Runs FHIR API E2E tests. Usage: make test-fhir-api-e2e WORKSPACE=<workspace> CONTAINER=<true|false>
+test-fhir-api-e2e: guard-WORKSPACE ## Runs Core FHIR API E2E tests. Usage: make test-fhir-api-e2e WORKSPACE=<workspace> CONTAINER=<true|false>
 	./scripts/test/run-e2e-fhir-api-tests.sh --workspace $(WORKSPACE) --container $(CONTAINER)
 	rm -rf ./lambdas/mtls_env_certs/$(WORKSPACE)
 
