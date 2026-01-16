@@ -19,7 +19,7 @@ import { routeChildren, routes } from '../../../../types/generic/routes';
 import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
 import DocumentSelectStage, { Props } from './DocumentSelectStage';
 import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPatientFullName';
-import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('react-router-dom', async () => {
@@ -177,6 +177,81 @@ describe('DocumentSelectStage', () => {
 
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith(routes.VERIFY_PATIENT);
+            });
+        });
+
+        it('should call goToPreviousDocType when go back is clicked and function is provided', async () => {
+            const goToPreviousDocType = vi.fn();
+            renderApp(history, {
+                goToPreviousDocType,
+            });
+
+            await userEvent.click(await screen.findByTestId('back-button'));
+
+            await waitFor(() => {
+                expect(goToPreviousDocType).toHaveBeenCalled();
+            });
+        });
+
+        it('should call backLinkOverride when go back is clicked and function is provided', async () => {
+            const backLinkOverride = 'test';
+            renderApp(history, {
+                backLinkOverride,
+            });
+
+            await userEvent.click(await screen.findByTestId('back-button'));
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(backLinkOverride);
+            });
+        });
+
+        it('should call goToNextDocType when skip clicked and function is provided', async () => {
+            const goToNextDocType = vi.fn();
+            renderApp(history, {
+                goToNextDocType,
+                showSkipLink: true,
+            });
+
+            await userEvent.click(await screen.findByTestId('skip-link'));
+
+            await waitFor(() => {
+                expect(goToNextDocType).toHaveBeenCalled();
+            });
+        });
+
+        it('should navigate to select order when skip clicked and doc is stitched', async () => {
+            renderApp(history, {
+                showSkipLink: true,
+            });
+
+            await userEvent.click(await screen.findByTestId('skip-link'));
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith({
+                    "pathname": routeChildren.DOCUMENT_UPLOAD_SELECT_ORDER,
+                    "search": "",
+                });
+            });
+        });
+
+        it('should navigate to confirm page when skip clicked and doc is not stitched', async () => {
+            const config = {
+                ...docConfig,
+                stitched: false,
+            };
+            renderApp(history, {
+                showSkipLink: true,
+                documentConfig: config,
+            });
+
+            await userEvent.click(await screen.findByTestId('skip-link'));
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith({
+                    "pathname": routeChildren.DOCUMENT_UPLOAD_CONFIRMATION,
+                    "search": "",
+                });
             });
         });
 
@@ -449,7 +524,15 @@ describe('DocumentSelectStage', () => {
         });
     });
 
-    const TestApp = (): JSX.Element => {
+    type TestAppProps = {
+        goToPreviousDocType?: () => void;
+        goToNextDocType?: () => void;
+        backLinkOverride?: string;
+        showSkipLink?: boolean;
+        documentConfig?: DOCUMENT_TYPE_CONFIG;
+    };
+
+    const TestApp = ({ goToPreviousDocType, goToNextDocType, backLinkOverride, showSkipLink, documentConfig }: TestAppProps): JSX.Element => {
         const [documents, setDocuments] = useState<Array<UploadDocument>>([]);
         const filesErrorRef = useRef<boolean>(false);
 
@@ -459,15 +542,19 @@ describe('DocumentSelectStage', () => {
                 setDocuments={setDocuments}
                 documentType={docConfig.snomedCode as DOCUMENT_TYPE}
                 filesErrorRef={filesErrorRef}
-                documentConfig={docConfig}
+                documentConfig={documentConfig ?? docConfig}
+                goToPreviousDocType={goToPreviousDocType}
+                goToNextDocType={goToNextDocType}
+                showSkiplink={showSkipLink}
+                backLinkOverride={backLinkOverride}
             />
         );
     };
 
-    const renderApp = (history: MemoryHistory): RenderResult => {
+    const renderApp = (history: MemoryHistory, props: Partial<TestAppProps> = {}): RenderResult => {
         return render(
             <ReactRouter.Router navigator={history} location={history.location}>
-                <TestApp />
+                <TestApp {...props} />
             </ReactRouter.Router>,
         );
     };

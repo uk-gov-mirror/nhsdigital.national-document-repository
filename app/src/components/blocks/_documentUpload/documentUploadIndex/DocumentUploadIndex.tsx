@@ -143,30 +143,32 @@ const DocumentUploadIndex = ({
                 <Spinner status="Loading existing document..." />
             ) : (
                 <Card.Group>
-                    {documentTypesConfig.map((documentConfig) => (
-                        <Card.GroupItem width="one-half" key={documentConfig.snomed_code}>
-                            <Card clickable cardType="primary">
-                                <Card.Content>
-                                    <Card.Heading className="nhsuk-heading-m">
-                                        <Card.Link
-                                            data-testid={`upload-${documentConfig.snomed_code}-link`}
-                                            onClick={async (): Promise<void> =>
-                                                documentTypeSelected(
-                                                    documentConfig.snomed_code as DOCUMENT_TYPE,
-                                                )
-                                            }
-                                        >
-                                            {documentConfig.content.upload_title}
-                                        </Card.Link>
-                                    </Card.Heading>
-                                    <Card.Description>
-                                        {documentConfig.content.upload_description}
-                                    </Card.Description>
-                                    <RightCircleIcon />
-                                </Card.Content>
-                            </Card>
-                        </Card.GroupItem>
-                    ))}
+                    {documentTypesConfig
+                        .filter((doc) => doc.canUploadIndependently)
+                        .map((documentConfig) => (
+                            <Card.GroupItem width="one-half" key={documentConfig.snomed_code}>
+                                <Card clickable cardType="primary">
+                                    <Card.Content>
+                                        <Card.Heading className="nhsuk-heading-m">
+                                            <Card.Link
+                                                data-testid={`upload-${documentConfig.snomed_code}-link`}
+                                                onClick={async (): Promise<void> =>
+                                                    documentTypeSelected(
+                                                        documentConfig.snomed_code as DOCUMENT_TYPE,
+                                                    )
+                                                }
+                                            >
+                                                {documentConfig.content.upload_title}
+                                            </Card.Link>
+                                        </Card.Heading>
+                                        <Card.Description>
+                                            {documentConfig.content.upload_description}
+                                        </Card.Description>
+                                        <RightCircleIcon />
+                                    </Card.Content>
+                                </Card>
+                            </Card.GroupItem>
+                        ))}
                 </Card.Group>
             )}
         </>

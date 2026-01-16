@@ -179,10 +179,9 @@ const buildDocumentConfig = (
     configOverride?: Partial<DOCUMENT_TYPE_CONFIG>,
 ): DOCUMENT_TYPE_CONFIG => {
     return {
-        snomedCode: '16521000000101',
+        snomedCode: DOCUMENT_TYPE.LLOYD_GEORGE,
         displayName: 'Scanned Paper Notes',
         canBeUpdated: true,
-        associatedSnomed: '',
         multifileUpload: true,
         multifileZipped: false,
         multifileReview: true,

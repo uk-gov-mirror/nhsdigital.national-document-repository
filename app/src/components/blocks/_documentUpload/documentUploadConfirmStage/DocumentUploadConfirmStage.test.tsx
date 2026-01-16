@@ -34,6 +34,22 @@ vi.mock('react-router-dom', async () => {
 
 const mockedUseNavigate = vi.fn();
 
+vi.mock('./components/DocumentList', async () => {
+    const actual = await vi.importActual('./components/DocumentList');
+    return {
+        ...actual,
+        default: ({ documents }: { documents: UploadDocument[] }): React.JSX.Element => {
+            return (
+                <div data-testid="document-list">
+                    Document List with
+                    <span data-testid="document-list-count">{documents.length}</span>
+                    documents
+                </div>
+            );
+        },
+    };
+});
+
 vi.mock('../documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview', () => ({
     default: ({
         documents,
@@ -67,7 +83,7 @@ let history = createMemoryHistory({
 let docConfig = buildDocumentConfig();
 const mockConfirmFiles = vi.fn();
 
-describe('DocumentUploadCompleteStage', () => {
+describe('DocumentUploadConfirmStage', () => {
     beforeEach(() => {
         vi.mocked(usePatient).mockReturnValue(patientDetails);
 
@@ -82,7 +98,7 @@ describe('DocumentUploadCompleteStage', () => {
         renderApp(history, 1);
 
         await waitFor(async () => {
-            expect(screen.getByText('Check your files before uploading')).toBeInTheDocument();
+            expect(screen.getByText('Check files are for the correct patient')).toBeInTheDocument();
         });
     });
 
@@ -93,15 +109,6 @@ describe('DocumentUploadCompleteStage', () => {
 
         await waitFor(() => {
             expect(mockConfirmFiles).toHaveBeenCalled();
-        });
-    });
-
-    it('should render pagination when doc count is high enough', async () => {
-        renderApp(history, 15);
-
-        await waitFor(async () => {
-            expect(await screen.findByTestId('page-1-button')).toBeInTheDocument();
-            expect(await screen.findByTestId('page-2-button')).toBeInTheDocument();
         });
     });
 
@@ -126,49 +133,6 @@ describe('DocumentUploadCompleteStage', () => {
         },
     );
 
-    it.each([
-        {
-            stitched: false,
-            multifile: true,
-            journey: '',
-            expectedText: `Each file will be uploaded as a separate ${docConfig.displayName} for this patient.`,
-        },
-        {
-            stitched: false,
-            multifile: false,
-            journey: '',
-            expectedText: `This file will be uploaded as a new ${docConfig.displayName} for this patient.`,
-        },
-        {
-            stitched: true,
-            multifile: true,
-            journey: 'update',
-            expectedText: `Files will be added to the existing ${docConfig.displayName} to create a single PDF document.`,
-        },
-        {
-            stitched: true,
-            multifile: true,
-            journey: '',
-            expectedText: `Files will be combined into a single PDF document to create a ${docConfig.displayName} record for this patient.`,
-        },
-    ])(
-        'renders correct text for file result: %s',
-        async ({ stitched, multifile, journey, expectedText }) => {
-            docConfig = buildDocumentConfig({
-                multifileUpload: multifile,
-                multifileReview: multifile,
-                stitched,
-            });
-            vi.mocked(getJourney).mockReturnValueOnce(journey as any);
-
-            renderApp(history, 1);
-
-            await waitFor(async () => {
-                expect(screen.getByText(expectedText)).toBeInTheDocument();
-            });
-        },
-    );
-
     describe('Navigation', () => {
         it('should navigate to previous screen when go back is clicked', async () => {
             renderApp(history, 1);
@@ -177,19 +141,6 @@ describe('DocumentUploadCompleteStage', () => {
 
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith(-1);
-            });
-        });
-
-        it('should navigate to the file selection page when change files is clicked', async () => {
-            renderApp(history, 1);
-
-            userEvent.click(await screen.findByTestId('change-files-button'));
-
-            await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith({
-                    pathname: routeChildren.DOCUMENT_UPLOAD_SELECT_FILES,
-                    search: '',
-                });
             });
         });
 
@@ -227,49 +178,15 @@ describe('DocumentUploadCompleteStage', () => {
             });
         });
 
-        it('renders correct text for update journey', async () => {
-            renderApp(history, 1);
-
-            await waitFor(async () => {
-                expect(
-                    screen.getByText(
-                        `Files will be added to the existing ${docConfig.displayName} to create a single PDF document.`,
-                    ),
-                ).toBeInTheDocument();
-            });
-        });
-
-        it('should navigate with journey param when change files is clicked', async () => {
-            renderApp(history, 1);
-
-            userEvent.click(await screen.findByTestId('change-files-button'));
-
-            await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith({
-                    pathname: routeChildren.DOCUMENT_UPLOAD_SELECT_FILES,
-                    search: 'journey=update',
-                });
-            });
-        });
-
         it('should still render all page elements correctly', async () => {
             renderApp(history, 1);
 
             await waitFor(async () => {
-                expect(screen.getByText('Check your files before uploading')).toBeInTheDocument();
+                expect(
+                    screen.getByText('Check files are for the correct patient'),
+                ).toBeInTheDocument();
                 expect(screen.getByTestId('go-back-link')).toBeInTheDocument();
-                expect(screen.getByTestId('change-files-button')).toBeInTheDocument();
                 expect(screen.getByTestId('confirm-button')).toBeInTheDocument();
-                expect(screen.getByText('Files to be uploaded')).toBeInTheDocument();
-            });
-        });
-
-        it('should render pagination when doc count is high enough in update journey', async () => {
-            renderApp(history, 15);
-
-            await waitFor(async () => {
-                expect(await screen.findByTestId('page-1-button')).toBeInTheDocument();
-                expect(await screen.findByTestId('page-2-button')).toBeInTheDocument();
             });
         });
     });
@@ -290,8 +207,8 @@ describe('DocumentUploadCompleteStage', () => {
             <ReactRouter.Router navigator={history} location={history.location}>
                 <DocumentUploadConfirmStage
                     documents={documents}
-                    documentConfig={docConfig}
                     confirmFiles={mockConfirmFiles}
+                    setDocuments={() => {}}
                 />
             </ReactRouter.Router>,
         );

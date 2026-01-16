@@ -25,7 +25,7 @@ import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import { AxiosError } from 'axios';
 import { SearchResult } from '../../../../types/generic/searchResult';
 import { isMock } from '../../../../helpers/utils/isLocal';
-import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 import lloydGeorgeConfig from '../../../../config/lloydGeorgeConfig.json';
 
 export type Props = {
@@ -164,7 +164,10 @@ const LloydGeorgeViewRecordStage = ({
                 handleSuccess([
                     {
                         id: 'mock-document-id',
-                        fileName: generateStitchedFileName(patientDetails, lloydGeorgeConfig),
+                        fileName: generateStitchedFileName(
+                            patientDetails,
+                            lloydGeorgeConfig as DOCUMENT_TYPE_CONFIG,
+                        ),
                         version: 'mock-version-id',
                         created: new Date().toISOString(),
                         fileSize: 12345,

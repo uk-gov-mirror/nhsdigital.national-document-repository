@@ -1,9 +1,9 @@
-import { Dispatch, SetStateAction, MouseEvent } from 'react';
+import { MouseEvent } from 'react';
 
 export type Props = {
     totalPages: number;
     currentPage: number;
-    setCurrentPage: Dispatch<SetStateAction<number>>;
+    setCurrentPage: (page: number) => void;
 };
 
 const Pagination = ({ totalPages, currentPage, setCurrentPage }: Props): React.JSX.Element => {

@@ -11,6 +11,7 @@ type Props = {
     stitchedBlobLoaded?: (value: boolean) => void;
     documentConfig: DOCUMENT_TYPE_CONFIG;
     isReview?: boolean;
+    showCurrentlyViewingText?: boolean;
 };
 
 const DocumentUploadLloydGeorgePreview = ({
@@ -19,6 +20,7 @@ const DocumentUploadLloydGeorgePreview = ({
     stitchedBlobLoaded,
     documentConfig,
     isReview = false,
+    showCurrentlyViewingText,
 }: Props): JSX.Element => {
     const [mergedPdfUrl, setMergedPdfUrl] = useState('');
     const journey = getJourney();
@@ -64,9 +66,9 @@ const DocumentUploadLloydGeorgePreview = ({
 
     return (
         <>
-            {!isReview && <h2>{documentConfig.content.previewUploadTitle}</h2>}
             {!isReview && (
                 <>
+                    <h2>{documentConfig.content.previewUploadTitle}</h2>
                     {documentConfig.stitched ? (
                         <>
                             <p>
@@ -79,11 +81,28 @@ const DocumentUploadLloydGeorgePreview = ({
                                 Preview may take longer to load if there are many files or if
                                 individual files are large.
                             </p>
+                            {showCurrentlyViewingText && (
+                                <p>
+                                    You are currently viewing the stitched{' '}
+                                    {documentConfig.displayName}
+                                </p>
+                            )}
                         </>
                     ) : (
-                        <p>
-                            The preview is currently displaying the file: {documents[0]?.file.name}
-                        </p>
+                        <>
+                            <p>
+                                You can preview your PDF files to check they are for the correct
+                                patient. If some of your files are not PDFs, you will not see them
+                                in this preview.
+                            </p>
+                            <p>
+                                Preview may take longer to load if there are many files or if
+                                individual files are large.
+                            </p>
+                            {showCurrentlyViewingText && (
+                                <p>You are currently viewing: {documents[0]?.file.name}</p>
+                            )}
+                        </>
                     )}
                 </>
             )}

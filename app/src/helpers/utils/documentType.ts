@@ -22,16 +22,19 @@ export type ContentKey =
     | 'beforeYouUploadTitle'
     | 'previewUploadTitle'
     | 'uploadFilesExtraParagraph'
-    | 'uploadFilesBulletPoints';
+    | 'uploadFilesBulletPoints'
+    | 'skipDocumentLinkText'
+    | 'confirmFilesTableTitle'
+    | 'confirmFilesTableParagraph';
 export interface IndividualDocumentTypeContent extends Record<ContentKey, string | string[]> {}
 
 // The individual config for each document type
 export type DOCUMENT_TYPE_CONFIG = {
-    snomedCode: string;
+    snomedCode: DOCUMENT_TYPE;
     displayName: string;
     filenameOverride?: string;
     canBeUpdated: boolean;
-    associatedSnomed: string;
+    associatedSnomed?: DOCUMENT_TYPE;
     multifileUpload: boolean;
     multifileZipped: boolean;
     zippedFilename?: string;

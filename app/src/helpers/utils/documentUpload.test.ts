@@ -1,9 +1,12 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
     getUploadSession,
+    goToNextDocType,
+    goToPreviousDocType,
     handleDocReviewStatusResult,
     handleDocStatusResult,
     reduceDocumentsForUpload,
+    startIntervalTimer,
 } from './documentUpload';
 import { PatientDetails } from '../../types/generic/patientDetails';
 import {
@@ -11,13 +14,14 @@ import {
     DOCUMENT_UPLOAD_STATE,
     UploadDocument,
 } from '../../types/pages/UploadDocumentsPage/types';
-import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from './documentType';
+import { DOCUMENT_TYPE } from './documentType';
 import uploadDocuments, { generateStitchedFileName } from '../requests/uploadDocuments';
 import { zipFiles } from './zip';
 import { buildMockUploadSession } from '../test/testBuilders';
 import { uploadDocumentForReview } from '../requests/documentReview';
 import * as isLocal from './isLocal';
 import { DocumentReviewStatus } from '../../types/blocks/documentReview';
+import { buildDocumentConfig } from '../test/testBuilders';
 
 vi.mock('../requests/uploadDocuments');
 vi.mock('../requests/documentReview');
@@ -70,20 +74,7 @@ describe('documentUpload', () => {
 
     describe('reduceDocumentsForUpload', () => {
         it('should return stitched document when documentConfig.stitched is true', async () => {
-            const documentConfig: DOCUMENT_TYPE_CONFIG = {
-                stitched: true,
-                multifileZipped: false,
-                snomedCode: DOCUMENT_TYPE.LLOYD_GEORGE,
-                displayName: 'Scanned paper notes',
-                canBeUpdated: false,
-                associatedSnomed: '',
-                multifileUpload: false,
-                multifileReview: false,
-                canBeDiscarded: false,
-                singleDocumentOnly: true,
-                acceptedFileTypes: [],
-                content: {} as any,
-            };
+            const documentConfig = buildDocumentConfig();
 
             vi.mocked(generateStitchedFileName).mockReturnValue('stitched_file.pdf');
 
@@ -113,21 +104,10 @@ describe('documentUpload', () => {
         });
 
         it('should return zipped document when documentConfig.multifileZipped is true', async () => {
-            const documentConfig: DOCUMENT_TYPE_CONFIG = {
-                stitched: false,
+            const documentConfig = buildDocumentConfig({
                 multifileZipped: true,
-                snomedCode: DOCUMENT_TYPE.LLOYD_GEORGE,
-                zippedFilename: 'test_documents',
-                displayName: 'Scanned paper notes',
-                canBeUpdated: false,
-                associatedSnomed: '',
-                multifileUpload: false,
-                multifileReview: false,
-                canBeDiscarded: false,
-                singleDocumentOnly: true,
-                acceptedFileTypes: [],
-                content: {} as any,
-            };
+                stitched: false,
+            });
 
             const mockZippedBlob = new Blob(['zipped content'], { type: 'application/zip' });
             vi.mocked(zipFiles).mockResolvedValue(mockZippedBlob);
@@ -150,27 +130,17 @@ describe('documentUpload', () => {
                 attempts: 0,
                 versionId: 'version123',
             });
-            expect(result[0].file.name).toBe('test_documents_(2).zip');
+            expect(result[0].file.name).toBe(
+                `${documentConfig.zippedFilename}_(${mockDocuments.length}).zip`,
+            );
             expect(result[0].file.type).toBe('application/zip');
             expect(zipFiles).toHaveBeenCalledWith(mockDocuments);
         });
 
         it('should return original documents when neither stitched nor multifileZipped is true', async () => {
-            const documentConfig: DOCUMENT_TYPE_CONFIG = {
+            const documentConfig = buildDocumentConfig({
                 stitched: false,
-                multifileZipped: false,
-                snomedCode: DOCUMENT_TYPE.LLOYD_GEORGE,
-                zippedFilename: 'test_documents',
-                displayName: 'Scanned paper notes',
-                canBeUpdated: false,
-                associatedSnomed: '',
-                multifileUpload: false,
-                multifileReview: false,
-                canBeDiscarded: false,
-                singleDocumentOnly: true,
-                acceptedFileTypes: [],
-                content: {} as any,
-            };
+            });
 
             const result = await reduceDocumentsForUpload(
                 mockDocuments,
@@ -186,21 +156,10 @@ describe('documentUpload', () => {
         });
 
         it('should handle empty documents array for zipped files', async () => {
-            const documentConfig: DOCUMENT_TYPE_CONFIG = {
-                stitched: false,
+            const documentConfig = buildDocumentConfig({
                 multifileZipped: true,
-                snomedCode: DOCUMENT_TYPE.LLOYD_GEORGE,
                 zippedFilename: 'empty_documents',
-                displayName: 'Scanned paper notes',
-                canBeUpdated: false,
-                associatedSnomed: '',
-                multifileUpload: false,
-                multifileReview: false,
-                canBeDiscarded: false,
-                singleDocumentOnly: true,
-                acceptedFileTypes: [],
-                content: {} as any,
-            };
+            });
 
             const mockZippedBlob = new Blob([''], { type: 'application/zip' });
             vi.mocked(zipFiles).mockResolvedValue(mockZippedBlob);
@@ -213,8 +172,7 @@ describe('documentUpload', () => {
                 'version123',
             );
 
-            expect(result).toHaveLength(1);
-            expect(result[0].file.name).toBe('empty_documents_(0).zip');
+            expect(result).toHaveLength(0);
         });
     });
 
@@ -646,6 +604,431 @@ describe('documentUpload', () => {
             handleDocReviewStatusResult(reviewStatusDto as any, mockSetDocuments);
 
             expect(mockSetDocuments).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('startIntervalTimer', async () => {
+        const mockUploadDocuments: UploadDocument[] = [
+            {
+                id: 'doc1',
+                file: new File(['content'], 'test.pdf', { type: 'application/pdf' }),
+                state: DOCUMENT_UPLOAD_STATE.UPLOADING,
+                progress: 50,
+                docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                attempts: 0,
+                versionId: 'v1',
+                ref: 'doc-ref-1',
+            },
+        ];
+
+        const mockInterval = { current: 0 };
+        const mockSetDocuments = vi.fn();
+        const baseUrl = 'https://api.example.com';
+        const baseHeaders = { Authorization: 'Bearer token', 'Content-Type': 'application/json' };
+        const nhsNumber = '1234567890';
+
+        beforeEach(() => {
+            mockInterval.current = 0;
+            vi.useFakeTimers();
+            vi.clearAllMocks();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('should call getDocumentStatus and update documents when user can manage record', async () => {
+            const patientWithPermission = { ...mockPatientDetails, canManageRecord: true };
+            const mockDocumentStatus = {
+                'doc-ref-1': { status: DOCUMENT_STATUS.FINAL as const },
+            };
+
+            const { getDocumentStatus } = await import('../requests/uploadDocuments');
+            vi.mocked(getDocumentStatus).mockResolvedValue(mockDocumentStatus);
+
+            startIntervalTimer(
+                mockUploadDocuments,
+                mockInterval as any,
+                mockUploadDocuments,
+                mockSetDocuments,
+                patientWithPermission,
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+                1000,
+            );
+
+            await vi.advanceTimersByTimeAsync(1000);
+
+            expect(getDocumentStatus).toHaveBeenCalledWith({
+                documents: mockUploadDocuments,
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+            });
+            expect(mockSetDocuments).toHaveBeenCalled();
+            expect(mockInterval.current).toBe(1);
+        });
+
+        it('should call getDocumentReviewStatus when user cannot manage record', async () => {
+            const patientWithoutPermission = { ...mockPatientDetails, canManageRecord: false };
+            const mockReviewStatus = {
+                id: 'doc1',
+                reviewStatus: DocumentReviewStatus.PENDING_REVIEW,
+            };
+
+            const { getDocumentReviewStatus } = await import('../requests/documentReview');
+            vi.mocked(getDocumentReviewStatus).mockResolvedValue(mockReviewStatus as any);
+
+            startIntervalTimer(
+                mockUploadDocuments,
+                mockInterval as any,
+                mockUploadDocuments,
+                mockSetDocuments,
+                patientWithoutPermission,
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+                1000,
+            );
+
+            await vi.advanceTimersByTimeAsync(1000);
+
+            expect(getDocumentReviewStatus).toHaveBeenCalledWith({
+                document: mockUploadDocuments[0],
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+            });
+            expect(mockSetDocuments).toHaveBeenCalled();
+        });
+
+        it('should increment interval counter on each tick', async () => {
+            startIntervalTimer(
+                mockUploadDocuments,
+                mockInterval as any,
+                mockUploadDocuments,
+                mockSetDocuments,
+                { ...mockPatientDetails, canManageRecord: true },
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+                1000,
+            );
+
+            expect(mockInterval.current).toBe(0);
+
+            await vi.advanceTimersByTimeAsync(1000);
+            expect(mockInterval.current).toBe(1);
+
+            await vi.advanceTimersByTimeAsync(1000);
+            expect(mockInterval.current).toBe(2);
+        });
+
+        it('should update documents locally when isLocal is true', async () => {
+            vi.spyOn(isLocal, 'isLocal', 'get').mockReturnValue(true);
+
+            const localDocs = [
+                {
+                    ...mockUploadDocuments[0],
+                    progress: 30,
+                    state: DOCUMENT_UPLOAD_STATE.UPLOADING,
+                },
+            ];
+
+            startIntervalTimer(
+                localDocs,
+                mockInterval as any,
+                localDocs,
+                mockSetDocuments,
+                mockPatientDetails,
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+                1000,
+            );
+
+            await vi.advanceTimersByTimeAsync(1000);
+
+            expect(mockSetDocuments).toHaveBeenCalled();
+            const updatedDocs = mockSetDocuments.mock.calls[0][0];
+            expect(updatedDocs[0].progress).toBeGreaterThan(30);
+            expect(updatedDocs[0].progress).toBeLessThanOrEqual(100);
+        });
+
+        it('should set state to SUCCEEDED when progress reaches 100 in local mode', async () => {
+            vi.spyOn(isLocal, 'isLocal', 'get').mockReturnValue(true);
+
+            const localDocs = [
+                {
+                    ...mockUploadDocuments[0],
+                    progress: 95,
+                    state: DOCUMENT_UPLOAD_STATE.UPLOADING,
+                },
+            ];
+
+            startIntervalTimer(
+                localDocs,
+                mockInterval as any,
+                localDocs,
+                mockSetDocuments,
+                mockPatientDetails,
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+                1000,
+            );
+
+            await vi.advanceTimersByTimeAsync(1000);
+
+            const updatedDocs = mockSetDocuments.mock.calls[0][0];
+            expect(updatedDocs[0].progress).toBe(100);
+            expect(updatedDocs[0].state).toBe(DOCUMENT_UPLOAD_STATE.SUCCEEDED);
+        });
+
+        it('should set state to INFECTED when virus.pdf file is detected in local mode', async () => {
+            vi.spyOn(isLocal, 'isLocal', 'get').mockReturnValue(true);
+
+            const virusDoc = {
+                ...mockUploadDocuments[0],
+                file: new File(['content'], 'virus.pdf', { type: 'application/pdf' }),
+                progress: 95,
+                state: DOCUMENT_UPLOAD_STATE.UPLOADING,
+            };
+
+            startIntervalTimer(
+                [virusDoc],
+                mockInterval as any,
+                [virusDoc],
+                mockSetDocuments,
+                mockPatientDetails,
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+                1000,
+            );
+
+            await vi.advanceTimersByTimeAsync(1000);
+
+            const updatedDocs = mockSetDocuments.mock.calls[0][0];
+            expect(updatedDocs[0].state).toBe(DOCUMENT_UPLOAD_STATE.INFECTED);
+        });
+
+        it('should set state to FAILED when virus-failed.pdf file is detected in local mode', async () => {
+            vi.spyOn(isLocal, 'isLocal', 'get').mockReturnValue(true);
+
+            const failedDoc = {
+                ...mockUploadDocuments[0],
+                file: new File(['content'], 'virus-failed.pdf', { type: 'application/pdf' }),
+                progress: 95,
+                state: DOCUMENT_UPLOAD_STATE.UPLOADING,
+            };
+
+            startIntervalTimer(
+                [failedDoc],
+                mockInterval as any,
+                [failedDoc],
+                mockSetDocuments,
+                mockPatientDetails,
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+                1000,
+            );
+
+            await vi.advanceTimersByTimeAsync(1000);
+
+            const updatedDocs = mockSetDocuments.mock.calls[0][0];
+            expect(updatedDocs[0].state).toBe(DOCUMENT_UPLOAD_STATE.FAILED);
+        });
+
+        it('should not change state when already SCANNING in local mode', async () => {
+            vi.spyOn(isLocal, 'isLocal', 'get').mockReturnValue(true);
+
+            const localDocs = [
+                {
+                    ...mockUploadDocuments[0],
+                    progress: 100,
+                    state: DOCUMENT_UPLOAD_STATE.SCANNING,
+                },
+            ];
+
+            startIntervalTimer(
+                localDocs,
+                mockInterval as any,
+                localDocs,
+                mockSetDocuments,
+                mockPatientDetails,
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+                1000,
+            );
+
+            await vi.advanceTimersByTimeAsync(1000);
+
+            const updatedDocs = mockSetDocuments.mock.calls[0][0];
+            expect(updatedDocs[0].state).toBe(DOCUMENT_UPLOAD_STATE.SCANNING);
+        });
+    });
+
+    describe('goToNextDocType', () => {
+        const documentTypeList = [
+            DOCUMENT_TYPE.LLOYD_GEORGE,
+            DOCUMENT_TYPE.EHR,
+            DOCUMENT_TYPE.EHR_ATTACHMENTS,
+        ];
+
+        const mockSetShowSkipLink = vi.fn();
+        const mockSetDocumentType = vi.fn();
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it('should move to next document type in the list', () => {
+            const currentDocType = DOCUMENT_TYPE.EHR;
+
+            goToNextDocType(
+                documentTypeList,
+                currentDocType,
+                mockSetShowSkipLink,
+                mockSetDocumentType,
+                [],
+            );
+
+            expect(mockSetDocumentType).toHaveBeenCalledWith(DOCUMENT_TYPE.EHR_ATTACHMENTS);
+        });
+
+        it('should set showSkipLink to true when not at the end of the list', () => {
+            const currentDocType = DOCUMENT_TYPE.LLOYD_GEORGE;
+
+            goToNextDocType(
+                documentTypeList,
+                currentDocType,
+                mockSetShowSkipLink,
+                mockSetDocumentType,
+                [],
+            );
+
+            expect(mockSetDocumentType).toHaveBeenCalledWith(DOCUMENT_TYPE.EHR);
+            expect(mockSetShowSkipLink).toHaveBeenCalledWith(true);
+        });
+
+        it('should not change document type when already at the last item', () => {
+            const currentDocType = DOCUMENT_TYPE.EHR_ATTACHMENTS;
+
+            goToNextDocType(
+                documentTypeList,
+                currentDocType,
+                mockSetShowSkipLink,
+                mockSetDocumentType,
+                [],
+            );
+
+            expect(mockSetDocumentType).not.toHaveBeenCalled();
+            expect(mockSetShowSkipLink).not.toHaveBeenCalled();
+        });
+
+        it('should set showSkipLink to false when on last item and there are no uploaded documents', () => {
+            const currentDocType = DOCUMENT_TYPE.EHR;
+
+            goToNextDocType(
+                documentTypeList,
+                currentDocType,
+                mockSetShowSkipLink,
+                mockSetDocumentType,
+                [],
+            );
+
+            expect(mockSetDocumentType).toHaveBeenCalledWith(DOCUMENT_TYPE.EHR_ATTACHMENTS);
+            expect(mockSetShowSkipLink).toHaveBeenCalledWith(false);
+        });
+
+        it('should handle single item list', () => {
+            const singleItemList = [DOCUMENT_TYPE.LLOYD_GEORGE];
+
+            goToNextDocType(
+                singleItemList,
+                DOCUMENT_TYPE.LLOYD_GEORGE,
+                mockSetShowSkipLink,
+                mockSetDocumentType,
+                [],
+            );
+
+            expect(mockSetDocumentType).not.toHaveBeenCalled();
+            expect(mockSetShowSkipLink).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('goToPreviousDocType', () => {
+        const documentTypeList = [
+            DOCUMENT_TYPE.LLOYD_GEORGE,
+            DOCUMENT_TYPE.EHR,
+            DOCUMENT_TYPE.EHR_ATTACHMENTS,
+        ];
+
+        const mockSetShowSkipLink = vi.fn();
+        const mockSetDocumentType = vi.fn();
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+        });
+
+        it('should move to previous document type in the list', () => {
+            const currentDocType = DOCUMENT_TYPE.EHR;
+
+            goToPreviousDocType(
+                documentTypeList,
+                currentDocType,
+                mockSetShowSkipLink,
+                mockSetDocumentType,
+            );
+
+            expect(mockSetDocumentType).toHaveBeenCalledWith(DOCUMENT_TYPE.LLOYD_GEORGE);
+            expect(mockSetShowSkipLink).toHaveBeenCalledWith(true);
+        });
+
+        it('should not change document type when already at the first item', () => {
+            const currentDocType = DOCUMENT_TYPE.LLOYD_GEORGE;
+
+            goToPreviousDocType(
+                documentTypeList,
+                currentDocType,
+                mockSetShowSkipLink,
+                mockSetDocumentType,
+            );
+
+            expect(mockSetDocumentType).not.toHaveBeenCalled();
+            expect(mockSetShowSkipLink).not.toHaveBeenCalled();
+        });
+
+        it('should handle moving back from last item to middle item', () => {
+            const currentDocType = DOCUMENT_TYPE.EHR_ATTACHMENTS;
+
+            goToPreviousDocType(
+                documentTypeList,
+                currentDocType,
+                mockSetShowSkipLink,
+                mockSetDocumentType,
+            );
+
+            expect(mockSetDocumentType).toHaveBeenCalledWith(DOCUMENT_TYPE.EHR);
+            expect(mockSetShowSkipLink).toHaveBeenCalledWith(true);
+        });
+
+        it('should handle single item list', () => {
+            const singleItemList = [DOCUMENT_TYPE.LLOYD_GEORGE];
+
+            goToPreviousDocType(
+                singleItemList,
+                DOCUMENT_TYPE.LLOYD_GEORGE,
+                mockSetShowSkipLink,
+                mockSetDocumentType,
+            );
+
+            expect(mockSetDocumentType).not.toHaveBeenCalled();
+            expect(mockSetShowSkipLink).not.toHaveBeenCalled();
         });
     });
 });

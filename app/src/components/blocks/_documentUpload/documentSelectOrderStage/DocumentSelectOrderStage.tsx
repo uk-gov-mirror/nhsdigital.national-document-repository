@@ -169,6 +169,10 @@ const DocumentSelectOrderStage = ({
         updatedDocList.splice(index, 1);
         if (docToRemove.position) {
             updatedDocList = updatedDocList.map((doc) => {
+                if (doc.docType !== docToRemove.docType) {
+                    return doc;
+                }
+
                 if (doc.position && +doc.position > +docToRemove.position!) {
                     doc.position = +doc.position - 1;
                 }
@@ -184,10 +188,15 @@ const DocumentSelectOrderStage = ({
 
         const updatedDocuments = documents.map((doc) => ({
             ...doc,
-            position: fieldValues[documentPositionKey(doc.id)]!,
+            position: Number(fieldValues[documentPositionKey(doc.id)]!),
         }));
 
-        setDocuments(updatedDocuments);
+        setDocuments((previousState) => {
+            return previousState.map((doc) => {
+                const updatedDoc = updatedDocuments.find((d) => d.id === doc.id);
+                return updatedDoc ?? doc;
+            });
+        });
     };
 
     const submitDocuments = (): void => {

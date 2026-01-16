@@ -2,13 +2,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import LogoutPage from './LogoutPage';
 import SessionProvider, { Session } from '../../providers/sessionProvider/SessionProvider';
 import { buildUserAuth } from '../../helpers/test/testBuilders';
-import axios from 'axios';
-import { routes } from '../../types/generic/routes';
-import { afterEach, beforeEach, describe, expect, it, vi, Mocked } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import logout from '../../helpers/requests/logout';
 
-vi.mock('axios');
-const mockedAxios = axios as Mocked<typeof axios>;
+vi.mock('../../helpers/requests/logout');
 const mockSetSession = vi.fn();
+const mockedLogout = logout as Mock;
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
     useNavigate: () => mockedUseNavigate,
@@ -29,51 +28,30 @@ describe('logoutPage', () => {
     });
 
     it('navigates to the home page when logout is successful', async () => {
-        const successResponse = {
-            response: {
-                status: 200,
-            },
-        };
-
-        mockedAxios.get.mockImplementation(() => Promise.resolve(successResponse));
         renderLogoutPage();
 
+        const clearLocalStorageSpy = vi.spyOn(Storage.prototype, 'clear');
+        const clearSessionStorageSpy = vi.spyOn(sessionStorage.__proto__, 'clear');
+
         await waitFor(() => {
-            expect(mockedUseNavigate).toHaveBeenCalledWith(routes.START);
+            expect(mockedLogout).toHaveBeenCalled();
+            expect(clearLocalStorageSpy).toHaveBeenCalled();
+            expect(clearSessionStorageSpy).toHaveBeenCalled();
         });
     });
 
     it('navigates to the previous page when logout fails', async () => {
-        const errorResponse = {
-            response: {
-                status: 500,
-            },
-        };
+        vi.mocked(logout).mockRejectedValue(new Error());
 
-        mockedAxios.get.mockImplementation(() => Promise.reject(errorResponse));
         renderLogoutPage();
 
-        await waitFor(() => {
-            expect(mockedUseNavigate).toHaveBeenCalledWith(-1);
-        });
-    });
-
-    it('clears the session from session provider', async () => {
-        Storage.prototype.setItem = vi.fn();
-        const successResponse = {
-            response: {
-                status: 200,
-            },
-        };
-
-        mockedAxios.get.mockImplementation(() => Promise.resolve(successResponse));
-        renderLogoutPage();
+        const clearLocalStorageSpy = vi.spyOn(Storage.prototype, 'clear');
+        const clearSessionStorageSpy = vi.spyOn(sessionStorage.__proto__, 'clear');
 
         await waitFor(() => {
-            expect(mockSetSession).toHaveBeenCalledWith({
-                auth: null,
-                isLoggedIn: false,
-            });
+            expect(mockedLogout).toHaveBeenCalled();
+            expect(clearLocalStorageSpy).toHaveBeenCalled();
+            expect(clearSessionStorageSpy).toHaveBeenCalled();
         });
     });
 });

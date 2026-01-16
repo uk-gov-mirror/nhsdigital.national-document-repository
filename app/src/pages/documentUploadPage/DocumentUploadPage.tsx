@@ -13,7 +13,7 @@ import useBaseAPIHeaders from '../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import useConfig from '../../helpers/hooks/useConfig';
 import usePatient from '../../helpers/hooks/usePatient';
-import { getDocumentStatus, uploadDocumentToS3 } from '../../helpers/requests/uploadDocuments';
+import { uploadDocumentToS3 } from '../../helpers/requests/uploadDocuments';
 import { errorCodeToParams, errorToParams } from '../../helpers/utils/errorToParams';
 import { isLocal, isMock } from '../../helpers/utils/isLocal';
 import {
@@ -35,15 +35,19 @@ import {
     LocationState,
     UploadDocument,
 } from '../../types/pages/UploadDocumentsPage/types';
-import { DOCUMENT_TYPE, getConfigForDocType } from '../../helpers/utils/documentType';
+import {
+    DOCUMENT_TYPE,
+    DOCUMENT_TYPE_CONFIG,
+    getConfigForDocType,
+} from '../../helpers/utils/documentType';
 import {
     getUploadSession,
-    handleDocReviewStatusResult,
-    handleDocStatusResult,
+    goToNextDocType,
+    goToPreviousDocType,
     reduceDocumentsForUpload,
+    startIntervalTimer,
 } from '../../helpers/utils/documentUpload';
 import DocumentUploadIndex from '../../components/blocks/_documentUpload/documentUploadIndex/DocumentUploadIndex';
-import { getDocumentReviewStatus } from '../../helpers/requests/documentReview';
 
 const DocumentUploadPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
@@ -64,7 +68,11 @@ const DocumentUploadPage = (): React.JSX.Element => {
     const interval = useRef<number>(0);
     const filesErrorPageRef = useRef(false);
     const [documentType, setDocumentType] = useState<DOCUMENT_TYPE>(DOCUMENT_TYPE.LLOYD_GEORGE);
-    const [documentConfig, setDocumentConfig] = useState(getConfigForDocType(documentType));
+    const [documentConfig, setDocumentConfig] = useState<DOCUMENT_TYPE_CONFIG>(
+        getConfigForDocType(DOCUMENT_TYPE.LLOYD_GEORGE),
+    );
+    const [showSkipLink, setShowSkipLink] = useState<boolean | undefined>(undefined);
+    const [documentTypeList, setDocumentTypeList] = useState<DOCUMENT_TYPE[]>([]);
 
     const UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS = 5000;
     const MAX_POLLING_TIME = 600000;
@@ -133,7 +141,12 @@ const DocumentUploadPage = (): React.JSX.Element => {
     ]);
 
     useEffect(() => {
-        setDocumentConfig(getConfigForDocType(documentType));
+        const docConfig = getConfigForDocType(documentType);
+        setDocumentConfig(docConfig);
+        if (showSkipLink === undefined && docConfig.associatedSnomed) {
+            setShowSkipLink(true);
+            setDocumentTypeList([docConfig.snomedCode, docConfig.associatedSnomed]);
+        }
     }, [documentType]);
 
     useEffect(() => {
@@ -196,16 +209,36 @@ const DocumentUploadPage = (): React.JSX.Element => {
     };
 
     const confirmFiles = async (): Promise<void> => {
-        let reducedDocuments = [...existingDocuments, ...documents];
+        const reducedDocuments: UploadDocument[] = [];
         const existingId = existingDocuments[0]?.id;
 
-        reducedDocuments = await reduceDocumentsForUpload(
-            reducedDocuments,
+        let currentDocTypeDocuments = await reduceDocumentsForUpload(
+            [
+                ...existingDocuments.filter((doc) => doc.docType === documentType),
+                ...documents.filter((doc) => doc.docType === documentType),
+            ],
             documentConfig,
             mergedPdfBlob!,
             patientDetails!,
             existingId ? existingDocuments[0]?.versionId! : '1',
         );
+        reducedDocuments.push(...currentDocTypeDocuments);
+
+        if (documentConfig.associatedSnomed) {
+            const associatedDocuments = await reduceDocumentsForUpload(
+                [
+                    ...existingDocuments.filter(
+                        (doc) => doc.docType === documentConfig.associatedSnomed,
+                    ),
+                    ...documents.filter((doc) => doc.docType === documentConfig.associatedSnomed),
+                ],
+                getConfigForDocType(documentConfig.associatedSnomed),
+                mergedPdfBlob!,
+                patientDetails!,
+                existingId ? existingDocuments[0]?.versionId! : '1',
+            );
+            reducedDocuments.push(...associatedDocuments);
+        }
 
         setDocuments(reducedDocuments);
 
@@ -231,7 +264,17 @@ const DocumentUploadPage = (): React.JSX.Element => {
                 uploadAllDocuments(uploadingDocuments, uploadSession);
             }
 
-            const updateStateInterval = startIntervalTimer(uploadingDocuments);
+            const updateStateInterval = startIntervalTimer(
+                uploadingDocuments,
+                interval,
+                documents,
+                setDocuments,
+                patientDetails,
+                baseUrl,
+                baseHeaders,
+                nhsNumber,
+                UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS,
+            );
             setIntervalTimer(updateStateInterval);
         } catch (e) {
             const error = e as AxiosError;
@@ -250,65 +293,6 @@ const DocumentUploadPage = (): React.JSX.Element => {
                 navigate(routes.SERVER_ERROR + errorToParams(error));
             }
         }
-    };
-
-    const startIntervalTimer = (uploadDocuments: Array<UploadDocument>): number => {
-        return window.setInterval(async () => {
-            interval.current = interval.current + 1;
-            if (isLocal) {
-                const updatedDocuments = uploadDocuments.map((doc) => {
-                    const min = (doc.progress ?? 0) + 40;
-                    const max = 70;
-                    doc.progress = Math.random() * (min + max - (min + 1)) + min;
-                    doc.progress = doc.progress > 100 ? 100 : doc.progress;
-                    if (doc.progress < 100) {
-                        doc.state = DOCUMENT_UPLOAD_STATE.UPLOADING;
-                    } else if (doc.state !== DOCUMENT_UPLOAD_STATE.SCANNING) {
-                        doc.state = DOCUMENT_UPLOAD_STATE.SCANNING;
-                    } else {
-                        const hasVirusFile = documents.filter(
-                            (d) => d.file.name.toLocaleLowerCase() === 'virus.pdf',
-                        );
-                        const hasFailedFile = documents.filter(
-                            (d) => d.file.name.toLocaleLowerCase() === 'virus-failed.pdf',
-                        );
-                        hasVirusFile.length > 0
-                            ? (doc.state = DOCUMENT_UPLOAD_STATE.INFECTED)
-                            : hasFailedFile.length > 0
-                              ? (doc.state = DOCUMENT_UPLOAD_STATE.FAILED)
-                              : (doc.state = DOCUMENT_UPLOAD_STATE.SUCCEEDED);
-                    }
-
-                    return doc;
-                });
-                setDocuments(updatedDocuments);
-            } else {
-                try {
-                    if (patientDetails?.canManageRecord) {
-                        const documentStatusResult = await getDocumentStatus({
-                            documents: uploadDocuments,
-                            baseUrl,
-                            baseHeaders,
-                            nhsNumber,
-                        });
-
-                        handleDocStatusResult(documentStatusResult, setDocuments);
-                    } else {
-                        uploadDocuments.forEach(async (document) => {
-                            void getDocumentReviewStatus({
-                                document,
-                                baseUrl,
-                                baseHeaders,
-                                nhsNumber,
-                            }).then((result) => handleDocReviewStatusResult(result, setDocuments));
-                        });
-                    }
-                } catch (e) {
-                    const error = e as AxiosError;
-                    navigate(routes.SERVER_ERROR + errorToParams(error));
-                }
-            }
-        }, UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS);
     };
 
     if (
@@ -338,6 +322,9 @@ const DocumentUploadPage = (): React.JSX.Element => {
         );
     };
 
+    const hasNextDocType = documentTypeList.indexOf(documentType) < documentTypeList.length - 1;
+    const hasPreviousDocType = documentTypeList.indexOf(documentType) > 0;
+
     return (
         <div>
             <Routes>
@@ -346,11 +333,35 @@ const DocumentUploadPage = (): React.JSX.Element => {
                     path={getLastURLPath(routeChildren.DOCUMENT_UPLOAD_SELECT_FILES) + '/*'}
                     element={
                         <DocumentSelectStage
-                            documents={documents}
+                            documents={documents.filter((doc) => doc.docType === documentType)}
                             setDocuments={setDocuments}
                             documentType={documentType}
                             filesErrorRef={filesErrorPageRef}
                             documentConfig={documentConfig}
+                            goToNextDocType={
+                                hasNextDocType
+                                    ? () =>
+                                          goToNextDocType(
+                                              documentTypeList,
+                                              documentType,
+                                              setShowSkipLink,
+                                              setDocumentType,
+                                              documents,
+                                          )
+                                    : undefined
+                            }
+                            goToPreviousDocType={
+                                hasPreviousDocType
+                                    ? () =>
+                                          goToPreviousDocType(
+                                              documentTypeList,
+                                              documentType,
+                                              setShowSkipLink,
+                                              setDocumentType,
+                                          )
+                                    : undefined
+                            }
+                            showSkiplink={showSkipLink}
                         />
                     }
                 />
@@ -358,7 +369,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
                     path={getLastURLPath(routeChildren.DOCUMENT_UPLOAD_SELECT_ORDER) + '/*'}
                     element={
                         <DocumentSelectOrderStage
-                            documents={documents}
+                            documents={documents.filter((doc) => doc.docType === documentType)}
                             setDocuments={setDocuments}
                             setMergedPdfBlob={setMergedPdfBlob}
                             existingDocuments={existingDocuments}
@@ -382,7 +393,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
                     element={
                         <DocumentUploadConfirmStage
                             documents={documents}
-                            documentConfig={documentConfig}
+                            setDocuments={setDocuments}
                             confirmFiles={confirmFiles}
                         />
                     }

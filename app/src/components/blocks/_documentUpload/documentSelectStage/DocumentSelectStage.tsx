@@ -1,4 +1,11 @@
-import { Button, Fieldset, Table, TextInput, WarningCallout } from 'nhsuk-react-components';
+import {
+    BackLink,
+    Button,
+    Fieldset,
+    Table,
+    TextInput,
+    WarningCallout,
+} from 'nhsuk-react-components';
 import { getDocument } from 'pdfjs-dist';
 import { JSX, RefObject, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,7 +24,6 @@ import {
     SetUploadDocuments,
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
-import BackButton from '../../../generic/backButton/BackButton';
 import LinkButton from '../../../generic/linkButton/LinkButton';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
@@ -34,6 +40,9 @@ export type Props = {
     documentConfig: DOCUMENT_TYPE_CONFIG;
     onSuccessOverride?: () => void;
     backLinkOverride?: string;
+    goToNextDocType?: () => void;
+    goToPreviousDocType?: () => void;
+    showSkiplink?: boolean;
 };
 
 type UploadFilesError = ErrorMessageListItem<UPLOAD_FILE_ERROR_TYPE>;
@@ -46,6 +55,9 @@ const DocumentSelectStage = ({
     documentConfig,
     onSuccessOverride,
     backLinkOverride,
+    goToNextDocType,
+    goToPreviousDocType,
+    showSkiplink,
 }: Props): JSX.Element => {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [noFilesSelected, setNoFilesSelected] = useState<boolean>(false);
@@ -200,7 +212,10 @@ const DocumentSelectStage = ({
 
         setNoFilesSelected(sortedDocs.length === 0);
 
-        setDocuments(sortedDocs);
+        setDocuments((previousState) => {
+            const docs = previousState.filter((doc) => doc.docType !== documentType);
+            return [...docs, ...sortedDocs];
+        });
     };
 
     const validateDocuments = (): boolean => {
@@ -208,12 +223,28 @@ const DocumentSelectStage = ({
 
         documents?.forEach((doc) => (doc.validated = true));
 
-        setDocuments([...documents]);
+        setDocuments((previousState) => {
+            previousState.forEach((doc) => {
+                if (doc.docType === documentType) {
+                    doc.validated = true;
+                }
+            });
+            return [...previousState];
+        });
 
         return (
             documents.length > 0 &&
             documents.every((doc) => doc.state !== DOCUMENT_UPLOAD_STATE.FAILED)
         );
+    };
+
+    const navigateToNextStep = (): void => {
+        if (documentConfig.stitched) {
+            navigate.withParams(routeChildren.DOCUMENT_UPLOAD_SELECT_ORDER);
+            return;
+        }
+
+        navigate.withParams(routeChildren.DOCUMENT_UPLOAD_CONFIRMATION);
     };
 
     const continueClicked = (): void => {
@@ -232,7 +263,18 @@ const DocumentSelectStage = ({
             return;
         }
 
-        navigate.withParams(routeChildren.DOCUMENT_UPLOAD_CONFIRMATION);
+        skipClicked();
+    };
+
+    const skipClicked = (): void => {
+        if (goToNextDocType) {
+            goToNextDocType();
+            window.scrollTo(0, 0);
+        } else {
+            navigateToNextStep();
+        }
+
+        resetErrors();
     };
 
     const DocumentRow = (document: UploadDocument, index: number): JSX.Element => {
@@ -307,12 +349,27 @@ const DocumentSelectStage = ({
         return errors;
     };
 
+    const resetErrors = (): void => {
+        setNoFilesSelected(false);
+        setTooManyFilesAdded(false);
+    };
+
+    const backClicked = (): void => {
+        if (backLinkOverride) {
+            navigate(backLinkOverride);
+        } else if (goToPreviousDocType) {
+            goToPreviousDocType();
+            resetErrors();
+        } else {
+            navigate(routes.VERIFY_PATIENT);
+        }
+    };
+
     return (
-        <>
-            <BackButton
-                toLocation={backLinkOverride ?? routes.VERIFY_PATIENT}
-                dataTestid="back-button"
-            />
+        <div className="document-select-stage">
+            <BackLink onClick={backClicked} data-testid="back-button">
+                Go back
+            </BackLink>
 
             {(errorDocs().length > 0 || noFilesSelected || tooManyFilesAdded) && (
                 <ErrorBox
@@ -473,17 +530,23 @@ const DocumentSelectStage = ({
                     )}
                 </>
             )}
-            <div className="lloydgeorge_upload-submission">
+            <div className="action-buttons">
                 <Button
                     type="button"
                     id="continue-button"
                     data-testid="continue-button"
                     onClick={continueClicked}
+                    className="continue-button mr-4"
                 >
                     Continue
                 </Button>
+                {showSkiplink && (
+                    <LinkButton data-testid="skip-link" onClick={skipClicked}>
+                        {documentConfig.content.skipDocumentLinkText}
+                    </LinkButton>
+                )}
             </div>
-        </>
+        </div>
     );
 };
 

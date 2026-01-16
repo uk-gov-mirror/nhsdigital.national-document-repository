@@ -556,16 +556,6 @@ $hunit: '%';
         text-align: left;
         color: #d5281b;
     }
-
-    &_upload-submission {
-        .lloydgeorge_link {
-            padding: 0;
-
-            &:focus {
-                @include link-focus;
-            }
-        }
-    }
 }
 
 .input-stage-inset-text {
@@ -1310,3 +1300,4 @@ progress:not(.continuous-progress-bar) {
 @import '../components/generic/spinnerV2/SpinnerV2.scss';
 @import '../components/blocks/_admin/reviewDetailsNoFilesChoiceStage/ReviewDetailsNoFilesChoiceStage.scss';
 @import '../components/blocks/_admin/reviewDetailsDownloadChoiceStage/ReviewDetailsDownloadChoiceStage.scss';
+@import '../components/blocks/_documentUpload/documentSelectStage/DocumentSelectStage.scss';

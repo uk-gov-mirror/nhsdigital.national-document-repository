@@ -209,6 +209,7 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
                 recordType = getConfigForDocType(dto.documentSnomedCodeType).content
                     .reviewList as string;
             } catch {}
+
             return {
                 id: dto.id,
                 version: dto.version,

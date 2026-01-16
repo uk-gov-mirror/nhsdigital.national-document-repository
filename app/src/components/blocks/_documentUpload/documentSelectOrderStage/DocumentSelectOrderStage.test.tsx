@@ -10,6 +10,7 @@ import { fileUploadErrorMessages } from '../../../../helpers/utils/fileUploadErr
 import { buildDocumentConfig, buildLgFile } from '../../../../helpers/test/testBuilders';
 import { Mock } from 'vitest';
 import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
+import { SetStateAction } from 'react';
 
 const mockNavigate = vi.fn();
 const mockSetDocuments = vi.fn();
@@ -75,6 +76,7 @@ describe('DocumentSelectOrderStage', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+        vi.resetAllMocks();
     });
 
     describe('Rendering', () => {
@@ -171,7 +173,7 @@ describe('DocumentSelectOrderStage', () => {
 
         it('updates document position when dropdown value changes', async () => {
             const user = userEvent.setup();
-            const multipleDocuments = [
+            let multipleDocuments = [
                 {
                     docType: DOCUMENT_TYPE.LLOYD_GEORGE,
                     id: '1',
@@ -190,14 +192,65 @@ describe('DocumentSelectOrderStage', () => {
                     numPages: 3,
                     position: 2,
                 },
+                {
+                    docType: DOCUMENT_TYPE.EHR,
+                    id: '3',
+                    file: buildLgFile(2),
+                    attempts: 0,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    numPages: 3,
+                    position: 0,
+                },
             ];
 
-            renderSut(multipleDocuments);
+            const expectedDocs = [
+                {
+                    docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    id: '1',
+                    file: buildLgFile(1),
+                    attempts: 0,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    numPages: 5,
+                    position: 2,
+                },
+                {
+                    docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    id: '2',
+                    file: buildLgFile(2),
+                    attempts: 0,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    numPages: 3,
+                    position: 2,
+                },
+                {
+                    docType: DOCUMENT_TYPE.EHR,
+                    id: '3',
+                    file: buildLgFile(2),
+                    attempts: 0,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    numPages: 3,
+                    position: 0,
+                },
+            ];
+
+            mockSetDocuments.mockImplementationOnce((arg) => {
+                if (typeof arg === 'function') {
+                    multipleDocuments = arg(multipleDocuments);
+                } else {
+                    multipleDocuments = arg;
+                }
+                multipleDocuments = arg(multipleDocuments);
+            });
+
+            renderSut(
+                multipleDocuments.filter((doc) => doc.docType === DOCUMENT_TYPE.LLOYD_GEORGE),
+            );
 
             const positionSelect = screen.getByTestId('1');
             await user.selectOptions(positionSelect, '2');
 
             expect(mockSetDocuments).toHaveBeenCalled();
+            expect(multipleDocuments).toEqual(expectedDocs);
         });
     });
 

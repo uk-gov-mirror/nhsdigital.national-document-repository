@@ -16,17 +16,20 @@
         "addFilesSelectTitle": "",
         "uploadFilesSelectTitle": "Choose electronic health record attachment files to upload",
         "uploadFilesBulletPoints": [
-            "Check your files open correctly",
-            "Remove any passwords from files",
+            "You can upload files in any format apart from .zip and .exe files",
+            "If you add more than one attachment, we'll automatically zip them when you upload",
             "If there is a problem with your any of your files during upload, you'll need to resolve these before continuing"
         ],
         "chooseFilesMessage": "Choose files to upload",
         "chooseFilesButtonLabel": "Choose files",
         "chooseFilesWarningText": "",
         "confirmFilesTitle": "Check files are for the correct patient",
-        "beforeYouUploadTitle": "Before you upload",
+        "confirmFilesTableTitle": "Attachments to this EHR to upload",
+        "confirmFilesTableParagraph": "You can upload files in any format but you can only view PDF files in this service.",
+        "beforeYouUploadTitle": "Before you upload the EHR attachments",
         "previewUploadTitle": "Preview electronic health record attachment",
         "uploadFilesExtraParagraph": "",
-        "reviewList": "EHR Attachments"
+        "reviewList": "EHR Attachments",
+        "skipDocumentLinkText": "Continue without uploading any EHR attachments"
     }
 }
