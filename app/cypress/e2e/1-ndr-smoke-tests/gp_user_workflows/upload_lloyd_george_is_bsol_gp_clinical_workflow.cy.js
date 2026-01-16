@@ -109,7 +109,7 @@ describe('GP Workflow: Upload Lloyd George record', () => {
 
         cy.url().should('contain', confirmationUrl);
         uploadedFileNames.forEach((name) => {
-          cy.get('#selected-documents-table').should('contain', name);
+          cy.get('#selected-16521000000101-table').should('contain', name);
         });
         cy.getByTestId('confirm-button').click();
 
