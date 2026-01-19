@@ -79,7 +79,12 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
 
         except (ValidationError, InvalidNhsNumberException) as e:
             logger.error(f"FHIR document validation error: {str(e)}")
-            raise DocumentRefException(400, LambdaError.DocRefNoParse)
+            raise DocumentRefException(
+                400,
+                LambdaError.DocRefNoParse,
+                details=str(e),
+            )
+
         except ClientError as e:
             logger.error(f"AWS client error: {str(e)}")
             raise DocumentRefException(500, LambdaError.InternalServerError)

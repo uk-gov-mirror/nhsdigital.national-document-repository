@@ -90,13 +90,13 @@ def test_create_document_virus(test_data):
             "9999999993",
             400,
             "VALIDATION_ERROR",
-            "Failed to parse document upload request data",
+            "Failed to parse document upload request data: Invalid NHS number format",
         ),
         (
             "123",
             400,
             "VALIDATION_ERROR",
-            "Failed to parse document upload request data",
+            "Failed to parse document upload request data: Invalid NHS number length",
         ),
     ],
 )

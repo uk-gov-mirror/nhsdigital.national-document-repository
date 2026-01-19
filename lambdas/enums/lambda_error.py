@@ -17,23 +17,48 @@ class ErrorMessage(StrEnum):
 class LambdaError(Enum):
 
     def create_error_response(
-        self, params: Optional[dict] = None, **kwargs
-    ) -> ErrorResponse:
+        self,
+        params: Optional[dict] = None,
+        details: Optional[str] = None,
+        **kwargs,
+    ) -> "ErrorResponse":
         err_code = self.value["err_code"]
         message = self.value["message"]
+
         if "%" in message and params:
             message = message % params
+
+        if details:
+            message = f"{message}: {details}"
+
         interaction_id = getattr(request_context, "request_id", None)
         error_response = ErrorResponse(
-            err_code=err_code, message=message, interaction_id=interaction_id, **kwargs
+            err_code=err_code,
+            message=message,
+            interaction_id=interaction_id,
+            **kwargs,
         )
         return error_response
 
-    def to_str(self) -> str:
-        return f"[{self.value['err_code']}] {self.value['message']}"
+    def to_str(
+        self, params: Optional[dict] = None, details: Optional[str] = None
+    ) -> str:
+        message = self.value["message"]
+        if "%" in message and params:
+            message = message % params
+        if details:
+            message = f"{message}: {details}"
+        return f"[{self.value['err_code']}] {message}"
 
-    def create_error_body(self, params: Optional[dict] = None, **kwargs) -> str:
-        return self.create_error_response(params, **kwargs).create()
+    def create_error_body(
+        self,
+        params: Optional[dict] = None,
+        details: Optional[str] = None,
+        **kwargs,
+    ) -> str:
+        return self.create_error_response(
+            params=params, details=details, **kwargs
+        ).create()
 
     """
     Errors for SearchPatientException
@@ -326,7 +351,7 @@ class LambdaError(Enum):
     }
 
     """
-       Errors for Send Feedback lambda 
+       Errors for Send Feedback lambda
     """
     FeedbackMissingBody = {
         "err_code": "SFB_4001",
@@ -349,7 +374,7 @@ class LambdaError(Enum):
     }
 
     """
-       Errors for Feature Flags lambda 
+       Errors for Feature Flags lambda
     """
     FeatureFlagNotFound = {
         "err_code": "FFL_4001",
@@ -372,7 +397,7 @@ class LambdaError(Enum):
     }
 
     """
-       Errors for Virus Scan lambda 
+       Errors for Virus Scan lambda
     """
     VirusScanNoBody = {"err_code": "VSR_4001", "message": "Missing event body"}
     VirusScanUnclean = {
@@ -401,7 +426,7 @@ class LambdaError(Enum):
     }
 
     """
-       Errors for Upload Confirm Result lambda 
+       Errors for Upload Confirm Result lambda
     """
     UploadConfirmResultMissingParams = {
         "err_code": "UC_4001",
@@ -418,7 +443,7 @@ class LambdaError(Enum):
     }
 
     """
-       Errors for Generate Manifest Zip lambda 
+       Errors for Generate Manifest Zip lambda
     """
 
     JobIdNotFound = {
@@ -437,7 +462,7 @@ class LambdaError(Enum):
         "message": "Failed to generate document manifest",
     }
     """
-       Errors for Update Upload State lambda 
+       Errors for Update Upload State lambda
     """
     UpdateUploadStateMissingBody = {
         "err_code": "US_4001",
@@ -468,7 +493,7 @@ class LambdaError(Enum):
         "message": "Dynamo client error",
     }
     """
-       Errors for fhir get document reference lambda 
+       Errors for fhir get document reference lambda
     """
     DocumentReferenceNotFound = {
         "err_code": "NRL_DR_4041",
@@ -528,7 +553,7 @@ class LambdaError(Enum):
     }
 
     """
-       Errors for get ods report lambda 
+       Errors for get ods report lambda
     """
     NoDataFound = {
         "err_code": "OR_4041",
@@ -539,14 +564,14 @@ class LambdaError(Enum):
         "message": "Failed to process unsupported file type",
     }
     """
-       Errors for get access audit lambda 
+       Errors for get access audit lambda
     """
     InvalidReasonInput = {
         "err_code": "AA_4001",
         "message": "Invalid reason code",
     }
     """
-       Errors for PDF Stitching lambda 
+       Errors for PDF Stitching lambda
     """
     MultipartError = {
         "err_code": "PS_4001",

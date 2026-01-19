@@ -208,6 +208,44 @@ def test_validation_error(
     assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
+
+@pytest.mark.parametrize(
+    "nhs_number,expected_error_message",
+    [
+        (
+            "9999999993",
+            "Failed to parse document upload request data: Invalid NHS number format",
+        ),
+        (
+            "123",
+            "Failed to parse document upload request data: Invalid NHS number length",
+        ),
+    ],
+)
+def test_doc_ref_no_parse_message_includes_details_format(
+    mock_post_fhir_doc_ref_service,
+    valid_fhir_doc_json,
+    nhs_number,
+    expected_error_message,
+):
+    """Test handling of DocRefNoParse with specific NHS number errors."""
+    doc = json.loads(valid_fhir_doc_json)
+    doc["subject"]["identifier"]["value"] = nhs_number
+    invalid_nhs_doc_json = json.dumps(doc)
+
+    with pytest.raises(DocumentRefException) as error:
+        mock_post_fhir_doc_ref_service.process_fhir_document_reference(invalid_nhs_doc_json)
+
+    assert error.value.status_code == 400
+    assert error.value.error == LambdaError.DocRefNoParse
+
+    body_json = error.value.error.create_error_body(details=error.value.details)
+    payload = json.loads(body_json)
+
+    assert payload["err_code"] == "DR_4005"
+    assert payload["message"] == expected_error_message
+
+
 @pytest.mark.parametrize(
     "modify_doc, expected_error",
     [

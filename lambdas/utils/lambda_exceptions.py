@@ -1,10 +1,15 @@
+from typing import Optional
+
 from enums.lambda_error import LambdaError
 
 
 class LambdaException(Exception):
-    def __init__(self, status_code, error: LambdaError):
+    def __init__(
+        self, status_code: int, error: LambdaError, *, details: Optional[str] = None
+    ):
         self.status_code = status_code
         self.error = error
+        self.details = details
         self.message = error.value["message"]
         self.err_code = error.value["err_code"]
 
