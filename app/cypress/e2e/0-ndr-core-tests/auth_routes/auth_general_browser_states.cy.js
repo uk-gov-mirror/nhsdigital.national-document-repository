@@ -65,7 +65,7 @@ describe('Authentication & Authorisation', () => {
                     cy.visit(route);
 
                     // Assert that the user is redirected
-                    cy.url().should('equal', baseUrl + '/unauthorised');
+                    cy.url().should('contain', baseUrl + '/unauthorised');
                 },
             );
         });

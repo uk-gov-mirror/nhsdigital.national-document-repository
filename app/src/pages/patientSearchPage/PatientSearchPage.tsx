@@ -125,7 +125,14 @@ const PatientSearchPage = (): JSX.Element => {
     };
     return (
         <>
-            <BackLink asElement="a" href={routes.HOME}>
+            <BackLink 
+                data-testid="go-to-home-link"
+                asElement="a"
+                href='#'
+                onClick={(): void => {
+                    navigate(routes.HOME)
+                }}
+            >
                 Go to home
             </BackLink>
             {(submissionState === SEARCH_STATES.FAILED ||

@@ -97,4 +97,14 @@ describe('DownloadReportSelectStage', () => {
             });
         });
     });
+
+    it('should navigate to home when clicking go to home link', async () => {
+        const report = getReportByType(REPORT_TYPE.ODS_PATIENT_SUMMARY);
+        render(<DownloadReportSelectStage report={report!} />);
+
+        await userEvent.click(screen.getByText('Go to home'));
+        await waitFor(() => {
+            expect(mockedUseNavigate).toHaveBeenCalledWith(routes.HOME);
+        });
+    });
 });

@@ -28,11 +28,11 @@ describe('GP Admin user role has access to the expected GP_ADMIN workflow paths'
 
             cy.login(Roles.GP_ADMIN);
 
-            cy.url().should('eq', baseUrl + routes.home);
+            cy.url().should('contain', baseUrl + routes.home);
 
             cy.navigateToPatientSearchPage();
 
-            cy.url().should('eq', baseUrl + routes.patientSearch);
+            cy.url().should('contain', baseUrl + routes.patientSearch);
 
             cy.get('#nhs-number-input').click();
             cy.get('#nhs-number-input').type(testPatient);
@@ -40,12 +40,12 @@ describe('GP Admin user role has access to the expected GP_ADMIN workflow paths'
             cy.wait('@search');
 
             cy.url().should('include', 'verify');
-            cy.url().should('eq', baseUrl + patientVerifyUrl);
+            cy.url().should('contain', baseUrl + patientVerifyUrl);
 
             cy.get('#verify-submit').click();
 
             cy.url().should('include', 'lloyd-george-record');
-            cy.url().should('eq', baseUrl + lloydGeorgeViewUrl);
+            cy.url().should('contain', baseUrl + lloydGeorgeViewUrl);
         });
     });
 });

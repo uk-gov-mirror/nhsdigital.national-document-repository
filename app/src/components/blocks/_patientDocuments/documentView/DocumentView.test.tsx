@@ -104,6 +104,7 @@ const renderComponent = (documentReference: DocumentReference | null = mockDocum
 };
 
 describe('DocumentView', () => {
+    const mockExitFullscreen = vi.fn();
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockUsePatient.mockReturnValue(mockPatientDetails);
@@ -121,6 +122,12 @@ describe('DocumentView', () => {
             writable: true,
             configurable: true,
             value: null,
+        });
+
+        Object.defineProperty(document, 'exitFullscreen', {
+            writable: true,
+            configurable: true,
+            value: mockExitFullscreen,
         });
 
         // Mock fetch
@@ -190,6 +197,24 @@ describe('DocumentView', () => {
             simulateFullscreenChange(false);
 
             expect(screen.getByText('View in full screen')).toBeInTheDocument();
+        });
+
+        it('should navigate to logout page when sign out is clicked in fullscreen', async () => {
+            renderComponent();
+
+            await screen.findByTitle(EMBEDDED_PDF_VIEWER_TITLE);
+            await userEvent.click(screen.getByText('View in full screen'));
+
+            // Simulate the browser entering fullscreen
+            simulateFullscreenChange(true);
+
+            const signOutButton = screen.getByTestId('sign-out-link');
+            fireEvent.click(signOutButton);
+
+            await waitFor(() => {
+                expect(mockExitFullscreen).toHaveBeenCalled();
+                expect(mockUseNavigate).toHaveBeenCalledWith(routes.LOGOUT);
+            });
         });
     });
 

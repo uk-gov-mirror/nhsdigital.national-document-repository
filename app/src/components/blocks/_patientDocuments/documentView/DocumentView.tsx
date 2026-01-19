@@ -20,6 +20,7 @@ import BackButton from '../../../generic/backButton/BackButton';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import { useEffect } from 'react';
 import useRole from '../../../../helpers/hooks/useRole';
+import LinkButton from '../../../generic/linkButton/LinkButton';
 
 type Props = {
     documentReference: DocumentReference | null;
@@ -213,13 +214,17 @@ const DocumentView = ({
                             Exit full screen
                         </Button>
                         <h1 className="title">{pageHeader}</h1>
-                        <a
+                        <LinkButton
+                            data-testid="sign-out-link"
                             className="sign-out-link"
-                            href={routes.LOGOUT}
-                            onClick={disableFullscreen}
+                            href='#'
+                            onClick={(): void => {
+                                disableFullscreen();
+                                navigate(routes.LOGOUT);
+                            }}
                         >
                             Sign out
-                        </a>
+                        </LinkButton>
                     </div>
                 </div>
             )}

@@ -105,6 +105,7 @@ const renderComponent = (propsOverride?: Partial<Props>) => {
 };
 
 describe('<LloydGeorgeViewRecordStage />', () => {
+    const mockExitFullscreen = vi.fn();
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockedUsePatient.mockReturnValue(mockPatientDetails);
@@ -121,6 +122,12 @@ describe('<LloydGeorgeViewRecordStage />', () => {
             writable: true,
             configurable: true,
             value: null,
+        });
+
+        Object.defineProperty(document, 'exitFullscreen', {
+            writable: true,
+            configurable: true,
+            value: mockExitFullscreen,
         });
 
         mockUseBaseAPIUrl.mockReturnValue('http://test-api.com');
@@ -320,6 +327,24 @@ describe('<LloydGeorgeViewRecordStage />', () => {
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(routes.VERIFY_PATIENT);
+            });
+        });
+
+        it('navigates to logout page when Sign Out is clicked', async () => {
+            renderComponent();
+
+            await userEvent.click(
+                await screen.findByRole('button', { name: 'View in full screen' }),
+            );
+
+            // Simulate entering fullscreen
+            simulateFullscreenChange(true);
+
+            await userEvent.click(screen.getByTestId('sign-out-link'));
+
+            await waitFor(() => {
+                expect(mockExitFullscreen).toHaveBeenCalled();
+                expect(mockNavigate).toHaveBeenCalledWith(routes.LOGOUT);
             });
         });
     });

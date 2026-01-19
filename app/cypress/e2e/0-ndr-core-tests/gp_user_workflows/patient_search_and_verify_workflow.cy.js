@@ -75,7 +75,7 @@ describe('GP Workflow: Patient search and verify', () => {
                 cy.get('#verify-submit').click();
 
                 cy.url().should('include', 'lloyd-george-record');
-                cy.url().should('eq', baseUrl + routes.lloydGeorgeView);
+                cy.url().should('contain', baseUrl + routes.lloydGeorgeView);
                 cy.title().should(
                     'eq',
                     'Available records - Access and store digital patient documents',

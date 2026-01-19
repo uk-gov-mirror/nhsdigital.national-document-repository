@@ -4,12 +4,14 @@ import { Button, Card } from 'nhsuk-react-components';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { JSX } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 type Props = {
     report: ReportData;
 };
 
 const DownloadReportCompleteStage = (props: Props): JSX.Element => {
+    const navigate = useNavigate();
     useTitle({ pageTitle: 'Download complete' });
     return (
         <div className="report_download-complete">
@@ -37,12 +39,22 @@ const DownloadReportCompleteStage = (props: Props): JSX.Element => {
                 needed.
             </p>
 
-            <Button href={routes.HOME} className="mr-6" data-testid="home-button">
+            <Button 
+                href='#'
+                onClick={(): void => {
+                    navigate(routes.HOME)
+                }}
+                className="mr-6"
+                data-testid="home-button"
+            >
                 Go to home
             </Button>
             <Button
                 secondary
-                href={`${routes.REPORT_DOWNLOAD}?reportType=${props.report.reportType}`}
+                href='#'
+                onClick={(): void => {
+                    navigate(`${routes.REPORT_DOWNLOAD}?reportType=${props.report.reportType}`)
+                }}
                 data-testid="back-to-download-page-button"
             >
                 Go back to report download page

@@ -4,8 +4,10 @@ import useTitle from '../../helpers/hooks/useTitle';
 import { ReactComponent as RightCircleIcon } from '../../styles/right-chevron-circle.svg';
 import useConfig from '../../helpers/hooks/useConfig';
 import { REPORT_TYPE } from '../../types/generic/reports';
+import { useNavigate } from 'react-router-dom';
 
 const HomePage = (): React.JSX.Element => {
+    const navigate = useNavigate();
     useTitle({ pageTitle: 'Access and store digital patient documents' });
     const config = useConfig();
     const uploadEnabled =
@@ -25,7 +27,10 @@ const HomePage = (): React.JSX.Element => {
                                     <Card.Heading className="nhsuk-heading-m">
                                         <Card.Link
                                             data-testid="search-patient-btn"
-                                            href={routes.SEARCH_PATIENT}
+                                            href='#'
+                                            onClick={(): void => {
+                                                navigate(routes.SEARCH_PATIENT)
+                                            }}
                                         >
                                             View or upload a patient record
                                         </Card.Link>
@@ -40,7 +45,10 @@ const HomePage = (): React.JSX.Element => {
                                     <Card.Heading className="nhsuk-heading-m">
                                         <Card.Link
                                             data-testid="search-patient-btn"
-                                            href={routes.SEARCH_PATIENT}
+                                            href='#'
+                                            onClick={(): void => {
+                                                navigate(routes.SEARCH_PATIENT)
+                                            }}
                                         >
                                             Search for a patient
                                         </Card.Link>
@@ -62,7 +70,10 @@ const HomePage = (): React.JSX.Element => {
                                 <Card.Heading className="nhsuk-heading-m">
                                     <Card.Link
                                         data-testid="admin-console-btn"
-                                        href={routes.ADMIN_ROUTE}
+                                        href='#'
+                                        onClick={(): void => {
+                                            navigate(routes.ADMIN_ROUTE)
+                                        }}
                                     >
                                         Admin console
                                     </Card.Link>
@@ -81,7 +92,10 @@ const HomePage = (): React.JSX.Element => {
                             <Card.Heading className="nhsuk-heading-m">
                                 <Card.Link
                                     data-testid="download-report-btn"
-                                    href={`${routes.REPORT_DOWNLOAD}?reportType=${REPORT_TYPE.ODS_PATIENT_SUMMARY}`}
+                                    href='#'
+                                    onClick={(): void => {
+                                        navigate(`${routes.REPORT_DOWNLOAD}?reportType=${REPORT_TYPE.ODS_PATIENT_SUMMARY}`)
+                                    }}
                                 >
                                     Download a report
                                 </Card.Link>

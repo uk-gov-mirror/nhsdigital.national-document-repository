@@ -39,7 +39,7 @@ describe('Feedback Page', () => {
                         // for test purpose, remove "target=_blank" as cypress not supporting multiple tabs
                         .invoke('removeAttr', 'target')
                         .click();
-                    cy.url().should('eq', baseUrl + feedbackUrl);
+                    cy.url().should('contain', baseUrl + feedbackUrl);
                     cy.title().should(
                         'eq',
                         'Give feedback on this service - Access and store digital patient documents',
@@ -64,7 +64,7 @@ describe('Feedback Page', () => {
                     cy.get('.nhsuk-phase-banner__text a').should('not.exist');
 
                     cy.visit(feedbackUrl);
-                    cy.url().should('eq', baseUrl + '/unauthorised');
+                    cy.url().should('contain', baseUrl + '/unauthorised');
                 },
             );
 

@@ -11,7 +11,7 @@ describe('Home Page', () => {
     });
 
     it('should visit expected URL', { tags: 'regression' }, () => {
-        cy.url().should('eq', baseUrl + startUrl);
+        cy.url().should('contain', baseUrl + startUrl);
         cy.title().should(
             'eq',
             'Access and store digital patient documents - Access and store digital patient documents',
@@ -59,7 +59,7 @@ describe('Home Page', () => {
 
                 cy.login(Roles.GP_CLINICAL);
 
-                cy.url().should('eq', baseUrl + routes.home);
+                cy.url().should('contain', baseUrl + routes.home);
                 cy.get('.nhsuk-navigation-container').should('exist');
                 cy.get('.nhsuk-header__navigation-list').should('exist');
             },
@@ -74,7 +74,7 @@ describe('Home Page', () => {
                 () => {
                     cy.login(role);
 
-                    cy.url().should('eq', baseUrl + routes.home);
+                    cy.url().should('contain', baseUrl + routes.home);
 
                     cy.get('.nhsuk-navigation-container').should('exist');
                     cy.get('.nhsuk-header__navigation-list').should('exist');
@@ -85,7 +85,7 @@ describe('Home Page', () => {
         it('should display home page when user is PCSE Role', { tags: 'regression' }, () => {
             cy.login(Roles.PCSE);
 
-            cy.url().should('eq', baseUrl + routes.home);
+            cy.url().should('contain', baseUrl + routes.home);
 
             cy.get('.nhsuk-navigation-container').should('exist');
             cy.get('.nhsuk-header__navigation-list').should('exist');

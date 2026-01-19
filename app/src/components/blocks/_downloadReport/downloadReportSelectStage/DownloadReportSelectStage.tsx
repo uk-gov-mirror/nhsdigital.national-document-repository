@@ -129,7 +129,10 @@ const DownloadReportSelectStage = (props: Props): JSX.Element => {
             <BackLink
                 data-testid="return-to-home-button"
                 asElement="a"
-                href={routes.HOME}
+                href='#'
+                onClick={(): void => {
+                    navigate(routes.HOME)
+                }}
                 className="mb-5"
             >
                 Go to home

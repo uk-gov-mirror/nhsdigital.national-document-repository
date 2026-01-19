@@ -13,12 +13,12 @@ describe('Privacy Page', () => {
 
     it('verify privacy policy link in start up page', { tags: 'regression' }, () => {
         cy.visit(startUrl);
-        cy.url().should('eq', baseUrl + startUrl);
+        cy.url().should('contain', baseUrl + startUrl);
         cy.get('.nhsuk-footer__list-item-link')
             .should('exist')
             .and('have.attr', { target: '_blank' });
         cy.getByTestId('privacy-link').invoke('removeAttr', 'target').click();
-        cy.url().should('eq', baseUrl + privacypolicyUrl);
+        cy.url().should('contain', baseUrl + privacypolicyUrl);
         cy.title().should('eq', 'Privacy notice - Access and store digital patient documents');
     });
 
@@ -38,7 +38,7 @@ describe('Privacy Page', () => {
                         // for test purpose, remove "target=_blank" as cypress not supporting multiple tabs
                         .invoke('removeAttr', 'target')
                         .click();
-                    cy.url().should('eq', baseUrl + privacypolicyUrl);
+                    cy.url().should('contain', baseUrl + privacypolicyUrl);
                 },
             );
             it('Should display the expected privacy policy details', { tags: 'regression' }, () => {

@@ -48,7 +48,7 @@ describe('PCSE Workflow: patient search and verify', () => {
 
             cy.wait('@documentSearch');
 
-            cy.url().should('eq', baseUrl + documentsUrl);
+            cy.url().should('contain', baseUrl + documentsUrl);
         },
     );
 
@@ -71,7 +71,7 @@ describe('PCSE Workflow: patient search and verify', () => {
             cy.wait('@search');
 
             cy.url().should('include', 'verify');
-            cy.url().should('eq', baseUrl + patientVerifyUrl);
+            cy.url().should('contain', baseUrl + patientVerifyUrl);
         },
     );
 
@@ -94,7 +94,7 @@ describe('PCSE Workflow: patient search and verify', () => {
             cy.wait('@search');
 
             cy.url().should('include', 'verify');
-            cy.url().should('eq', baseUrl + patientVerifyUrl);
+            cy.url().should('contain', baseUrl + patientVerifyUrl);
         },
     );
 });

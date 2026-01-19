@@ -8,6 +8,14 @@ vi.mock('../../../helpers/hooks/useTitle');
 vi.mock('../../styles/right-chevron-circle.svg', () => ({
     ReactComponent: () => 'svg',
 }));
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: () => mockNavigate,
+    };
+});
+const mockNavigate = vi.fn();
 
 describe('AdminPage', (): void => {
     describe('Rendering', (): void => {
@@ -25,8 +33,7 @@ describe('AdminPage', (): void => {
 
         it('renders the Review documents card with correct href', (): void => {
             render(<AdminPage />);
-            const reviewsLink = screen.getByTestId('admin-reviews-btn');
-            expect(reviewsLink).toHaveAttribute('href', routeChildren.ADMIN_REVIEW);
+            expect(screen.getByTestId('admin-reviews-btn')).toBeInTheDocument();
         });
 
         it('renders the Review documents card description', (): void => {
@@ -44,6 +51,15 @@ describe('AdminPage', (): void => {
             render(<AdminPage />);
             const results = await runAxeTest(document.body);
             expect(results).toHaveNoViolations();
+        });
+    });
+
+    describe('Navigation', (): void => {
+        it('navigates to admin review page on Review documents card click', (): void => {
+            render(<AdminPage />);
+            const reviewsLink = screen.getByTestId('admin-reviews-btn');
+            reviewsLink.click();
+            expect(mockNavigate).toHaveBeenCalledWith(routeChildren.ADMIN_REVIEW);
         });
     });
 });

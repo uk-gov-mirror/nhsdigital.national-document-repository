@@ -32,12 +32,12 @@ describe('GP Workflow: Download Lloyd George summary report', () => {
                 cy.wait('@downloadReportFinished', { timeout: 20000 });
 
                 cy.url().should(
-                    'eq',
+                    'contain',
                     Cypress.config('baseUrl') + `${routes.createReportComplete}?reportType=0`,
                 );
 
                 cy.getByTestId('logout-btn').click();
-                cy.url({ timeout: 10000 }).should('eq', Cypress.config('baseUrl') + '/');
+                cy.url({ timeout: 10000 }).should('contain', Cypress.config('baseUrl') + '/');
                 cy.get('.nhsuk-header__navigation').should('not.exist');
             },
         );

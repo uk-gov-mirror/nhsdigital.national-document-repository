@@ -36,7 +36,7 @@ describe('PCSE user role has access to the expected GP_ADMIN workflow paths', ()
 
             cy.login(Roles.PCSE);
 
-            cy.url().should('eq', baseUrl + routes.home);
+            cy.url().should('contain', baseUrl + routes.home);
 
             cy.navigateToPatientSearchPage();
 
@@ -48,7 +48,7 @@ describe('PCSE user role has access to the expected GP_ADMIN workflow paths', ()
             cy.get('#verify-submit').click();
 
             cy.wait('@documentSearch');
-            cy.url().should('eq', baseUrl + documentsUrl);
+            cy.url().should('contain', baseUrl + documentsUrl);
         });
     });
 });

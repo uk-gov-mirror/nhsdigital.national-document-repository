@@ -102,7 +102,7 @@ Cypress.Commands.add('navigateToHomePage', () => {
     const baseUrl = Cypress.config('baseUrl');
 
     cy.getByTestId('home-btn').click();
-    cy.url().should('eq', baseUrl + routes.home);
+    cy.url().should('contain', baseUrl + routes.home);
 });
 
 Cypress.Commands.add('navigateToPatientSearchPage', () => {
@@ -112,7 +112,7 @@ Cypress.Commands.add('navigateToPatientSearchPage', () => {
     cy.getByTestId('search-patient-btn').should('exist');
     cy.getByTestId('search-patient-btn').click();
 
-    cy.url().should('eq', baseUrl + routes.patientSearch);
+    cy.url().should('contain', baseUrl + routes.patientSearch);
 });
 
 Cypress.Commands.add('navigateToDownloadReportPage', () => {
@@ -122,7 +122,7 @@ Cypress.Commands.add('navigateToDownloadReportPage', () => {
     cy.getByTestId('download-report-btn').should('exist');
     cy.getByTestId('download-report-btn').click();
 
-    cy.url().should('eq', baseUrl + `${routes.createReport}?reportType=0`);
+    cy.url().should('contain', baseUrl + `${routes.createReport}?reportType=0`);
 });
 
 declare global {

@@ -27,6 +27,7 @@ import { SearchResult } from '../../../../types/generic/searchResult';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 import lloydGeorgeConfig from '../../../../config/lloydGeorgeConfig.json';
+import LinkButton from '../../../generic/linkButton/LinkButton';
 
 export type Props = {
     downloadStage: DOWNLOAD_STAGE;
@@ -199,13 +200,17 @@ const LloydGeorgeViewRecordStage = ({
                             Exit full screen
                         </Button>
                         <h1 className="title">Lloyd George record</h1>
-                        <a
+                        <LinkButton
+                            data-testid="sign-out-link"
                             className="sign-out-link"
-                            href={routes.LOGOUT}
-                            onClick={disableFullscreen}
+                            href='#'
+                            onClick={() => {
+                                disableFullscreen();
+                                navigate(routes.LOGOUT);
+                            }}
                         >
                             Sign out
-                        </a>
+                        </LinkButton>
                     </div>
                 </div>
             )}

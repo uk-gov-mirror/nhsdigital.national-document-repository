@@ -3,14 +3,15 @@ import HomePage from './HomePage';
 import { buildConfig } from '../../helpers/test/testBuilders';
 import useConfig from '../../helpers/hooks/useConfig';
 import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { userEvent } from '@testing-library/user-event';
 import { routes } from '../../types/generic/routes';
+import { REPORT_TYPE } from '../../types/generic/reports';
 
-const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
-    const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+    const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: (): typeof mockedUseNavigate => mockedUseNavigate,
+        useNavigate: (): Mock => mockNavigate,
     };
 });
 
@@ -19,6 +20,7 @@ vi.mock('../../styles/right-chevron-circle.svg', () => ({
     ReactComponent: (): string => 'svg',
 }));
 const mockUseConfig = useConfig as Mock;
+const mockNavigate = vi.fn();
 
 describe('HomePage', () => {
     beforeEach(() => {
@@ -44,7 +46,7 @@ describe('HomePage', () => {
     });
 
     describe('Admin Console button', () => {
-        it('renders admin console button when feature flag is enabled', () => {
+        it('renders admin console button when feature flag is enabled and user is GP_ADMIN', () => {
             mockUseConfig.mockReturnValue(
                 buildConfig(undefined, { uploadDocumentIteration3Enabled: true }),
             );
@@ -54,7 +56,6 @@ describe('HomePage', () => {
             const adminConsoleButton = screen.getByTestId('admin-console-btn') as HTMLAnchorElement;
             expect(adminConsoleButton).toBeInTheDocument();
             expect(adminConsoleButton).toHaveTextContent('Admin console');
-            expect(adminConsoleButton).toHaveAttribute('href', routes.ADMIN_ROUTE);
         });
 
         it('does not render admin console button when feature flag is disabled', () => {
@@ -68,28 +69,38 @@ describe('HomePage', () => {
         });
     });
 
-    describe('Admin Console button', () => {
-        it('renders admin console button when feature flag is enabled and user is GP_ADMIN', () => {
+    describe('Navigation', () => {
+        it('navigates to patient search when search patient button is clicked', async () => {
+            render(<HomePage />);
+
+            const searchPatientButton = screen.getByTestId('search-patient-btn');
+            await userEvent.click(searchPatientButton);
+
+            expect(mockNavigate).toHaveBeenCalledWith(routes.SEARCH_PATIENT);
+        });
+
+        it('navigates to report download when download report button is clicked', async () => {
+            render(<HomePage />);
+
+            const downloadReportButton = screen.getByTestId('download-report-btn');
+            await userEvent.click(downloadReportButton);
+
+            expect(mockNavigate).toHaveBeenCalledWith(
+                `${routes.REPORT_DOWNLOAD}?reportType=${REPORT_TYPE.ODS_PATIENT_SUMMARY}`,
+            );
+        });
+
+        it('navigates to admin console when admin console button is clicked', async () => {
             mockUseConfig.mockReturnValue(
                 buildConfig(undefined, { uploadDocumentIteration3Enabled: true }),
             );
 
             render(<HomePage />);
 
-            const adminConsoleButton = screen.getByTestId('admin-console-btn') as HTMLAnchorElement;
-            expect(adminConsoleButton).toBeInTheDocument();
-            expect(adminConsoleButton).toHaveTextContent('Admin console');
-            expect(adminConsoleButton).toHaveAttribute('href', routes.ADMIN_ROUTE);
-        });
+            const adminConsoleButton = screen.getByTestId('admin-console-btn');
+            await userEvent.click(adminConsoleButton);
 
-        it('does not render admin console button when feature flag is disabled', () => {
-            mockUseConfig.mockReturnValue(
-                buildConfig(undefined, { uploadDocumentIteration3Enabled: false }),
-            );
-
-            render(<HomePage />);
-
-            expect(screen.queryByTestId('admin-console-btn')).not.toBeInTheDocument();
+            expect(mockNavigate).toHaveBeenCalledWith(routes.ADMIN_ROUTE);
         });
     });
 });

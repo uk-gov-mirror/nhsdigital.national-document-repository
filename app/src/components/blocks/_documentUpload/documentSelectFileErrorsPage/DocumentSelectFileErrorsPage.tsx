@@ -4,6 +4,7 @@ import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/type
 import { fileUploadErrorMessages } from '../../../../helpers/utils/fileUploadErrorMessages';
 import { JSX, useEffect } from 'react';
 import { routes } from '../../../../types/generic/routes';
+import LinkButton from '../../../generic/linkButton/LinkButton';
 
 const helpAndGuidanceLink =
     'https://digital.nhs.uk/services/access-and-store-digital-patient-documents/help-and-guidance';
@@ -62,7 +63,15 @@ const DocumentSelectFileErrorsPage = ({ documents }: Props): JSX.Element => {
             </p>
 
             <p>
-                <a href={routes.HOME}>Go to home</a>
+                <LinkButton
+                    data-testid="go-to-home-link" 
+                    href='#' 
+                    onClick={(): void => {
+                        navigate(routes.HOME)
+                    }}
+                >
+                    Go to home
+                </LinkButton>
             </p>
         </>
     );

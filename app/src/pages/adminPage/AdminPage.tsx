@@ -3,8 +3,10 @@ import { JSX } from 'react';
 import useTitle from '../../helpers/hooks/useTitle';
 import { ReactComponent as RightCircleIcon } from '../../styles/right-chevron-circle.svg';
 import { routeChildren } from '../../types/generic/routes';
+import { useNavigate } from 'react-router-dom';
 
 export const AdminPage = (): JSX.Element => {
+    const navigate = useNavigate();
     useTitle({ pageTitle: 'Admin hub' });
 
     return (
@@ -17,7 +19,10 @@ export const AdminPage = (): JSX.Element => {
                             <Card.Heading className="nhsuk-heading-m">
                                 <Card.Link
                                     data-testid="admin-reviews-btn"
-                                    href={routeChildren.ADMIN_REVIEW}
+                                    href='#'
+                                    onClick={(): void => {
+                                        navigate(routeChildren.ADMIN_REVIEW)
+                                    }}
                                 >
                                     Review documents
                                 </Card.Link>

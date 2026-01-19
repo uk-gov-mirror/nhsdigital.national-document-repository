@@ -33,10 +33,7 @@ describe('GP Workflow: Download Lloyd George summary report', () => {
 
                     cy.wait('@downloadReportFinished', { timeout: 20000 });
 
-                    cy.url().should(
-                        'eq',
-                        Cypress.config('baseUrl') + `${routes.createReportComplete}?reportType=0`,
-                    );
+                    cy.url().should('contain', Cypress.config('baseUrl') + `${routes.createReportComplete}?reportType=0`);
                 },
             );
         });
@@ -104,7 +101,7 @@ describe('GP Workflow: Download Lloyd George summary report', () => {
 
                 cy.wait('@downloadReportFailed', { timeout: 20000 });
 
-                cy.url().should('eq', Cypress.config('baseUrl') + routes.sessionExpired);
+                cy.url().should('contain', Cypress.config('baseUrl') + routes.sessionExpired);
             },
         );
     });

@@ -2,7 +2,7 @@
 // @vitest-environment happy-dom
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, Mock } from 'vitest';
 import DocumentSelectFileErrorsPage from './DocumentSelectFileErrorsPage';
 import {
     UploadDocument,
@@ -12,8 +12,18 @@ import {
     fileUploadErrorMessages,
     UPLOAD_FILE_ERROR_TYPE,
 } from '../../../../helpers/utils/fileUploadErrorMessages';
-import { routes } from '../../../../types/generic/routes';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { routes } from '../../../../types/generic/routes';
+import userEvent from '@testing-library/user-event';
+
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: (): Mock => mockedNavigate,
+    };
+});
+const mockedNavigate = vi.fn();
 
 const createFailedDocument = (name: string, error: UPLOAD_FILE_ERROR_TYPE): UploadDocument => ({
     id: `${name}-id`,
@@ -73,10 +83,7 @@ describe('DocumentSelectFileErrorsPage', () => {
         expect(helpLink).toHaveAttribute('target', '_blank');
         expect(helpLink).toHaveAttribute('rel', 'noreferrer');
 
-        expect(screen.getByRole('link', { name: 'Go to home' })).toHaveAttribute(
-            'href',
-            routes.HOME,
-        );
+        expect(screen.getByTestId('go-to-home-link')).toBeInTheDocument();
     });
 
     it.each([
@@ -109,5 +116,16 @@ describe('DocumentSelectFileErrorsPage', () => {
 
         expect(screen.getByText('bad2.pdf')).toBeInTheDocument();
         expect(screen.getByText('This file is password protected')).toBeInTheDocument();
+    });
+
+    it('navigates to home when "Go to home" link is clicked', async () => {
+        renderDocs([]);
+
+        const goToHomeLink = screen.getByTestId('go-to-home-link');
+        expect(goToHomeLink).toBeInTheDocument();
+
+        await userEvent.click(goToHomeLink);
+
+        expect(mockedNavigate).toHaveBeenCalledWith(routes.HOME);
     });
 });

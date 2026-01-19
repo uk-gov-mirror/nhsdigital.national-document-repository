@@ -362,6 +362,15 @@ describe('PatientSearchPage', () => {
                 ),
             ).toHaveLength(2);
         });
+
+        it('navigates to home page when Go to home link is clicked', async () => {
+            renderPatientSearchPage();
+            await userEvent.click(screen.getByTestId('go-to-home-link'));
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.HOME);
+            });
+        });
     });
 
     describe('Validation', () => {

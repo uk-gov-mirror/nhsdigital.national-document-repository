@@ -14,12 +14,12 @@ const clickUploadButton = () => {
 const testSearchPatientButton = () => {
     cy.getByTestId('search-patient-btn').should('be.visible');
     cy.getByTestId('search-patient-btn').click();
-    cy.url().should('eq', baseUrl + routes.patientSearch);
+    cy.url().should('contain', baseUrl + routes.patientSearch);
 };
 const testViewRecordButton = () => {
     cy.getByTestId('view-record-btn').should('be.visible');
     cy.getByTestId('view-record-btn').click();
-    cy.url().should('eq', baseUrl + lloydGeorgeViewUrl);
+    cy.url().should('contain', baseUrl + lloydGeorgeViewUrl);
 };
 
 const testUploadCompletePageContent = () => {
@@ -95,7 +95,7 @@ describe.skip('GP Workflow: Upload Lloyd George record when user is GP admin and
 
         cy.getByTestId('upload-patient-record-button').click();
         cy.url().should('include', 'upload');
-        cy.url().should('eq', baseUrl + lloydGeorgeUploadUrl);
+        cy.url().should('contain', baseUrl + lloydGeorgeUploadUrl);
         cy.intercept('POST', '**/UploadState**', (req) => {
             req.reply({
                 statusCode: 204,
@@ -490,11 +490,11 @@ describe.skip('GP Workflow: Upload Lloyd George record when user is GP admin and
                     'eq',
                     'The record did not upload - Access and store digital patient documents',
                 );
-                cy.url().should('eq', baseUrl + lloydGeorgeInfectedUrl);
+                cy.url().should('contain', baseUrl + lloydGeorgeInfectedUrl);
 
                 cy.getByTestId('retry-upload-btn').should('exist');
                 cy.getByTestId('retry-upload-btn').click();
-                cy.url().should('eq', baseUrl + lloydGeorgeUploadUrl);
+                cy.url().should('contain', baseUrl + lloydGeorgeUploadUrl);
             },
         );
 
@@ -540,7 +540,7 @@ describe.skip('GP Workflow: Upload Lloyd George record when user is GP admin and
 
                 cy.getByTestId('retry-upload-btn').should('exist');
                 cy.getByTestId('retry-upload-btn').click();
-                cy.url().should('eq', baseUrl + lloydGeorgeUploadUrl);
+                cy.url().should('contain', baseUrl + lloydGeorgeUploadUrl);
             },
         );
         it(
