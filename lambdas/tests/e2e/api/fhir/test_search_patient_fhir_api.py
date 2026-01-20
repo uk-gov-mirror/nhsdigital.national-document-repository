@@ -12,9 +12,9 @@ from tests.e2e.helpers.data_helper import PdmDataHelper
 pdm_data_helper = PdmDataHelper()
 
 
-def search_document_reference(nhs_number, client_cert_path=None, client_key_path=None):
+def search_document_reference(nhs_number, client_cert_path=None, client_key_path=None, resource_type="DocumentReference"):
     """Helper to perform search by NHS number with optional mTLS certs."""
-    url = f"https://{MTLS_ENDPOINT}/DocumentReference?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|{nhs_number}"
+    url = f"https://{MTLS_ENDPOINT}/{resource_type}?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|{nhs_number}"
     headers = {
         "X-Correlation-Id": "1234",
     }
@@ -116,3 +116,10 @@ def test_search_patient_unauthorized_mtls(test_data, temp_cert_and_key):
     body = response.json()
     assert response.status_code == 403
     assert body["message"] == "Forbidden"
+
+
+def test_search_invalid_resource_type(test_data):
+    create_and_store_pdm_record(test_data)
+
+    response = search_document_reference("9912003071", resource_type="FooBar")
+    assert response.status_code == 400

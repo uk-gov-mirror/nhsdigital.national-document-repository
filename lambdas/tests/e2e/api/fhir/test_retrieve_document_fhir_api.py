@@ -73,3 +73,12 @@ def test_forbidden_with_invalid_cert(test_data, temp_cert_and_key):
     body = response.json()
     assert response.status_code == 403
     assert body["message"] == "Forbidden"
+
+def test_retrieve_invalid_resource_type(test_data):
+    pdm_record = create_and_store_pdm_record(test_data)
+
+    response = get_pdm_document_reference(pdm_record["id"], resource_type="FooBar")
+    assert response.status_code == 403
+
+    response_json = response.json()
+    assert response_json["message"] == "Missing Authentication Token"

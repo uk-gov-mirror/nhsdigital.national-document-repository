@@ -8,33 +8,12 @@ import requests
 
 from tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
-    create_mtls_session,
-    fetch_with_retry_mtls,
+    retrieve_document_with_retry,
+    upload_document,
 )
 from tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
-
-
-def upload_document(payload):
-    """Helper to upload DocumentReference."""
-    url = f"https://{MTLS_ENDPOINT}/DocumentReference"
-    headers = {
-        "X-Correlation-Id": "1234",
-    }
-    session = create_mtls_session()
-    return session.post(url, headers=headers, data=payload)
-
-
-def retrieve_document_with_retry(doc_id, condition):
-    """Poll until condition is met on DocumentReference retrieval."""
-    retrieve_url = f"https://{MTLS_ENDPOINT}/DocumentReference/{doc_id}"
-    headers = {
-        "X-Correlation-Id": "1234",
-    }
-    session = create_mtls_session()
-    return fetch_with_retry_mtls(session, retrieve_url, headers, condition)
-
 
 def test_create_document_presign_fails():
     record = {
@@ -165,3 +144,21 @@ def test_create_document_with_invalid_author_returns_error(test_data, author_pay
     assert raw_upload_response.status_code == 400
     assert response_json["resourceType"] == "OperationOutcome"
     assert response_json["issue"][0]["details"]["coding"][0]["code"] == "VALIDATION_ERROR"
+
+def test_upload_invalid_resource_type(test_data):
+    record = {
+        "ods": "H81109",
+        "nhs_number": "9912003071",
+    }
+
+    sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
+    with open(sample_pdf_path, "rb") as f:
+        record["data"] = base64.b64encode(f.read()).decode("utf-8")
+    payload = pdm_data_helper.create_upload_payload(record=record, return_json=True)
+    payload = json.dumps(payload)
+
+    raw_upload_response = upload_document(payload, resource_type="FooBar")
+    assert raw_upload_response.status_code == 403
+
+    response_json = raw_upload_response.json()
+    assert response_json["message"] == "Missing Authentication Token"

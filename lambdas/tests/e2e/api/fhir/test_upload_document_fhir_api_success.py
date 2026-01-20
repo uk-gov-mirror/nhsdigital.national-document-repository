@@ -3,35 +3,14 @@ import logging
 import os
 
 from tests.e2e.api.fhir.conftest import (
-    MTLS_ENDPOINT,
     PDM_SNOMED,
-    create_mtls_session,
-    fetch_with_retry_mtls,
+    retrieve_document_with_retry,
+    upload_document,
 )
 from tests.e2e.conftest import APIM_ENDPOINT
 from tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
-
-
-def upload_document(payload):
-    """Helper to upload DocumentReference."""
-    url = f"https://{MTLS_ENDPOINT}/DocumentReference"
-    headers = {
-        "X-Correlation-Id": "1234",
-    }
-    session = create_mtls_session()
-    return session.post(url, headers=headers, data=payload)
-
-
-def retrieve_document_with_retry(doc_id, condition):
-    """Poll until condition is met on DocumentReference retrieval."""
-    retrieve_url = f"https://{MTLS_ENDPOINT}/DocumentReference/{doc_id}"
-    headers = {
-        "X-Correlation-Id": "1234",
-    }
-    session = create_mtls_session()
-    return fetch_with_retry_mtls(session, retrieve_url, headers, condition)
 
 
 def test_create_document_base64(test_data):

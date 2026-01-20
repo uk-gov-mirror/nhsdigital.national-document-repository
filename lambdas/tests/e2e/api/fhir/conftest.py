@@ -83,8 +83,8 @@ def temp_cert_and_key():
         shutil.rmtree(temp_dir)
 
 
-def get_pdm_document_reference(record_id, client_cert_path=None, client_key_path=None):
-    url = f"https://{MTLS_ENDPOINT}/DocumentReference/{PDM_SNOMED}~{record_id}"
+def get_pdm_document_reference(record_id, client_cert_path=None, client_key_path=None, resource_type="DocumentReference"):
+    url = f"https://{MTLS_ENDPOINT}/{resource_type}/{PDM_SNOMED}~{record_id}"
     headers = {
         "X-Correlation-Id": "1234",
     }
@@ -112,3 +112,21 @@ def create_and_store_pdm_record(
     pdm_data_helper.create_metadata(record)
     pdm_data_helper.create_resource(record)
     return record
+
+def upload_document(payload, resource_type="DocumentReference"):
+    """Helper to upload DocumentReference."""
+    url = f"https://{MTLS_ENDPOINT}/{resource_type}"
+    headers = {
+        "X-Correlation-Id": "1234",
+    }
+    session = create_mtls_session()
+    return session.post(url, headers=headers, data=payload)
+
+def retrieve_document_with_retry(doc_id, condition):
+    """Poll until condition is met on DocumentReference retrieval."""
+    retrieve_url = f"https://{MTLS_ENDPOINT}/DocumentReference/{doc_id}"
+    headers = {
+        "X-Correlation-Id": "1234",
+    }
+    session = create_mtls_session()
+    return fetch_with_retry_mtls(session, retrieve_url, headers, condition)
