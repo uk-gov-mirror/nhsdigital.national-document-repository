@@ -55,7 +55,7 @@ class SearchDocumentReviewService:
         except ValueError as e:
             logger.error(e)
             raise DocumentReviewLambdaException(
-                400, LambdaError.SearchDocumentInvalidQuerystring
+                400, LambdaError.SearchDocumentInvalidQueryString
             )
 
     def get_review_document_references(

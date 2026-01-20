@@ -117,7 +117,7 @@ class UpdateDocumentReviewService:
                 {"Result": self.FAILED_LOG_MESSAGE},
             )
             raise UpdateDocumentReviewException(
-                400, LambdaError.UpdateDocStatusUnavailable
+                400, LambdaError.DocumentReviewStatusUpdateUnavailable
             )
 
     def _validate_user_match_custodian(self, document, reviewer_ods_code: str):

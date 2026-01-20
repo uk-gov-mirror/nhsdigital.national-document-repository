@@ -176,34 +176,6 @@ class TransactionConflictException(Exception):
     pass
 
 
-class ReviewProcessVerifyingException(Exception):
-    pass
-
-
-class ReviewProcessMovingException(Exception):
-    pass
-
-
-class ReviewProcessDeleteException(Exception):
-    pass
-
-
-class ReviewProcessCreateRecordException(Exception):
-    pass
-
-
-class SSHKeyManagementException(Exception):
-    pass
-
-
-class CorruptedFileException(Exception):
-    pass
-
-
-class InvalidFileTypeException(Exception):
-    pass
-
-
 class MigrationUnrecoverableException(Exception):
     def __init__(self, message: str, item_id: str):
         super().__init__(message)
@@ -222,3 +194,14 @@ class MigrationRetryableException(Exception):
 
     def to_dict(self):
         return {"segmentId": self.segment_id, "message": self.message}
+
+
+class SSHKeyManagementException(Exception):
+    pass
+
+
+class CorruptedFileException(Exception):
+    pass
+
+class InvalidFileTypeException(Exception):
+    pass

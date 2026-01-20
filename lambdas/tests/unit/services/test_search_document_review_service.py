@@ -149,7 +149,7 @@ def test_process_request_handles_validation_error(
             params=MOCK_QUERYSTRING_PARAMS_LIMIT_KEY_UPLOADER,
         )
     assert e.value.status_code == 500
-    assert e.value.err_code == "UDR_5002"
+    assert e.value.err_code == "DRV_5002"
     assert e.value.message == "Review document model error"
 
 

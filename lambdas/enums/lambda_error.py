@@ -522,27 +522,31 @@ class LambdaError(Enum):
         "fhir_coding": UKCoreSpineError.ACCESS_DENIED,
     }
     """
-    Errors for document review lambda
+        Errors for document review lambdas
     """
     DocumentReviewNotFound = {
         "err_code": "DRV_4041",
         "message": "Document review not found",
         "fhir_coding": UKCoreSpineError.RESOURCE_NOT_FOUND,
     }
+
     DocumentReviewGeneralError = {
         "err_code": "DRV_4002",
         "message": "An error occurred while fetching the document review",
         "fhir_coding": FhirIssueCoding.EXCEPTION,
     }
-    UpdateDocStatusUnavailable = {
-        "err_code": "DRV_4003",
+
+    DocumentReviewStatusUpdateUnavailable = {
+        "err_code": "UDR_4001",
         "message": "This Document is not available for review update",
         "fhir_coding": FhirIssueCoding.FORBIDDEN,
     }
+
     DocumentReviewInvalidBody = {
         "err_code": "DRV_4004",
         "message": "Invalid request body",
     }
+
     DocumentReviewInvalidNhsNumber = {
         "err_code": "DRV_4005",
         "message": "The NHS number provided is invalid",
@@ -550,6 +554,36 @@ class LambdaError(Enum):
     DocumentReviewUnsupportedFileType = {
         "err_code": "DRV_4006",
         "message": "The file type provided is not supported",
+    }
+
+    DocumentReviewDB = {
+        "err_code": "DRV_5001",
+        "message": ErrorMessage.RETRIEVE_DOCUMENTS,
+    }
+
+    DocumentReviewValidation = {
+        "err_code": "DRV_5002",
+        "message": "Review document model error",
+    }
+
+    DocumentReviewMissingODS = {
+        "err_code": "DRV_4001",
+        "message": "Missing ODS code in request context",
+    }
+
+    SearchDocumentInvalidQueryString = {
+        "err_code": "SDR_4002",
+        "message": "Invalid query string passed",
+    }
+
+    DocumentReviewUploadForbidden = {
+        "err_code": "UDR_4031",
+        "message": "Forbidden"
+    }
+
+    DocumentReviewPresignedFailure = {
+        "err_code": "UDR_5003",
+        "message": "Presign creation process failure",
     }
 
     """
@@ -694,39 +728,4 @@ class LambdaError(Enum):
         "err_code": "UE_500",
         "message": "An internal server error occurred",
         "fhir_coding": FhirIssueCoding.EXCEPTION,
-    }
-
-    """
-        Errors for DocumentReview exceptions
-    """
-    DocumentReviewDB = {
-        "err_code": "UDR_5001",
-        "message": ErrorMessage.RETRIEVE_DOCUMENTS,
-    }
-
-    DocumentReviewValidation = {
-        "err_code": "UDR_5002",
-        "message": "Review document model error",
-    }
-
-    DocumentReviewMissingODS = {
-        "err_code": "UDR_4001",
-        "message": "Missing ODS code in request context",
-    }
-
-    SearchDocumentInvalidQuerystring = {
-        "err_code": "SDR_4002",
-        "message": "Invalid query string passed",
-    }
-
-    DocumentReviewUploadInvalidRequest = {
-        "err_code": "UDR_4003",
-        "message": "Invalid request",
-    }
-
-    DocumentReviewUploadForbidden = {"err_code": "UDR_4031", "message": "Forbidden"}
-
-    DocumentReviewPresignedFailure = {
-        "err_code": "UDR_5003",
-        "message": "Presign creation process failure",
     }

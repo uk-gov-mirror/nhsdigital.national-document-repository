@@ -17,7 +17,7 @@ from tests.unit.conftest import (
     TEST_NHS_NUMBER,
 )
 from utils.exceptions import DynamoServiceException
-from utils.lambda_exceptions import GetDocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 
 TEST_DOCUMENT_ID = "test-document-id-123"
 TEST_DOCUMENT_VERSION = 1
@@ -170,37 +170,35 @@ def test_get_document_review_nhs_number_mismatch(mock_service, mock_document_rev
 
 
 def test_get_document_review_dynamo_service_exception(mock_service):
-    """Test handling of DynamoServiceException."""
     mock_service.document_review_service.get_document_review_by_id.side_effect = (
         DynamoServiceException("DynamoDB error")
     )
 
-    with pytest.raises(GetDocumentReviewException) as exc_info:
+    with pytest.raises(DocumentReviewLambdaException) as e:
         mock_service.get_document_review(
             patient_id=TEST_NHS_NUMBER,
             document_id=TEST_DOCUMENT_ID,
             document_version=TEST_DOCUMENT_VERSION,
         )
 
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.error == LambdaError.DocRefClient
+    assert e.value.status_code == 500
+    assert e.value.error == LambdaError.DocRefClient
 
 
 def test_get_document_review_unexpected_exception(mock_service):
-    """Test handling of unexpected exceptions."""
     mock_service.document_review_service.get_document_review_by_id.side_effect = (
         Exception("Unexpected error")
     )
 
-    with pytest.raises(GetDocumentReviewException) as exc_info:
+    with pytest.raises(DocumentReviewLambdaException) as e:
         mock_service.get_document_review(
             patient_id=TEST_NHS_NUMBER,
             document_id=TEST_DOCUMENT_ID,
             document_version=TEST_DOCUMENT_VERSION,
         )
 
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.error == LambdaError.DocRefClient
+    assert e.value.status_code == 500
+    assert e.value.error == LambdaError.DocRefClient
 
 
 @freeze_time("2023-11-03T12:00:00Z")

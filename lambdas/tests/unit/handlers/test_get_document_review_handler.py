@@ -3,7 +3,7 @@ import json
 import pytest
 from enums.lambda_error import LambdaError
 from handlers.get_document_review_handler import lambda_handler
-from utils.lambda_exceptions import GetDocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_response import ApiGatewayResponse
 
 MOCK_DOCUMENT_REVIEW_RESPONSE = {
@@ -133,7 +133,7 @@ def test_lambda_handler_raises_exception_returns_500(
     context,
     mock_upload_document_iteration_3_enabled,
 ):
-    mocked_service.get_document_review.side_effect = GetDocumentReviewException(
+    mocked_service.get_document_review.side_effect = DocumentReviewLambdaException(
         500, LambdaError.MockError
     )
     actual = lambda_handler(valid_get_document_review_event, context)

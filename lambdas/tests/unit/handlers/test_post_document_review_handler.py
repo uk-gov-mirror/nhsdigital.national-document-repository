@@ -155,8 +155,8 @@ def test_lambda_handler_returns_400_invalid_event(
     invalid_event, context, mock_upload_document_iteration_3_enabled, set_env
 ):
     body = {
-        "message": LambdaError.DocumentReviewUploadInvalidRequest.value["message"],
-        "err_code": LambdaError.DocumentReviewUploadInvalidRequest.value["err_code"],
+        "message": LambdaError.DocumentReviewInvalidBody.value["message"],
+        "err_code": LambdaError.DocumentReviewInvalidBody.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
 
@@ -173,8 +173,8 @@ def test_lambda_handler_returns_400_no_body_in_event(
     invalid_event_missing_body, context, mock_upload_document_iteration_3_enabled, set_env
 ):
     body = {
-        "message": LambdaError.DocumentReviewUploadInvalidRequest.value["message"],
-        "err_code": LambdaError.DocumentReviewUploadInvalidRequest.value["err_code"],
+        "message": LambdaError.DocumentReviewInvalidBody.value["message"],
+        "err_code": LambdaError.DocumentReviewInvalidBody.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
 
@@ -204,7 +204,7 @@ def test_validate_event_body_invalid_event_throws_error(invalid_event):
     with pytest.raises(DocumentReviewLambdaException) as e:
         validate_event_body(json.loads(invalid_event["body"]))
     assert e.value.status_code == 400
-    assert e.value.err_code == "UDR_4003"
+    assert e.value.err_code == "DRV_4004"
 
 
 def test_validate_event_body_valid_event_returns_document_review_upload_event_model(
@@ -225,7 +225,7 @@ def test_validate_event_body_throws_error_unsupported_snomed_code(invalid_event)
     with pytest.raises(DocumentReviewLambdaException) as e:
         validate_event_body(invalid_event["body"])
     assert e.value.status_code == 400
-    assert e.value.err_code == "UDR_4003"
+    assert e.value.err_code == "DRV_4004"
 
 
 def test_validate_event_body_throws_error_unsupported_file_type(invalid_event):

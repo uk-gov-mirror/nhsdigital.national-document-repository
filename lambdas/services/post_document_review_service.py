@@ -76,7 +76,7 @@ class PostDocumentReviewService:
             )
         except PatientNotFoundException:
             raise DocumentReviewLambdaException(
-                400, LambdaError.DocumentReviewUploadInvalidRequest
+                400, LambdaError.DocumentReviewInvalidBody
             )
         except ValidationError:
             raise DocumentReviewLambdaException(

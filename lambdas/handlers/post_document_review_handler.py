@@ -38,7 +38,7 @@ def lambda_handler(event, context):
     except KeyError as e:
         logger.error(e)
         raise DocumentReviewLambdaException(
-            400, LambdaError.DocumentReviewUploadInvalidRequest
+            400, LambdaError.DocumentReviewInvalidBody
         )
 
     post_document_review_service = PostDocumentReviewService()
@@ -58,7 +58,7 @@ def validate_event_body(body):
     except (ValidationError, InvalidNhsNumberException) as e:
         logger.error(e)
         raise DocumentReviewLambdaException(
-            400, LambdaError.DocumentReviewUploadInvalidRequest
+            400, LambdaError.DocumentReviewInvalidBody
         )
     except InvalidFileTypeException as e:
         logger.error(e)

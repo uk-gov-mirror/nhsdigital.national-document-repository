@@ -355,7 +355,7 @@ def test_validate_review_status_raises_exception_when_status_is_not_valid_for_up
         mock_service._validate_review_status(mock_document_review)
 
     assert exc_info.value.status_code == 400
-    assert exc_info.value.error == LambdaError.UpdateDocStatusUnavailable
+    assert exc_info.value.error == LambdaError.DocumentReviewStatusUpdateUnavailable
 
 
 def test_validate_user_match_custodian_succeeds_when_ods_codes_match(
@@ -656,7 +656,7 @@ def test_update_document_review_raises_exception_when_updating_approved_to_inval
         )
 
     assert exc_info.value.status_code == 400
-    assert exc_info.value.error == LambdaError.UpdateDocStatusUnavailable
+    assert exc_info.value.error == LambdaError.DocumentReviewStatusUpdateUnavailable
 
 
 @pytest.mark.parametrize(
@@ -691,4 +691,4 @@ def test_update_document_review_raises_exception_when_approving_from_non_approve
         )
 
     assert exc_info.value.status_code == 400
-    assert exc_info.value.error == LambdaError.UpdateDocStatusUnavailable
+    assert exc_info.value.error == LambdaError.DocumentReviewStatusUpdateUnavailable

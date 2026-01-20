@@ -142,7 +142,7 @@ def test_process_event_throws_error_failure_to_extract_ods_from_request_context(
         mock_service.process_event(VALID_EVENT)
 
     assert e.value.status_code == 400
-    assert e.value.err_code == "UDR_4001"
+    assert e.value.err_code == "DRV_4001"
 
 
 def test_process_event_calls_pds_for_patient_status_with_nhs_number(
@@ -178,7 +178,7 @@ def test_process_event_handles_pds_patient_not_found(mock_service, mock_extract_
         mock_service.process_event(VALID_EVENT)
 
     assert e.value.status_code == 400
-    assert e.value.err_code == "UDR_4003"
+    assert e.value.err_code == "DRV_4004"
 
 
 def test_process_event_handles_client_error(mock_service, mock_extract_ods):
@@ -190,7 +190,7 @@ def test_process_event_handles_client_error(mock_service, mock_extract_ods):
         mock_service.process_event(VALID_EVENT)
 
     assert e.value.status_code == 500
-    assert e.value.err_code == "UDR_5002"
+    assert e.value.err_code == "DRV_5002"
 
 
 def test_process_event_handles_validation_error_creating_new_dynamo_entry(
@@ -204,7 +204,7 @@ def test_process_event_handles_validation_error_creating_new_dynamo_entry(
         mock_service.process_event(VALID_EVENT)
 
     assert e.value.status_code == 500
-    assert e.value.err_code == "UDR_5002"
+    assert e.value.err_code == "DRV_5002"
 
 
 @freeze_time("2024-01-01 12:00:00")

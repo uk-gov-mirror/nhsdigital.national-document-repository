@@ -7,7 +7,7 @@ from services.base.s3_service import S3Service
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import DynamoServiceException
-from utils.lambda_exceptions import GetDocumentReviewException
+from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.utilities import format_cloudfront_url
 
 logger = LoggingService(__name__)
@@ -87,13 +87,13 @@ class GetDocumentReviewService:
                 f"{LambdaError.DocRefClient.to_str()}: {str(e)}",
                 {"Result": "Failed to retrieve document review"},
             )
-            raise GetDocumentReviewException(500, LambdaError.DocRefClient)
+            raise DocumentReviewLambdaException(500, LambdaError.DocRefClient)
         except Exception as e:
             logger.error(
                 f"Unexpected error retrieving document review: {str(e)}",
                 {"Result": "Failed to retrieve document review"},
             )
-            raise GetDocumentReviewException(500, LambdaError.DocRefClient)
+            raise DocumentReviewLambdaException(500, LambdaError.DocRefClient)
 
     def create_cloudfront_presigned_url(self, file_location: str) -> str:
         """Create a CloudFront obfuscated pre-signed URL for a file.

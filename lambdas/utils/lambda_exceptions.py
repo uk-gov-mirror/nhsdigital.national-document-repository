@@ -118,9 +118,5 @@ class DocumentReviewLambdaException(LambdaException):
     pass
 
 
-class GetDocumentReviewException(LambdaException):
-    pass
-
-
 class UpdateDocumentReviewException(LambdaException):
     pass
