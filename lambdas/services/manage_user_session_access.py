@@ -26,6 +26,7 @@ class ManageUserSessionAccess:
             table_name=self.session_table_name,
             search_key="NDRSessionId",
             search_condition=ndr_session_id,
+            consistent_read=True,
         )
 
         if query_response and len(query_response) > 0:

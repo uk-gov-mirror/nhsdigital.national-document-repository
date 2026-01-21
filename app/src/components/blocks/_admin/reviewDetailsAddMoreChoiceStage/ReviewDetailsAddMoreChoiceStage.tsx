@@ -32,7 +32,13 @@ const ReviewDetailsAddMoreChoiceStage: React.FC<ReviewDetailsAddMoreChoicePagePr
                 navigate,
             );
         } else {
-            navigateUrlParam(routeChildren.ADMIN_REVIEW_UPLOAD_FILE_ORDER, { reviewId }, navigate);
+            navigateUrlParam(
+                reviewData!.files!.length > 1
+                    ? routeChildren.ADMIN_REVIEW_UPLOAD_FILE_ORDER
+                    : routeChildren.ADMIN_REVIEW_UPLOAD,
+                { reviewId },
+                navigate
+            );
         }
     };
 

@@ -1,31 +1,105 @@
 import { Button } from 'nhsuk-react-components';
 import { useNavigate } from 'react-router-dom';
 import useTitle from '../../../../helpers/hooks/useTitle';
-import { routeChildren } from '../../../../types/generic/routes';
+import { routeChildren, routes } from '../../../../types/generic/routes';
 import { CompleteState } from '../../../../pages/adminRoutesPage/AdminRoutesPage';
-import { JSX } from 'react';
+import { JSX, useEffect, useRef, useState } from 'react';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
 import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPatientFullName';
 import { usePatientDetailsContext } from '../../../../providers/patientProvider/PatientProvider';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
+import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
+import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
+import { DocumentReviewStatus } from '../../../../types/blocks/documentReview';
+import Spinner from '../../../generic/spinner/Spinner';
+import patchReview, {
+    PatchDocumentReviewRequestDto,
+} from '../../../../helpers/requests/patchReviews';
+import { PatientDetails } from '../../../../types/generic/patientDetails';
+import { AxiosError } from 'axios';
+import { errorToParams } from '../../../../helpers/utils/errorToParams';
 
 type ReviewDetailsCompleteStageProps = {
     completeState: CompleteState;
     reviewData: ReviewDetails | null;
     reviewUploadDocuments: UploadDocument[];
+    newPatientDetails?: PatientDetails;
+};
+
+export const getReviewStatus = (completeState: CompleteState): DocumentReviewStatus => {
+    if (completeState === CompleteState.PATIENT_MATCHED) {
+        return DocumentReviewStatus.REASSIGNED;
+    }
+    if (completeState === CompleteState.PATIENT_UNKNOWN) {
+        return DocumentReviewStatus.REASSIGNED_PATIENT_UNKNOWN;
+    }
+    if (completeState === CompleteState.NO_FILES_CHOICE) {
+        return DocumentReviewStatus.REJECTED;
+    }
+    return DocumentReviewStatus.APPROVED;
 };
 
 const ReviewDetailsCompleteStage = ({
     completeState,
     reviewData,
     reviewUploadDocuments,
+    newPatientDetails,
 }: ReviewDetailsCompleteStageProps): JSX.Element => {
     const navigate = useNavigate();
     const [patientDetails, setPatientDetails] = usePatientDetailsContext();
+    const patchRefCalled = useRef(false);
+    const baseUrl = useBaseAPIUrl();
+    const baseHeaders = useBaseAPIHeaders();
+    const [loading, setLoading] = useState(false);
 
     useTitle({ pageTitle: 'Review complete' });
+
+    const patchReviewStatus = async (): Promise<void> => {
+        try {
+            setLoading(true);
+            if (!reviewData || reviewUploadDocuments.length === 0) {
+                setLoading(false);
+                return;
+            }
+            const status = getReviewStatus(completeState);
+            const req: PatchDocumentReviewRequestDto = {
+                reviewStatus: status,
+                documentReferenceId: status === DocumentReviewStatus.APPROVED 
+                    ? reviewUploadDocuments[0].ref
+                    : undefined,
+            };
+            if (newPatientDetails) {
+                req.nhsNumber = newPatientDetails.nhsNumber;
+            }
+            await patchReview(
+                baseUrl,
+                baseHeaders,
+                reviewData.id,
+                reviewData.version,
+                reviewData.nhsNumber,
+                req,
+            );
+            setLoading(false);
+        } catch (e) {
+            const error = e as AxiosError;
+            if (error.code === '403') {
+                navigate(routes.SESSION_EXPIRED);
+            } else {
+                navigate(routes.SERVER_ERROR + errorToParams(error));
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (patchRefCalled.current) {
+            return;
+        }
+        patchRefCalled.current = true;
+
+        patchReviewStatus();
+    }, []);
 
     const OnComplete = (): void => {
         setPatientDetails(null);
@@ -161,6 +235,10 @@ const ReviewDetailsCompleteStage = ({
         }
         return <></>;
     };
+
+    if (loading) {
+        return <Spinner status={'Loading'} />;
+    }
 
     return (
         <div className="review-complete" data-testid="review-complete-page">

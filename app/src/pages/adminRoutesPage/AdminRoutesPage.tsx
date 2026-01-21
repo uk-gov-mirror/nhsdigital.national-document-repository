@@ -1,5 +1,5 @@
 import { Dispatch, JSX, SetStateAction, useEffect, useState } from 'react';
-import { Route, Routes, useNavigate } from 'react-router';
+import { Route, Routes, useNavigate } from 'react-router-dom';
 import ReviewDetailsAddMoreChoiceStage from '../../components/blocks/_admin/reviewDetailsAddMoreChoiceStage/ReviewDetailsAddMoreChoiceStage';
 import ReviewDetailsAssessmentStage from '../../components/blocks/_admin/reviewDetailsAssessmentStage/ReviewDetailsAssessmentStage';
 import ReviewDetailsCompleteStage from '../../components/blocks/_admin/reviewDetailsCompleteStage/ReviewDetailsCompleteStage';
@@ -76,7 +76,7 @@ const AdminRoutesPage = (): JSX.Element => {
         }
 
         if (patientDetails?.active) {
-            navigate(routeChildren.ADMIN_REVIEW_COMPLETE_PATIENT_UNKNOWN);
+            navigate(routeChildren.ADMIN_REVIEW_COMPLETE_PATIENT_MATCH);
             return;
         }
 
@@ -116,6 +116,7 @@ const AdminRoutesPage = (): JSX.Element => {
                         completeState={CompleteState.PATIENT_MATCHED}
                         reviewData={reviewData}
                         reviewUploadDocuments={uploadDocuments}
+                        newPatientDetails={newPatientDetails}
                     />
                 }
             />
@@ -215,6 +216,10 @@ const AdminRoutesPage = (): JSX.Element => {
                     <PatientVerifyPage
                         onSubmit={patientVerifyOnSubmit}
                         reviewPatientDetails={newPatientDetails}
+                        backLinkOverride={routeChildren.ADMIN_REVIEW_SEARCH_PATIENT.replaceAll(
+                            ':reviewId',
+                            reviewData ? `${reviewData.id}.${reviewData.version}` : '',
+                        )}
                     />
                 }
             />
@@ -258,7 +263,6 @@ const AdminRoutesPage = (): JSX.Element => {
                         <ReviewsDetailsStage
                             loadReviewData={loadData}
                             reviewData={reviewData}
-                            setReviewData={setReviewData}
                             downloadStage={downloadStage}
                             setDownloadStage={setDownloadStage}
                             uploadDocuments={uploadDocuments}

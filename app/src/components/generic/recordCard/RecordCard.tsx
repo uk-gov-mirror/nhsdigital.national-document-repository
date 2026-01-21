@@ -12,7 +12,7 @@ export type RecordCardProps = RecordLayoutProps & {
 
 export type RecordLayoutProps = {
     heading: string;
-    fullScreenHandler: () => void;
+    fullScreenHandler: (() => void) | null;
     detailsElement: ReactNode;
     isFullScreen: boolean;
     recordLinks?: Array<LGRecordActionLink>;

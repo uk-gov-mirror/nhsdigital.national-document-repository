@@ -57,7 +57,7 @@ const ReviewDetailsDontKnowNHSNumberStage = ({
                         <Link
                             to="#"
                             className="nhsuk-link"
-                            onClick={(e): void => {
+                            onClick={(e: React.MouseEvent<HTMLAnchorElement>): void => {
                                 e.preventDefault();
                                 for (const doc of documents) {
                                     const anchor = document.createElement('a');

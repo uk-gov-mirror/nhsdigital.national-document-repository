@@ -64,6 +64,31 @@ describe('PatientVerifyPage', () => {
             expect(screen.getByRole('link', { name: /back/i })).toBeInTheDocument();
         });
 
+        it('renders back button with default route when clicked', async () => {
+            mockNavigate.mockClear();
+            render(<PatientVerifyPage onSubmit={mockOnSubmit} />);
+
+            const backLink = screen.getByRole('link', { name: /back/i });
+            await userEvent.click(backLink);
+
+            expect(mockNavigate).toHaveBeenCalledWith('/patient/search');
+        });
+
+        it('renders back button with custom backLinkOverride when clicked', async () => {
+            mockNavigate.mockClear();
+            render(
+                <PatientVerifyPage 
+                    onSubmit={mockOnSubmit} 
+                    backLinkOverride="/admin/reviews/test-123/search-patient"
+                />
+            );
+
+            const backLink = screen.getByRole('link', { name: /back/i });
+            await userEvent.click(backLink);
+
+            expect(mockNavigate).toHaveBeenCalledWith('/admin/reviews/test-123/search-patient');
+        });
+
         it('renders patient summary', () => {
             render(<PatientVerifyPage onSubmit={mockOnSubmit} />);
 

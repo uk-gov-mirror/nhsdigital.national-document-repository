@@ -26,6 +26,7 @@ describe('RecordLoader', () => {
         downloadStage: DOWNLOAD_STAGE.INITIAL,
         lastUpdated: '01 January 2024, 10:30am',
         childrenIfFailiure: mockChildrenIfFailure,
+        fileName: 'test-document.pdf',
     };
 
     beforeEach(() => {
@@ -99,6 +100,47 @@ describe('RecordLoader', () => {
             render(<RecordLoader {...defaultProps} downloadStage={DOWNLOAD_STAGE.UPLOADING} />);
 
             expect(screen.getByTestId('failure-content')).toBeInTheDocument();
+        });
+
+        it('renders both RecordDetails and childrenIfFailure for default failure stages', () => {
+            render(<RecordLoader {...defaultProps} downloadStage={DOWNLOAD_STAGE.FAILED} />);
+
+            // Should render both the details and the failure content
+            expect(screen.getByText('Last updated: 01 January 2024, 10:30am')).toBeInTheDocument();
+            expect(screen.getByTestId('failure-content')).toBeInTheDocument();
+        });
+
+        it('passes downloadAction to RecordDetails in SUCCEEDED stage', () => {
+            const mockDownloadAction = vi.fn();
+            render(
+                <RecordLoader
+                    {...defaultProps}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    downloadAction={mockDownloadAction}
+                />,
+            );
+
+            const downloadButton = screen.getByRole('button', { name: 'Download' });
+            expect(downloadButton).toBeInTheDocument();
+
+            downloadButton.click();
+            expect(mockDownloadAction).toHaveBeenCalledTimes(1);
+        });
+
+        it('renders download button when fileName and downloadAction are provided in SUCCEEDED stage', () => {
+            const mockDownloadAction = vi.fn();
+            render(
+                <RecordLoader
+                    {...defaultProps}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    fileName="patient-record.pdf"
+                    downloadAction={mockDownloadAction}
+                />,
+            );
+
+            expect(screen.getByText('Filename:')).toBeInTheDocument();
+            expect(screen.getByText('patient-record.pdf')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
         });
     });
 
@@ -193,13 +235,15 @@ describe('RecordDetails', () => {
     describe('Rendering', () => {
         it('renders last updated date correctly', () => {
             const lastUpdated = '25 December 2024, 12:00pm';
-            render(<RecordDetails lastUpdated={lastUpdated} />);
+            render(<RecordDetails fileName="test-document.pdf" lastUpdated={lastUpdated} />);
 
             expect(screen.getByText(`Last updated: ${lastUpdated}`)).toBeInTheDocument();
         });
 
         it('renders with correct CSS classes', () => {
-            const { container } = render(<RecordDetails lastUpdated="01 Jan 2024" />);
+            const { container } = render(
+                <RecordDetails fileName="test-document.pdf" lastUpdated="01 Jan 2024" />,
+            );
 
             const detailsContainer = container.querySelector('.lloydgeorge_record-details');
             expect(detailsContainer).toBeInTheDocument();
@@ -212,25 +256,111 @@ describe('RecordDetails', () => {
             );
             expect(lastUpdatedElement).toBeInTheDocument();
         });
+
+        it('renders filename when provided', () => {
+            const fileName = 'patient-record.pdf';
+            render(<RecordDetails fileName={fileName} lastUpdated="01 Jan 2024" />);
+
+            expect(screen.getByText('Filename:')).toBeInTheDocument();
+            expect(screen.getByText(fileName)).toBeInTheDocument();
+        });
+
+        it('does not render filename section when fileName is empty', () => {
+            render(<RecordDetails fileName="" lastUpdated="01 Jan 2024" />);
+
+            expect(screen.queryByText('Filename:')).not.toBeInTheDocument();
+        });
+
+        it('renders download button when fileName and downloadAction are provided', () => {
+            const mockDownloadAction = vi.fn();
+            render(
+                <RecordDetails
+                    fileName="test-document.pdf"
+                    lastUpdated="01 Jan 2024"
+                    downloadAction={mockDownloadAction}
+                />,
+            );
+
+            const downloadButton = screen.getByRole('button', { name: 'Download' });
+            expect(downloadButton).toBeInTheDocument();
+            expect(downloadButton).toHaveClass('link-button', 'clickable');
+        });
+
+        it('does not render download button when downloadAction is not provided', () => {
+            render(<RecordDetails fileName="test-document.pdf" lastUpdated="01 Jan 2024" />);
+
+            expect(screen.queryByRole('button', { name: 'Download' })).not.toBeInTheDocument();
+        });
+
+        it('does not render download button when fileName is empty even with downloadAction', () => {
+            const mockDownloadAction = vi.fn();
+            render(
+                <RecordDetails
+                    fileName=""
+                    lastUpdated="01 Jan 2024"
+                    downloadAction={mockDownloadAction}
+                />,
+            );
+
+            expect(screen.queryByRole('button', { name: 'Download' })).not.toBeInTheDocument();
+        });
+
+        it('calls downloadAction when download button is clicked', () => {
+            const mockDownloadAction = vi.fn();
+            render(
+                <RecordDetails
+                    fileName="test-document.pdf"
+                    lastUpdated="01 Jan 2024"
+                    downloadAction={mockDownloadAction}
+                />,
+            );
+
+            const downloadButton = screen.getByRole('button', { name: 'Download' });
+            downloadButton.click();
+
+            expect(mockDownloadAction).toHaveBeenCalledTimes(1);
+        });
+
+        it('passes event object to downloadAction on click', () => {
+            const mockDownloadAction = vi.fn();
+            render(
+                <RecordDetails
+                    fileName="test-document.pdf"
+                    lastUpdated="01 Jan 2024"
+                    downloadAction={mockDownloadAction}
+                />,
+            );
+
+            const downloadButton = screen.getByRole('button', { name: 'Download' });
+            downloadButton.click();
+
+            expect(mockDownloadAction).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'click',
+                }),
+            );
+        });
     });
 
     describe('Edge Cases', () => {
         it('handles empty string for lastUpdated', () => {
-            render(<RecordDetails lastUpdated="" />);
+            render(<RecordDetails fileName="test-document.pdf" lastUpdated="" />);
 
             expect(screen.getByText('Last updated:')).toBeInTheDocument();
         });
 
         it('handles long date strings', () => {
             const longDate = 'Wednesday, 25th December 2024 at 12:30:45pm GMT';
-            render(<RecordDetails lastUpdated={longDate} />);
+            render(<RecordDetails fileName="test-document.pdf" lastUpdated={longDate} />);
 
             expect(screen.getByText(`Last updated: ${longDate}`)).toBeInTheDocument();
         });
 
         it('handles special characters in date', () => {
             const dateWithSpecialChars = '01/01/2024 - 10:30 (UTC+0)';
-            render(<RecordDetails lastUpdated={dateWithSpecialChars} />);
+            render(
+                <RecordDetails fileName="test-document.pdf" lastUpdated={dateWithSpecialChars} />,
+            );
 
             expect(screen.getByText(`Last updated: ${dateWithSpecialChars}`)).toBeInTheDocument();
         });
@@ -238,7 +368,7 @@ describe('RecordDetails', () => {
 
     describe('Accessibility', () => {
         it('passes axe tests', async () => {
-            render(<RecordDetails lastUpdated="01 January 2024" />);
+            render(<RecordDetails fileName="test-document.pdf" lastUpdated="01 January 2024" />);
 
             const results = await runAxeTest(document.body);
             expect(results).toHaveNoViolations();

@@ -6,16 +6,21 @@ export type RecordLoaderProps = {
     downloadStage: DOWNLOAD_STAGE;
     lastUpdated: string;
     childrenIfFailiure: React.JSX.Element;
+    fileName: string;
+    downloadAction?: (e: React.MouseEvent<HTMLElement>) => void;
 };
 
 export const RecordLoader = ({
     downloadStage,
     lastUpdated,
     childrenIfFailiure,
+    fileName,
+    downloadAction,
 }: RecordLoaderProps): React.JSX.Element => {
     const [{ isFullscreen }] = useSessionContext();
     const detailsProps = {
         lastUpdated,
+        fileName,
     };
 
     switch (downloadStage) {
@@ -29,7 +34,7 @@ export const RecordLoader = ({
                 return <></>;
             }
 
-            return <RecordDetails {...detailsProps} />;
+            return <RecordDetails {...detailsProps} downloadAction={downloadAction} />;
         }
 
         default:
@@ -44,15 +49,37 @@ export const RecordLoader = ({
 
 export type RecordDetailsProps = {
     lastUpdated: string;
+    fileName: string;
+    downloadAction?: (e: React.MouseEvent<HTMLElement>) => void;
 };
 
-export const RecordDetails = ({ lastUpdated }: RecordDetailsProps): React.JSX.Element => {
+export const RecordDetails = ({
+    lastUpdated,
+    fileName,
+    downloadAction,
+}: RecordDetailsProps): React.JSX.Element => {
     return (
         <div className="lloydgeorge_record-details">
             <div className="lloydgeorge_record-details_details">
                 <div className="lloydgeorge_record-details_details--last-updated">
-                    Last updated: {lastUpdated}
+                    <p>Last updated: {lastUpdated}</p>
                 </div>
+                {fileName && (
+                    <div className="lloydgeorge_record-details_details--last-updated mt-3">
+                        <p>
+                            <b>Filename:</b>
+                        </p>
+                        <p>{fileName}</p>
+                    </div>
+                )}
+                {fileName && downloadAction && (
+                    <button
+                        className="lloydgeorge_record-details_details--download link-button clickable"
+                        onClick={downloadAction}
+                    >
+                        Download
+                    </button>
+                )}
             </div>
         </div>
     );

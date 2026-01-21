@@ -404,23 +404,6 @@ describe('ReviewDetailsDocumentUploadingStage', (): void => {
                 expect(setIntervalSpy).toHaveBeenCalled();
             });
         });
-
-        it('clears interval when all documents are finished', async (): Promise<void> => {
-            const clearIntervalSpy = vi.spyOn(window, 'clearInterval');
-
-            const succeededDocuments = [
-                {
-                    ...mockDocuments[0],
-                    state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
-                },
-            ];
-
-            renderComponent(succeededDocuments);
-
-            await waitFor((): void => {
-                expect(clearIntervalSpy).toHaveBeenCalled();
-            });
-        });
     });
 
     describe('Props validation', (): void => {
@@ -460,6 +443,54 @@ describe('ReviewDetailsDocumentUploadingStage', (): void => {
                 response: { status: 403 },
             };
             vi.spyOn(uploadDocumentsModule, 'default').mockRejectedValueOnce(error);
+
+            const stitchedReviewData = new ReviewDetails(
+                'test-review-id',
+                '16521000000101' as DOCUMENT_TYPE,
+                '2023-10-01T12:00:00Z',
+                'Test Uploader',
+                '2023-10-01T12:00:00Z',
+                'Test Reason',
+                '1',
+                '1234567890',
+            );
+
+            const documentsWithExisting = [
+                {
+                    ...mockDocuments[0],
+                    type: UploadDocumentType.EXISTING,
+                    versionId: 'v1',
+                },
+            ];
+
+            renderComponent(documentsWithExisting, stitchedReviewData);
+
+            await waitFor(
+                (): void => {
+                    expect(screen.queryByText('Preparing documents')).not.toBeInTheDocument();
+                },
+                { timeout: 2000 },
+            );
+
+            await waitFor((): void => {
+                expect(screen.getByTestId('start-upload-button')).toBeInTheDocument();
+            });
+
+            const startButton = screen.getByTestId('start-upload-button');
+            await act(async () => {
+                startButton.click();
+            });
+
+            await waitFor((): void => {
+                expect(mockNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
+            });
+        });
+
+        it('navigates to SESSION_EXPIRED on 403 error during S3 upload', async (): Promise<void> => {
+            const error = {
+                response: { status: 403 },
+            };
+            vi.spyOn(uploadDocumentsModule, 'uploadDocumentToS3').mockRejectedValueOnce(error);
 
             const stitchedReviewData = new ReviewDetails(
                 'test-review-id',

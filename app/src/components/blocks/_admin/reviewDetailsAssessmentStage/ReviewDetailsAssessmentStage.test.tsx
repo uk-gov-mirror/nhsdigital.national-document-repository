@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { act } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, Mock, vi } from 'vitest';
 import ReviewDetailsAssessmentStage from './ReviewDetailsAssessmentStage';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import {
@@ -24,7 +24,7 @@ vi.mock('../../../../helpers/utils/isLocal', () => ({
 }));
 vi.mock('react-router-dom', async () => ({
     ...(await vi.importActual('react-router-dom')),
-    useNavigate: (): typeof mockedUseNavigate => mockedUseNavigate,
+    useNavigate: (): Mock => mockedUseNavigate,
     useParams: (): { reviewId: string } => ({ reviewId: 'test-review-id.v1' }),
 }));
 
@@ -726,6 +726,155 @@ describe('ReviewDetailsAssessmentPage', () => {
             await user.click(continueButton);
 
             expect(screen.queryByText('There is a problem')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('Error handling for file viewing', () => {
+        it('navigates to SESSION_EXPIRED when getReviewById returns 403', async () => {
+            const user = userEvent.setup();
+            const mockGetReviewById = vi.spyOn(getReviewsModule, 'getReviewById');
+            mockGetReviewById.mockRejectedValue({ code: '403' });
+
+            render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={createMockReviewData()}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={createMockUploadDocuments()}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={true}
+                />,
+            );
+
+            const viewButtons = screen.getAllByRole('button', { name: /View/i });
+            await act(async () => {
+                await user.click(viewButtons[1]);
+            });
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith('/session-expired');
+            });
+        });
+
+        it('navigates to SERVER_ERROR when getReviewById returns other error', async () => {
+            const user = userEvent.setup();
+            const mockGetReviewById = vi.spyOn(getReviewsModule, 'getReviewById');
+            mockGetReviewById.mockRejectedValue(new Error('Server error'));
+
+            render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={createMockReviewData()}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={createMockUploadDocuments()}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={true}
+                />,
+            );
+
+            const viewButtons = screen.getAllByRole('button', { name: /View/i });
+            await act(async () => {
+                await user.click(viewButtons[1]);
+            });
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(
+                    expect.stringContaining('/server-error'),
+                );
+            });
+        });
+    });
+
+    describe('Navigation with accept action and multifileReview', () => {
+        it('navigates to UPLOAD when accept is selected with single file', async () => {
+            const user = userEvent.setup();
+            const singleFileReviewData = createMockReviewData(false, true, false, '24511000000107' as DOCUMENT_TYPE);
+            singleFileReviewData.files = [{ fileName: 'single-file.pdf', uploadDate: '2024-01-15T09:00:00Z', presignedUrl: 'http://example.com' }];
+            
+            const singleUploadDoc = [{
+                id: 'new-1',
+                file: new File(['test content'], 'single-file.pdf', { type: 'application/pdf' }),
+                type: UploadDocumentType.REVIEW,
+                state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                docType: '24511000000107' as DOCUMENT_TYPE,
+                attempts: 0,
+            }];
+
+            render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={singleFileReviewData}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={singleUploadDoc}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={false}
+                />,
+            );
+
+            const acceptRadio = screen.getByLabelText(/Accept record/i);
+            await user.click(acceptRadio);
+
+            const continueButton = screen.getByRole('button', { name: 'Continue' });
+            await user.click(continueButton);
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(
+                    '/admin/reviews/test-review-id.v1/upload',
+                    undefined,
+                );
+            });
+        });
+
+        it('navigates to UPLOAD_FILE_ORDER when accept is selected with multiple files', async () => {
+            const user = userEvent.setup();
+            const multipleFileReviewData = createMockReviewData(false, true, false, '24511000000107' as DOCUMENT_TYPE);
+            multipleFileReviewData.files = [
+                { fileName: 'file-1.pdf', uploadDate: '2024-01-15T09:00:00Z', presignedUrl: 'http://example.com/1' },
+                { fileName: 'file-2.pdf', uploadDate: '2024-01-16T09:00:00Z', presignedUrl: 'http://example.com/2' },
+            ];
+
+            const multiUploadDocs: ReviewUploadDocument[] = [
+                {
+                    id: 'new-1',
+                    file: new File(['test content 1'], 'file-1.pdf', { type: 'application/pdf' }),
+                    type: UploadDocumentType.REVIEW,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    docType: '24511000000107' as DOCUMENT_TYPE,
+                    attempts: 0,
+                },
+                {
+                    id: 'new-2',
+                    file: new File(['test content 2'], 'file-2.pdf', { type: 'application/pdf' }),
+                    type: UploadDocumentType.REVIEW,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    docType: '24511000000107' as DOCUMENT_TYPE,
+                    attempts: 0,
+                },
+            ];
+
+            render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={multipleFileReviewData}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={multiUploadDocs}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={false}
+                />,
+            );
+
+            const acceptRadio = screen.getByLabelText(/Accept record/i);
+            await user.click(acceptRadio);
+
+            const continueButton = screen.getByRole('button', { name: 'Continue' });
+            await user.click(continueButton);
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(
+                    '/admin/reviews/test-review-id.v1/upload-file-order',
+                    undefined,
+                );
+            });
         });
     });
 

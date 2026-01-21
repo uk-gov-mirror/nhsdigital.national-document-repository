@@ -7,9 +7,6 @@ import AdminRoutesPage, { CompleteState } from './AdminRoutesPage';
 import { REPOSITORY_ROLE } from '../../types/generic/authRole';
 import { buildPatientDetails } from '../../helpers/test/testBuilders';
 import { routes } from '../../types/generic/routes';
-import { ReviewDetails } from '../../types/generic/reviews';
-import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
-import userEvent from '@testing-library/user-event';
 
 // Mock hooks
 const mockUseConfig = vi.fn();
@@ -31,7 +28,7 @@ vi.mock('../../helpers/hooks/useConfig', () => ({
     default: (): unknown => mockUseConfig(),
 }));
 
-vi.mock('react-router', async () => {
+vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,

@@ -1,5 +1,5 @@
 import { ReactElement, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import { routeChildren } from '../../../../types/generic/routes';
 import {

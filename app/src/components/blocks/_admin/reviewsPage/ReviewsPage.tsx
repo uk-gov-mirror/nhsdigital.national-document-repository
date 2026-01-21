@@ -1,6 +1,6 @@
 import { Button, ErrorMessage, Table, TextInput } from 'nhsuk-react-components';
 import { Dispatch, JSX, SetStateAction, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router-dom';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useTitle from '../../../../helpers/hooks/useTitle';
@@ -19,6 +19,8 @@ import BackButton from '../../../generic/backButton/BackButton';
 import { Pagination } from '../../../generic/paginationV2/Pagination';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import SpinnerV2 from '../../../generic/spinnerV2/SpinnerV2';
+import { AxiosError } from 'axios';
+import { errorToParams } from '../../../../helpers/utils/errorToParams';
 
 export type ReviewsPageProps = {
     setReviewData: Dispatch<SetStateAction<ReviewDetails | null>>;
@@ -120,6 +122,7 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
     const [isLoading, setIsLoading] = useState(false);
     const [failedLoading, setFailedLoading] = useState(false);
     const [count, setCount] = useState(0);
+    const navigate = useNavigate();
 
     const [pageTokens, setPageTokens] = useState<string[]>(['']);
 
@@ -160,12 +163,20 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
                     return newTokens;
                 });
             }
-        } catch {
+        } catch (e) {
+            const error = e as AxiosError;
+            if (error.code === '403') {
+                navigate(routes.SESSION_EXPIRED);
+                return;
+            }
+
             setFailedLoading(true);
             setCurrentPage(1);
             setPageTokens(['']);
             setReviews([]);
             setCount(0);
+
+            navigate(routes.SERVER_ERROR + errorToParams(error));
         } finally {
             setIsLoading(false);
         }
@@ -245,7 +256,16 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
             </ul>
             <p>
                 You can view these records{' '}
-                <a href={routes.SEARCH_PATIENT}>searching using the patient's NHS number</a>.
+                <a
+                    href={routes.SEARCH_PATIENT}
+                    onClick={(e): void => {
+                        e.preventDefault();
+                        navigate(routes.SEARCH_PATIENT);
+                    }}
+                >
+                    searching using the patient's NHS number
+                </a>
+                .
             </p>
 
             <h2>Documents that you need to review before they are stored in this service</h2>
@@ -328,6 +348,7 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
                     {/* previous link */}
                     {currentPage > 1 && (
                         <Pagination.Link
+                            href="#"
                             onClick={(e): void => {
                                 e.preventDefault();
                                 goToPreviousPage();
@@ -336,25 +357,25 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
                         />
                     )}
                     {/* previous page items */}
-                    {pageTokens
-                        .filter((token) => token !== '')
-                        .map((_, index) => {
-                            const pageNumber = index + 1;
-                            return (
-                                <Pagination.Item
-                                    key={pageNumber}
-                                    current={pageNumber === currentPage}
-                                    onClick={(e): void => {
-                                        e.preventDefault();
-                                        goToPage(pageNumber);
-                                    }}
-                                    number={pageNumber}
-                                />
-                            );
-                        })}
+                    {pageTokens.map((_, index) => {
+                        const pageNumber = index + 1;
+                        return (
+                            <Pagination.Item
+                                href="#"
+                                key={pageNumber}
+                                current={pageNumber === currentPage}
+                                onClick={(e): void => {
+                                    e.preventDefault();
+                                    goToPage(pageNumber);
+                                }}
+                                number={pageNumber}
+                            />
+                        );
+                    })}
                     {/* next link */}
                     {!isLastPage() && (
                         <Pagination.Link
+                            href="#"
                             onClick={(e): void => {
                                 e.preventDefault();
                                 goToNextPage();

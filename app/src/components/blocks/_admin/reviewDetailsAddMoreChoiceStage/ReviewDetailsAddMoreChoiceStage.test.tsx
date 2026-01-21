@@ -200,6 +200,99 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
         });
     });
 
+    describe('Navigation', () => {
+        it('navigates to add more files when yes is selected', async () => {
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+
+            const yesRadio = screen.getByRole('radio', {
+                name: /Yes I have more scanned paper records to add for this patient/i,
+            });
+            await userEvent.click(yesRadio);
+
+            const continueButton = screen.getByRole('button', { name: 'Continue' });
+            await userEvent.click(continueButton);
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(
+                    `/admin/reviews/${mockReviewId}/upload-additional-files`,
+                    undefined,
+                );
+            });
+        });
+
+        it('navigates to upload file order when no is selected and multiple files exist', async () => {
+            const mockReviewData = {
+                id: 'review-123',
+                files: [{ fileName: 'file1.pdf' }, { fileName: 'file2.pdf' }],
+            } as any;
+
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
+
+            const noRadio = screen.getByRole('radio', {
+                name: /No, I don't have anymore scanned paper records to add for this patient/i,
+            });
+            await userEvent.click(noRadio);
+
+            const continueButton = screen.getByRole('button', { name: 'Continue' });
+            await userEvent.click(continueButton);
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(
+                    `/admin/reviews/${mockReviewId}/upload-file-order`,
+                    undefined,
+                );
+            });
+        });
+
+        it('navigates to upload directly when no is selected and single file exists', async () => {
+            const mockReviewData = {
+                id: 'review-123',
+                files: [{ fileName: 'file1.pdf' }],
+            } as any;
+
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
+
+            const noRadio = screen.getByRole('radio', {
+                name: /No, I don't have anymore scanned paper records to add for this patient/i,
+            });
+            await userEvent.click(noRadio);
+
+            const continueButton = screen.getByRole('button', { name: 'Continue' });
+            await userEvent.click(continueButton);
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(
+                    `/admin/reviews/${mockReviewId}/upload`,
+                    undefined,
+                );
+            });
+        });
+
+        it('navigates to upload directly when no is selected and no files exist', async () => {
+            const mockReviewData = {
+                id: 'review-123',
+                files: [],
+            } as any;
+
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
+
+            const noRadio = screen.getByRole('radio', {
+                name: /No, I don't have anymore scanned paper records to add for this patient/i,
+            });
+            await userEvent.click(noRadio);
+
+            const continueButton = screen.getByRole('button', { name: 'Continue' });
+            await userEvent.click(continueButton);
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(
+                    `/admin/reviews/${mockReviewId}/upload`,
+                    undefined,
+                );
+            });
+        });
+    });
+
     describe('Accessibility', () => {
         it('passes axe accessibility tests in initial state', async () => {
             const { container } = render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);

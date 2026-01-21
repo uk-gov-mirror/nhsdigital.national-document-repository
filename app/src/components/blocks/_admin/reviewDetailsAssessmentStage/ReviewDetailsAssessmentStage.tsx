@@ -6,14 +6,18 @@ import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { getPdfObjectUrl } from '../../../../helpers/utils/getPdfObjectUrl';
 import { isLocal } from '../../../../helpers/utils/isLocal';
 import '../../../../helpers/utils/string-extensions';
-import { navigateUrlParam, routeChildren } from '../../../../types/generic/routes';
+import { navigateUrlParam, routeChildren, routes } from '../../../../types/generic/routes';
 import BackButton from '../../../generic/backButton/BackButton';
 import Spinner from '../../../generic/spinner/Spinner';
 import ExistingRecordTable from './ExistingRecordTable';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
-import { ReviewDetails, ReviewsListFiles } from '../../../../types/generic/reviews';
+import {
+    GetDocumentReviewDto,
+    ReviewDetails,
+    ReviewsListFiles,
+} from '../../../../types/generic/reviews';
 import { getReviewById } from '../../../../helpers/requests/getReviews';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import {
@@ -21,6 +25,8 @@ import {
     UploadDocumentType,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import DocumentUploadLloydGeorgePreview from '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
+import { AxiosError } from 'axios';
+import { errorToParams } from '../../../../helpers/utils/errorToParams';
 
 type FileAction = 'add-all' | 'choose-files' | 'duplicate' | 'accept' | 'reject' | '';
 
@@ -88,15 +94,27 @@ const ReviewDetailsAssessmentStage = ({
 
         const [id, version] = reviewId.split('.');
 
-        const refreshedReview = await getReviewById(
-            baseUrl,
-            baseHeaders,
-            id,
-            version,
-            reviewData.nhsNumber,
-        );
+        let refreshedReview: GetDocumentReviewDto;
+        try {
+            refreshedReview = await getReviewById(
+                baseUrl,
+                baseHeaders,
+                id,
+                version,
+                reviewData.nhsNumber,
+            );
+        } catch (e) {
+            const error = e as AxiosError;
+            if (error.code === '403') {
+                navigate(routes.SESSION_EXPIRED);
+                return;
+            } else {
+                navigate(routes.SERVER_ERROR + errorToParams(error));
+                return;
+            }
+        }
 
-        const refreshedFile = refreshedReview.files?.find((f) => f.fileName === file.fileName);
+        const refreshedFile = refreshedReview!.files?.find((f) => f.fileName === file.fileName);
 
         if (refreshedFile) {
             const updatedFiles = reviewData.files?.map((f) =>
@@ -127,40 +145,50 @@ const ReviewDetailsAssessmentStage = ({
 
     const handleContinue = (): void => {
         setShowError(false);
-        if (!fileAction) {
-            setShowError(true);
-            setTimeout(() => {
-                errorSummaryRef.current?.focus();
-            }, 0);
-            return;
-        }
+
         if (!reviewId) {
             return;
         }
-        if (fileAction === 'add-all') {
-            if (reviewConfig.canBeUpdated === true && reviewConfig.canBeDiscarded === false) {
-                navigateUrlParam(routeChildren.ADMIN_REVIEW_UPLOAD, { reviewId }, navigate);
+
+        let navigateUrl: routeChildren;
+        switch (fileAction) {
+            case 'add-all':
+                if (reviewConfig.canBeUpdated === true && reviewConfig.canBeDiscarded === false) {
+                    navigateUrl = routeChildren.ADMIN_REVIEW_UPLOAD;
+                    break;
+                }
+                navigateUrl = routeChildren.ADMIN_REVIEW_ADD_MORE_CHOICE;
+                break;
+            case 'choose-files':
+                navigateUrl = routeChildren.ADMIN_REVIEW_CHOOSE_WHICH_FILES;
+                break;
+            case 'duplicate':
+                navigateUrl = routeChildren.ADMIN_REVIEW_NO_FILES_CHOICE;
+                break;
+            case 'accept':
+                if (uploadDocuments.length === 1) {
+                    navigateUrl =
+                        reviewConfig.multifileReview === true
+                            ? routeChildren.ADMIN_REVIEW_ADD_MORE_CHOICE
+                            : routeChildren.ADMIN_REVIEW_UPLOAD;
+                    break;
+                }
+
+                navigateUrl = routeChildren.ADMIN_REVIEW_UPLOAD_FILE_ORDER;
+                break;
+            case 'reject':
+                navigateUrl = routeChildren.ADMIN_REVIEW_NO_FILES_CHOICE;
+                break;
+
+            default:
+                setShowError(true);
+                setTimeout(() => {
+                    errorSummaryRef.current?.focus();
+                }, 0);
                 return;
-            }
-            navigateUrlParam(routeChildren.ADMIN_REVIEW_ADD_MORE_CHOICE, { reviewId }, navigate);
-            return;
         }
-        if (fileAction === 'choose-files') {
-            navigateUrlParam(routeChildren.ADMIN_REVIEW_CHOOSE_WHICH_FILES, { reviewId }, navigate);
-            return;
-        }
-        if (fileAction === 'duplicate') {
-            navigateUrlParam(routeChildren.ADMIN_REVIEW_NO_FILES_CHOICE, { reviewId }, navigate);
-            return;
-        }
-        if (fileAction === 'accept') {
-            navigateUrlParam(routeChildren.ADMIN_REVIEW_UPLOAD_FILE_ORDER, { reviewId }, navigate);
-            return;
-        }
-        if (fileAction === 'reject') {
-            navigateUrlParam(routeChildren.ADMIN_REVIEW_NO_FILES_CHOICE, { reviewId }, navigate);
-            return;
-        }
+
+        navigateUrlParam(navigateUrl, { reviewId }, navigate);
     };
 
     const backButton = <BackButton backLinkText="Go back" dataTestid="back-button" />;
@@ -363,7 +391,7 @@ const ReviewDetailsAssessmentStage = ({
                     </p>
 
                     <DocumentUploadLloydGeorgePreview
-                        documents={uploadDocuments}
+                        documents={uploadDocuments.filter((f) => f.file.name.endsWith('.pdf'))}
                         setMergedPdfBlob={(): void => {}}
                         stitchedBlobLoaded={(): void => {}}
                         documentConfig={reviewConfig}
@@ -380,7 +408,9 @@ const ReviewDetailsAssessmentStage = ({
                         <Spinner status="Preparing file for viewing..." />
                     ) : (
                         <DocumentUploadLloydGeorgePreview
-                            documents={uploadDocuments.filter((f) => f.file.name === selectedFile)}
+                            documents={uploadDocuments.filter(
+                                (f) => f.file.name === selectedFile && f.file.name.endsWith('.pdf'),
+                            )}
                             setMergedPdfBlob={(): void => {}}
                             stitchedBlobLoaded={(): void => {}}
                             documentConfig={reviewConfig}

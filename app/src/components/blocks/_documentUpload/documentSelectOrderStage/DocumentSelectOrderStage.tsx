@@ -312,8 +312,8 @@ const DocumentSelectOrderStage = ({
     const getDocumentsForPreview = (): UploadDocument[] => {
         const docs = [];
 
-        if (isReview || journey === 'update') {
-            docs.push(...existingDocuments!);
+        if ((isReview || journey === 'update') && existingDocuments && existingDocuments.length > 0) {
+            docs.push(...existingDocuments);
         }
 
         docs.push(...documents);
@@ -402,7 +402,7 @@ const DocumentSelectOrderStage = ({
 
                     <Table.Body>
                         {(journey === 'update' || isReview) &&
-                            existingDocuments &&
+                            existingDocuments && existingDocuments?.length > 0 &&
                             // Existing record row
                             renderFileRow({
                                 id: 'existing-documents',

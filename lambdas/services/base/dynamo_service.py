@@ -71,6 +71,7 @@ class DynamoDBService:
         query_filter: Attr | ConditionBase | None = None,
         limit: int | None = None,
         start_key: dict | None = None,
+        consistent_read: bool | None = None,
     ) -> dict:
         """
         Execute a single DynamoDB query and return the full response.
@@ -84,6 +85,7 @@ class DynamoDBService:
             query_filter: Optional filter expression
             limit: Optional limit on number of items to return
             start_key: Optional exclusive start key for pagination
+            consistent_read: Whether to use strongly consistent reads - this only applies if no index is provided
 
         Returns:
             Full DynamoDB query response including Items, LastEvaluatedKey, etc.
@@ -112,6 +114,9 @@ class DynamoDBService:
             if limit:
                 query_params["Limit"] = limit
 
+            if not index_name and consistent_read is not None:
+                query_params["ConsistentRead"] = consistent_read
+
             return table.query(**query_params)
         except ClientError as e:
             logger.error(str(e), {"Result": f"Unable to query table: {table_name}"})
@@ -125,6 +130,7 @@ class DynamoDBService:
         index_name: str | None = None,
         requested_fields: list[str] | None = None,
         query_filter: Attr | ConditionBase | None = None,
+        consistent_read: bool | None = None,
     ) -> list[dict]:
         """
         Execute a DynamoDB query and automatically paginate through all results.
@@ -136,6 +142,7 @@ class DynamoDBService:
             index_name: Optional GSI/LSI name
             requested_fields: Optional list of fields to project
             query_filter: Optional filter expression
+            consistent_read: Whether to use strongly consistent reads - this only applies if no index is provided
 
         Returns:
             List of all items from paginated query results
@@ -152,6 +159,7 @@ class DynamoDBService:
                 requested_fields=requested_fields,
                 query_filter=query_filter,
                 start_key=start_key,
+                consistent_read=consistent_read,
             )
 
             if results is None or "Items" not in results:
@@ -448,15 +456,20 @@ class DynamoDBService:
     ) -> dict:
 
         try:
+            pagination_config = {
+                "MaxItems": limit,
+                "PageSize": page_size,
+            }
+            
+            # Only include StartingToken if start_key is not None or empty
+            if start_key:
+                pagination_config["StartingToken"] = start_key
+            
             query_params = {
                 "TableName": table_name,
                 "IndexName": index_name,
                 "KeyConditionExpression": f"{key}=:i",
-                "PaginationConfig": {
-                    "MaxItems": limit,
-                    "PageSize": page_size,
-                    "StartingToken": start_key,
-                },
+                "PaginationConfig": pagination_config,
             }
 
             if expression_attribute_values is None:

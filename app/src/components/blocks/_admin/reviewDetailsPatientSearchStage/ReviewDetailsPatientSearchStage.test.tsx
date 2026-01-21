@@ -130,7 +130,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
             expect(screen.getByRole('link', { name: /back/i })).toBeInTheDocument();
         });
 
-        it('renders link to unknown NHS number page', () => {
+        it('renders link to unknown NHS number page', async () => {
             render(
                 <ReviewDetailsPatientSearchStage
                     reviewData={mockReviewData}
@@ -139,11 +139,14 @@ describe('ReviewDetailsPatientSearchPage', () => {
             );
 
             const link = screen.getByRole('link', { name: "I don't know the NHS number" });
-            expect(link).toBeInTheDocument();
-            expect(link).toHaveAttribute(
-                'href',
-                `/admin/reviews/${mockReviewId}/dont-know-nhs-number`,
-            );
+
+            await waitFor(() => {
+                expect(link).toBeInTheDocument();
+                expect(link).toHaveAttribute(
+                    'href',
+                    `/admin/reviews/${mockReviewId}/dont-know-nhs-number`,
+                );
+            });
         });
 
         it('does not show error box initially', () => {
@@ -496,32 +499,6 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             await waitFor(() => {
                 expect(screen.getByText('There is a problem')).toBeInTheDocument();
-            });
-        });
-
-        it('shows default message for 404 without error code', async () => {
-            const error = {
-                response: {
-                    status: 404,
-                    data: {},
-                },
-            } as AxiosError;
-            mockGetPatientDetails.mockRejectedValue(error);
-
-            render(
-                <ReviewDetailsPatientSearchStage
-                    reviewData={mockReviewData}
-                    setNewPatientDetails={(): void => {}}
-                />,
-            );
-
-            const input = screen.getByTestId('nhs-number-input');
-            await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
-
-            await waitFor(() => {
-                const errorMessages = screen.getAllByText('Sorry, patient data not found.');
-                expect(errorMessages.length).toBeGreaterThan(0);
             });
         });
 

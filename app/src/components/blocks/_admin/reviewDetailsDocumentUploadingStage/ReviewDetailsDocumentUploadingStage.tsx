@@ -50,17 +50,26 @@ const ReviewDetailsDocumentUploadingStage = ({
 }: Props): JSX.Element => {
     const patientDetails = usePatient();
     const nhsNumber: string = patientDetails?.nhsNumber ?? '';
-    const [intervalTimer, setIntervalTimer] = useState(0);
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
     const navigate = useEnhancedNavigate();
     const completeRef = useRef(false);
     const virusReference = useRef(false);
     const interval = useRef<number>(0);
+    const intervalTimerRef = useRef<number | null>(null);
+    const documentsRef = useRef<UploadDocument[]>(documents);
 
     const [hasNormalisedOnEntry, setHasNormalisedOnEntry] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const hasNormalisedOnEntryRef = useRef(false);
+    const preparingDocsRef = useRef(false);
+
+    const clearIntervalTimer = (): void => {
+        if (intervalTimerRef.current) {
+            globalThis.clearInterval(intervalTimerRef.current);
+        }
+    };
+
     useEffect(() => {
         if (hasNormalisedOnEntryRef.current) {
             return;
@@ -82,15 +91,12 @@ const ReviewDetailsDocumentUploadingStage = ({
     }, [setDocuments]);
 
     useEffect(() => {
-        setIsLoading(true);
         const prepareFiles = async (): Promise<void> => {
+            setIsLoading(true);
             try {
-                const stitched = getConfigForDocType(reviewData?.snomedCode!).stitched;
-                if (stitched) {
+                const config = getConfigForDocType(reviewData?.snomedCode!);
+                if (config.stitched) {
                     const existing = documents.find((f) => f.type === UploadDocumentType.EXISTING);
-                    if (!existing) {
-                        return;
-                    }
                     const filename = generateStitchedFileName(
                         patientDetails,
                         getConfigForDocType(reviewData?.snomedCode!),
@@ -109,21 +115,38 @@ const ReviewDetailsDocumentUploadingStage = ({
                         attempts: 0,
                         type: UploadDocumentType.REVIEW,
                         blob: fileBlob,
-                        versionId: existing.versionId,
+                        versionId: existing?.versionId,
                     };
                     setDocuments([lgDocument]);
                     documents = [lgDocument];
+                }
+                if (config.multifileZipped) {
+                    const zipDocument = documents.find((d) =>
+                        d.file.name.toLowerCase().endsWith('.zip'),
+                    );
+                    if (zipDocument === undefined) {
+                        // eslint-disable-next-line no-console
+                        console.error('Multifile zipped upload required but no zip file found');
+                    }
                 }
             } finally {
                 setIsLoading(false);
             }
         };
-        prepareFiles();
+
+        if (!preparingDocsRef.current) {
+            preparingDocsRef.current = true;
+            prepareFiles();
+        }
     }, []);
 
     useEffect(() => {
+        documentsRef.current = documents;
+    }, [documents]);
+
+    useEffect(() => {
         if (interval.current * UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS > MAX_POLLING_TIME) {
-            globalThis.clearInterval(intervalTimer);
+            clearIntervalTimer();
             navigate(routes.SERVER_ERROR);
             return;
         }
@@ -136,14 +159,14 @@ const ReviewDetailsDocumentUploadingStage = ({
 
         if (hasVirus && !virusReference.current) {
             virusReference.current = true;
-            globalThis.clearInterval(intervalTimer);
+            clearIntervalTimer();
             navigate(routeChildren.DOCUMENT_UPLOAD_INFECTED);
         } else if (docWithError) {
             const errorParams = docWithError.error ? errorCodeToParams(docWithError.error) : '';
             navigate(routes.SERVER_ERROR + errorParams);
         } else if (allFinished && !completeRef.current) {
             completeRef.current = true;
-            globalThis.clearInterval(intervalTimer);
+            clearIntervalTimer();
             navigate.withParams(
                 routeChildren.ADMIN_REVIEW_COMPLETE.replace(
                     ':reviewId',
@@ -151,9 +174,15 @@ const ReviewDetailsDocumentUploadingStage = ({
                 ),
             );
         }
-    }, [baseHeaders, baseUrl, documents, navigate, nhsNumber, setDocuments, intervalTimer]);
+    }, [baseHeaders, baseUrl, documents, navigate, nhsNumber, setDocuments]);
 
-    const uploadSingleLloydGeorgeDocument = async (
+    useEffect(() => {
+        return (): void => {
+            globalThis.clearInterval(intervalTimerRef.current!);
+        };
+    }, []);
+
+    const uploadSingleDocument = async (
         document: UploadDocument,
         uploadSession: UploadSession,
     ): Promise<void> => {
@@ -164,10 +193,15 @@ const ReviewDetailsDocumentUploadingStage = ({
                 setDocuments,
             });
         } catch (e) {
-            globalThis.clearInterval(intervalTimer);
+            clearIntervalTimer();
             markDocumentAsFailed(document);
 
             const error = e as AxiosError;
+            if (error.response?.status === 403) {
+                navigate(routes.SESSION_EXPIRED);
+                return;
+            }
+
             navigate(routes.SERVER_ERROR + errorToParams(error));
         }
     };
@@ -185,13 +219,12 @@ const ReviewDetailsDocumentUploadingStage = ({
         uploadSession: UploadSession,
     ): void => {
         uploadDocuments.forEach((document) => {
-            void uploadSingleLloydGeorgeDocument(document, uploadSession);
+            void uploadSingleDocument(document, uploadSession);
         });
     };
 
     const startUpload = async (): Promise<void> => {
         try {
-            setIsLoading(false);
             const uploadSession: UploadSession = isLocal
                 ? getMockUploadSession(documents)
                 : await uploadDocuments({
@@ -203,13 +236,14 @@ const ReviewDetailsDocumentUploadingStage = ({
                   });
             const uploadingDocuments = markDocumentsAsUploading(documents, uploadSession);
             setDocuments(uploadingDocuments);
+            setIsLoading(false);
 
             if (!isLocal) {
                 uploadAllDocuments(uploadingDocuments, uploadSession);
             }
 
             const updateStateInterval = startIntervalTimer(uploadingDocuments);
-            setIntervalTimer(updateStateInterval);
+            intervalTimerRef.current = updateStateInterval;
         } catch (e) {
             setIsLoading(false);
             const error = e as AxiosError;
@@ -222,7 +256,7 @@ const ReviewDetailsDocumentUploadingStage = ({
                         state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
                     })),
                 );
-                globalThis.clearInterval(intervalTimer);
+                clearIntervalTimer();
                 navigate.withParams(
                     routeChildren.ADMIN_REVIEW_COMPLETE.replace(
                         ':reviewId',
@@ -267,24 +301,28 @@ const ReviewDetailsDocumentUploadingStage = ({
             setDocuments(updatedDocuments);
         };
 
-        return window.setInterval(async () => {
+        return window.setInterval(() => {
             interval.current = interval.current + 1;
             if (isLocal) {
                 startIntervalTimerIsLocal();
             } else {
-                try {
-                    const documentStatusResult = await getDocumentStatus({
-                        documents: uploadDocuments,
-                        baseUrl,
-                        baseHeaders,
-                        nhsNumber,
+                getDocumentStatus({
+                    documents: documentsRef.current,
+                    baseUrl,
+                    baseHeaders,
+                    nhsNumber,
+                })
+                    .then((documentStatusResult) => {
+                        handleDocStatusResult(documentStatusResult);
+                    })
+                    .catch((e) => {
+                        const error = e as AxiosError;
+                        if (error.response?.status === 403) {
+                            navigate(routes.SESSION_EXPIRED);
+                            return;
+                        }
+                        navigate(routes.SERVER_ERROR + errorToParams(error));
                     });
-
-                    handleDocStatusResult(documentStatusResult);
-                } catch (e) {
-                    const error = e as AxiosError;
-                    navigate(routes.SERVER_ERROR + errorToParams(error));
-                }
             }
         }, UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS);
     };

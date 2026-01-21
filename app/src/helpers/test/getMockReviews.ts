@@ -8,7 +8,7 @@ let setupMockRequest:
     | undefined;
 
 if (isLocal) {
-    var testingCounter = 0;
+    let testingCounter = 0;
 
     setupMockRequest = (params: URLSearchParams, simulateDataAddition = false): void => {
         testingCounter = testingCounter + 1;

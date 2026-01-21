@@ -8,6 +8,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 SOURCE_PDF_FILE = "../source_to_copy_from.pdf"
+SOURCE_ZIP_FILE = "../source_to_copy_from.zip"
 
 
 class Patient(NamedTuple):
@@ -262,6 +263,46 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
 
         return [review_obj_v1, review_obj_v2], files_list
 
+
+    def scenario_8(patient):
+        """Pending Review Electronic Health Record"""
+
+        file_name = f"ehr_review_{patient.nhs_number}.pdf"
+        review_id = str(uuid.uuid4())
+        files = [build_file_reference(review_id, file_name, bucket_name)]
+        review_obj = build_document_review_object(
+            review_id=review_id,
+            patient=patient,
+            files=files,
+            review_status="PENDING_REVIEW",
+            review_reason="GP2GP failure",
+            days_ago_uploaded=4,
+        )
+        review_obj["DocumentSnomedCodeType"] = "717301000000104"  # Electronic health record
+        return review_obj, [(patient.nhs_number, file_name, files[0]["FileLocation"])]
+
+    def scenario_9(patient):
+        """Pending Review Electronic Health Record Attachments"""
+
+        files = []
+        files_list = []
+        review_id = str(uuid.uuid4())
+
+        file_name = f"ehr_attachment_{patient.nhs_number}_doc.zip"
+        file_ref = build_file_reference(review_id, file_name, bucket_name)
+        files.append(file_ref)
+        files_list.append((patient.nhs_number, file_name, file_ref["FileLocation"]))
+
+        review_obj = build_document_review_object(
+            review_id=review_id,
+            patient=patient,
+            files=files,
+            review_status="PENDING_REVIEW",
+            review_reason="General error",
+            days_ago_uploaded=6,
+        )
+        review_obj["DocumentSnomedCodeType"] = "24511000000107"  # EHR attachments
+        return review_obj, files_list
     scenarios = [
         scenario_1,
         scenario_2,
@@ -270,6 +311,8 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
         scenario_5,
         scenario_6,
         scenario_7,
+        scenario_8,
+        scenario_9,
     ]
 
     for idx, patient in enumerate(patients):
@@ -287,22 +330,24 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
     return review_objects, files_to_upload
 
 
-def upload_files_to_s3(files_to_upload: List[tuple], source_pdf: str):
+def upload_files_to_s3(files_to_upload: List[tuple]):
     s3_client = boto3.client("s3")
 
     for nhs_number, file_name, file_location in files_to_upload:
         s3_location = file_location.replace("s3://", "")
         bucket_name, s3_key = s3_location.split("/", 1)
-
+        file_extension = file_name.split(".")[-1]
+        file_to_upload = SOURCE_ZIP_FILE if file_extension == "zip" else SOURCE_PDF_FILE
+        
         try:
             s3_client.upload_file(
-                Filename=source_pdf,
+                Filename=file_to_upload,
                 Bucket=bucket_name,
                 Key=s3_key,
-                ExtraArgs={"ContentType": "application/pdf"},
+                ExtraArgs={"ContentType": f"application/{file_extension}"},
             )
         except FileNotFoundError:
-            print(f"Source file not found: {source_pdf}")
+            print(f"Source file not found: {file_to_upload}")
         except ClientError as e:
             print(f"Error uploading {file_name}: {e}")
 
@@ -339,7 +384,7 @@ def main():
     print(f"Created {len(review_objects)} review objects with {len(files_to_upload)} files")
 
     print("\nUploading files to S3...")
-    upload_files_to_s3(files_to_upload, SOURCE_PDF_FILE)
+    upload_files_to_s3(files_to_upload)
 
     print("\nWriting to DynamoDB...")
     write_to_dynamodb(review_objects, table_name)

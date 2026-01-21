@@ -6,7 +6,6 @@ import { NHS_NUMBER_PATTERN } from '../../../../helpers/constants/regex';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useConfig from '../../../../helpers/hooks/useConfig';
-import errorCodes from '../../../../helpers/utils/errorCodes';
 import {
     HandleSearchArgs,
     PATIENT_SEARCH_STATES,
@@ -94,17 +93,14 @@ const ReviewDetailsPatientSearchStage = ({
 
         const result = await handleSearch(args);
         if (result) {
-            const [errorMessage, statusCode, error] = result;
-            handlePatientSearchError(statusCode, navigate, setFailedSubmitState, error);
-            if (error || statusCode === 404) {
-                if (error && error.response?.status === 404) {
-                    const errorData = error.response?.data as { err_code: string };
-                    setInputError(
-                        errorCodes[errorData?.err_code] ?? 'Sorry, patient data not found.',
-                    );
+            const [errorCode, statusCode, error] = result;
+            if (error) {
+                if (errorCode) {
+                    setInputError(errorCode ?? 'Sorry, patient data not found.');
                 } else {
-                    setInputError(errorMessage);
+                    handlePatientSearchError(statusCode, navigate, setFailedSubmitState, error);
                 }
+
                 setFailedSubmitState(statusCode);
             }
         }

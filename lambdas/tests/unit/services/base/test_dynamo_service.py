@@ -250,6 +250,71 @@ def test_query_table_single_with_all_parameters(
     )
 
 
+def test_query_table_single_with_consistent_read_true_no_index(
+    mock_service, mock_query_method
+):
+    """Test that ConsistentRead=True is included when no index is specified"""
+    mock_query_method.return_value = MOCK_RESPONSE
+    search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
+
+    actual = mock_service.query_table_single(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        consistent_read=True,
+    )
+
+    assert actual == MOCK_RESPONSE
+    mock_query_method.assert_called_once_with(
+        KeyConditionExpression=search_key_obj,
+        ConsistentRead=True,
+    )
+
+
+def test_query_table_single_with_consistent_read_false_no_index(
+    mock_service, mock_query_method
+):
+    """Test that ConsistentRead=False is included when no index is specified"""
+    mock_query_method.return_value = MOCK_RESPONSE
+    search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
+
+    actual = mock_service.query_table_single(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        consistent_read=False,
+    )
+
+    assert actual == MOCK_RESPONSE
+    mock_query_method.assert_called_once_with(
+        KeyConditionExpression=search_key_obj,
+        ConsistentRead=False,
+    )
+
+
+def test_query_table_single_ignores_consistent_read_with_index(
+    mock_service, mock_query_method
+):
+    """Test that ConsistentRead is NOT included when index is specified"""
+    mock_query_method.return_value = MOCK_RESPONSE
+    search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
+
+    actual = mock_service.query_table_single(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        index_name="NhsNumberIndex",
+        consistent_read=True,
+    )
+
+    assert actual == MOCK_RESPONSE
+    # ConsistentRead should NOT be in the call when IndexName is present
+    mock_query_method.assert_called_once_with(
+        KeyConditionExpression=search_key_obj,
+        IndexName="NhsNumberIndex",
+    )
+
+
 def test_query_table_single_with_start_key_for_pagination(
     mock_service, mock_query_method
 ):
@@ -308,6 +373,7 @@ def test_query_table_calls_query_table_single_and_returns_items_list(
         requested_fields=None,
         query_filter=None,
         start_key=None,
+        consistent_read=None,
     )
 
 
@@ -363,6 +429,57 @@ def test_query_table_with_all_optional_parameters(mock_service, mocker):
         requested_fields=requested_fields,
         query_filter=filter_expression,
         start_key=None,
+        consistent_read=None,
+    )
+
+
+def test_query_table_with_consistent_read_true(mock_service, mocker):
+    mock_query_table_single = mocker.patch.object(
+        mock_service, "query_table_single", return_value=MOCK_RESPONSE
+    )
+
+    actual = mock_service.query_table(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        consistent_read=True,
+    )
+
+    assert actual == MOCK_RESPONSE["Items"]
+    mock_query_table_single.assert_called_once_with(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        index_name=None,
+        requested_fields=None,
+        query_filter=None,
+        start_key=None,
+        consistent_read=True,
+    )
+
+
+def test_query_table_with_consistent_read_false(mock_service, mocker):
+    mock_query_table_single = mocker.patch.object(
+        mock_service, "query_table_single", return_value=MOCK_RESPONSE
+    )
+
+    actual = mock_service.query_table(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        consistent_read=False,
+    )
+
+    assert actual == MOCK_RESPONSE["Items"]
+    mock_query_table_single.assert_called_once_with(
+        table_name=MOCK_TABLE_NAME,
+        search_key="NhsNumber",
+        search_condition=TEST_NHS_NUMBER,
+        index_name=None,
+        requested_fields=None,
+        query_filter=None,
+        start_key=None,
+        consistent_read=False,
     )
 
 
@@ -1232,7 +1349,7 @@ def test_query_table_using_paginator(mock_service):
         IndexName="NhsNumberIndex",
         KeyConditionExpression="NhsNumber=:i",
         ExpressionAttributeValues={":i": {"S": TEST_NHS_NUMBER}},
-        PaginationConfig={"MaxItems": 20, "PageSize": 1, "StartingToken": None},
+        PaginationConfig={"MaxItems": 20, "PageSize": 1},
     )
 
     assert actual == expected
@@ -1281,5 +1398,5 @@ def test_query_table_using_pagination_with_filter_expression(mock_service):
             **serialized_condition_attribute_values,
         },
         ExpressionAttributeNames=condition_attribute_names,
-        PaginationConfig={"MaxItems": 20, "PageSize": 1, "StartingToken": None},
+        PaginationConfig={"MaxItems": 20, "PageSize": 1},
     )

@@ -9,6 +9,7 @@ import { ReviewsResponse } from '../../../../types/generic/reviews';
 import { ReviewsPage } from './ReviewsPage';
 import PatientDetailsProvider from '../../../../providers/patientProvider/PatientProvider';
 import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
+import { routes } from '../../../../types/generic/routes';
 
 const mockedUseNavigate = vi.fn();
 const mockSetSnoMed = vi.fn();
@@ -16,13 +17,20 @@ const mockSetReviewData = vi.fn();
 
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
-vi.mock('../../../../helpers/requests/getReviews', () => ({
-    default: vi.fn(),
-}));
+vi.mock('../../../../helpers/requests/getReviews');
 vi.mock('../../../../helpers/utils/documentType');
-vi.mock('react-router-dom', () => ({
-    useNavigate: (): typeof mockedUseNavigate => mockedUseNavigate,
-}));
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: (): Mock => mockedUseNavigate,
+        Link: ({ children, to, ...props }: any) => (
+            <a href={to} {...props}>
+                {children}
+            </a>
+        ),
+    };
+});
 
 const mockUseBaseAPIUrl = useBaseAPIUrl as Mock;
 const mockUseBaseAPIHeaders = useBaseAPIHeaders as Mock;
@@ -628,44 +636,22 @@ describe('ReviewsPage', () => {
     });
 
     describe('Error Handling', () => {
-        it('displays error message when reviews fail to load', async () => {
-            mockGetReviews.mockRejectedValue(new Error('Network error'));
+        it('navigates to session expired when search returns 403', async () => {
+            mockGetReviews.mockRejectedValueOnce({ code: '403' });
             renderComponent();
 
             await waitFor(() => {
-                expect(screen.getByText('Failed to load reviews')).toBeInTheDocument();
+                expect(mockedUseNavigate).toBeCalledWith(routes.SESSION_EXPIRED);
             });
         });
 
-        it('resets state when loading fails', async () => {
-            mockGetReviews.mockRejectedValue(new Error('Network error'));
-            renderComponent();
-
-            await waitFor(() => {
-                expect(screen.getByText('Failed to load reviews')).toBeInTheDocument();
-            });
-
-            expect(screen.queryByText('900 000 0001')).not.toBeInTheDocument();
-        });
-
-        it('clears error when new search succeeds', async () => {
+        it('navigates to unexpected error when search returns non-403 error', async () => {
             mockGetReviews.mockRejectedValueOnce(new Error('Network error'));
             renderComponent();
 
             await waitFor(() => {
-                expect(screen.getByText('Failed to load reviews')).toBeInTheDocument();
+                expect(mockedUseNavigate).toBeCalledWith(expect.stringContaining(routes.SERVER_ERROR));
             });
-
-            mockGetReviews.mockResolvedValue(mockReviewsResponse);
-
-            const searchButton = screen.getByRole('button', { name: /search/i });
-            await userEvent.click(searchButton);
-
-            await waitFor(() => {
-                expect(screen.queryByText('Failed to load reviews')).not.toBeInTheDocument();
-            });
-
-            expect(screen.getByText('900 000 0001')).toBeInTheDocument();
         });
     });
 

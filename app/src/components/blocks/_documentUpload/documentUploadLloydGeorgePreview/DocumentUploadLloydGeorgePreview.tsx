@@ -110,7 +110,7 @@ const DocumentUploadLloydGeorgePreview = ({
                 <PdfViewer customClasses={['upload-preview']} fileUrl={mergedPdfUrl} />
             )}
             {!documents && <div>No documents to preview</div>}
-            {!mergedPdfUrl && <div>No merged PDF available</div>}
+            {!mergedPdfUrl && !isReview && <div>No merged PDF available</div>}
         </>
     );
 };

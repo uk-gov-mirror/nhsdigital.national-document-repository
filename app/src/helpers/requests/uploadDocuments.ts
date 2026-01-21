@@ -16,6 +16,7 @@ type UploadDocumentsArgs = {
     baseUrl: string;
     baseHeaders: AuthHeaders;
     documentReferenceId?: string | undefined;
+    snomedCode?: string | undefined;
 };
 
 type UploadDocumentsToS3Args = {
@@ -77,6 +78,7 @@ const uploadDocuments = async ({
     baseUrl,
     baseHeaders,
     documentReferenceId,
+    snomedCode,
 }: UploadDocumentsArgs): Promise<UploadSession> => {
     const attachments = documents.map((doc) => ({
         fileName: doc.file.name,
@@ -97,7 +99,7 @@ const uploadDocuments = async ({
             coding: [
                 {
                     system: 'http://snomed.info/sct',
-                    code: '22151000087106',
+                    code: snomedCode ?? '22151000087106',
                 },
             ],
         },

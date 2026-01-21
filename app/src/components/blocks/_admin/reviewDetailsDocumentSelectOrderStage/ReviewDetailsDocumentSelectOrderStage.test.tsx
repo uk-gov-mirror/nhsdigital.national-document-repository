@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, Mock, vi } from 'vitest';
 import { MemoryRouter } from 'react-router';
 import ReviewDetailsDocumentSelectOrderStage from './ReviewDetailsDocumentSelectOrderStage';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
@@ -57,6 +57,16 @@ vi.mock('../../../../helpers/hooks/useBaseAPIUrl', () => ({
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders', () => ({
     default: vi.fn(() => ({ Authorization: 'Bearer test-token' })),
 }));
+
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: (): Mock => mockUseNavigate,
+    };
+});
+
+const mockUseNavigate = vi.fn();
 
 describe('ReviewDetailsDocumentSelectOrderStage', () => {
     const testReviewSnoMed: DOCUMENT_TYPE = '16521000000101' as DOCUMENT_TYPE;

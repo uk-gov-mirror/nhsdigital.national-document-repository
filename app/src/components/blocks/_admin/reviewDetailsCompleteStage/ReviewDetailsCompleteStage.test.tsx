@@ -2,17 +2,23 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
-import ReviewDetailsCompleteStage from './ReviewDetailsCompleteStage';
+import ReviewDetailsCompleteStage, { getReviewStatus } from './ReviewDetailsCompleteStage';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import { CompleteState } from '../../../../pages/adminRoutesPage/AdminRoutesPage';
 import { routeChildren } from '../../../../types/generic/routes';
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
-import { DOCUMENT_UPLOAD_STATE } from '../../../../types/pages/UploadDocumentsPage/types';
+import { DOCUMENT_UPLOAD_STATE, UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
+import { DocumentReviewStatus } from '../../../../types/blocks/documentReview';
+import { patchReview } from '../../../../helpers/requests/patchReviews';
+import { ReviewDetails } from '../../../../types/generic/reviews';
 
 const mockNavigate = vi.fn();
 const mockSetPatientDetails = vi.fn();
 const mockUsePatientDetailsContext = vi.fn();
+const mockPatchReview = patchReview as Mock;
+
+vi.mock('../../../../helpers/requests/patchReviews');
 
 vi.mock('react-router-dom', async (): Promise<unknown> => {
     const actual = await vi.importActual('react-router-dom');
@@ -26,13 +32,24 @@ vi.mock('../../../../providers/patientProvider/PatientProvider', () => ({
     usePatientDetailsContext: (): unknown => mockUsePatientDetailsContext(),
 }));
 
+vi.mock('../../../../helpers/hooks/useBaseAPIUrl', () => ({
+    default: (): string => 'https://api.example.com',
+}));
+
+vi.mock('../../../../helpers/hooks/useBaseAPIHeaders', () => ({
+    default: (): Record<string, string> => ({
+        authorization: 'Bearer token',
+        'Content-Type': 'application/json',
+    }),
+}));
+
 describe('ReviewDetailsCompletePage', () => {
     const mockPatientDetails = buildPatientDetails();
-    const mockReviewData = null;
+    let mockReviewData: ReviewDetails | null = null;
     const mockFile = new File(['test content'], 'LloydGeorgerecords.zip', {
         type: 'application/zip',
     });
-    const mockReviewUploadDocuments = [
+    const mockReviewUploadDocuments: UploadDocument[] = [
         {
             state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
             file: mockFile,
@@ -45,6 +62,32 @@ describe('ReviewDetailsCompletePage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockUsePatientDetailsContext.mockReturnValue([mockPatientDetails, mockSetPatientDetails]);
+    });
+
+    describe('getReviewStatus', () => {
+        it('maps PATIENT_MATCHED to REASSIGNED', () => {
+            expect(getReviewStatus(CompleteState.PATIENT_MATCHED)).toBe(
+                DocumentReviewStatus.REASSIGNED,
+            );
+        });
+
+        it('maps PATIENT_UNKNOWN to REASSIGNED_PATIENT_UNKNOWN', () => {
+            expect(getReviewStatus(CompleteState.PATIENT_UNKNOWN)).toBe(
+                DocumentReviewStatus.REASSIGNED_PATIENT_UNKNOWN,
+            );
+        });
+
+        it('maps NO_FILES_CHOICE to REJECTED', () => {
+            expect(getReviewStatus(CompleteState.NO_FILES_CHOICE)).toBe(
+                DocumentReviewStatus.REJECTED,
+            );
+        });
+
+        it('defaults to APPROVED (e.g. REVIEW_COMPLETE)', () => {
+            expect(getReviewStatus(CompleteState.REVIEW_COMPLETE)).toBe(
+                DocumentReviewStatus.APPROVED,
+            );
+        });
     });
 
     describe('Rendering', () => {
@@ -637,6 +680,52 @@ describe('ReviewDetailsCompletePage', () => {
             );
 
             expect(screen.getByTestId('review-complete-page')).toBeInTheDocument();
+        });
+    });
+
+    describe('patchReviewStatus', () => {
+        it.each([
+            {completeState: CompleteState.PATIENT_MATCHED, expectedStatus: DocumentReviewStatus.REASSIGNED, expectedDocRef: undefined},
+            {completeState: CompleteState.PATIENT_UNKNOWN, expectedStatus: DocumentReviewStatus.REASSIGNED_PATIENT_UNKNOWN, expectedDocRef: undefined},
+            {completeState: CompleteState.NO_FILES_CHOICE, expectedStatus: DocumentReviewStatus.REJECTED, expectedDocRef: undefined},
+            {completeState: CompleteState.REVIEW_COMPLETE, expectedStatus: DocumentReviewStatus.APPROVED, expectedDocRef: 'doc-ref-id'},
+        ])('should call patchReview with correct parameters %s', (theory) => {
+            const reviewData = new ReviewDetails(
+                'test-review-id',
+                DOCUMENT_TYPE.LLOYD_GEORGE,
+                '2023-10-01T00:00:00Z',
+                'test',
+                '2023-10-01T00:00:00Z',
+                'rejected',
+                '1',
+                mockPatientDetails.nhsNumber,
+            );
+            mockReviewUploadDocuments[0].ref = theory.expectedDocRef;
+
+            const expectedRequest = {
+                reviewStatus: theory.expectedStatus,
+                documentReferenceId: theory.expectedDocRef,
+            };
+
+            render(
+                <ReviewDetailsCompleteStage
+                    completeState={theory.completeState}
+                    reviewData={reviewData}
+                    reviewUploadDocuments={mockReviewUploadDocuments}
+                />,
+            );
+
+            expect(mockPatchReview).toHaveBeenCalledWith(
+                'https://api.example.com',
+                {
+                    authorization: 'Bearer token',
+                    'Content-Type': 'application/json',
+                },
+                reviewData.id,
+                reviewData.version,
+                reviewData.nhsNumber,
+                expectedRequest
+            );
         });
     });
 });

@@ -201,7 +201,7 @@ describe('<DocumentSearchResultsPage />', () => {
             );
             renderPage(history);
 
-            expect(screen.getByRole('progressbar', { name: 'Loading...' })).toBeInTheDocument();
+            expect(screen.getByRole('status')).toBeInTheDocument();
 
             const results = await runAxeTest(document.body);
             expect(results).toHaveNoViolations();

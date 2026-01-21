@@ -239,6 +239,13 @@ def test_find_login_session(mocker, mock_service):
     actual = mock_service.find_login_session(MOCK_SESSION_ID)
 
     assert expected == actual
+    # Verify consistent_read is passed to query_table
+    dynamo_service.assert_called_once_with(
+        table_name=AUTH_SESSION_TABLE_NAME,
+        search_key="NDRSessionId",
+        search_condition=MOCK_SESSION_ID,
+        consistent_read=True,
+    )
 
 
 def test_find_login_session_raises_auth_exception(mocker, mock_service):

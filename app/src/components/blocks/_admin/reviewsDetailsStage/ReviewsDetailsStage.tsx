@@ -6,7 +6,7 @@ import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useConfig from '../../../../helpers/hooks/useConfig';
 import useRole from '../../../../helpers/hooks/useRole';
 import useTitle from '../../../../helpers/hooks/useTitle';
-import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
+import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
 import { setFullScreen } from '../../../../helpers/utils/fullscreen';
 import { handleSearch as handlePatientSearch } from '../../../../helpers/utils/handlePatientSearch';
@@ -19,7 +19,7 @@ import {
 } from '../../../../types/blocks/lloydGeorgeActions';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import { ReviewDetails } from '../../../../types/generic/reviews';
-import { navigateUrlParam, routeChildren } from '../../../../types/generic/routes';
+import { navigateUrlParam, routeChildren, routes } from '../../../../types/generic/routes';
 import {
     ReviewUploadDocument,
     UploadDocumentType,
@@ -29,10 +29,13 @@ import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/Pat
 import { RecordLayout } from '../../../generic/recordCard/RecordCard';
 import { RecordLoader, RecordLoaderProps } from '../../../generic/recordLoader/RecordLoader';
 import Spinner from '../../../generic/spinner/Spinner';
+import { useForm } from 'react-hook-form';
+import { AxiosError } from 'axios';
+import { errorToParams } from '../../../../helpers/utils/errorToParams';
+import waitForSeconds from '../../../../helpers/utils/waitForSeconds';
 import DocumentUploadLloydGeorgePreview from '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 
 export type ReviewsDetailsStageProps = {
-    setReviewData?: Dispatch<SetStateAction<ReviewDetails | null>>;
     reviewData: ReviewDetails;
     loadReviewData: () => Promise<void>;
     setDownloadStage: Dispatch<SetStateAction<DOWNLOAD_STAGE>>;
@@ -41,10 +44,12 @@ export type ReviewsDetailsStageProps = {
 };
 
 type YesNoOption = 'yes' | 'no' | '';
+type FormData = {
+    acceptDocument: YesNoOption;
+};
 
 const ReviewsDetailsStage = ({
     reviewData,
-    setReviewData,
     loadReviewData,
     setDownloadStage,
     downloadStage,
@@ -56,7 +61,6 @@ const ReviewsDetailsStage = ({
 
     const [patientDetails, setPatientDetails] = usePatientDetailsContext();
     const [session] = useSessionContext();
-    const [acceptDocument, setAcceptDocument] = useState<YesNoOption>('');
     const [showError, setShowError] = useState(false);
     const errorSummaryRef = useRef<HTMLDivElement>(null);
     const isFetchingReviewDetailsRef = useRef(false);
@@ -73,7 +77,7 @@ const ReviewsDetailsStage = ({
         'https://digital.nhs.uk/services/access-and-store-digital-patient-documents/help-and-guidance';
 
     let actionLinks: LGRecordActionLink[] =
-        reviewData.snomedCode === DOCUMENT_TYPE.LLOYD_GEORGE
+        reviewConfig.canBeUpdated && reviewConfig.canBeDiscarded
             ? getUserRecordActionLinks({ role, hasRecordInStorage })
             : [];
 
@@ -89,10 +93,27 @@ const ReviewsDetailsStage = ({
         return link;
     });
 
+    const downloadAction = (e: React.MouseEvent<HTMLElement>): void => {
+        e.preventDefault();
+        for (const doc of uploadDocuments) {
+            const anchor = document.createElement('a');
+            const url = URL.createObjectURL(doc.blob!);
+            anchor.href = url;
+            anchor.download = doc.file.name;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+        }
+    };
     const recordDetailsProps: RecordLoaderProps = {
         downloadStage,
         lastUpdated: getFormattedDateFromString(reviewData.lastUpdated),
         childrenIfFailiure: <p>Failure: failed to load documents</p>,
+        fileName:
+            !reviewConfig.multifileReview && reviewData.files && reviewData.files.length === 1
+                ? reviewData.files[0].fileName
+                : '',
+        downloadAction,
     };
 
     const onYesSelectionSuccess = (): void => {
@@ -100,8 +121,16 @@ const ReviewsDetailsStage = ({
             return;
         }
 
-        if (reviewConfig.canBeDiscarded === false && reviewConfig.canBeUpdated === false) {
+        if (
+            !reviewConfig.canBeDiscarded ||
+            (uploadDocuments.length === 1 && !reviewConfig.multifileReview)
+        ) {
             navigateUrlParam(routeChildren.ADMIN_REVIEW_UPLOAD, { reviewId }, navigate);
+            return;
+        }
+
+        if (reviewConfig.multifileReview && uploadDocuments.length === 1) {
+            navigateUrlParam(routeChildren.ADMIN_REVIEW_ADD_MORE_CHOICE, { reviewId }, navigate);
             return;
         }
 
@@ -111,7 +140,6 @@ const ReviewsDetailsStage = ({
     useEffect(() => {
         setisLoadingPatientDetails(true);
         setDownloadStage(DOWNLOAD_STAGE.INITIAL);
-        setAcceptDocument('');
         setShowError(false);
 
         if (!setPatientDetails || !reviewData) {
@@ -144,23 +172,38 @@ const ReviewsDetailsStage = ({
     useEffect(() => {
         const loadData = async (): Promise<void> => {
             let retryCount = 0;
-            const maxRetries = 3;
-            const retryDelayMs = 100;
+            const maxRetries = 5;
+            const retryDelayMs = 1000;
 
             while (retryCount < maxRetries) {
                 try {
                     await loadReviewData();
                     break;
-                } catch {
+                } catch (e) {
                     retryCount += 1;
                     if (retryCount < maxRetries) {
-                        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+                        await waitForSeconds(retryDelayMs);
+                    } else {
+                        const error = e as AxiosError;
+                        if (error.code === '403') {
+                            navigate(routes.SESSION_EXPIRED);
+                            return;
+                        }
+
+                        navigate(routes.SERVER_ERROR + errorToParams(error));
                     }
                 }
             }
         };
         loadData();
     }, [patientDetails, setPatientDetails]);
+
+    const { register, handleSubmit } = useForm<FormData>({
+        reValidateMode: 'onSubmit',
+    });
+    const { ref: radioRef, ...radioProps } = register('acceptDocument', {
+        required: 'Select an option',
+    });
 
     const backButton = <BackButton backLinkText="Go back" dataTestid="back-button" />;
 
@@ -185,6 +228,34 @@ const ReviewsDetailsStage = ({
         navigate(routeChildren.ADMIN_REVIEW);
         return <></>;
     }
+
+    const submit = (data: FormData): void => {
+        if (!reviewId) {
+            return;
+        }
+
+        const config = getConfigForDocType(reviewData.snomedCode);
+        if (config.multifileZipped && reviewData.files) {
+            const zipDocument = reviewData.files.find((d) =>
+                d.fileName.toLowerCase().endsWith('.zip'),
+            );
+            if (zipDocument === undefined) {
+                // eslint-disable-next-line no-console
+                console.error('Multifile zipped upload required but no zip file found');
+            }
+        }
+
+        if (!data.acceptDocument) {
+            setShowError(true);
+            return;
+        }
+
+        if (data.acceptDocument === 'yes') {
+            onYesSelectionSuccess();
+        } else if (data.acceptDocument === 'no') {
+            navigateUrlParam(routeChildren.ADMIN_REVIEW_SEARCH_PATIENT, { reviewId }, navigate);
+        }
+    };
 
     return (
         <>
@@ -229,9 +300,10 @@ const ReviewsDetailsStage = ({
                     {uploadDocuments?.length === 0 && (
                         <p>{`No documents to preview, ${uploadDocuments.length}`}</p>
                     )}
+
                     <RecordLayout
                         heading={reviewConfig.displayName}
-                        fullScreenHandler={setFullScreen}
+                        fullScreenHandler={null}
                         detailsElement={<RecordLoader {...recordDetailsProps} />}
                         isFullScreen={session.isFullscreen || false}
                         recordLinks={recordLinksToShow}
@@ -240,7 +312,10 @@ const ReviewsDetailsStage = ({
                     >
                         <DocumentUploadLloydGeorgePreview
                             documents={uploadDocuments.filter(
-                                (f) => f.type === UploadDocumentType.REVIEW,
+                                (f) =>
+                                    f.type === UploadDocumentType.REVIEW &&
+                                    f.file.name.endsWith('.pdf') &&
+                                    f.blob,
                             )}
                             setMergedPdfBlob={(): void => {}}
                             documentConfig={reviewConfig}
@@ -273,63 +348,25 @@ const ReviewsDetailsStage = ({
                 </ul>
             </section>
 
-            <Fieldset className="mt-4">
-                <Fieldset.Legend isPageHeading>
-                    Do you want to accept this document?
-                </Fieldset.Legend>
-                <Radios
-                    name="accept-document"
-                    id="accept-document"
-                    error={showError ? 'Select an option' : ''}
-                >
-                    <Radios.Radio
-                        id="accept-yes"
-                        value="yes"
-                        onChange={(e): void => {
-                            setAcceptDocument(e.currentTarget.value as YesNoOption);
-                        }}
-                    >
-                        Yes, the details match and I want to accept this document
-                    </Radios.Radio>
-                    <Radios.Radio
-                        id="accept-no"
-                        value="no"
-                        onChange={(e): void => {
-                            setAcceptDocument(e.currentTarget.value as YesNoOption);
-                        }}
-                    >
-                        No, I don't want to accept this document. None of the details match the
-                        demographics shown
-                    </Radios.Radio>
-                </Radios>
-                <Button
-                    className="mt-4"
-                    onClick={(): void => {
-                        setShowError(false);
-                        if (!acceptDocument) {
-                            setShowError(true);
-                            setTimeout(() => {
-                                errorSummaryRef.current?.focus();
-                            }, 0);
-                            return;
-                        }
-                        if (!reviewId) {
-                            return;
-                        }
-                        if (acceptDocument === 'yes') {
-                            onYesSelectionSuccess();
-                        } else if (acceptDocument === 'no') {
-                            navigateUrlParam(
-                                routeChildren.ADMIN_REVIEW_SEARCH_PATIENT,
-                                { reviewId },
-                                navigate,
-                            );
-                        }
-                    }}
-                >
-                    Continue
-                </Button>
-            </Fieldset>
+            <form onSubmit={handleSubmit(submit, () => setShowError(true))}>
+                <Fieldset className="mt-4">
+                    <Fieldset.Legend isPageHeading>
+                        Do you want to accept this document?
+                    </Fieldset.Legend>
+                    <Radios id="accept-document" error={showError ? 'Select an option' : ''}>
+                        <Radios.Radio value="yes" {...radioProps} inputRef={radioRef}>
+                            Yes, the details match and I want to accept this document
+                        </Radios.Radio>
+                        <Radios.Radio value="no" {...radioProps} inputRef={radioRef}>
+                            No, I don't want to accept this document. None of the details match the
+                            demographics shown
+                        </Radios.Radio>
+                    </Radios>
+                    <Button className="mt-4" type="submit">
+                        Continue
+                    </Button>
+                </Fieldset>
+            </form>
         </>
     );
 };

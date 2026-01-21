@@ -26,7 +26,7 @@ const getReviews = async (
 
     const params = new URLSearchParams({
         limit: limit.toString(),
-        startKey: nextPageStartKey,
+        nextPageToken: nextPageStartKey,
         nhsNumber: nhsNumber?.replaceAll(/\s/g, ''), // replace whitespace
     });
 
@@ -61,6 +61,22 @@ export const getReviewById = async (
             (review) => review.id === reviewId && review.version === versionNumber,
         );
 
+        if (
+            ['2','5','6','10','11','14','15','18','19','23','24','27','28','31','33','101','103','106','42','111','55','68','81','94'].includes(reviewId)
+        ) {
+            return {
+                id: reviewId,
+                uploadDate: '1765539858673',
+                documentSnomedCodeType:
+                    mockReview?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
+                files: [
+                    {
+                        fileName: 'document_1.zip',
+                        presignedUrl: '/dev/testFile.zip',
+                    },
+                ],
+            };
+        }
         return {
             id: reviewId,
             uploadDate: '1765539858673',
@@ -128,42 +144,34 @@ export const getReviewData = async ({
         const results = await getDocumentSearchResults(params);
         reviewData.existingFiles = results;
 
-        if (results.length === 0) {
-            return {
-                uploadDocuments: [],
-                additionalFiles: [],
-                existingUploadDocuments: [],
-                hasExistingRecordInStorage: false,
-                aborted: true,
-            };
+        if (results.length > 0) {
+            hasExistingRecordInStorage = true;
+
+            const result = await getDocument({
+                nhsNumber: reviewData.nhsNumber,
+                baseUrl,
+                baseHeaders,
+                documentId: results[0].id,
+            });
+
+            const data = await fetchBlob(result.url);
+
+            uploadDocs.push({
+                type: UploadDocumentType.EXISTING,
+                id: results[0].id,
+                file: new File([data], results[0].fileName, {
+                    type: results[0].contentType,
+                }),
+                blob: data,
+                state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                progress: 0,
+                docType: reviewData.snomedCode,
+                attempts: 0,
+                numPages: undefined,
+                validated: false,
+                versionId: results[0].version,
+            });
         }
-
-        hasExistingRecordInStorage = true;
-
-        const result = await getDocument({
-            nhsNumber: reviewData.nhsNumber,
-            baseUrl,
-            baseHeaders,
-            documentId: results[0].id,
-        });
-
-        const data = await fetchBlob(result.url);
-
-        uploadDocs.push({
-            type: UploadDocumentType.EXISTING,
-            id: results[0].id,
-            file: new File([data], results[0].fileName, {
-                type: results[0].contentType,
-            }),
-            blob: data,
-            state: DOCUMENT_UPLOAD_STATE.SELECTED,
-            progress: 0,
-            docType: reviewData.snomedCode,
-            attempts: 0,
-            numPages: undefined,
-            validated: false,
-            versionId: results[0].version,
-        });
     }
 
     const review = await getReviewById(

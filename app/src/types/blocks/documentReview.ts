@@ -33,3 +33,9 @@ export enum DocumentReviewStatus {
     REVIEW_PENDING_UPLOAD = 'REVIEW_PENDING_UPLOAD',
     VIRUS_SCAN_FAILED = 'VIRUS_SCAN_FAILED',
 }
+
+export type PatchDocumentReviewRequest = {
+    reviewStatus: DocumentReviewStatus;
+    documentReferenceId?: string;
+    nhsNumber?: string; // new nhs number if 'not my record'
+};
