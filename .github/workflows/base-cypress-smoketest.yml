@@ -55,7 +55,7 @@ jobs:
         working-directory: ./app
 
       - name: Cypress run
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           install: false
           browser: chrome
@@ -71,13 +71,13 @@ jobs:
           CYPRESS_KEY: ${{ secrets.CYPRESS_KEY }}
           CYPRESS_OUTPUT_VIDEO: true
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: cypress-screenshots
           path: /home/runner/work/national-document-repository/national-document-repository/app/cypress/screenshots
           if-no-files-found: ignore
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: cypress-videos
@@ -109,7 +109,7 @@ jobs:
         working-directory: ./app
 
       - name: Cypress run
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           install: false
           browser: edge

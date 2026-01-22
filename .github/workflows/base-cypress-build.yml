@@ -44,7 +44,7 @@ jobs:
         working-directory: ./app
 
       - name: Cypress build
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           # Disable running of tests within install job
           install: false
@@ -53,7 +53,7 @@ jobs:
           working-directory: ./app
 
       - name: Save build folder
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: build
           if-no-files-found: error
