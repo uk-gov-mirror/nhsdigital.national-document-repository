@@ -1,3 +1,4 @@
+
 import pytest
 from freezegun import freeze_time
 from openpyxl import load_workbook
@@ -46,20 +47,26 @@ def test_create_report_orchestration_xlsx_happy_path(
         output_path=str(output_file),
     )
 
+    # File path returned
     assert result == str(output_file)
     assert output_file.exists()
 
     wb = load_workbook(output_file)
     ws = wb.active
 
+    # Sheet name
     assert ws.title == "Daily Upload Report"
+
+    # Metadata rows
     assert ws["A1"].value == f"ODS Code: {ods_code}"
     assert ws["A2"].value.startswith("Generated at (UTC): ")
     assert ws["A3"].value is None  # blank row
 
+    # Header row
     assert [cell.value for cell in ws[4]] == [
-        "NHS Number",
+        "ID",
         "Date",
+        "NHS Number",
         "Uploader ODS",
         "PDS ODS",
         "Upload Status",
@@ -67,10 +74,11 @@ def test_create_report_orchestration_xlsx_happy_path(
         "File Path",
     ]
 
-    # First data row (no ID column)
+    # First data row
     assert [cell.value for cell in ws[5]] == [
-        "1234567890",
+        1,
         "2025-01-01",
+        "1234567890",
         "Y12345",
         "A99999",
         "SUCCESS",
@@ -78,9 +86,11 @@ def test_create_report_orchestration_xlsx_happy_path(
         "/path/file1.pdf",
     ]
 
+    # Second data row
     assert [cell.value for cell in ws[6]] == [
-        "123456789",
+        2,
         "2025-01-02",
+        "123456789",
         "Y12345",
         "B88888",
         "FAILED",
@@ -104,6 +114,7 @@ def test_create_report_orchestration_xlsx_with_no_records(
     wb = load_workbook(output_file)
     ws = wb.active
 
+    # Only metadata + header rows should exist
     assert ws.max_row == 4
 
 
@@ -132,8 +143,9 @@ def test_create_report_orchestration_xlsx_handles_missing_fields(
     row = [cell.value for cell in ws[5]]
 
     assert row == [
-        "1234567890",
+        1,
         None,
+        "1234567890",
         None,
         None,
         None,

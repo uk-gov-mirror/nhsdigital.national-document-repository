@@ -1,6 +1,5 @@
 import tempfile
 from collections import defaultdict
-from typing import Dict
 
 from utils.audit_logging_setup import LoggingService
 
@@ -8,7 +7,11 @@ logger = LoggingService(__name__)
 
 
 class ReportOrchestrationService:
-    def __init__(self, repository, excel_generator):
+    def __init__(
+        self,
+        repository,
+        excel_generator,
+    ):
         self.repository = repository
         self.excel_generator = excel_generator
 
@@ -16,28 +19,24 @@ class ReportOrchestrationService:
         self,
         window_start_ts: int,
         window_end_ts: int,
-    ) -> Dict[str, str]:
+        output_dir: str,
+    ):
         records = self.repository.get_records_for_time_window(
             window_start_ts,
             window_end_ts,
         )
-
         if not records:
             logger.info("No records found for reporting window")
-            return {}
+            return
 
         records_by_ods = self.group_records_by_ods(records)
-        generated_files: Dict[str, str] = {}
 
         for ods_code, ods_records in records_by_ods.items():
             logger.info(
-                f"Generating report for ODS={ods_code}, records={len(ods_records)}"
+                f"Generating report for ODS ods_code = {ods_code} record_count = {len(ods_records)}"
             )
-            file_path = self.generate_ods_report(ods_code, ods_records)
-            generated_files[ods_code] = file_path
-
-        logger.info(f"Generated {len(generated_files)} report(s)")
-        return generated_files
+            self.generate_ods_report(ods_code, ods_records)
+        logger.info("Report orchestration completed")
 
     @staticmethod
     def group_records_by_ods(records: list[dict]) -> dict[str, list[dict]]:
@@ -47,7 +46,11 @@ class ReportOrchestrationService:
             grouped[ods_code].append(record)
         return grouped
 
-    def generate_ods_report(self, ods_code: str, records: list[dict]) -> str:
+    def generate_ods_report(
+        self,
+        ods_code: str,
+        records: list[dict],
+    ):
         with tempfile.NamedTemporaryFile(
             suffix=f"_{ods_code}.xlsx",
             delete=False,
@@ -57,4 +60,3 @@ class ReportOrchestrationService:
                 records=records,
                 output_path=tmp.name,
             )
-            return tmp.name
