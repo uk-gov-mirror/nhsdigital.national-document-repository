@@ -441,6 +441,46 @@ class DynamoDBService:
             }
         }
 
+    def query_by_key_condition_expression(
+            self,
+            table_name: str,
+            key_condition_expression: ConditionBase,
+            index_name: str | None = None,
+            query_filter: Attr | ConditionBase | None = None,
+            limit: int | None = None,
+    ) -> list[dict]:
+        table = self.get_table(table_name)
+
+        collected_items: list[dict] = []
+        exclusive_start_key: dict | None = None
+
+        while True:
+            query_params: dict = {"KeyConditionExpression": key_condition_expression}
+
+            if index_name:
+                query_params["IndexName"] = index_name
+            if query_filter:
+                query_params["FilterExpression"] = query_filter
+            if exclusive_start_key:
+                query_params["ExclusiveStartKey"] = exclusive_start_key
+            if limit:
+                query_params["Limit"] = limit
+
+            try:
+                response = table.query(**query_params)
+            except ClientError as exc:
+                logger.error(str(exc), {"Result": f"Unable to query table: {table_name}"})
+                raise
+
+            collected_items.extend(response.get("Items", []))
+
+            exclusive_start_key = response.get("LastEvaluatedKey")
+            if not exclusive_start_key:
+                break
+
+        return collected_items
+
+
     def query_table_with_paginator(
         self,
         table_name: str,

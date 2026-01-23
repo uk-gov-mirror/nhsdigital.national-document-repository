@@ -1324,6 +1324,118 @@ def test_build_key_condition_non_matching_list_lengths(
             search_key=search_key, search_condition=search_condition
         )
 
+def test_query_by_key_condition_expression_single_page_returns_items(
+    mock_service, mock_table
+):
+    key_condition_expression = Key("Date").eq("2026-01-07") & Key("Timestamp").gte(1767779952)
+
+    mock_table.return_value.query.return_value = {
+        "Items": [{"ID": "item-1"}, {"ID": "item-2"}]
+    }
+
+    result = mock_service.query_by_key_condition_expression(
+        table_name=MOCK_TABLE_NAME,
+        index_name="TimestampIndex",
+        key_condition_expression=key_condition_expression,
+    )
+
+    assert result == [{"ID": "item-1"}, {"ID": "item-2"}]
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.query.assert_called_once_with(
+        IndexName="TimestampIndex",
+        KeyConditionExpression=key_condition_expression,
+    )
+
+
+def test_query_by_key_condition_expression_handles_pagination(
+    mock_service, mock_table
+):
+    key_condition_expression = Key("Date").eq("2026-01-07") & Key("Timestamp").gte(1767779952)
+
+    mock_table.return_value.query.side_effect = [
+        {
+            "Items": [{"ID": "item-1"}],
+            "LastEvaluatedKey": {"ID": "page-2"},
+        },
+        {
+            "Items": [{"ID": "item-2"}],
+            "LastEvaluatedKey": {"ID": "page-3"},
+        },
+        {
+            "Items": [{"ID": "item-3"}],
+        },
+    ]
+
+    result = mock_service.query_by_key_condition_expression(
+        table_name=MOCK_TABLE_NAME,
+        index_name="TimestampIndex",
+        key_condition_expression=key_condition_expression,
+    )
+
+    assert result == [{"ID": "item-1"}, {"ID": "item-2"}, {"ID": "item-3"}]
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+
+    expected_calls = [
+        call(
+            IndexName="TimestampIndex",
+            KeyConditionExpression=key_condition_expression,
+        ),
+        call(
+            IndexName="TimestampIndex",
+            KeyConditionExpression=key_condition_expression,
+            ExclusiveStartKey={"ID": "page-2"},
+        ),
+        call(
+            IndexName="TimestampIndex",
+            KeyConditionExpression=key_condition_expression,
+            ExclusiveStartKey={"ID": "page-3"},
+        ),
+    ]
+    mock_table.return_value.query.assert_has_calls(expected_calls)
+
+
+def test_query_by_key_condition_expression_passes_filter_and_limit(
+    mock_service, mock_table
+):
+    key_condition_expression = Key("Date").eq("2026-01-07") & Key("Timestamp").lte(1767780025)
+    filter_expression = Attr("UploadStatus").eq("complete")
+
+    mock_table.return_value.query.return_value = {"Items": [{"ID": "item-1"}]}
+
+    result = mock_service.query_by_key_condition_expression(
+        table_name=MOCK_TABLE_NAME,
+        index_name="TimestampIndex",
+        key_condition_expression=key_condition_expression,
+        query_filter=filter_expression,
+        limit=25,
+    )
+
+    assert result == [{"ID": "item-1"}]
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.query.assert_called_once_with(
+        IndexName="TimestampIndex",
+        KeyConditionExpression=key_condition_expression,
+        FilterExpression=filter_expression,
+        Limit=25,
+    )
+
+
+def test_query_by_key_condition_expression_client_error_raises_exception(
+    mock_service, mock_table
+):
+    key_condition_expression = Key("Date").eq("2026-01-07") & Key("Timestamp").gte(1767779952)
+
+    mock_table.return_value.query.side_effect = MOCK_CLIENT_ERROR
+
+    with pytest.raises(ClientError) as exc_info:
+        mock_service.query_by_key_condition_expression(
+            table_name=MOCK_TABLE_NAME,
+            index_name="TimestampIndex",
+            key_condition_expression=key_condition_expression,
+        )
+
+    assert exc_info.value == MOCK_CLIENT_ERROR
+
 
 def test_query_table_using_paginator(mock_service):
     mock_paginator = mock_service.client.get_paginator.return_value = MagicMock()

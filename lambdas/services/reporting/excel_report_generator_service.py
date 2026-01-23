@@ -16,6 +16,7 @@ class ExcelReportGenerator:
         logger.info(
             f"Creating Excel report for ODS code {ods_code} and records {len(records)}"
         )
+
         wb = Workbook()
         ws = wb.active
         ws.title = "Daily Upload Report"
@@ -25,12 +26,10 @@ class ExcelReportGenerator:
         ws.append([f"Generated at (UTC): {datetime.now(timezone.utc).isoformat()}"])
         ws.append([])
 
-        # Header row
         ws.append(
             [
-                "ID",
-                "Date",
                 "NHS Number",
+                "Date",
                 "Uploader ODS",
                 "PDS ODS",
                 "Upload Status",
@@ -42,9 +41,8 @@ class ExcelReportGenerator:
         for record in records:
             ws.append(
                 [
-                    record.get("ID"),
-                    record.get("Date"),
                     record.get("NhsNumber"),
+                    record.get("Date"),
                     record.get("UploaderOdsCode"),
                     record.get("PdsOdsCode"),
                     record.get("UploadStatus"),
@@ -54,5 +52,5 @@ class ExcelReportGenerator:
             )
 
         wb.save(output_path)
-        logger.info(f"Excel report written successfully for for ods code {ods_code}")
+        logger.info(f"Excel report written successfully for ods code {ods_code}")
         return output_path

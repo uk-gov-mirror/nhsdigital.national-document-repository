@@ -2,7 +2,7 @@ import itertools
 import os
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone, date, time
 from urllib.parse import urlparse
 
 from inflection import camelize
@@ -127,3 +127,18 @@ def parse_date(date_string: str) -> datetime | None:
         except ValueError:
             continue
     return None
+
+
+def utc_date_string(timestamp_seconds: int) -> str:
+    return datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc).strftime("%Y-%m-%d")
+
+def utc_date(timestamp_seconds: int) -> date:
+    return datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc).date()
+
+def utc_day_start_timestamp(day: date) -> int:
+    return int(
+        datetime.combine(day, time.min, tzinfo=timezone.utc).timestamp()
+    )
+    
+def utc_day_end_timestamp(day: date) -> int:
+    return utc_day_start_timestamp(day) + 24 * 60 * 60 - 1
