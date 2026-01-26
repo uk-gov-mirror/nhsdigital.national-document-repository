@@ -1,6 +1,9 @@
+from unittest.mock import call
+
 import pytest
 from enums.snomed_codes import SnomedCodes
 from requests import Response
+from requests.exceptions import HTTPError
 from services.nrl_api_service import NrlApiService
 from tests.unit.conftest import FAKE_URL, TEST_NHS_NUMBER
 from tests.unit.helpers.mock_services import FakeSSMService, FakOAuthService
@@ -30,6 +33,78 @@ def mock_session_post(nrl_service, mocker):
 def mock_get_pointer(nrl_service, mocker):
     nrl_service.get_pointer = mocker.MagicMock()
     yield nrl_service.get_pointer
+
+
+@pytest.fixture
+def mock_search_url():
+    yield "https://example.com/search_url"
+
+
+@pytest.fixture
+def mock_pointer_id():
+    yield "222"
+
+
+@pytest.fixture
+def mock_nrl_pointer_entry(mock_search_url, mock_pointer_id):
+    mock_nrl_entry = {
+        "resource": {
+            "resourceType": "DocumentReference",
+            "id": mock_pointer_id,
+        },
+        "content": [{"attachment": {"url": mock_search_url}}],
+    }
+
+    yield mock_nrl_entry
+
+
+@pytest.fixture
+def mock_multi_doc_nrl_pointer_entry(mock_search_url, mock_pointer_id):
+    mock_nrl_entry = {
+        "resource": {
+            "resourceType": "DocumentReference",
+            "id": mock_pointer_id,
+        },
+        "content": [
+            {"attachment": {"url": "https://example.com/other_doc_url"}},
+            {"attachment": {"url": "https://example.com/other_doc_url"}},
+            {"attachment": {"url": mock_search_url}},
+        ],
+    }
+
+    yield mock_nrl_entry
+
+
+@pytest.fixture
+def mock_nrl_multiple_entry_response(mock_nrl_pointer_entry):
+    mock_nrl_response = {
+        "resourceType": "Bundle",
+        "type": "searchset",
+        "total": 3,
+        "entry": [
+            {
+                "resource": {
+                    "resourceType": "DocumentReference",
+                    "id": "222",
+                },
+                "content": [
+                    {"attachment": {"url": "https://example.com/other_mock_url"}}
+                ],
+            },
+            mock_nrl_pointer_entry,
+            {
+                "resource": {
+                    "resourceType": "DocumentReference",
+                    "id": "222",
+                },
+                "content": [
+                    {"attachment": {"url": "https://example.com/other_mock_url"}}
+                ],
+            },
+        ],
+    }
+
+    yield mock_nrl_response
 
 
 def test_create_new_pointer(nrl_service, mock_session_post, mock_get_pointer):
@@ -145,6 +220,23 @@ def test_get_pointer_with_record_type(mocker, nrl_service):
         "X-Request-ID": "test_uuid",
     }
     nrl_service.get_pointer(TEST_NHS_NUMBER, mock_type)
+    nrl_service.session.get.assert_called_with(
+        params=mock_params, url=FAKE_URL, headers=mock_headers
+    )
+
+
+def test_get_pointer_without_record_type(mocker, nrl_service):
+    mocker.patch("uuid.uuid4", return_value="test_uuid")
+    mock_params = {
+        "subject:identifier": f"https://fhir.nhs.uk/Id/nhs-number|{TEST_NHS_NUMBER}",
+    }
+    mock_headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "NHSD-End-User-Organisation-ODS": "test_value_test_nrl_user_ods_ssm_key",
+        "Accept": "application/json",
+        "X-Request-ID": "test_uuid",
+    }
+    nrl_service.get_pointer(TEST_NHS_NUMBER)
     nrl_service.session.get.assert_called_with(
         params=mock_params, url=FAKE_URL, headers=mock_headers
     )
@@ -313,3 +405,199 @@ def test_delete_pointer_not_raise_error(mock_get_pointer, nrl_service):
     except Exception:
         assert False
     nrl_service.session.delete.assert_called_once()
+
+
+def test_update_pointer_success(nrl_service, mocker):
+    mock_pointer_id = "222"
+    mock_pointer = {
+        "resource": {"resourceType": "DocumentReference", "id": mock_pointer_id}
+    }
+
+    mock_response = Response()
+    mock_response.status_code = 200
+    mock_response._content = b"{}"
+
+    nrl_service.session.put.return_value = mock_response
+
+    nrl_service.update_pointer(mock_pointer, TEST_NHS_NUMBER)
+
+    nrl_service.session.put.assert_called_once_with(
+        url=nrl_service.endpoint + f"/{mock_pointer_id}",
+        headers=nrl_service.headers,
+        json=mock_pointer,
+    )
+
+
+def test_update_pointer_nrl_token_expired_retries(nrl_service):
+    mock_pointer_id = "222"
+    mock_pointer = {
+        "resource": {"resourceType": "DocumentReference", "id": mock_pointer_id}
+    }
+
+    mock_token_expired_response = Response()
+    mock_token_expired_response.status_code = 401
+    mock_token_expired_response._content = b"{}"
+    mock_http_error = HTTPError(response=mock_token_expired_response)
+
+    mock_successful_response = Response()
+    mock_successful_response.status_code = 200
+    mock_successful_response._content = b"{}"
+
+    nrl_service.session.put.side_effect = [mock_http_error, mock_successful_response]
+
+    nrl_service.update_pointer(mock_pointer, TEST_NHS_NUMBER)
+
+    assert nrl_service.session.put.call_count == 2
+
+    nrl_service.session.put.assert_has_calls(
+        [
+            call(
+                url=nrl_service.endpoint + f"/{mock_pointer_id}",
+                headers=nrl_service.headers,
+                json=mock_pointer,
+            ),
+            call(
+                url=nrl_service.endpoint + f"/{mock_pointer_id}",
+                headers=nrl_service.headers,
+                json=mock_pointer,
+            ),
+        ]
+    )
+
+
+def test_update_pointer_not_raise_error(nrl_service):
+    response = Response()
+    response.status_code = 400
+    response._content = b"{}"
+    mock_pointer_id = "222"
+    mock_pointer = {
+        "resource": {"resourceType": "DocumentReference", "id": mock_pointer_id}
+    }
+    nrl_service.session.put.return_value = response
+
+    nrl_service.update_pointer(mock_pointer, TEST_NHS_NUMBER)
+
+    nrl_service.session.put.assert_called_once()
+
+
+def test_get_pointer_by_url_returns_correct_entry(
+    nrl_service,
+    mock_get_pointer,
+    mock_search_url,
+    mock_nrl_multiple_entry_response,
+    mock_nrl_pointer_entry,
+):
+    mock_get_pointer.return_value = mock_nrl_multiple_entry_response
+    mock_type = SnomedCodes.LLOYD_GEORGE.value
+
+    result = nrl_service.get_pointer_by_url(TEST_NHS_NUMBER, mock_type, mock_search_url)
+
+    assert result == mock_nrl_pointer_entry
+
+
+def test_delete_pointer_with_url_single_document_deletes_pointer(
+    nrl_service, mock_nrl_pointer_entry, mocker, mock_search_url
+):
+    mocker.patch.object(
+        nrl_service, "get_pointer_by_url", return_value=mock_nrl_pointer_entry
+    )
+
+    mock_type = SnomedCodes.LLOYD_GEORGE.value
+
+    mocker.patch.object(nrl_service, "update_pointer")
+    mocker.patch.object(nrl_service, "delete_pointer_by_id")
+    mocker.patch.object(nrl_service, "delete_pointer_by_record_type")
+
+    nrl_service.delete_pointer(TEST_NHS_NUMBER, mock_type, mock_search_url)
+
+    nrl_service.delete_pointer_by_record_type.assert_not_called()
+    nrl_service.update_pointer.assert_not_called()
+
+    nrl_service.delete_pointer_by_id.assert_called_once_with(
+        mock_nrl_pointer_entry, TEST_NHS_NUMBER
+    )
+
+
+def test_delete_pointer_with_url_multiple_documents_deletes_pointer(
+    nrl_service, mock_multi_doc_nrl_pointer_entry, mocker, mock_search_url
+):
+    mocker.patch.object(
+        nrl_service, "get_pointer_by_url", return_value=mock_multi_doc_nrl_pointer_entry
+    )
+
+    mock_type = SnomedCodes.LLOYD_GEORGE.value
+
+    mocker.patch.object(nrl_service, "update_pointer")
+    mocker.patch.object(nrl_service, "delete_pointer_by_id")
+    mocker.patch.object(nrl_service, "delete_pointer_by_record_type")
+
+    nrl_service.delete_pointer(TEST_NHS_NUMBER, mock_type, mock_search_url)
+
+    nrl_service.delete_pointer_by_record_type.assert_not_called()
+    nrl_service.delete_pointer_by_id.assert_not_called()
+
+    nrl_service.update_pointer.assert_called_once_with(
+        mock_multi_doc_nrl_pointer_entry, TEST_NHS_NUMBER
+    )
+
+
+def test_delete_pointer_with_url_no_pointers_found_no_error(
+    nrl_service, mocker, mock_search_url
+):
+    mocker.patch.object(nrl_service, "get_pointer_by_url", return_value=None)
+
+    mock_type = SnomedCodes.LLOYD_GEORGE.value
+
+    mocker.patch.object(nrl_service, "update_pointer")
+    mocker.patch.object(nrl_service, "delete_pointer_by_id")
+    mocker.patch.object(nrl_service, "delete_pointer_by_record_type")
+
+    nrl_service.delete_pointer(TEST_NHS_NUMBER, mock_type, mock_search_url)
+
+    nrl_service.delete_pointer_by_record_type.assert_not_called()
+    nrl_service.delete_pointer_by_id.assert_not_called()
+    nrl_service.update_pointer.assert_not_called()
+
+
+def test_delete_pointer_by_id_refresh_expired_token(
+    nrl_service, mock_nrl_pointer_entry, mock_pointer_id
+):
+    mock_token_expired_response = Response()
+    mock_token_expired_response.status_code = 401
+    mock_token_expired_response._content = b"{}"
+    mock_http_error = HTTPError(response=mock_token_expired_response)
+
+    mock_successful_response = Response()
+    mock_successful_response.status_code = 200
+    mock_successful_response._content = b"{}"
+
+    nrl_service.session.delete.side_effect = [mock_http_error, mock_successful_response]
+
+    nrl_service.delete_pointer_by_id(mock_nrl_pointer_entry, TEST_NHS_NUMBER)
+
+    assert nrl_service.session.delete.call_count == 2
+
+    nrl_service.session.delete.assert_has_calls(
+        [
+            call(
+                url=nrl_service.endpoint + f"/{mock_pointer_id}",
+                headers=nrl_service.headers,
+            ),
+            call(
+                url=nrl_service.endpoint + f"/{mock_pointer_id}",
+                headers=nrl_service.headers,
+            ),
+        ]
+    )
+
+
+def test_get_pointer_by_url_no_results_returns_none(
+    nrl_service, mock_get_pointer, mock_search_url
+):
+    mock_get_pointer.return_result = {"entry": []}
+
+    mock_type = SnomedCodes.LLOYD_GEORGE.value
+
+    result = nrl_service.get_pointer_by_url(TEST_NHS_NUMBER, mock_type, mock_search_url)
+
+    assert result is None

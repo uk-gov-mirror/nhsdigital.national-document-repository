@@ -2,6 +2,7 @@ import json
 
 import pytest
 from botocore.exceptions import ClientError
+from enums.lambda_error import LambdaError
 from handlers.delete_document_reference_handler import lambda_handler
 from services.document_deletion_service import DocumentDeletionService
 from tests.unit.conftest import MockError
@@ -26,19 +27,31 @@ def mock_handle_delete(mocker):
     [
         {
             "httpMethod": "GET",
-            "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101,ARF"},
+            "queryStringParameters": {
+                "patientId": "9000000009",
+                "docType": "16521000000101,ARF",
+            },
         },
         {
             "httpMethod": "GET",
-            "queryStringParameters": {"patientId": "9000000009", "docType": "ARF,16521000000101"},
+            "queryStringParameters": {
+                "patientId": "9000000009",
+                "docType": "ARF,16521000000101",
+            },
         },
         {
             "httpMethod": "GET",
-            "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101 , ARF"},
+            "queryStringParameters": {
+                "patientId": "9000000009",
+                "docType": "16521000000101 , ARF",
+            },
         },
         {
             "httpMethod": "GET",
-            "queryStringParameters": {"patientId": "9000000009", "docType": "ARF, 16521000000101"},
+            "queryStringParameters": {
+                "patientId": "9000000009",
+                "docType": "ARF, 16521000000101",
+            },
         },
     ],
 )
@@ -158,37 +171,38 @@ def test_lambda_handler_id_not_valid_returns_400(set_env, invalid_id_event, cont
     assert expected == actual
 
 
-def test_lambda_handler_when_id_not_supplied_returns_400(
-    set_env, missing_id_event, context
+def test_lambda_handler_returns_400_when_doc_type_and_doc_id_not_supplied(
+    set_env, valid_id_event_with_auth_header, context
 ):
     expected_body = json.dumps(
         {
-            "message": "An error occurred due to missing key",
-            "err_code": "PN_4002",
+            "message": "Invalid Request",
+            "err_code": "DDS_4003",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
         }
     )
     expected = ApiGatewayResponse(
-        400, expected_body, "GET"
+        400, expected_body, "DELETE"
     ).create_api_gateway_response()
-    actual = lambda_handler(missing_id_event, context)
+    actual = lambda_handler(valid_id_event_with_auth_header, context)
     assert expected == actual
 
 
-def test_lambda_handler_returns_400_when_doc_type_not_supplied(
-    set_env, valid_id_event_without_auth_header, context
+def test_lambda_handler_returns_400_when_doc_type_is_invalid(
+    set_env, valid_id_and_invalid_doctype_event, context
 ):
+
     expected_body = json.dumps(
         {
-            "message": "An error occurred due to missing key",
-            "err_code": "VDT_4003",
+            "message": "Invalid document type requested",
+            "err_code": "VDT_4002",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
         }
     )
     expected = ApiGatewayResponse(
-        400, expected_body, "GET"
+        400, expected_body, "DELETE"
     ).create_api_gateway_response()
-    actual = lambda_handler(valid_id_event_without_auth_header, context)
+    actual = lambda_handler(valid_id_and_invalid_doctype_event, context)
     assert expected == actual
 
 
@@ -253,3 +267,19 @@ def test_lambda_handler_handle_lambda_exception(
     ).create_api_gateway_response()
     actual = lambda_handler(valid_id_and_lg_doctype_delete_event, context)
     assert expected == actual
+
+
+def test_lambda_handler_both_params_set_errors(
+    set_env, valid_id_and_lg_doctype_delete_event, context
+):
+    valid_id_and_lg_doctype_delete_event["queryStringParameters"][
+        "documentId"
+    ] = "mock_document_id"
+
+    expected_result = ApiGatewayResponse(
+        400, LambdaError.DocDelInvalidRequest.create_error_body(), "DELETE"
+    ).create_api_gateway_response()
+
+    response = lambda_handler(valid_id_and_lg_doctype_delete_event, context)
+
+    assert expected_result == response

@@ -8,7 +8,10 @@ import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import ServiceError from '../../../layout/serviceErrorBox/ServiceErrorBox';
-import { SUBMISSION_STATE } from '../../../../types/pages/documentSearchResultsPage/types';
+import {
+    DocumentReference,
+    SUBMISSION_STATE,
+} from '../../../../types/pages/documentSearchResultsPage/types';
 import { AxiosError } from 'axios';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import { Outlet, Route, Routes, useNavigate } from 'react-router-dom';
@@ -23,12 +26,18 @@ import useTitle from '../../../../helpers/hooks/useTitle';
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import BackButton from '../../../generic/backButton/BackButton';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
-import { DOCUMENT_TYPE, getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
+import {
+    DOCUMENT_TYPE,
+    DOCUMENT_TYPE_CONFIG,
+    getConfigForDocType,
+    getDocumentTypeLabel,
+} from '../../../../helpers/utils/documentType';
 import { getLastURLPath } from '../../../../helpers/utils/urlManipulations';
 import DeleteResultStage from '../deleteResultStage/DeleteResultStage';
 
 export type Props = {
-    docType: DOCUMENT_TYPE;
+    document?: DocumentReference;
+    docType?: DOCUMENT_TYPE;
     setDownloadStage?: Dispatch<SetStateAction<DOWNLOAD_STAGE>>;
     resetDocState: () => void;
 };
@@ -39,11 +48,13 @@ enum DELETE_DOCUMENTS_OPTION {
 }
 
 type IndexViewProps = {
-    docType: DOCUMENT_TYPE;
+    document?: DocumentReference;
+    docType?: DOCUMENT_TYPE;
     resetDocState: () => void;
 };
 
-const DeleteSubmitStageIndexView = ({
+export const DeleteSubmitStageIndexView = ({
+    document,
     docType,
     resetDocState,
 }: IndexViewProps): React.JSX.Element => {
@@ -62,16 +73,28 @@ const DeleteSubmitStageIndexView = ({
         'Select whether you want to permanently delete these patient files';
     const userIsGP = role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL;
 
+    let documentConfig: DOCUMENT_TYPE_CONFIG | null = null;
+    if (docType !== DOCUMENT_TYPE.ALL) {
+        documentConfig = getConfigForDocType(document?.documentSnomedCodeType ?? docType!)
+        docType = documentConfig.snomedCode;
+    }
+
     const handleYesOption = async (): Promise<void> => {
         const onSuccess = (): void => {
             resetDocState();
             setDeletionStage(SUBMISSION_STATE.SUCCEEDED);
-            navigate(routeChildren.DOCUMENT_DELETE_COMPLETE);
+            navigate(
+                config.featureFlags.uploadDocumentIteration3Enabled
+                    ? routeChildren.DOCUMENT_DELETE_COMPLETE
+                    : routeChildren.LLOYD_GEORGE_DELETE_COMPLETE,
+            );
         };
         try {
             setDeletionStage(SUBMISSION_STATE.PENDING);
+            const docId = documentConfig?.singleDocumentOnly ? undefined : document?.id;
             const response: DeleteResponse = await deleteAllDocuments({
-                docType: docType,
+                documentId: docId,
+                docType: docId ? undefined : docType,
                 nhsNumber: nhsNumber,
                 baseUrl,
                 baseHeaders,
@@ -116,8 +139,15 @@ const DeleteSubmitStageIndexView = ({
         }
     };
 
-    const pageTitle = `You are removing the ${getDocumentTypeLabel(docType) || 'records'} of`;
-    useTitle({ pageTitle });
+    const pageTitle = (): string => {
+        if (docType) {
+            return `You are removing the ${getDocumentTypeLabel(docType) || 'records'} of`;
+        }
+
+        return `You are removing a record from patient`;
+    };
+
+    useTitle({ pageTitle: pageTitle() });
 
     return (
         <>
@@ -141,12 +171,22 @@ const DeleteSubmitStageIndexView = ({
             )}
             <form onSubmit={handleSubmit(submit)}>
                 <Fieldset id="radio-selection">
-                    <Fieldset.Legend isPageHeading>{pageTitle}:</Fieldset.Legend>
+                    <Fieldset.Legend isPageHeading>{pageTitle()}:</Fieldset.Legend>
                     <PatientSummary showDeceasedTag>
                         <PatientSummary.Child item={PatientInfo.FULL_NAME} />
                         <PatientSummary.Child item={PatientInfo.NHS_NUMBER} />
                         <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
                     </PatientSummary>
+
+                    {document && (
+                        <>
+                            <p>
+                                Record type:{' '}
+                                {documentConfig?.displayName}
+                            </p>
+                            <p>Filename: {document.fileName}</p>
+                        </>
+                    )}
 
                     {!userIsGP && (
                         <WarningCallout>
@@ -223,6 +263,7 @@ const DeleteSubmitStageIndexView = ({
 };
 
 const DeleteSubmitStage = ({
+    document,
     docType,
     setDownloadStage,
     resetDocState,
@@ -234,17 +275,8 @@ const DeleteSubmitStage = ({
                     index
                     element={
                         <DeleteSubmitStageIndexView
+                            document={document}
                             docType={docType}
-                            resetDocState={resetDocState}
-                        />
-                    }
-                />
-                <Route
-                    path={getLastURLPath(routeChildren.DOCUMENT_DELETE_CONFIRMATION)}
-                    element={
-                        <DeleteSubmitStage
-                            docType={docType}
-                            setDownloadStage={setDownloadStage}
                             resetDocState={resetDocState}
                         />
                     }

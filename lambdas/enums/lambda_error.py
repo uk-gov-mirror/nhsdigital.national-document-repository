@@ -345,6 +345,10 @@ class LambdaError(Enum):
         "err_code": "DDS_4002",
         "message": "Failed to delete document object",
     }
+    DocDelInvalidRequest = {
+        "err_code": "DDS_4003",
+        "message": "Invalid Request"
+    }
     DocDelClient = {
         "err_code": "DDS_5001",
         "message": "Failed to delete documents",

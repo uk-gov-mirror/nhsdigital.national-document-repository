@@ -64,7 +64,9 @@ def lambda_handler(event, context):
 
                 case NrlActionTypes.DELETE:
                     nrl_api_service.delete_pointer(
-                        nrl_message.nhs_number, nrl_message.snomed_code_doc_type
+                        nrl_message.nhs_number,
+                        nrl_message.snomed_code_doc_type,
+                        nrl_message.attachment.url or None,
                     )
         except Exception as error:
             logger.info(f"Failed to process current message due to error: {error}")

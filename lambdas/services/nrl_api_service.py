@@ -21,7 +21,7 @@ class NrlApiService:
         retry_strategy = Retry(
             total=3,
             status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET", "POST", "DELETE", "OPTIONS"],
+            allowed_methods=["GET", "PUT", "POST", "DELETE", "OPTIONS"],
             backoff_factor=1,
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
@@ -75,6 +75,39 @@ class NrlApiService:
             else:
                 raise NrlApiException("Error while creating new NRL Pointer")
 
+    def update_pointer(self, pointer: dict, nhs_number: str):
+        pointer_id = pointer.get("resource", {}).get("id")
+        url_endpoint = self.endpoint + f"/{pointer_id}"
+        self.set_x_request_id()
+
+        try:
+            response = self.session.put(
+                url=url_endpoint, headers=self.headers, json=pointer
+            )
+            logger.info(
+                f"Update pointer request: URL: {url_endpoint}, "
+                f"HTTP Verb: PUT, "
+                f"ODS Code: {self.end_user_ods_code}, "
+                f"NHS Number: {nhs_number}, "
+                f"Datetime: {int(datetime.now().timestamp())}, "
+                f"UserId: {self.end_user_ods_code} - {NRL_USER_ID}."
+            )
+            logger.info(
+                f"Update pointer response: Body: {response.json()}, "
+                f"Status Code: {response.status_code}, "
+                f"Headers: {response.headers}"
+            )
+            response.raise_for_status()
+        except HTTPError as e:
+            logger.error(e.response.json())
+            if e.response.status_code == 401:
+                self.headers["Authorization"] = (
+                    f"Bearer {self.auth_service.get_active_access_token()}"
+                )
+                self.session.put(url=url_endpoint, headers=self.headers, json=pointer)
+            else:
+                logger.error(f"Unable to update NRL Pointer: {pointer}")
+
     def get_pointer(
         self,
         nhs_number: str,
@@ -115,38 +148,91 @@ class NrlApiService:
             else:
                 raise NrlApiException("Error while getting NRL Pointer")
 
-    def delete_pointer(self, nhs_number: str, record_type: SnomedCode = None):
+    def get_pointer_by_url(
+        self,
+        nhs_number: str,
+        record_type: SnomedCode,
+        url: str,
+        retry_on_expired: bool = True,
+    ):
+        search_results = self.get_pointer(
+            nhs_number, record_type, retry_on_expired
+        ).get("entry", [])
+
+        entry_with_url = None
+
+        for entry in search_results:
+            if entry_with_url:
+                break
+            content_list = entry.get("content", [])
+            for content in content_list:
+                content_url = content.get("attachment", {}).get("url", None)
+
+                if content_url and content_url == url:
+                    entry_with_url = entry
+                    break
+
+        return entry_with_url
+
+    def delete_pointer(
+        self, nhs_number: str, record_type: SnomedCode = None, url: str = None
+    ):
+        if url:
+            self.delete_pointer_by_url(nhs_number, record_type, url)
+        else:
+            self.delete_pointer_by_record_type(nhs_number, record_type)
+
+    def delete_pointer_by_url(self, nhs_number: str, record_type: SnomedCode, url: str):
+        pointer = self.get_pointer_by_url(nhs_number, record_type, url)
+
+        if pointer:
+            content_list: list = pointer["content"]
+
+            if len(content_list) > 1:
+                for content in content_list:
+                    if content["attachment"]["url"] == url:
+                        content_list.remove(content)
+
+                self.update_pointer(pointer, nhs_number)
+            else:
+                self.delete_pointer_by_id(pointer, nhs_number)
+
+    def delete_pointer_by_id(self, entry: dict, nhs_number: str):
+        self.set_x_request_id()
+        pointer_id = entry.get("resource", {}).get("id")
+        url_endpoint = self.endpoint + f"/{pointer_id}"
+        try:
+            response = self.session.delete(url=url_endpoint, headers=self.headers)
+            logger.info(
+                f"Delete pointer request: URL: {url_endpoint}, "
+                f"HTTP Verb: DELETE, "
+                f"ODS Code: {self.end_user_ods_code}, "
+                f"NHS Number: {nhs_number}, "
+                f"Datetime: {int(datetime.now().timestamp())}, "
+                f"UserID: {self.end_user_ods_code} - {NRL_USER_ID}."
+            )
+            logger.info(
+                f"Delete pointer response: Body: {response.json()}, "
+                f"Status Code: {response.status_code}, "
+                f"Headers: {response.headers}"
+            )
+            response.raise_for_status()
+        except HTTPError as e:
+            logger.error(e.response.json())
+            if e.response.status_code == 401:
+                self.headers["Authorization"] = (
+                    f"Bearer {self.auth_service.get_active_access_token()}"
+                )
+                self.session.delete(url=url_endpoint, headers=self.headers)
+            else:
+                logger.error(f"Unable to delete NRL Pointer: {entry}")
+
+    def delete_pointer_by_record_type(
+        self, nhs_number: str, record_type: SnomedCode = None
+    ):
         search_results = self.get_pointer(nhs_number, record_type).get("entry", [])
         for entry in search_results:
-            self.set_x_request_id()
-            pointer_id = entry.get("resource", {}).get("id")
-            url_endpoint = self.endpoint + f"/{pointer_id}"
-            try:
-                response = self.session.delete(url=url_endpoint, headers=self.headers)
-                logger.info(
-                    f"Delete pointer request: URL: {url_endpoint}, "
-                    f"HTTP Verb: DELETE, "
-                    f"ODS Code: {self.end_user_ods_code}, "
-                    f"NHS Number: {nhs_number}, "
-                    f"Datetime: {int(datetime.now().timestamp())}, "
-                    f"UserID: {self.end_user_ods_code} - {NRL_USER_ID}."
-                )
-                logger.info(
-                    f"Delete pointer response: Body: {response.json()}, "
-                    f"Status Code: {response.status_code}, "
-                    f"Headers: {response.headers}"
-                )
-                response.raise_for_status()
-            except HTTPError as e:
-                logger.error(e.response.json())
-                if e.response.status_code == 401:
-                    self.headers["Authorization"] = (
-                        f"Bearer {self.auth_service.get_active_access_token()}"
-                    )
-                    self.session.delete(url=self.endpoint, headers=self.headers)
-                else:
-                    logger.error(f"Unable to delete NRL Pointer: {entry}")
-                    continue
+            self.delete_pointer_by_id(entry, nhs_number)
 
     def set_x_request_id(self):
         self.headers["X-Request-ID"] = str(uuid.uuid4())

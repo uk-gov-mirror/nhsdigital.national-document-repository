@@ -48,7 +48,6 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
     const config = useConfig();
     const mounted = useRef(false);
     const activeSearchResult = useRef<SearchResult | null>(null);
-    const [removeDocType, setRemoveDocType] = useState<DOCUMENT_TYPE | undefined>(undefined);
 
     useEffect(() => {
         const onPageLoad = async (): Promise<void> => {
@@ -159,8 +158,7 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
         return URL.createObjectURL(data);
     };
 
-    const removeDocuments = (docType: DOCUMENT_TYPE): void => {
-        setRemoveDocType(docType);
+    const removeDocument = (): void => {
         navigate(routeChildren.DOCUMENT_DELETE);
     };
 
@@ -186,7 +184,7 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                         element={
                             <DocumentView
                                 documentReference={documentReference}
-                                removeDocuments={removeDocuments}
+                                removeDocument={removeDocument}
                             />
                         }
                     />
@@ -194,7 +192,8 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                         path={getLastURLPath(routeChildren.DOCUMENT_DELETE) + '/*'}
                         element={
                             <DeleteSubmitStage
-                                docType={removeDocType ?? DOCUMENT_TYPE.ALL}
+                                document={documentReference ?? undefined}
+                                docType={documentReference ? undefined : DOCUMENT_TYPE.ALL}
                                 resetDocState={(): void => {
                                     mounted.current = false;
                                 }}

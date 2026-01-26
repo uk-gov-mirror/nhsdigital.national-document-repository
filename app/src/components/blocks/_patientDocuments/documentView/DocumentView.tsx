@@ -24,12 +24,12 @@ import LinkButton from '../../../generic/linkButton/LinkButton';
 
 type Props = {
     documentReference: DocumentReference | null;
-    removeDocuments: (docType: DOCUMENT_TYPE) => void;
+    removeDocument: () => void;
 };
 
 const DocumentView = ({
     documentReference,
-    removeDocuments,
+    removeDocument,
 }: Readonly<Props>): React.JSX.Element => {
     const [session, setUserSession] = useSessionContext();
     const role = useRole();
@@ -96,7 +96,7 @@ const DocumentView = ({
 
     const removeClicked = (): void => {
         disableFullscreen();
-        removeDocuments(documentReference.documentSnomedCodeType);
+        removeDocument();
     };
 
     const getCardLinks = (): Array<LGRecordActionLink> => {

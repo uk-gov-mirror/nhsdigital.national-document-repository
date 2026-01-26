@@ -17,7 +17,7 @@ import ProgressBar from '../../../generic/progressBar/ProgressBar';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import { buildSearchResult } from '../../../../helpers/test/testBuilders';
 import { getLastURLPath } from '../../../../helpers/utils/urlManipulations';
-import DeleteSubmitStage from '../deleteSubmitStage/DeleteSubmitStage';
+import { DeleteSubmitStageIndexView } from '../deleteSubmitStage/DeleteSubmitStage';
 import DeleteResultStage from '../deleteResultStage/DeleteResultStage';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import PatientSummary from '../../../generic/patientSummary/PatientSummary';
@@ -204,7 +204,12 @@ const RemoveRecordStage = ({
                 <Route index element={PageIndexView()}></Route>
                 <Route
                     path={getLastURLPath(routeChildren.LLOYD_GEORGE_DELETE_CONFIRMATION) + '/*'}
-                    element={<DeleteSubmitStage docType={docType} resetDocState={resetDocState} />}
+                    element={
+                        <DeleteSubmitStageIndexView
+                            docType={docType}
+                            resetDocState={resetDocState}
+                        />
+                    }
                 ></Route>
                 <Route
                     path={getLastURLPath(routeChildren.LLOYD_GEORGE_DELETE_COMPLETE)}

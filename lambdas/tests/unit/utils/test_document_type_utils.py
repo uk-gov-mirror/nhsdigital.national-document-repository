@@ -67,3 +67,10 @@ def test_extract_document_type_as_enum(value, expected):
     actual = extract_document_type_to_enum(value)
 
     assert expected == actual
+
+@pytest.mark.parametrize(
+    "value", ["MANGO"],
+)
+def test_extract_invalid_document_type_throws_exception(value):
+    with pytest.raises(ValueError):
+        extract_document_type_to_enum(value)

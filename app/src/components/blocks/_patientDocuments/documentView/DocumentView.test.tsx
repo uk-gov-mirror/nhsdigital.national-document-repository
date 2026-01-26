@@ -45,7 +45,7 @@ const mockUsePatient = usePatient as Mock;
 const mockUseTitle = useTitle as Mock;
 const mockUseRole = useRole as Mock;
 const mockUseNavigate = vi.fn();
-const mockRemoveDocuments = vi.fn();
+const mockRemoveDocument = vi.fn();
 const mockCreateSearchParams = vi.fn();
 
 const EMBEDDED_PDF_VIEWER_TITLE = 'Embedded PDF Viewer';
@@ -89,7 +89,7 @@ const TestApp = ({ documentReference }: Props) => {
         <ReactRouter.Router navigator={history} location={history.location}>
             <DocumentView
                 documentReference={documentReference}
-                removeDocuments={mockRemoveDocuments}
+                removeDocument={mockRemoveDocument}
             />
         </ReactRouter.Router>
     );
@@ -346,15 +346,13 @@ describe('DocumentView', () => {
     });
 
     describe('Document actions', () => {
-        it('calls removeDocuments when remove action is triggered', () => {
+        it('calls removeDocument when remove action is triggered', () => {
             renderComponent();
 
             // Assuming the first record link is remove action
             const removeRecordLink = screen.getByTestId(lloydGeorgeRecordLinks[0].key);
             fireEvent.click(removeRecordLink);
-            expect(mockRemoveDocuments).toHaveBeenCalledWith(
-                mockDocumentReference.documentSnomedCodeType,
-            );
+            expect(mockRemoveDocument).toHaveBeenCalled();
         });
     });
 

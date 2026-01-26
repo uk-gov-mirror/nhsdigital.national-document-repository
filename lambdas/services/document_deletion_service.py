@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Literal
+from typing import Literal, Optional
 from urllib.parse import urlparse
 
 from botocore.exceptions import ClientError
@@ -8,16 +8,18 @@ from enums.document_retention import DocumentRetentionDays
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.nrl_sqs_upload import NrlActionTypes
-from enums.snomed_codes import SnomedCodes
+from enums.snomed_codes import SnomedCode, SnomedCodes
 from enums.supported_document_types import SupportedDocumentTypes
 from inflection import underscore
 from models.document_reference import DocumentReference
+from models.fhir.R4.fhir_document_reference import Attachment
 from models.sqs.nrl_sqs_message import NrlSqsMessage
 from services.base.sqs_service import SQSService
 from services.document_service import DocumentService
 from services.lloyd_george_stitch_job_service import LloydGeorgeStitchJobService
 from utils.audit_logging_setup import LoggingService
-from utils.common_query_filters import NotDeleted
+from utils.common_query_filters import NotDeleted, get_document_type_filter
+from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.exceptions import DocumentServiceException, DynamoServiceException
 from utils.lambda_exceptions import DocumentDeletionServiceException
 
@@ -31,17 +33,56 @@ class DocumentDeletionService:
         self.sqs_service = SQSService()
 
     def handle_reference_delete(
-        self, nhs_number: str, doc_types: list[SupportedDocumentTypes]
+        self,
+        nhs_number: str,
+        doc_types: list[SupportedDocumentTypes],
+        document_id: str | None = None,
     ) -> list[DocumentReference]:
+        if document_id:
+            self.delete_document_by_id(nhs_number, document_id)
+            return [document_id]
+        else:
+            return self.delete_documents_by_types(nhs_number, doc_types)
+
+    def delete_document_by_id(self, nhs_number: str, document_id: str):
+        doc_ref_list: DocumentReference = (
+            self.document_service.fetch_documents_from_table(
+                search_condition=document_id,
+                search_key="ID",
+                model_class=DocumentReference,
+            )
+        )
+
+        if len(doc_ref_list) == 0:
+            raise DocumentDeletionServiceException(404, LambdaError.DocDelNull)
+
+        document_ref: DocumentReference = doc_ref_list[0]
+
+        self.document_service.delete_document_references(
+            table_name=self.document_service.table_name,
+            document_references=[document_ref],
+            document_ttl_days=DocumentRetentionDays.SOFT_DELETE,
+        )
+
+        self.send_sqs_message_to_remove_pointer(
+            nhs_number,
+            snomed=SnomedCodes.find_by_code(document_ref.document_snomed_code_type),
+            doc_ref=document_ref
+        )
+
+    def delete_documents_by_types(
+        self, nhs_number: str, doc_types: list[SupportedDocumentTypes]
+    ):
         files_deleted = []
 
         for doc_type in doc_types:
+            snomed = SnomedCodes.find_by_code(doc_type)
             files_deleted += self.delete_specific_doc_type(nhs_number, doc_type)
+            self.send_sqs_message_to_remove_pointer(nhs_number, snomed)
 
-        self.delete_documents_references_in_stitch_table(nhs_number)
         if SupportedDocumentTypes.LG in doc_types:
+            self.delete_documents_references_in_stitch_table(nhs_number)
             self.delete_unstitched_document_reference(nhs_number)
-            self.send_sqs_message_to_remove_pointer(nhs_number)
 
         return files_deleted
 
@@ -78,8 +119,14 @@ class DocumentDeletionService:
         nhs_number: str,
         doc_type: Literal[SupportedDocumentTypes.ARF, SupportedDocumentTypes.LG],
     ) -> list[DocumentReference]:
-        results = self.document_service.fetch_available_document_references_by_type(
-            nhs_number, doc_type, NotDeleted
+        query_filter = get_document_type_filter(
+            DynamoQueryFilterBuilder(), doc_type.value
+        )
+
+        results = self.document_service.fetch_documents_from_table_with_nhs_number(
+            nhs_number=nhs_number,
+            query_filter=query_filter,
+            model_class=DocumentReference,
         )
         return results
 
@@ -125,13 +172,23 @@ class DocumentDeletionService:
             )
             raise DocumentDeletionServiceException(500, LambdaError.DocDelClient)
 
-    def send_sqs_message_to_remove_pointer(self, nhs_number: str):
+    def send_sqs_message_to_remove_pointer(
+        self, 
+        nhs_number: str, 
+        snomed: SnomedCode,
+        doc_ref: Optional[DocumentReference] = None
+    ):
         delete_nrl_message = NrlSqsMessage(
             nhs_number=nhs_number,
             action=NrlActionTypes.DELETE,
-            snomed_code_doc_type=SnomedCodes.LLOYD_GEORGE.value,
+            snomed_code_doc_type=snomed,
             snomed_code_category=SnomedCodes.CARE_PLAN.value,
         )
+
+        if doc_ref:
+            attachment = Attachment(url=doc_ref.file_location)
+            delete_nrl_message.attachment = attachment
+
         sqs_group_id = f"NRL_delete_{uuid.uuid4()}"
         nrl_queue_url = os.environ["NRL_SQS_QUEUE_URL"]
         self.sqs_service.send_message_fifo(

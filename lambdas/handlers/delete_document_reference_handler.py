@@ -6,7 +6,6 @@ from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
-from utils.decorators.validate_document_type import validate_document_type
 from utils.decorators.validate_patient_id import (
     extract_nhs_number_from_event,
     validate_patient_id,
@@ -15,12 +14,13 @@ from utils.document_type_utils import extract_document_type_to_enum
 from utils.lambda_response import ApiGatewayResponse
 from utils.request_context import request_context
 
+from enums.supported_document_types import SupportedDocumentTypes
+
 logger = LoggingService(__name__)
 
 
 @set_request_context_for_logging
 @validate_patient_id
-@validate_document_type
 @ensure_environment_variables(
     names=[
         "DOCUMENT_STORE_DYNAMODB_NAME",
@@ -36,15 +36,49 @@ def lambda_handler(event, context):
     logger.info("Delete Document Reference handler has been triggered")
 
     nhs_number = extract_nhs_number_from_event(event)
-    document_types = extract_document_type_to_enum(
-        event["queryStringParameters"]["docType"]
-    )
+    document_types_query = event.get("queryStringParameters", {}).get("docType", None)
+
+    document_types = []
+    try:
+        document_types = (
+            extract_document_type_to_enum(document_types_query)
+            if document_types_query
+            else []
+        )
+    except ValueError:
+        logger.error(
+            LambdaError.DocTypeInvalid.to_str(), {"Result": "Invalid document type"}
+        )
+        return ApiGatewayResponse(
+            400, LambdaError.DocTypeInvalid.create_error_body(), "DELETE"
+        ).create_api_gateway_response()
+
+    document_id = event.get("queryStringParameters", {}).get("documentId", None)
+
+    if (len(document_types) > 0 and document_id) or (
+        len(document_types) == 0 and document_id is None
+    ):
+        logger.error(
+            LambdaError.DocDelInvalidRequest.to_str(), {"Result": "Invalid request"}
+        )
+
+        return ApiGatewayResponse(
+            400, LambdaError.DocDelInvalidRequest.create_error_body(), "DELETE"
+        ).create_api_gateway_response()
 
     request_context.patient_nhs_no = nhs_number
 
+    return process_delete(nhs_number, document_types, document_id)
+
+
+def process_delete(
+    nhs_number: str, document_types: list[SupportedDocumentTypes], document_id: str
+):
     deletion_service = DocumentDeletionService()
 
-    files_deleted = deletion_service.handle_reference_delete(nhs_number, document_types)
+    files_deleted = deletion_service.handle_reference_delete(
+        nhs_number, document_types, document_id
+    )
     if files_deleted:
         logger.info(
             "Documents were deleted successfully", {"Result": "Successful deletion"}

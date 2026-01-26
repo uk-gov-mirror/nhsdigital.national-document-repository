@@ -3,7 +3,8 @@ import { AuthHeaders } from '../../types/blocks/authHeaders';
 import { DOCUMENT_TYPE } from '../utils/documentType';
 
 type Args = {
-    docType: DOCUMENT_TYPE;
+    documentId?: string;
+    docType?: DOCUMENT_TYPE;
     nhsNumber: string;
     baseUrl: string;
     baseHeaders: AuthHeaders;
@@ -14,6 +15,7 @@ export type DeleteResponse = {
     status: number;
 };
 const deleteAllDocuments = async ({
+    documentId,
     docType,
     nhsNumber,
     baseUrl,
@@ -29,6 +31,7 @@ const deleteAllDocuments = async ({
             params: {
                 patientId: nhsNumber,
                 docType,
+                documentId,
             },
         });
         return response;
