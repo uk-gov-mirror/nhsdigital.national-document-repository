@@ -572,7 +572,7 @@ def test_get_item_with_custom_model_class(
             "Author": "Y12345",
             "Custodian": "Y12345",
             "ReviewStatus": "PENDING_REVIEW",
-            "ReviewReason": "General error",
+            "ReviewReason": "Unsuccessful upload",
             "UploadDate": 1699000000,
             "Files": [
                 {

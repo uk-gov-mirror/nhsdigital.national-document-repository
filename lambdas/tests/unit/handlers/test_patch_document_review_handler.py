@@ -139,11 +139,12 @@ def mock_authorization(mocker):
 
 @pytest.fixture
 def mock_missing_authorization(mocker):
-    mock_auth =  mocker.patch(
+    mock_auth = mocker.patch(
         "handlers.patch_document_review_handler.extract_ods_code_from_request_context"
     )
     mock_auth.side_effect = OdsErrorException()
     yield mock_auth
+
 
 def test_lambda_handler_returns_200_when_document_review_approved(
     mocked_service,

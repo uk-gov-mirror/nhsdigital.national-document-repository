@@ -124,7 +124,7 @@ class PostDocumentReviewService:
             files=document_file_details,
             nhs_number=event.nhs_number,
             document_snomed_code_type=event.snomed_code.code,
-            review_reason=DocumentReviewReason.GP2GP_ERROR,
+            review_reason=DocumentReviewReason.NEW_DOCUMENT,
         )
         return document_review_reference
 

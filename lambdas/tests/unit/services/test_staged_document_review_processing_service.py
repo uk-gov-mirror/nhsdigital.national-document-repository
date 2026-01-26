@@ -1,6 +1,5 @@
 import pytest
 from botocore.exceptions import ClientError
-
 from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.virus_scan_result import VirusScanResult
@@ -66,7 +65,7 @@ def sample_document_reference():
         author="Y12345",
         custodian="Y12345",
         review_status=DocumentReviewStatus.REVIEW_PENDING_UPLOAD,
-        review_reason=DocumentReviewReason.FILE_COUNT_MISMATCH,
+        review_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
         upload_date=1704110400,
         files=[
             DocumentReviewFileDetails(

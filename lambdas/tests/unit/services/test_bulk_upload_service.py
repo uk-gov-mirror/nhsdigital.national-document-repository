@@ -3,6 +3,7 @@ from copy import copy
 
 import pytest
 from botocore.exceptions import ClientError
+from enums.document_review_reason import DocumentReviewReason
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.upload_status import UploadStatus
 from enums.virus_scan_result import SCAN_RESULT_TAG_KEY, VirusScanResult
@@ -64,6 +65,18 @@ def repo_under_test(set_env, mocker):
     mocker.patch("services.bulk_upload_service.BulkUploadSqsRepository")
     mocker.patch("services.bulk_upload_service.BulkUploadS3Repository")
     service = BulkUploadService(strict_mode=True)
+    yield service
+
+
+@pytest.fixture
+def repo_with_review_enabled(set_env, mocker):
+    mocker.patch("services.bulk_upload_service.BulkUploadDynamoRepository")
+    mocker.patch("services.bulk_upload_service.BulkUploadSqsRepository")
+    mocker.patch("services.bulk_upload_service.BulkUploadS3Repository")
+    mocker.patch("services.bulk_upload_service.allowed_to_ingest_ods_code", return_value=True)
+    service = BulkUploadService(
+        strict_mode=True, bypass_pds=False, send_to_review_enabled=True
+    )
     yield service
 
 
@@ -810,7 +823,7 @@ def test_resolve_source_file_path_when_filenames_have_accented_chars(
     expected_cache = {}
     for i in range(1, 4):
         file_path_in_metadata = (
-            f"/9000000009/{i}of3_Lloyd_George_Record_"
+            f"9000000009/{i}of3_Lloyd_George_Record_"
             f"[{patient_name_in_metadata_file}]_[9000000009]_[22-10-2010].pdf"
         )
         file_path_on_s3 = f"9000000009/{i}of3_Lloyd_George_Record_[{patient_name}]_[9000000009]_[22-10-2010].pdf"
@@ -1106,7 +1119,8 @@ def test_patient_not_found_is_caught_and_written_to_dynamo(
 
     assert call_status == UploadStatus.FAILED
     assert call_reason == expected_error_message
-    assert call_metadata == TEST_STAGING_METADATA
+    assert call_metadata.files == TEST_STAGING_METADATA.files
+    assert call_metadata.nhs_number == "0000000000"
 
 
 @pytest.fixture
@@ -1244,3 +1258,103 @@ def test_handle_sqs_message_report_failure_when_pdf_integrity_check_file_not_fou
     mock_create_lg_records_and_copy_files.assert_not_called()
     mock_remove_ingested_file_from_source_bucket.assert_not_called()
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
+
+
+def test_does_not_send_when_feature_flag_disabled(repo_under_test):
+    repo_under_test.send_to_review_queue_if_enabled(TEST_SQS_MESSAGE, "Y12345")
+
+    repo_under_test.sqs_repository.send_message_to_review_queue.assert_not_called()
+
+
+def test_sends_demographic_error_when_flag_enabled(set_env, repo_with_review_enabled):
+
+    repo_with_review_enabled.send_to_review_queue_if_enabled(TEST_SQS_MESSAGE, "Y12345")
+
+    repo_with_review_enabled.sqs_repository.send_message_to_review_queue.assert_called_once_with(
+        staging_metadata=TEST_SQS_MESSAGE,
+        failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
+        uploader_ods="Y12345",
+    )
+
+
+def test_sends_to_review_queue_when_patient_not_found(
+    repo_with_review_enabled, mock_validate_files, mocker
+):
+    expected_error_message = "Could not find the given patient on PDS"
+    mocker.patch(
+        "services.bulk_upload_service.getting_patient_info_from_pds",
+        side_effect=PatientNotFoundException(expected_error_message),
+    )
+
+    repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    call_args = repo_with_review_enabled.sqs_repository.send_message_to_review_queue.call_args
+    staging_metadata_arg = call_args[1]["staging_metadata"]
+
+    assert staging_metadata_arg.nhs_number == "0000000000"
+    assert staging_metadata_arg.files == TEST_STAGING_METADATA.files
+    assert call_args[1]["failure_reason"] == DocumentReviewReason.UNSUCCESSFUL_UPLOAD
+    assert call_args[1]["uploader_ods"] == TEST_STAGING_METADATA.files[0].gp_practice_code
+
+
+def test_sends_to_review_queue_when_invalid_files(
+    repo_with_review_enabled, mock_validate_files, mock_pds_service, mocker
+):
+    mocked_error = LGInvalidFilesException(
+        "One or more of the files do not match naming convention"
+    )
+    mock_validate_files.side_effect = mocked_error
+
+    repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    repo_with_review_enabled.sqs_repository.send_message_to_review_queue.assert_called_once_with(
+        staging_metadata=TEST_STAGING_METADATA,
+        failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
+        uploader_ods=TEST_STAGING_METADATA.files[0].gp_practice_code,
+    )
+
+
+def test_does_not_send_to_review_queue_when_virus_scan_fails(
+    repo_with_review_enabled, mock_validate_files, mock_pds_service, mocker
+):
+    mocker.patch.object(
+        repo_with_review_enabled.bulk_upload_s3_repository,
+        "check_virus_result",
+        side_effect=DocumentInfectedException("File is infected"),
+    )
+
+    repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    repo_with_review_enabled.sqs_repository.send_message_to_review_queue.assert_not_called()
+
+
+def test_does_not_send_to_review_queue_when_file_corrupted(
+    repo_with_review_enabled, mock_validate_files, mock_pds_service, mocker
+):
+    mocker.patch.object(
+        repo_with_review_enabled.bulk_upload_s3_repository, "check_virus_result"
+    )
+    mocker.patch.object(
+        repo_with_review_enabled.bulk_upload_s3_repository,
+        "check_pdf_integrity",
+        side_effect=CorruptedFileException("File is corrupted"),
+    )
+
+    repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    repo_with_review_enabled.sqs_repository.send_message_to_review_queue.assert_not_called()
+
+
+def test_does_not_send_to_review_queue_when_s3_file_not_found(
+    repo_with_review_enabled, mock_validate_files, mock_pds_service, mocker
+):
+    mocker.patch.object(
+        repo_with_review_enabled.bulk_upload_s3_repository,
+        "check_virus_result",
+        side_effect=S3FileNotFoundException("File not found"),
+    )
+
+    repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    repo_with_review_enabled.sqs_repository.send_message_to_review_queue.assert_not_called()
+

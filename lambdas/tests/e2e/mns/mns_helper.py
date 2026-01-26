@@ -78,7 +78,7 @@ class MNSTestHelper:
             "Author": ods_code,
             "Custodian": ods_code,
             "ReviewStatus": review_status,
-            "ReviewReason": DocumentReviewReason.GP2GP_ERROR,
+            "ReviewReason": DocumentReviewReason.NEW_DOCUMENT,
             "UploadDate": int(time.time()),
             "Files": [
                 {

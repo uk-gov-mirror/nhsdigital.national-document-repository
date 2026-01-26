@@ -5,12 +5,22 @@ from typing import Self
 from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
-from enums.upload_forbidden_file_extensions import is_file_type_allowed
 from enums.snomed_codes import SnomedCodes
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, ValidationError
+from enums.upload_forbidden_file_extensions import is_file_type_allowed
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 from pydantic.alias_generators import to_camel, to_pascal
-from utils.exceptions import InvalidNhsNumberException, ConfigNotFoundException, InvalidFileTypeException
 from utils import upload_file_configs
+from utils.exceptions import (
+    ConfigNotFoundException,
+    InvalidFileTypeException,
+    InvalidNhsNumberException,
+)
 from utils.utilities import validate_nhs_number
 
 
@@ -43,7 +53,7 @@ class DocumentUploadReviewReference(BaseModel):
         default=DocumentReviewStatus.PENDING_REVIEW
     )
     review_reason: DocumentReviewReason = Field(
-        default=DocumentReviewReason.GENERAL_ERROR
+        default=DocumentReviewReason.UNSUCCESSFUL_UPLOAD
     )
     review_date: int | None = Field(default=None)
     reviewer: str | None = Field(default=None)
@@ -165,7 +175,9 @@ class DocumentReviewUploadEvent(BaseModel):
     @model_validator(mode="after")
     def validate_file_extension(self) -> Self:
         try:
-            accepted_file_types = upload_file_configs.get_config_by_snomed_code(self.snomed_code.code).accepted_file_types
+            accepted_file_types = upload_file_configs.get_config_by_snomed_code(
+                self.snomed_code.code
+            ).accepted_file_types
 
             for file in self.documents:
                 if not is_file_type_allowed(file, accepted_file_types):
@@ -173,4 +185,3 @@ class DocumentReviewUploadEvent(BaseModel):
             return self
         except ConfigNotFoundException:
             raise InvalidFileTypeException("Unable to find file configuration.")
-

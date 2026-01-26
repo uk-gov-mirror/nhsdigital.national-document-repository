@@ -66,7 +66,7 @@ def mock_document_review():
         author=TEST_ODS_CODE,
         custodian=TEST_ODS_CODE,
         review_status=DocumentReviewStatus.PENDING_REVIEW,
-        review_reason=DocumentReviewReason.FILE_NAME_MISMATCH,
+        review_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
         upload_date=1699000000,
         files=files,
         nhs_number=TEST_NHS_NUMBER,

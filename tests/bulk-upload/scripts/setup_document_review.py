@@ -58,7 +58,7 @@ def build_document_review_object(
     review_id: str,
     files: List[Dict[str, str]],
     review_status: str = "PENDING_REVIEW",
-    review_reason: str = "General error",
+    review_reason: str = "Unsuccessful upload",
     days_ago_uploaded: int = 1,
     reviewer: str | None = None,
     review_date: int | None = None,
@@ -118,7 +118,7 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
             patient=patient,
             files=files,
             review_status="PENDING_REVIEW",
-            review_reason="General error",
+            review_reason="Unsuccessful upload",
             days_ago_uploaded=1,
         )
         return review_obj, [(patient.nhs_number, file_name, files[0]["FileLocation"])]
@@ -140,7 +140,7 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
             patient=patient,
             files=files,
             review_status="PENDING_REVIEW",
-            review_reason="More or less files than we expected",
+            review_reason="Unsuccessful upload",
             days_ago_uploaded=2,
         )
         return review_obj, files_list
@@ -155,7 +155,7 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
             review_id=review_id,
             files=files,
             review_status="APPROVED",
-            review_reason="Demographic mismatches",
+            review_reason="Unsuccessful upload",
             days_ago_uploaded=5,
             reviewer="H81109",
             review_date=get_timestamp(days_ago=2),
@@ -173,7 +173,7 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
             patient=patient,
             files=files,
             review_status="REJECTED",
-            review_reason="Filename Naming convention error",
+            review_reason="New document to review",
             days_ago_uploaded=7,
             reviewer="H81109",
             review_date=get_timestamp(days_ago=3),
@@ -198,7 +198,7 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
             patient=patient,
             files=files,
             review_status="APPROVED",
-            review_reason="Duplicate records error",
+            review_reason="New document to review",
             days_ago_uploaded=10,
             reviewer="H81109",
             review_date=get_timestamp(days_ago=5),
@@ -218,7 +218,7 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
             patient=patient,
             files=files,
             review_status="PENDING_REVIEW",
-            review_reason="Unknown NHS number",
+            review_reason="New document to review",
             days_ago_uploaded=3,
         )
         review_obj["DocumentSnomedCodeType"] = "734163000"
@@ -237,7 +237,7 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
             patient=patient,
             files=files,
             review_status="NEVER_REVIEWED",
-            review_reason="General error",
+            review_reason="Unsuccessful upload",
             review_date=get_timestamp(days_ago=1),
             days_ago_uploaded=15,
         )
@@ -250,7 +250,7 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
             patient=patient,
             files=files,
             review_status="PENDING_REVIEW",
-            review_reason="General error",
+            review_reason="Unsuccessful upload",
             days_ago_uploaded=15,
         )
         review_obj_v2["Version"] = 2

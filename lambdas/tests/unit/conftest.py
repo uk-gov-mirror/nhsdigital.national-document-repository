@@ -79,7 +79,7 @@ MOCK_LG_METADATA_SQS_QUEUE = "test_bulk_upload_metadata_queue"
 MOCK_LG_INVALID_SQS_QUEUE = "INVALID_SQS_QUEUE_URL"
 MOCK_STATISTICS_TABLE = "test_statistics_table"
 MOCK_STATISTICS_REPORT_BUCKET_NAME = "test_statistics_report_bucket"
-
+REVIEW_SQS_QUEUE_URL = "test_review_queue"
 TEST_NHS_NUMBER = "9000000009"
 TEST_UUID = "1234-4567-8912-HSDF-TEST"
 TEST_FILE_KEY = "test_file_key"
@@ -235,6 +235,7 @@ def set_env(monkeypatch):
     monkeypatch.setenv("STAGING_STORE_BUCKET_NAME", MOCK_STAGING_STORE_BUCKET)
     monkeypatch.setenv("METADATA_SQS_QUEUE_URL", MOCK_LG_METADATA_SQS_QUEUE)
     monkeypatch.setenv("EDGE_REFERENCE_TABLE", MOCK_EDGE_REFERENCE_TABLE)
+    monkeypatch.setenv("REVIEW_SQS_QUEUE_URL", REVIEW_SQS_QUEUE_URL)
 
 
 EXPECTED_PARSED_PATIENT_BASE_CASE = PatientDetails(

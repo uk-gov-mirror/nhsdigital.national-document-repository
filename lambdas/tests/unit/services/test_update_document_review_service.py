@@ -57,7 +57,7 @@ def mock_document_review():
         author=TEST_ODS_CODE,
         custodian=TEST_ODS_CODE,
         review_status=DocumentReviewStatus.PENDING_REVIEW,
-        review_reason=DocumentReviewReason.DUPLICATE_RECORD,
+        review_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
         upload_date=TEST_UPLOAD_DATE,
         files=files,
         nhs_number=TEST_NHS_NUMBER,
@@ -544,7 +544,6 @@ def test_process_review_status_update_calls_handle_reassignment_for_reassignment
     mock_handle.assert_called_once_with(
         mock_document_review, update_data, TEST_DOCUMENT_ID
     )
-
 
 
 @freeze_time(TEST_FROZEN_TIME)

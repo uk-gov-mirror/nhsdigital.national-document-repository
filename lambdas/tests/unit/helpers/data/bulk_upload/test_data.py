@@ -246,7 +246,7 @@ def build_test_staging_metadata_from_patient_name(
 def build_test_staging_metadata(file_names: list[str], nhs_number: str = "9000000009"):
     files = []
     for file_name in file_names:
-        source_file_path = f"/{nhs_number}/{file_name}"
+        source_file_path = f"{nhs_number}/{file_name}"
         files.append(
             sample_sqs_metadata_model.model_copy(
                 update={
@@ -310,7 +310,7 @@ def build_test_document_reference(file_name: str, nhs_number: str = "9000000009"
         custodian=TEST_CURRENT_GP_ODS,
         doc_status="preliminary",
         document_scan_creation="2022-09-03",
-        doc_type=SupportedDocumentTypes.LG
+        doc_type=SupportedDocumentTypes.LG,
     )
     doc_ref.virus_scanner_result = VirusScanResult.CLEAN
     return doc_ref

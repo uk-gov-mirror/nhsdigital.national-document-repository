@@ -1,5 +1,4 @@
 import pytest
-
 from enums.feature_flags import FeatureFlags
 from services.feature_flags_service import FeatureFlagService
 
@@ -38,7 +37,10 @@ def valid_id_post_event_with_auth_header():
 def valid_id_and_both_doctype_event():
     api_gateway_proxy_event = {
         "httpMethod": "GET",
-        "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101,ARF"},
+        "queryStringParameters": {
+            "patientId": "9000000009",
+            "docType": "16521000000101,ARF",
+        },
     }
     return api_gateway_proxy_event
 
@@ -56,7 +58,10 @@ def valid_id_and_arf_doctype_event():
 def valid_id_and_lg_doctype_event():
     api_gateway_proxy_event = {
         "httpMethod": "GET",
-        "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101"},
+        "queryStringParameters": {
+            "patientId": "9000000009",
+            "docType": "16521000000101",
+        },
     }
     return api_gateway_proxy_event
 
@@ -65,7 +70,10 @@ def valid_id_and_lg_doctype_event():
 def valid_id_and_lg_doctype_delete_event():
     api_gateway_proxy_event = {
         "httpMethod": "DELETE",
-        "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101"},
+        "queryStringParameters": {
+            "patientId": "9000000009",
+            "docType": "16521000000101",
+        },
     }
     return api_gateway_proxy_event
 
@@ -114,6 +122,7 @@ def mock_upload_lambda_disabled(mocker):
     }
     yield mock_upload_lambda_feature_flag
 
+
 @pytest.fixture
 def mock_upload_document_iteration2_enabled(mocker):
     mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
@@ -122,6 +131,7 @@ def mock_upload_document_iteration2_enabled(mocker):
         {"uploadDocumentIteration2Enabled": True},
     ]
     yield mock_function
+
 
 @pytest.fixture
 def mock_upload_document_iteration2_disabled(mocker):
@@ -132,6 +142,7 @@ def mock_upload_document_iteration2_disabled(mocker):
     ]
     yield mock_function
 
+
 @pytest.fixture
 def mock_upload_document_iteration3_enabled(mocker):
     mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
@@ -140,6 +151,7 @@ def mock_upload_document_iteration3_enabled(mocker):
         {"uploadDocumentIteration3Enabled": True},
     ]
     yield mock_function
+
 
 @pytest.fixture
 def mock_upload_document_iteration3_disabled(mocker):
@@ -152,10 +164,41 @@ def mock_upload_document_iteration3_disabled(mocker):
 
 
 @pytest.fixture
-def mock_validation_strict_disabled(mocker):
+def mock_validation_strict_and_bulk_upload_send_to_review_disabled(mocker):
     mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
     mock_upload_lambda_feature_flag = mock_function.return_value = {
-        "lloydGeorgeValidationStrictModeEnabled": False
+        "lloydGeorgeValidationStrictModeEnabled": False,
+        "bulkUploadSendToReviewEnabled": False,
+    }
+    yield mock_upload_lambda_feature_flag
+
+
+@pytest.fixture
+def mock_validation_strict_and_bulk_upload_send_to_review_enabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_upload_lambda_feature_flag = mock_function.return_value = {
+        "lloydGeorgeValidationStrictModeEnabled": True,
+        "bulkUploadSendToReviewEnabled": True,
+    }
+    yield mock_upload_lambda_feature_flag
+
+
+@pytest.fixture
+def mock_validation_strict_enabled_send_to_review_disabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_upload_lambda_feature_flag = mock_function.return_value = {
+        "lloydGeorgeValidationStrictModeEnabled": True,
+        "bulkUploadSendToReviewEnabled": False,
+    }
+    yield mock_upload_lambda_feature_flag
+
+
+@pytest.fixture
+def mock_validation_strict_disabled_send_to_review_enabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_upload_lambda_feature_flag = mock_function.return_value = {
+        "lloydGeorgeValidationStrictModeEnabled": False,
+        "bulkUploadSendToReviewEnabled": True,
     }
     yield mock_upload_lambda_feature_flag
 

@@ -4,13 +4,18 @@ import uuid
 
 import pydantic
 from botocore.exceptions import ClientError
+from enums.document_review_reason import DocumentReviewReason
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.snomed_codes import SnomedCodes
 from enums.upload_status import UploadStatus
 from enums.virus_scan_result import VirusScanResult
 from models.document_reference import DocumentReference
 from models.sqs.pdf_stitching_sqs_message import PdfStitchingSqsMessage
-from models.staging_metadata import BulkUploadQueueMetadata, StagingSqsMetadata
+from models.staging_metadata import (
+    NHS_NUMBER_PLACEHOLDER,
+    BulkUploadQueueMetadata,
+    StagingSqsMetadata,
+)
 from repositories.bulk_upload.bulk_upload_dynamo_repository import (
     BulkUploadDynamoRepository,
 )
@@ -52,7 +57,7 @@ logger = LoggingService(__name__)
 
 
 class BulkUploadService:
-    def __init__(self, strict_mode, bypass_pds=False):
+    def __init__(self, strict_mode, bypass_pds=False, send_to_review_enabled=False):
         self.dynamo_repository = BulkUploadDynamoRepository()
         self.sqs_repository = BulkUploadSqsRepository()
         self.bulk_upload_s3_repository = BulkUploadS3Repository()
@@ -62,6 +67,7 @@ class BulkUploadService:
         self.file_path_cache = {}
         self.pdf_stitching_queue_url = os.environ["PDF_STITCHING_SQS_URL"]
         self.bypass_pds = bypass_pds
+        self.send_to_review_enabled = send_to_review_enabled
 
     def process_message_queue(self, records: list):
         for index, message in enumerate(records, start=1):
@@ -74,9 +80,7 @@ class BulkUploadService:
                 logger.info(
                     "Cannot validate patient due to PDS responded with Too Many Requests"
                 )
-                logger.info(
-                    "Cannot process for now due to PDS rate limit reached."
-                )
+                logger.info("Cannot process for now due to PDS rate limit reached.")
                 logger.info(
                     "All remaining messages in this batch will be returned to sqs queue to retry later."
                 )
@@ -132,6 +136,9 @@ class BulkUploadService:
             for file_metadata in staging_metadata.files:
                 file_names.append(os.path.basename(file_metadata.stored_file_name))
                 file_metadata.scan_date = validate_scan_date(file_metadata.scan_date)
+                file_metadata.file_path = self.strip_leading_slash(
+                    file_metadata.file_path
+                )
             request_context.patient_nhs_no = staging_metadata.nhs_number
             validate_nhs_number(staging_metadata.nhs_number)
             pds_patient_details = getting_patient_info_from_pds(
@@ -194,9 +201,19 @@ class BulkUploadService:
             logger.info("Will stop processing Lloyd George record for this patient.")
 
             reason = str(error)
+            uploader_ods = (
+                staging_metadata.files[0].gp_practice_code
+                if staging_metadata.files
+                else ""
+            )
+
             self.dynamo_repository.write_report_upload_to_dynamo(
                 staging_metadata, UploadStatus.FAILED, reason, patient_ods_code
             )
+            if isinstance(error, (InvalidNhsNumberException, PatientNotFoundException)):
+                logger.info("Invalid NHS number detected. Will set as placeholder")
+                staging_metadata.nhs_number = NHS_NUMBER_PLACEHOLDER
+            self.send_to_review_queue_if_enabled(staging_metadata, uploader_ods)
             return
 
         logger.info(
@@ -336,8 +353,7 @@ class BulkUploadService:
         if not contains_accent_char(sample_file_path):
             logger.info("No accented character detected in file path.")
             self.file_path_cache = {
-                file.file_path: self.strip_leading_slash(file.file_path)
-                for file in staging_metadata.files
+                file.file_path: file.file_path for file in staging_metadata.files
             }
             return
 
@@ -347,11 +363,8 @@ class BulkUploadService:
         resolved_file_paths = {}
         for file in staging_metadata.files:
             file_path_in_metadata = file.file_path
-            file_path_without_leading_slash = self.strip_leading_slash(
-                file_path_in_metadata
-            )
-            file_path_in_nfc_form = convert_to_nfc_form(file_path_without_leading_slash)
-            file_path_in_nfd_form = convert_to_nfd_form(file_path_without_leading_slash)
+            file_path_in_nfc_form = convert_to_nfc_form(file_path_in_metadata)
+            file_path_in_nfd_form = convert_to_nfd_form(file_path_in_metadata)
 
             if self.bulk_upload_s3_repository.file_exists_on_staging_bucket(
                 file_path_in_nfc_form
@@ -440,3 +453,29 @@ class BulkUploadService:
     @staticmethod
     def concatenate_acceptance_reason(previous_reasons: str | None, new_reason: str):
         return previous_reasons + ", " + new_reason if previous_reasons else new_reason
+
+    def send_to_review_queue_if_enabled(
+        self,
+        staging_metadata: StagingSqsMetadata,
+        uploader_ods: str,
+    ):
+        if not self.send_to_review_enabled:
+            return
+
+        review_reason = DocumentReviewReason.UNSUCCESSFUL_UPLOAD
+
+        try:
+            self.sqs_repository.send_message_to_review_queue(
+                staging_metadata=staging_metadata,
+                failure_reason=review_reason,
+                uploader_ods=uploader_ods,
+            )
+            logger.info(
+                f"Sent failed record to review queue with reason: {review_reason}"
+            )
+        except Exception as e:
+            logger.error(
+                f"Failed to send message to review queue: {e}",
+                {"Result": "Review queue send failed"},
+            )
+            raise e

@@ -4,64 +4,48 @@ from datetime import datetime, timezone
 
 from botocore.exceptions import ClientError
 from enums.document_review_status import DocumentReviewStatus
-from models.document_reference import DocumentReferenceMetadataFields
 from models.document_review import (
     DocumentReviewFileDetails,
     DocumentUploadReviewReference,
 )
 from models.sqs.review_message_body import ReviewMessageBody
-from services.base.dynamo_service import DynamoDBService
+from models.staging_metadata import NHS_NUMBER_PLACEHOLDER
 from services.base.s3_service import S3Service
+from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
+from utils.exceptions import (
+    InvalidResourceIdException,
+    PatientNotFoundException,
+    PdsErrorException,
+)
 from utils.request_context import request_context
+from utils.utilities import get_pds_service
 
 logger = LoggingService(__name__)
 
 
 class ReviewProcessorService:
-    """
-    Service for processing single SQS messages from the document review queue.
-    """
 
     def __init__(self):
-        """Initialize the review processor service with required AWS services."""
-        self.dynamo_service = DynamoDBService()
         self.s3_service = S3Service()
-
+        self.document_review_service = DocumentUploadReviewService()
         self.review_table_name = os.environ["DOCUMENT_REVIEW_DYNAMODB_NAME"]
         self.staging_bucket_name = os.environ["STAGING_STORE_BUCKET_NAME"]
         self.review_bucket_name = os.environ["PENDING_REVIEW_BUCKET_NAME"]
 
     def process_review_message(self, review_message: ReviewMessageBody) -> None:
-        """
-        Process a single SQS message from the review queue.
-
-        Args:
-            sqs_message: SQS message record containing file and failure information
-
-        Raises:
-            InvalidMessageException: If message format is invalid or required fields missing
-            S3FileNotFoundException: If file doesn't exist in staging bucket
-            ClientError: For AWS service errors (DynamoDB, S3)
-        """
-
         logger.info("Processing review queue message")
 
         request_context.patient_nhs_no = review_message.nhs_number
 
         review_id = review_message.upload_id
         review_files = self._move_files_to_review_bucket(review_message, review_id)
+        custodian = self._get_patient_custodian(review_message)
         document_upload_review = self._build_review_record(
-            review_message, review_id, review_files
+            review_message, review_id, review_files, custodian
         )
         try:
-            self.dynamo_service.create_item(
-                table_name=self.review_table_name,
-                item=document_upload_review.model_dump(
-                    by_alias=True, exclude_none=True
-                ),
-                key_name=DocumentReferenceMetadataFields.ID.value,
-            )
+            self.document_review_service.create_dynamo_entry(document_upload_review)
 
             logger.info(f"Created review record {document_upload_review.id}")
         except ClientError as e:
@@ -72,11 +56,37 @@ class ReviewProcessorService:
 
         self._delete_files_from_staging(review_message)
 
+    def _get_patient_custodian(self, review_message: ReviewMessageBody) -> str:
+        try:
+            if (
+                not review_message.nhs_number
+                or review_message.nhs_number == NHS_NUMBER_PLACEHOLDER
+            ):
+                logger.info(
+                    "No valid NHS number found in message. Using uploader ODS as custodian"
+                )
+                return review_message.uploader_ods
+            pds_service = get_pds_service()
+            patient_details = pds_service.fetch_patient_details(
+                review_message.nhs_number
+            )
+            return patient_details.general_practice_ods
+        except (PdsErrorException, InvalidResourceIdException):
+            logger.info("Error when searching PDS. Using uploader ODS as custodian")
+            return review_message.uploader_ods
+        except PatientNotFoundException:
+            logger.info(
+                "Patient not found in PDS. Using uploader ODS as custodian, and nhs number placeholder"
+            )
+            review_message.nhs_number = NHS_NUMBER_PLACEHOLDER
+            return review_message.uploader_ods
+
     def _build_review_record(
         self,
         message_data: ReviewMessageBody,
         review_id: str,
         review_files: list[DocumentReviewFileDetails],
+        custodian: str,
     ) -> DocumentUploadReviewReference:
         return DocumentUploadReviewReference(
             id=review_id,
@@ -84,7 +94,7 @@ class ReviewProcessorService:
             review_status=DocumentReviewStatus.PENDING_REVIEW,
             review_reason=message_data.failure_reason,
             author=message_data.uploader_ods,
-            custodian=message_data.current_gp,
+            custodian=custodian,
             files=review_files,
             upload_date=int(datetime.now(tz=timezone.utc).timestamp()),
         )
@@ -92,16 +102,6 @@ class ReviewProcessorService:
     def _move_files_to_review_bucket(
         self, message_data: ReviewMessageBody, review_record_id: str
     ) -> list[DocumentReviewFileDetails]:
-        """
-        Move file from staging to review bucket.
-
-        Args:
-            message_data: Review queue message data
-            review_record_id: ID of the review record being created
-
-        Returns:
-            List of DocumentReviewFileDetails with new file locations in review bucket
-        """
         new_file_keys: list[DocumentReviewFileDetails] = []
 
         for file in message_data.files:
@@ -118,7 +118,7 @@ class ReviewProcessorService:
                     source_file_key=file.file_path,
                     dest_bucket=self.review_bucket_name,
                     dest_file_key=new_file_key,
-                    if_none_match="*",
+                    if_none_match=True,
                 )
                 logger.info("File successfully copied to review bucket")
                 logger.info(f"Successfully moved file to: {new_file_key}")
@@ -135,7 +135,6 @@ class ReviewProcessorService:
                     file_location=new_file_key,
                 )
             )
-
         return new_file_keys
 
     def _delete_files_from_staging(self, message_data: ReviewMessageBody) -> None:
