@@ -4,7 +4,7 @@ import json
 import boto3
 
 
-def invoke_lambda(lambda_name, payload={}):
+def invoke_lambda(lambda_name, payload):
     client = boto3.client("lambda")
     response = client.invoke(
         FunctionName=lambda_name,
@@ -22,6 +22,11 @@ if __name__ == "__main__":
         help="The name of the environment",
     )
     parser.add_argument(
+        "--lambda-type",
+        help="Which lambda to trigger (BulkUploadMetadataLambda or BulkUploadMetadataProcessor)",
+        default="BulkUploadMetadataLambda",
+    )
+    parser.add_argument(
         "--start-bulk-upload",
         action="store_true",
         help="Start the Bulk Upload",
@@ -32,7 +37,18 @@ if __name__ == "__main__":
     if not args.environment:
         args.environment = input("Please enter the name of the environment: ")
 
+    payload = {}
+    if args.lambda_type == "BulkUploadMetadataProcessor":
+        lambda_name = f"{args.environment}_BulkUploadMetadataProcessor"
+        payload = {
+            "inputFileLocation": "metadata.csv"
+        }
+    else:
+        lambda_name = f"{args.environment}_BulkUploadMetadataLambda"
+
+    print(f"Using lambda: {lambda_name}")
+
     if args.start_bulk_upload or input(
         "Would you like to start the Bulk Upload Process:"
     ):
-        invoke_lambda(f"{args.environment}_BulkUploadMetadataLambda")
+        invoke_lambda(lambda_name, payload)

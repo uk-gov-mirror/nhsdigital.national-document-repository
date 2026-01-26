@@ -16,10 +16,10 @@ from utils.audit_logging_setup import LoggingService
 from utils.exceptions import (
     InvalidResourceIdException,
     PatientNotFoundException,
-    PdsErrorException,
+    PdsErrorException, InvalidNhsNumberException,
 )
 from utils.request_context import request_context
-from utils.utilities import get_pds_service
+from utils.utilities import get_pds_service, validate_nhs_number
 
 logger = LoggingService(__name__)
 
@@ -66,15 +66,16 @@ class ReviewProcessorService:
                     "No valid NHS number found in message. Using uploader ODS as custodian"
                 )
                 return review_message.uploader_ods
+            validate_nhs_number(review_message.nhs_number)
             pds_service = get_pds_service()
             patient_details = pds_service.fetch_patient_details(
                 review_message.nhs_number
             )
             return patient_details.general_practice_ods
-        except (PdsErrorException, InvalidResourceIdException):
+        except PdsErrorException:
             logger.info("Error when searching PDS. Using uploader ODS as custodian")
             return review_message.uploader_ods
-        except PatientNotFoundException:
+        except (PatientNotFoundException, InvalidResourceIdException, InvalidNhsNumberException):
             logger.info(
                 "Patient not found in PDS. Using uploader ODS as custodian, and nhs number placeholder"
             )

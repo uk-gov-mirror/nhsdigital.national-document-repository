@@ -11,6 +11,7 @@ from pathlib import Path
 import pydantic
 from botocore.exceptions import ClientError
 
+from enums.document_review_reason import DocumentReviewReason
 from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
 from enums.upload_status import UploadStatus
 from enums.virus_scan_result import VirusScanResult
@@ -23,6 +24,7 @@ from repositories.bulk_upload.bulk_upload_dynamo_repository import (
     BulkUploadDynamoRepository,
 )
 from repositories.bulk_upload.bulk_upload_s3_repository import BulkUploadS3Repository
+from repositories.bulk_upload.bulk_upload_sqs_repository import BulkUploadSqsRepository
 from services.base.s3_service import S3Service
 from services.base.sqs_service import SQSService
 from services.bulk_upload.metadata_general_preprocessor import (
@@ -58,6 +60,7 @@ class BulkUploadMetadataProcessorService:
             metadata_heading_remap: dict,
             input_file_location: str = "",
             fixed_values: dict = None,
+            send_to_review_enabled: bool = False,
     ):
         self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
         self.metadata_queue_url = os.getenv("METADATA_SQS_QUEUE_URL")
@@ -65,6 +68,7 @@ class BulkUploadMetadataProcessorService:
         self.s3_service = S3Service()
         self.sqs_service = SQSService()
         self.dynamo_repository = BulkUploadDynamoRepository()
+        self.sqs_repository = BulkUploadSqsRepository()
         self.s3_repo = BulkUploadS3Repository()
         self.virus_scan_service = get_virus_scan_service()
 
@@ -77,6 +81,7 @@ class BulkUploadMetadataProcessorService:
         self.metadata_mapping_validator_service = MetadataMappingValidatorService()
 
         self.metadata_formatter_service = metadata_formatter_service
+        self.send_to_review_enabled = send_to_review_enabled
 
     def download_metadata_from_s3(self) -> str:
         local_file_path = f"{self.temp_download_dir}/{self.file_key.split('/')[-1]}"
@@ -131,15 +136,16 @@ class BulkUploadMetadataProcessorService:
         patients: defaultdict[tuple[str, str], list[BulkUploadQueueMetadata]] = (
             defaultdict(list)
         )
+        failed_files: defaultdict[tuple[str, str], list[BulkUploadQueueMetadata]] = (
+            defaultdict(list)
+        )
 
         with open(
                 csv_file_path, mode="r", encoding="utf-8-sig", errors="replace"
         ) as csv_file:
             csv_reader = csv.DictReader(csv_file)
             if csv_reader.fieldnames is None:
-                raise BulkUploadMetadataException(
-                    f"Metdata file is empty or missing headers."
-                )
+                raise BulkUploadMetadataException("Metadata file is empty or missing headers.")
 
             headers = [h.strip() for h in csv_reader.fieldnames]
             records = list(csv_reader)
@@ -166,7 +172,14 @@ class BulkUploadMetadataProcessorService:
             )
 
         for row in validated_rows:
-            self.process_metadata_row(row, patients)
+            self.process_metadata_row(row, patients, failed_files)
+
+        if self.send_to_review_enabled:
+            self.send_failed_files_to_review_queue(failed_files)
+        else:
+            logger.info(
+                f"Send to review is disabled. Skipping review queue for {len(failed_files)} failed file"
+            )
 
         return [
             StagingSqsMetadata(nhs_number=nhs_number, files=files)
@@ -174,9 +187,11 @@ class BulkUploadMetadataProcessorService:
         ]
 
     def process_metadata_row(
-            self, row: dict, patients: dict[tuple[str, str], list[BulkUploadQueueMetadata]]
+            self, row: dict,
+            patients: dict[tuple[str, str], list[BulkUploadQueueMetadata]],
+            failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]]
     ) -> None:
-        """Validate individual file metadata and attach to patient group."""
+        """Validate individual file metadata and attach to a patient group."""
         file_metadata = MetadataFile.model_validate(row)
 
         if self.fixed_values:
@@ -187,15 +202,22 @@ class BulkUploadMetadataProcessorService:
         try:
             correct_file_name = self.validate_and_correct_filename(file_metadata)
         except InvalidFileNameException as error:
-            self.handle_invalid_filename(file_metadata, error, nhs_number)
+            self.handle_invalid_filename(file_metadata, error, nhs_number, ods_code, failed_files)
             return
 
         sqs_metadata = self.convert_to_sqs_metadata(file_metadata, correct_file_name)
-        sqs_metadata.file_path = self.file_key.rsplit("/", 1)[0] + "/" + sqs_metadata.file_path.lstrip("/")
+
+        sqs_metadata.file_path = self.add_directory_path_to_file_path(file_metadata)
+
         patients[(nhs_number, ods_code)].append(sqs_metadata)
 
-    def apply_fixed_values(self, file_metadata: MetadataFile) -> MetadataFile:
+    def add_directory_path_to_file_path(self, file_metadata):
+        if "/" in self.file_key:
+            directory_path = self.file_key.rsplit("/", 1)[0]
+            return directory_path + "/" + file_metadata.file_path.lstrip("/")
+        return file_metadata.file_path.lstrip("/")
 
+    def apply_fixed_values(self, file_metadata: MetadataFile) -> MetadataFile:
         metadata_dict = file_metadata.model_dump(by_alias=True)
 
         for field_name, fixed_value in self.fixed_values.items():
@@ -215,7 +237,7 @@ class BulkUploadMetadataProcessorService:
         )
 
     def create_expedite_sqs_metadata(self, key) -> StagingSqsMetadata:
-        """Build a single-patient SQS metadata payload for an expedite upload."""
+        """Build a single-patient SQS metadata payload for an expedited upload."""
         nhs_number, file_path, ods_code, scan_date = self.validate_expedite_file(key)
         return StagingSqsMetadata(
             nhs_number=nhs_number,
@@ -235,7 +257,7 @@ class BulkUploadMetadataProcessorService:
         return file_metadata.nhs_number, file_metadata.gp_practice_code
 
     def validate_and_correct_filename(self, file_metadata: MetadataFile) -> str:
-        """Validate and normalize file name."""
+        """Validate and normalise file name."""
         try:
             validate_file_name(file_metadata.file_path.split("/")[-1])
             return file_metadata.file_path
@@ -267,7 +289,7 @@ class BulkUploadMetadataProcessorService:
         return nhs_number, file_name, ods_code, scan_date
 
     def handle_expedite_event(self, event):
-        """Process S3 EventBridge expedite uploads: enforce virus scan, ensure 1of1, extract identifiers
+        """Process S3 EventBridge expedite uploads: enforce virus scan, ensure 1of1, extract identifiers,
         and send metadata to SQS."""
         try:
             unparsed_s3_object_key = event["detail"]["object"]["key"]
@@ -299,18 +321,38 @@ class BulkUploadMetadataProcessorService:
             file_metadata: MetadataFile,
             error: InvalidFileNameException,
             nhs_number: str,
+            ods_code: str,
+            failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]]
     ) -> None:
-        """Handle invalid filenames by logging and storing failure in Dynamo."""
+        """Handle invalid filenames by logging, storing failure in Dynamo, and tracking for review."""
         logger.error(
             f"Failed to process {file_metadata.file_path} due to error: {error}"
         )
         failed_file = self.convert_to_sqs_metadata(
             file_metadata, file_metadata.file_path
         )
+        failed_file.file_path = self.add_directory_path_to_file_path(file_metadata)
+        failed_files[(nhs_number, ods_code)].append(failed_file)
+
         failed_entry = StagingSqsMetadata(nhs_number=nhs_number, files=[failed_file])
         self.dynamo_repository.write_report_upload_to_dynamo(
             failed_entry, UploadStatus.FAILED, str(error)
         )
+
+    def send_failed_files_to_review_queue(
+            self,
+            failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]]
+    ) -> None:
+        for (nhs_number, ods_code), files in failed_files.items():
+            staging_metadata = StagingSqsMetadata(nhs_number=nhs_number, files=files)
+            logger.info(
+                f"Sending {len(files)} failed file(s) to review queue for NHS number: {nhs_number}"
+            )
+            self.sqs_repository.send_message_to_review_queue(
+                staging_metadata=staging_metadata,
+                uploader_ods=ods_code,
+                failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
+            )
 
     def send_metadata_to_fifo_sqs(
             self, staging_sqs_metadata_list: list[StagingSqsMetadata]
@@ -354,7 +396,7 @@ class BulkUploadMetadataProcessorService:
         self.s3_service.delete_object(self.staging_bucket_name, self.file_key)
 
     def clear_temp_storage(self):
-        """Delete temporary working directory."""
+        """Delete the temporary working directory."""
         logger.info("Clearing temp storage directory")
         try:
             shutil.rmtree(self.temp_download_dir)

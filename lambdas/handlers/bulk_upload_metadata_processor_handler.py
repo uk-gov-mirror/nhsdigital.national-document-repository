@@ -1,8 +1,10 @@
+from enums.feature_flags import FeatureFlags
 from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
 from services.bulk_upload_metadata_processor_service import (
     BulkUploadMetadataProcessorService,
     get_formatter_service,
 )
+from services.feature_flags_service import FeatureFlagService
 from services.metadata_mapping_validator_service import MetadataMappingValidatorService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -20,6 +22,17 @@ logger = LoggingService(__name__)
 )
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
+    feature_flag_service = FeatureFlagService()
+    send_to_review_flag_object = feature_flag_service.get_feature_flags_by_flag(
+        FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value
+    )
+    send_to_review_enabled = send_to_review_flag_object[
+        FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value
+    ]
+
+    if send_to_review_enabled:
+        logger.info("Bulk upload send to review queue is enabled for metadata processor")
+
     raw_pre_format_type = event.get(
         "preFormatType", LloydGeorgePreProcessFormat.GENERAL
     )
@@ -32,6 +45,7 @@ def lambda_handler(event, _context):
         metadata_formatter_service=metadata_formatter_service,
         metadata_heading_remap=remappings,
         input_file_location=input_file_location,
+        send_to_review_enabled=send_to_review_enabled,
     )
 
     if "source" in event and event.get("source") == "aws.s3":
@@ -60,6 +74,7 @@ def lambda_handler(event, _context):
         metadata_formatter_service=metadata_formatter_service,
         metadata_heading_remap=remappings,
         fixed_values=fixed_values,
-        input_file_location=input_file_location
+        input_file_location=input_file_location,
+        send_to_review_enabled=send_to_review_enabled,
     )
     metadata_service.process_metadata()

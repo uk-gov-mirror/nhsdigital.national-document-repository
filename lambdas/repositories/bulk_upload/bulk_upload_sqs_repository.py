@@ -16,8 +16,8 @@ logger = LoggingService(__name__)
 class BulkUploadSqsRepository:
     def __init__(self):
         self.sqs_repository = SQSService()
-        self.metadata_queue_url = os.environ["METADATA_SQS_QUEUE_URL"]
-        self.review_queue_url = os.environ["REVIEW_SQS_QUEUE_URL"]
+        self.metadata_queue_url = os.getenv("METADATA_SQS_QUEUE_URL")
+        self.review_queue_url = os.getenv("REVIEW_SQS_QUEUE_URL")
 
     def put_staging_metadata_back_to_queue(self, staging_metadata: StagingSqsMetadata):
         request_context.patient_nhs_no = staging_metadata.nhs_number
@@ -40,7 +40,7 @@ class BulkUploadSqsRepository:
         review_files = [
             ReviewMessageFile(
                 file_name=file.stored_file_name.split("/")[-1],
-                file_path=file.file_path,
+                file_path=file.file_path.lstrip("/"),
             )
             for file in staging_metadata.files
         ]

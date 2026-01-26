@@ -25,6 +25,14 @@ on:
         required: true
         type: boolean
         default: false
+      lambda_type:
+        description: "Which lambda to trigger for bulk upload (only applies if bulk_upload is true)"
+        required: false
+        type: choice
+        options:
+          - "Bulk upload metadata"
+          - "NEW bulk metadata processor"
+        default: "Bulk upload metadata"
       disable_pds:
         description: "Do you want to disable the PDS stub?"
         required: true
@@ -169,5 +177,6 @@ jobs:
       combi_settings: "combi300"
       base_branch: ${{ inputs.build_branch }}
       file_count: "3"
+      lambda_type: ${{ inputs.lambda_type == 'NEW bulk metadata processor' && 'BulkUploadMetadataProcessor' || 'BulkUploadMetadataLambda' }}
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}

@@ -26,7 +26,7 @@ def eventbridge_event_with_s3_key(key: str):
 
 
 def test_metadata_processor_lambda_handler_valid_event(
-    set_env, context, mock_metadata_service
+    set_env, context, mock_metadata_service, mock_validation_strict_enabled_send_to_review_disabled
 ):
     lambda_handler({"inputFileLocation": "test"}, context)
 
@@ -34,7 +34,7 @@ def test_metadata_processor_lambda_handler_valid_event(
 
 
 def test_metadata_processor_lambda_handler_empty_event(
-    set_env, context, mock_metadata_service
+    set_env, context, mock_metadata_service, mock_validation_strict_enabled_send_to_review_disabled
 ):
     lambda_handler({}, context)
 
@@ -42,7 +42,7 @@ def test_metadata_processor_lambda_handler_empty_event(
 
 
 def test_metadata_processor_lambda_handler_s3_event_triggers_expedite(
-    set_env, context, mock_metadata_service
+    set_env, context, mock_metadata_service, mock_validation_strict_enabled_send_to_review_disabled
 ):
     event = {
         "source": "aws.s3",
@@ -60,7 +60,7 @@ def test_metadata_processor_lambda_handler_s3_event_triggers_expedite(
 
 
 def test_s3_event_with_non_expedite_key_is_rejected(
-    set_env, context, mock_metadata_service, caplog
+    set_env, context, mock_metadata_service, caplog, mock_validation_strict_enabled_send_to_review_disabled
 ):
     key_string = "uploads/1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf"
     event = eventbridge_event_with_s3_key(key_string)
@@ -72,7 +72,7 @@ def test_s3_event_with_non_expedite_key_is_rejected(
     mock_metadata_service.process_metadata.assert_not_called()
 
 
-def test_s3_event_with_expedite_key_processes(set_env, context, mock_metadata_service):
+def test_s3_event_with_expedite_key_processes(set_env, context, mock_metadata_service, mock_validation_strict_enabled_send_to_review_disabled):
     event = eventbridge_event_with_s3_key(
         "expedite%2F1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf"
     )

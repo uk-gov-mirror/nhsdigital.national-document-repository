@@ -35,6 +35,21 @@ on:
         required: false
         type: "string"
         default: "3"
+      lambda_type:
+        description: "Which lambda to trigger (BulkUploadMetadataLambda or BulkUploadMetadataProcessor)"
+        required: false
+        type: "string"
+        default: "BulkUploadMetadataLambda"
+      run_bulk_upload_setup:
+        description: "Run bulk upload setup step"
+        required: false
+        type: "boolean"
+        default: true
+      run_document_review_setup:
+        description: "Run document review setup step"
+        required: false
+        type: "boolean"
+        default: true
     secrets:
       AWS_ASSUME_ROLE:
         required: true
@@ -67,6 +82,7 @@ jobs:
         working-directory: ./tests/bulk-upload/scripts
 
       - name: Setup Bulk Upload
+        if: ${{ inputs.run_bulk_upload_setup }}
         run: |
           python setup_bulk_upload.py \
             --environment "${{ inputs.sandbox }}" \
@@ -80,6 +96,7 @@ jobs:
         working-directory: ./tests/bulk-upload/scripts
 
       - name: Setup Document Review
+        if: ${{ inputs.run_document_review_setup }}
         run: |
           python setup_document_review.py
         working-directory: ./tests/bulk-upload/scripts
@@ -90,5 +107,6 @@ jobs:
         run: |
           python run_bulk_upload.py \
             --environment "${{ inputs.sandbox }}" \
+            --lambda-type "${{ inputs.lambda_type }}" \
             --start-bulk-upload
         working-directory: ./tests/bulk-upload/scripts

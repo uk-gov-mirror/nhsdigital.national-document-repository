@@ -486,7 +486,7 @@ def test_get_patient_custodian_returns_uploader_ods_on_invalid_resource_id(
     result = service_under_test._get_patient_custodian(sample_review_message)
 
     assert result == "Y12345"
-    assert sample_review_message.nhs_number == "9000000009"
+    assert sample_review_message.nhs_number == "0000000000"
 
 
 def test_get_patient_custodian_handles_patient_not_found_sets_placeholder(
