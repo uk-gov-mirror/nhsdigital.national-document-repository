@@ -111,16 +111,40 @@ class PdfStitchingService:
             self.rollback_stitching_process()
             raise e
 
+    def calculate_created_date(self) -> str:
+        created_values = [
+            r.created
+            for r in self.multipart_references
+            if getattr(r, "created", None)
+        ]
+        date_now = datetime.now(timezone.utc)
+        if not created_values:
+            return date_now.strftime(DATE_FORMAT)
+
+        parsed: list[datetime] = []
+        for created_value in created_values:
+            try:
+                parsed.append(datetime.strptime(created_value, DATE_FORMAT))
+            except ValueError:
+                continue
+
+        if not parsed:
+            return date_now.strftime(DATE_FORMAT)
+
+        return min(parsed).strftime(DATE_FORMAT)
+
     def create_stitched_reference(
         self, document_reference: DocumentReference, stitch_file_size: int
     ):
-        date_now = datetime.now(timezone.utc)
+
+        created_date = self.calculate_created_date()
+
         reference_id = create_reference_id()
         stripped_filename = re.sub(r"^\d+of\d+_", "", document_reference.file_name)
         self.stitched_reference = document_reference.model_copy(
             update={
                 "id": reference_id,
-                "created": date_now.strftime(DATE_FORMAT),
+                "created": created_date,
                 "file_location": f"s3://{self.target_bucket}/{document_reference.nhs_number}/{reference_id}",
                 "file_name": f"1of1_{stripped_filename}",
                 "file_size": stitch_file_size,
