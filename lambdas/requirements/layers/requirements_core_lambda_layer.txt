@@ -11,7 +11,7 @@ oauthlib==3.2.2
 packaging==23.1.0
 pydantic==2.11
 pydantic[email]==2.11
-pypdf==6.6.0
+pypdf==6.6.2
 requests==2.32.4
 responses==0.23.1
 six==1.16.0
