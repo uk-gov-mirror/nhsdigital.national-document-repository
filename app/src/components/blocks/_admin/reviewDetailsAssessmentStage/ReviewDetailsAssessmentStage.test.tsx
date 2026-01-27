@@ -14,6 +14,8 @@ import * as getReviewsModule from '../../../../helpers/requests/getReviews';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 const mockedUseNavigate = vi.fn();
+const mockSetPatientDetails = vi.fn();
+const mockUsePatientDetailsContext = vi.fn();
 
 vi.mock('../../../../helpers/utils/getPdfObjectUrl', () => ({
     getPdfObjectUrl: vi.fn().mockResolvedValue(200),
@@ -90,6 +92,10 @@ vi.mock(
         },
     }),
 );
+
+vi.mock('../../../../providers/patientProvider/PatientProvider', () => ({
+    usePatientDetailsContext: (): unknown => mockUsePatientDetailsContext(),
+}));
 
 const mockSetReviewData = vi.fn();
 const mockSetDownloadStage = vi.fn();
@@ -175,6 +181,8 @@ describe('ReviewDetailsAssessmentPage', () => {
 
     describe('Rendering', () => {
         it('displays spinner when reviewData is null', () => {
+            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={null}
@@ -190,6 +198,8 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('displays spinner only when uploadDocuments is null/undefined or reviewData is null', () => {
+            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
             const { rerender } = render(
                 <ReviewDetailsAssessmentStage
                     reviewData={null}
@@ -220,6 +230,8 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('renders page title for review with existing and new files', () => {
+            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(true, true, true)}
@@ -237,6 +249,8 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('renders accept/reject radio buttons when only canBeDiscarded is true', () => {
+            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(
@@ -258,6 +272,8 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('renders add-all and choose-files radio buttons when no existing record', () => {
+            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(true, true, false)}
@@ -277,6 +293,8 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('renders all radio options when has existing record in storage', () => {
+            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(true, true, true)}
@@ -304,6 +322,8 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('displays existing files table when available', () => {
+            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(true, true, true)}
@@ -319,6 +339,8 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('displays new files table', () => {
+            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(true, true, true)}
@@ -336,6 +358,8 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('displays "all files" viewing message by default', () => {
+            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData()}
@@ -348,6 +372,26 @@ describe('ReviewDetailsAssessmentPage', () => {
             );
 
             expect(screen.getByText('You are currently viewing: all files')).toBeInTheDocument();
+        });
+
+        it('displays patient demographics', async () => {
+            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
+            render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={createMockReviewData()}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={createMockUploadDocuments()}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={false}
+                />,
+            );
+
+            expect(screen.getByTestId('patient-summary')).toBeInTheDocument();
+            expect(screen.getByTestId('patient-summary-full-name')).toBeInTheDocument();
+            expect(screen.getByTestId('patient-summary-nhs-number')).toBeInTheDocument();
+            expect(screen.getByTestId('patient-summary-date-of-birth')).toBeInTheDocument();
         });
     });
 

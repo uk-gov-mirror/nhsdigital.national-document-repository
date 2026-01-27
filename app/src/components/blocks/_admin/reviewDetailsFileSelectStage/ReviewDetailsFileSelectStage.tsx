@@ -13,6 +13,7 @@ import {
     ReviewUploadDocument,
     UploadDocumentType,
 } from '../../../../types/pages/UploadDocumentsPage/types';
+import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
 
 export type ReviewDetailsFileSelectStageProps = {
     reviewData: ReviewDetails | null;
@@ -141,6 +142,14 @@ const ReviewDetailsFileSelectStage = ({
             )}
 
             <h1>Choose files to add to the existing {reviewTypeLabel.toSentenceCase()}</h1>
+
+            <div className="nhsuk-inset-text">
+                <PatientSummary>
+                    <PatientSummary.Child item={PatientInfo.FULL_NAME} />
+                    <PatientSummary.Child item={PatientInfo.NHS_NUMBER} />
+                    <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
+                </PatientSummary>
+            </div>
 
             <section id="new-files-table" className="new-files mb-4">
                 <h2>New files</h2>

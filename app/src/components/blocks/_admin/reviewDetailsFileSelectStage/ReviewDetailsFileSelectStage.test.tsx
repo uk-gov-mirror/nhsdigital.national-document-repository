@@ -18,6 +18,8 @@ vi.mock('../../../../helpers/hooks/useTitle', () => ({
 }));
 
 const mockNavigate = vi.fn();
+const mockSetPatientDetails = vi.fn();
+const mockUsePatientDetailsContext = vi.fn();
 const mockReviewId = 'test-review-123';
 let currentReviewId: string | undefined = mockReviewId;
 
@@ -29,6 +31,10 @@ vi.mock('react-router-dom', async (): Promise<unknown> => {
         useParams: (): { reviewId: string | undefined } => ({ reviewId: currentReviewId }),
     };
 });
+
+vi.mock('../../../../providers/patientProvider/PatientProvider', () => ({
+    usePatientDetailsContext: (): unknown => mockUsePatientDetailsContext(),
+}));
 
 const mockGetConfigForDocType = getConfigForDocType as Mock;
 
@@ -76,6 +82,8 @@ describe('ReviewDetailsFileSelectStage', () => {
     });
 
     it('renders a spinner when reviewData is null', () => {
+        mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
         render(
             <ReviewDetailsFileSelectStage
                 reviewData={null}
@@ -88,6 +96,8 @@ describe('ReviewDetailsFileSelectStage', () => {
     });
 
     it('renders heading and only shows REVIEW documents in the table', () => {
+        mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
         const documents: ReviewUploadDocument[] = [
             makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.UNSELECTED, UploadDocumentType.REVIEW),
             makeReviewDoc(
@@ -116,7 +126,36 @@ describe('ReviewDetailsFileSelectStage', () => {
         expect(screen.queryByText('existing.pdf')).not.toBeInTheDocument();
     });
 
+    it('renders patient demograhics', () => {
+        mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
+        const documents: ReviewUploadDocument[] = [
+            makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.UNSELECTED, UploadDocumentType.REVIEW),
+            makeReviewDoc(
+                'existing.pdf',
+                DOCUMENT_UPLOAD_STATE.UNSELECTED,
+                UploadDocumentType.EXISTING,
+            ),
+        ];
+
+        render(
+            <ReviewDetailsFileSelectStage
+                reviewData={mockReviewData}
+                uploadDocuments={documents}
+                setUploadDocuments={vi.fn() as any}
+            />,
+        );
+
+        expect(screen.getByTestId('patient-summary')).toBeInTheDocument();
+        expect(screen.getByTestId('patient-summary-full-name')).toBeInTheDocument();
+        expect(screen.getByTestId('patient-summary-nhs-number')).toBeInTheDocument();
+        expect(screen.getByTestId('patient-summary-date-of-birth')).toBeInTheDocument();
+
+    });
+
     it('allows viewing a selected file and passes the object URL to the PDF viewer', async () => {
+        mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
         const user = userEvent.setup();
         const documents: ReviewUploadDocument[] = [
             makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.UNSELECTED, UploadDocumentType.REVIEW),
@@ -165,6 +204,8 @@ describe('ReviewDetailsFileSelectStage', () => {
     });
 
     it('clears the error summary after selecting a file', async () => {
+        mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
         const user = userEvent.setup();
         const initialDocs: ReviewUploadDocument[] = [
             makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.UNSELECTED, UploadDocumentType.REVIEW),
@@ -194,6 +235,8 @@ describe('ReviewDetailsFileSelectStage', () => {
     });
 
     it('navigates to add-more-choice when all files are selected', async () => {
+        mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
         const user = userEvent.setup();
         const initialDocs: ReviewUploadDocument[] = [
             makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.SELECTED, UploadDocumentType.REVIEW),
@@ -217,6 +260,8 @@ describe('ReviewDetailsFileSelectStage', () => {
     });
 
     it('navigates to download-choice when some files are unselected', async () => {
+        mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
         const user = userEvent.setup();
         const initialDocs: ReviewUploadDocument[] = [
             makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.SELECTED, UploadDocumentType.REVIEW),
@@ -238,6 +283,8 @@ describe('ReviewDetailsFileSelectStage', () => {
     });
 
     it('does not navigate if reviewId is missing', async () => {
+        mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+
         const user = userEvent.setup();
         currentReviewId = undefined;
 

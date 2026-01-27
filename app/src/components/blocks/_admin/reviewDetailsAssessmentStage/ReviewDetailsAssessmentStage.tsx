@@ -27,6 +27,7 @@ import {
 import DocumentUploadLloydGeorgePreview from '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import { AxiosError } from 'axios';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
+import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
 
 type FileAction = 'add-all' | 'choose-files' | 'duplicate' | 'accept' | 'reject' | '';
 
@@ -326,6 +327,14 @@ const ReviewDetailsAssessmentStage = ({
             )}
 
             <h1>{pageTitle}</h1>
+
+            <div className="nhsuk-inset-text">
+                <PatientSummary>
+                    <PatientSummary.Child item={PatientInfo.FULL_NAME} />
+                    <PatientSummary.Child item={PatientInfo.NHS_NUMBER} />
+                    <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
+                </PatientSummary>
+            </div>
 
             {canBeUpdatedAndDiscarded && reviewData.existingFiles!.length > 0 && (
                 <ExistingRecordTable
