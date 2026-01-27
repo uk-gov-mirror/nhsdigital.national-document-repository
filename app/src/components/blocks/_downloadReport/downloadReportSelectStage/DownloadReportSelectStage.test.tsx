@@ -10,6 +10,8 @@ import downloadReport from '../../../../helpers/requests/downloadReport';
 import { beforeEach, describe, expect, it, vi, MockedFunction, Mock } from 'vitest';
 
 const mockDownloadReport = downloadReport as MockedFunction<typeof downloadReport>;
+const mockUseConfig = vi.fn();
+
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -27,9 +29,16 @@ vi.mock('../../../../helpers/utils/isLocal', () => ({
     isMock: (): boolean => false,
 }));
 
+vi.mock('../../../../helpers/hooks/useConfig', () => ({
+    default: (): unknown => mockUseConfig(),
+}));
+
 describe('DownloadReportSelectStage', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
+        mockUseConfig.mockReturnValue({
+            featureFlags: {},
+        });
     });
 
     describe('Rendering', () => {
@@ -106,5 +115,25 @@ describe('DownloadReportSelectStage', () => {
         await waitFor(() => {
             expect(mockedUseNavigate).toHaveBeenCalledWith(routes.HOME);
         });
+    });
+
+    it ('should navigate to admin hub, upload version 3 enabled', async () => {
+        mockUseConfig.mockReturnValue({
+            featureFlags: { uploadDocumentIteration3Enabled: true },
+        });
+
+        const report = getReportByType(REPORT_TYPE.ODS_PATIENT_SUMMARY);
+        render(<DownloadReportSelectStage report={report!} />);
+
+        let backLink: Element;
+        backLink = screen.getByTestId('return-to-home-button');
+
+        expect(backLink).toHaveTextContent('Go back');
+
+        await userEvent.click(backLink);
+
+        await waitFor(() => {
+            expect(mockedUseNavigate).toHaveBeenCalledWith(routes.ADMIN_ROUTE);
+        })
     });
 });

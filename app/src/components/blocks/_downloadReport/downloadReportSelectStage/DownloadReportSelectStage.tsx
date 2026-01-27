@@ -5,6 +5,7 @@ import { BackLink, Button } from 'nhsuk-react-components';
 import downloadReport from '../../../../helpers/requests/downloadReport';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
+import useConfig from '../../../../helpers/hooks/useConfig';
 import { AxiosError } from 'axios';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import { JSX, ReactNode, useRef } from 'react';
@@ -19,6 +20,7 @@ type Props = {
 const DownloadReportSelectStage = (props: Props): JSX.Element => {
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
+    const config = useConfig();
     const navigate = useNavigate();
     const [downloading, setDownloading] = React.useState(false);
     const [downloadError, setDownloadError] = React.useState<ReactNode>(null);
@@ -28,6 +30,7 @@ const DownloadReportSelectStage = (props: Props): JSX.Element => {
         navigate(`${routeChildren.REPORT_DOWNLOAD_COMPLETE}?reportType=${props.report.reportType}`);
     };
 
+    const uploadV3Enabled: boolean = !!config.featureFlags.uploadDocumentIteration3Enabled;
     const noDataContent = (): JSX.Element => {
         return (
             <>
@@ -131,11 +134,11 @@ const DownloadReportSelectStage = (props: Props): JSX.Element => {
                 asElement="a"
                 href='#'
                 onClick={(): void => {
-                    navigate(routes.HOME)
+                    uploadV3Enabled ? navigate(routes.ADMIN_ROUTE) : navigate(routes.HOME);
                 }}
                 className="mb-5"
             >
-                Go to home
+                {uploadV3Enabled ? 'Go back' : 'Go to home'}
             </BackLink>
             {downloadError && (
                 <NotificationBanner

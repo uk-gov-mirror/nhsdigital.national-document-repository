@@ -44,6 +44,28 @@ describe('AdminPage', (): void => {
                 ),
             ).toBeInTheDocument();
         });
+
+        it('renders the Download a report card', (): void => {
+            render(<AdminPage />);
+            const reportLink = screen.getByTestId('download-report-btn');
+            expect(reportLink).toBeInTheDocument();
+            expect(reportLink).toHaveTextContent('Download a report');
+        });
+
+        it('renders the Download a report card with correct href', (): void => {
+            render(<AdminPage />);
+            const reportLink = screen.getByTestId('download-report-btn');
+            expect(reportLink).toHaveAttribute('href', '/create-report?reportType=0');
+        });
+
+        it('renders the Download a report card description', (): void => {
+            render(<AdminPage />);
+            expect(
+                screen.getByText(
+                    'This report shows the list of Lloyd George records stored for your organisation.',
+                ),
+            ).toBeInTheDocument();
+        });
     });
 
     describe('Accessibility', (): void => {

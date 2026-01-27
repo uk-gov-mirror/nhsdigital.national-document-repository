@@ -27,9 +27,9 @@ const HomePage = (): React.JSX.Element => {
                                     <Card.Heading className="nhsuk-heading-m">
                                         <Card.Link
                                             data-testid="search-patient-btn"
-                                            href='#'
+                                            href="#"
                                             onClick={(): void => {
-                                                navigate(routes.SEARCH_PATIENT)
+                                                navigate(routes.SEARCH_PATIENT);
                                             }}
                                         >
                                             View or upload a patient record
@@ -45,9 +45,9 @@ const HomePage = (): React.JSX.Element => {
                                     <Card.Heading className="nhsuk-heading-m">
                                         <Card.Link
                                             data-testid="search-patient-btn"
-                                            href='#'
+                                            href="#"
                                             onClick={(): void => {
-                                                navigate(routes.SEARCH_PATIENT)
+                                                navigate(routes.SEARCH_PATIENT);
                                             }}
                                         >
                                             Search for a patient
@@ -63,16 +63,16 @@ const HomePage = (): React.JSX.Element => {
                         </Card.Content>
                     </Card>
                 </Card.GroupItem>
-                {config.featureFlags.uploadDocumentIteration3Enabled && (
+                {config.featureFlags.uploadDocumentIteration3Enabled ? (
                     <Card.GroupItem width="one-half">
                         <Card clickable cardType="primary">
                             <Card.Content>
                                 <Card.Heading className="nhsuk-heading-m">
                                     <Card.Link
                                         data-testid="admin-console-btn"
-                                        href='#'
+                                        href="#"
                                         onClick={(): void => {
-                                            navigate(routes.ADMIN_ROUTE)
+                                            navigate(routes.ADMIN_ROUTE);
                                         }}
                                     >
                                         Admin console
@@ -85,29 +85,32 @@ const HomePage = (): React.JSX.Element => {
                             </Card.Content>
                         </Card>
                     </Card.GroupItem>
+                ) : (
+                    <Card.GroupItem width="one-half">
+                        <Card clickable cardType="primary">
+                            <Card.Content>
+                                <Card.Heading className="nhsuk-heading-m">
+                                    <Card.Link
+                                        data-testid="download-report-btn"
+                                        href="#"
+                                        onClick={(): void => {
+                                            navigate(
+                                                `${routes.REPORT_DOWNLOAD}?reportType=${REPORT_TYPE.ODS_PATIENT_SUMMARY}`,
+                                            );
+                                        }}
+                                    >
+                                        Download a report
+                                    </Card.Link>
+                                </Card.Heading>
+                                <Card.Description>
+                                    This report shows the list of Lloyd George records stored for
+                                    your organisation.
+                                </Card.Description>
+                                <RightCircleIcon />
+                            </Card.Content>
+                        </Card>
+                    </Card.GroupItem>
                 )}
-                <Card.GroupItem width="one-half">
-                    <Card clickable cardType="primary">
-                        <Card.Content>
-                            <Card.Heading className="nhsuk-heading-m">
-                                <Card.Link
-                                    data-testid="download-report-btn"
-                                    href='#'
-                                    onClick={(): void => {
-                                        navigate(`${routes.REPORT_DOWNLOAD}?reportType=${REPORT_TYPE.ODS_PATIENT_SUMMARY}`)
-                                    }}
-                                >
-                                    Download a report
-                                </Card.Link>
-                            </Card.Heading>
-                            <Card.Description>
-                                This report shows the list of Lloyd George records stored for your
-                                organisation.
-                            </Card.Description>
-                            <RightCircleIcon />
-                        </Card.Content>
-                    </Card>
-                </Card.GroupItem>
             </Card.Group>
         </>
     );

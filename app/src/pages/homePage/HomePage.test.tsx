@@ -31,9 +31,11 @@ describe('HomePage', () => {
     });
 
     describe('Rendering', () => {
-        it('should render home page with patient search and download report', async () => {
+        it('should render home page with patient search and download report when uploadDocumentIteration3Enabled is false', async () => {
+            mockUseConfig.mockReturnValue(
+                buildConfig(undefined, { uploadDocumentIteration3Enabled: false }),
+            );
             render(<HomePage />);
-
             const searchPatientButton = screen.getByTestId(
                 'search-patient-btn',
             ) as HTMLAnchorElement;
@@ -56,6 +58,32 @@ describe('HomePage', () => {
             const adminConsoleButton = screen.getByTestId('admin-console-btn') as HTMLAnchorElement;
             expect(adminConsoleButton).toBeInTheDocument();
             expect(adminConsoleButton).toHaveTextContent('Admin console');
+        });
+
+        it('does not render admin console button when feature flag is disabled', () => {
+            mockUseConfig.mockReturnValue(
+                buildConfig(undefined, { uploadDocumentIteration3Enabled: false }),
+            );
+
+            render(<HomePage />);
+
+            expect(screen.queryByTestId('admin-console-btn')).not.toBeInTheDocument();
+        });
+
+        it('should render home page with patient search and admin console when uploadDocumentIteration3Enabled is true', async () => {
+            mockUseConfig.mockReturnValue(
+                buildConfig(undefined, { uploadDocumentIteration3Enabled: true }),
+            );
+            render(<HomePage />);
+            const searchPatientButton = screen.getByTestId(
+                'search-patient-btn',
+            ) as HTMLAnchorElement;
+            const adminConsoleButton = screen.getByTestId('admin-console-btn') as HTMLAnchorElement;
+            expect(searchPatientButton).toBeInTheDocument();
+            expect(adminConsoleButton).toBeInTheDocument();
+            expect(adminConsoleButton).toHaveTextContent('Admin console');
+            expect(adminConsoleButton).toHaveAttribute('href', '#');
+            expect(screen.queryByTestId('download-report-btn')).not.toBeInTheDocument();
         });
 
         it('does not render admin console button when feature flag is disabled', () => {
