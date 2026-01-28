@@ -275,7 +275,7 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
             patient=patient,
             files=files,
             review_status="PENDING_REVIEW",
-            review_reason="GP2GP failure",
+            review_reason="Unsuccessful upload",
             days_ago_uploaded=4,
         )
         review_obj["DocumentSnomedCodeType"] = "717301000000104"  # Electronic health record
@@ -298,7 +298,7 @@ def create_test_scenarios(patients: List[Patient], bucket_name: str):
             patient=patient,
             files=files,
             review_status="PENDING_REVIEW",
-            review_reason="General error",
+            review_reason="Unsuccessful upload",
             days_ago_uploaded=6,
         )
         review_obj["DocumentSnomedCodeType"] = "24511000000107"  # EHR attachments
