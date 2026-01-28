@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { SearchResult } from '../../types/generic/searchResult';
 import DocumentSearchResults from '../../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults';
-import { Outlet, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Outlet, Route, Routes, useNavigate } from 'react-router-dom';
 import { routeChildren, routes } from '../../types/generic/routes';
 import {
     DocumentReference,
@@ -32,7 +32,8 @@ import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
 import BackButton from '../../components/generic/backButton/BackButton';
 import ProgressBar from '../../components/generic/progressBar/ProgressBar';
 import DeleteSubmitStage from '../../components/blocks/_delete/deleteSubmitStage/DeleteSubmitStage';
-import { Button } from 'nhsuk-react-components';
+import { Button, WarningCallout } from 'nhsuk-react-components';
+import getReviews from '../../helpers/requests/getReviews';
 
 const DocumentSearchResultsPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
@@ -48,6 +49,7 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
     const config = useConfig();
     const mounted = useRef(false);
     const activeSearchResult = useRef<SearchResult | null>(null);
+    const hasReviews = useRef(false);
 
     useEffect(() => {
         const onPageLoad = async (): Promise<void> => {
@@ -59,8 +61,13 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                     baseUrl,
                     baseHeaders,
                 });
-                setSearchResults(results ?? []);
 
+                if (config.featureFlags.uploadDocumentIteration3Enabled) {
+                    const { count } = await getReviews(baseUrl, baseHeaders, nhsNumber, '', 1);
+                    hasReviews.current = count > 0;
+                }
+
+                setSearchResults(results ?? []);
                 setSubmissionState(SUBMISSION_STATE.SUCCEEDED);
             } catch (e) {
                 const error = e as AxiosError;
@@ -176,6 +183,7 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                                 setDownloadState={setDownloadState}
                                 searchResults={searchResults}
                                 onViewDocument={onViewDocument}
+                                hasReviews={hasReviews.current}
                             />
                         }
                     />
@@ -268,6 +276,7 @@ type PageIndexArgs = {
     searchResults: SearchResult[];
     nhsNumber: string;
     onViewDocument: (document: SearchResult) => void;
+    hasReviews: boolean;
 };
 const DocumentSearchResultsPageIndex = ({
     submissionState,
@@ -276,6 +285,7 @@ const DocumentSearchResultsPageIndex = ({
     nhsNumber,
     setDownloadState,
     onViewDocument,
+    hasReviews,
 }: PageIndexArgs): React.JSX.Element => {
     const [session] = useSessionContext();
     const patientDetails = usePatient();
@@ -331,6 +341,23 @@ const DocumentSearchResultsPageIndex = ({
                 <PatientSummary.Child item={PatientInfo.NHS_NUMBER} />
                 <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
             </PatientSummary>
+
+            {hasReviews && config.featureFlags.uploadDocumentIteration3Enabled && (
+                <WarningCallout data-testid="review-notification">
+                    <WarningCallout.Label>Important</WarningCallout.Label>
+                    <p>
+                        This patient has documents waiting to be reviewed. Go to{' '}
+                        <Link
+                            data-testid="review-link"
+                            to={routeChildren.ADMIN_REVIEW}
+                            aria-label="Link to Review search page"
+                        >
+                            documents to review
+                        </Link>{' '}
+                        to view and accept them into this patient's record.
+                    </p>
+                </WarningCallout>
+            )}
 
             {canUpload && (
                 <Button

@@ -243,7 +243,9 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
         <>
             <BackButton toLocation={routes.ADMIN_ROUTE} backLinkText="Go back" />
 
-            <h1 className="smaller-title">Documents to review</h1>
+            <h1 className="smaller-title" data-testid="search-reviews-title">
+                Documents to review
+            </h1>
 
             <h2>Documents that we store automatically</h2>
             <p>Lloyd George scanned paper notes are automatically stored in this service if:</p>

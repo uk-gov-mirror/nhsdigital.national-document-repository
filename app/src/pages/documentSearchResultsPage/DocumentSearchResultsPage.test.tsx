@@ -3,6 +3,7 @@ import React, { act } from 'react';
 import DocumentSearchResultsPage from './DocumentSearchResultsPage';
 import userEvent from '@testing-library/user-event';
 import {
+    buildMockReviewResponse,
     buildPatientDetails,
     buildSearchResult,
     buildUserAuth,
@@ -19,6 +20,9 @@ import { REPOSITORY_ROLE } from '../../types/generic/authRole';
 import getDocumentSearchResults from '../../helpers/requests/getDocumentSearchResults';
 import getDocument from '../../helpers/requests/getDocument';
 import useConfig from '../../helpers/hooks/useConfig';
+import getReviews from '../../helpers/requests/getReviews';
+import { ReviewsResponse } from '../../types/generic/reviews';
+import {wait} from "cypress-real-events/utils";
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', async () => ({
@@ -34,10 +38,12 @@ vi.mock('../../helpers/hooks/usePatient');
 vi.mock('../../helpers/hooks/useConfig');
 vi.mock('../../helpers/requests/getDocumentSearchResults');
 vi.mock('../../helpers/requests/getDocument');
+vi.mock('../../helpers/requests/getReviews');
 
 const mockedAxios = axios as Mocked<typeof axios>;
 const mockedUsePatient = usePatient as Mock;
 const mockedGetSearchResults = getDocumentSearchResults as Mock;
+const mockedGetReviews = getReviews as Mock;
 const mockedGetDocument = getDocument as Mock;
 const mockedUseConfig = useConfig as Mock;
 const mockPatient = buildPatientDetails();
@@ -192,6 +198,51 @@ describe('<DocumentSearchResultsPage />', () => {
                 });
             },
         );
+
+        it('displays a review notification when reviews needed for patient', async () => {
+            mockedGetSearchResults.mockResolvedValue([buildSearchResult()]);
+            mockedGetReviews.mockResolvedValue(buildMockReviewResponse());
+
+            renderPage(history);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('review-notification')).toBeInTheDocument();
+
+            });
+        });
+
+        it('does not display review notification, feature flag upload iteration 3 disabled', async () => {
+            mockedUseConfig.mockReturnValue({
+                featureFlags: {
+                    uploadDocumentIteration3Enabled: false,
+                },
+            });
+
+            mockedGetSearchResults.mockResolvedValue([buildSearchResult()]);
+            mockedGetReviews.mockResolvedValue(buildMockReviewResponse());
+
+            renderPage(history);
+
+            await waitFor(() => {
+                expect(screen.queryByTestId('review-notification')).not.toBeInTheDocument();
+            });
+        });
+
+        it('does not display review notification, no reviews for patient found', async () => {
+            mockedGetSearchResults.mockResolvedValue([buildSearchResult()]);
+            const emptyReviewResponse: ReviewsResponse = {
+                documentReviewReferences: [],
+                nextPageToken: 'abc',
+                count: 0,
+            };
+            mockedGetReviews.mockResolvedValue(emptyReviewResponse);
+
+            renderPage(history);
+
+            await waitFor(() => {
+                expect(screen.queryByTestId('review-notification')).not.toBeInTheDocument();
+            });
+        });
     });
 
     describe('Accessibility', () => {
@@ -362,6 +413,20 @@ describe('<DocumentSearchResultsPage />', () => {
             expect(mockedGetDocument).toHaveBeenCalledTimes(1);
             expect(mockedUseNavigate).toHaveBeenCalledWith(routeChildren.DOCUMENT_VIEW);
             expect(mockedUseNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
+        });
+
+        it('navigates to review page when review link is clicked', async () => {
+            mockedGetSearchResults.mockResolvedValue([buildSearchResult()]);
+            mockedGetReviews.mockResolvedValue(buildMockReviewResponse());
+
+            renderPage(history);
+
+            let reviewLink: Element;
+
+            await waitFor(() => {
+                reviewLink = screen.getByTestId('review-link');
+                expect(reviewLink).toHaveAttribute('to', routeChildren.ADMIN_REVIEW);
+            });
         });
     });
 
