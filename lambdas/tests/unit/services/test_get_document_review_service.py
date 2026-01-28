@@ -1,3 +1,4 @@
+from copy import deepcopy
 from unittest.mock import MagicMock
 
 import pytest
@@ -10,13 +11,14 @@ from models.document_review import (
     DocumentReviewFileDetails,
     DocumentUploadReviewReference,
 )
+from models.staging_metadata import NHS_NUMBER_PLACEHOLDER
 from services.get_document_review_service import GetDocumentReviewService
 from tests.unit.conftest import (
     MOCK_DOCUMENT_REVIEW_BUCKET,
     MOCK_EDGE_REFERENCE_TABLE,
     TEST_NHS_NUMBER,
 )
-from utils.exceptions import DynamoServiceException
+from utils.exceptions import DynamoServiceException, OdsErrorException
 from utils.lambda_exceptions import DocumentReviewLambdaException
 
 TEST_DOCUMENT_ID = "test-document-id-123"
@@ -28,6 +30,13 @@ TEST_FILE_LOCATION_2 = f"s3://{MOCK_DOCUMENT_REVIEW_BUCKET}/file2.pdf"
 TEST_PRESIGNED_URL_1 = "https://s3.amazonaws.com/presigned1?signature=abc123"
 TEST_PRESIGNED_URL_2 = "https://s3.amazonaws.com/presigned2?signature=def456"
 TEST_CLOUDFRONT_URL = "https://mock-cloudfront-url.com"
+
+
+@pytest.fixture
+def mock_extract_ods(mocker):
+    return mocker.patch(
+        "services.get_document_review_service.extract_ods_code_from_request_context"
+    )
 
 
 @pytest.fixture
@@ -76,8 +85,10 @@ def mock_document_review():
     return review
 
 
-def test_get_document_review_success(mock_service, mock_document_review, mocker):
+def test_get_document_review_success(mock_service, mock_document_review, mocker, mock_extract_ods):
     """Test successful retrieval of a document review with pre-signed URLs."""
+    mock_extract_ods.return_value = TEST_ODS_CODE
+
     mock_service.document_review_service.get_document_review_by_id.return_value = (
         mock_document_review
     )
@@ -133,8 +144,9 @@ def test_get_document_review_success(mock_service, mock_document_review, mocker)
     )
 
 
-def test_get_document_review_not_found(mock_service):
+def test_get_document_review_not_found(mock_service, mock_extract_ods):
     """Test when a document review is not found in DynamoDB."""
+    mock_extract_ods.return_value = TEST_ODS_CODE
     mock_service.document_review_service.get_document_review_by_id.return_value = None
 
     result = mock_service.get_document_review(
@@ -149,8 +161,10 @@ def test_get_document_review_not_found(mock_service):
     )
 
 
-def test_get_document_review_nhs_number_mismatch(mock_service, mock_document_review):
+def test_get_document_review_nhs_number_mismatch(mock_service, mock_document_review, mock_extract_ods):
     """Test when document review exists but the NHS number doesn't match."""
+    mock_extract_ods.return_value = TEST_ODS_CODE
+
     mock_service.document_review_service.get_document_review_by_id.return_value = (
         mock_document_review
     )
@@ -169,7 +183,29 @@ def test_get_document_review_nhs_number_mismatch(mock_service, mock_document_rev
     mock_service.s3_service.create_download_presigned_url.assert_not_called()
 
 
-def test_get_document_review_dynamo_service_exception(mock_service):
+def test_get_document_review_handles_placeholder_nhs_number(mock_service, mock_extract_ods, mock_document_review):
+    mock_extract_ods.return_value = TEST_ODS_CODE
+    unknown_patient_review = deepcopy(mock_document_review)
+    unknown_patient_review.nhs_number = NHS_NUMBER_PLACEHOLDER
+
+    mock_service.document_review_service.get_document_review_by_id.return_value = (
+        unknown_patient_review
+    )
+
+    mock_service.get_document_review(
+        patient_id=NHS_NUMBER_PLACEHOLDER,
+        document_id=TEST_DOCUMENT_ID,
+        document_version=TEST_DOCUMENT_VERSION,
+    )
+    mock_service.document_review_service.get_document_review_by_id.assert_called_once_with(
+        document_id=TEST_DOCUMENT_ID, document_version=TEST_DOCUMENT_VERSION
+    )
+
+    mock_service.s3_service.create_download_presigned_url.assert_called()
+
+
+def test_get_document_review_dynamo_service_exception(mock_service, mock_extract_ods):
+    mock_extract_ods.return_value = TEST_ODS_CODE
     mock_service.document_review_service.get_document_review_by_id.side_effect = (
         DynamoServiceException("DynamoDB error")
     )
@@ -185,7 +221,8 @@ def test_get_document_review_dynamo_service_exception(mock_service):
     assert e.value.error == LambdaError.DocRefClient
 
 
-def test_get_document_review_unexpected_exception(mock_service):
+def test_get_document_review_unexpected_exception(mock_service, mock_extract_ods):
+    mock_extract_ods.return_value = TEST_ODS_CODE
     mock_service.document_review_service.get_document_review_by_id.side_effect = (
         Exception("Unexpected error")
     )
@@ -199,6 +236,34 @@ def test_get_document_review_unexpected_exception(mock_service):
 
     assert e.value.status_code == 500
     assert e.value.error == LambdaError.DocRefClient
+
+
+def test_get_document_review_throws_error_user_not_custodian(mock_service, mock_extract_ods):
+    mock_extract_ods.return_value = "Z67890"
+
+    with pytest.raises(DocumentReviewLambdaException) as e:
+        mock_service.get_document_review(
+            patient_id=TEST_NHS_NUMBER,
+            document_id=TEST_DOCUMENT_ID,
+            document_version=TEST_DOCUMENT_VERSION,
+        )
+
+    assert e.value.status_code == 403
+    assert e.value.error == LambdaError.DocumentReviewUploadForbidden
+
+
+def test_error_thrown_no_ods_in_request_context(mock_service, mock_extract_ods):
+    mock_extract_ods.side_effect = OdsErrorException()
+
+    with pytest.raises(DocumentReviewLambdaException) as e:
+        mock_service.get_document_review(
+            patient_id=TEST_NHS_NUMBER,
+            document_id=TEST_DOCUMENT_ID,
+            document_version=TEST_DOCUMENT_VERSION,
+        )
+
+    assert e.value.status_code == 403
+    assert e.value.error == LambdaError.DocumentReviewMissingODS
 
 
 @freeze_time("2023-11-03T12:00:00Z")

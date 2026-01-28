@@ -2,6 +2,7 @@ import re
 import time
 
 from enums.repository_role import RepositoryRole
+from models.staging_metadata import NHS_NUMBER_PLACEHOLDER
 from services.manage_user_session_access import ManageUserSessionAccess
 from services.token_service import TokenService
 from utils.audit_logging_setup import LoggingService
@@ -77,6 +78,8 @@ class AuthoriserService:
             nhs_number in self.deceased_nhs_numbers if nhs_number else False
         )
 
+        patient_id_is_placeholder = nhs_number == NHS_NUMBER_PLACEHOLDER
+
         is_user_gp_admin = user_role == RepositoryRole.GP_ADMIN.value
         is_user_gp_clinical = user_role == RepositoryRole.GP_CLINICAL.value
         is_user_pcse = user_role == RepositoryRole.PCSE.value
@@ -127,7 +130,7 @@ class AuthoriserService:
                 deny_resource = False
 
             case path if re.match(r"^/DocumentReview/[^/]+/[^/]+$", path):
-                deny_resource = not patient_access_is_allowed
+                deny_resource = False if patient_id_is_placeholder else not patient_access_is_allowed
 
             case "/DocumentReview":
                 deny_resource = False

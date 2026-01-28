@@ -1,5 +1,6 @@
 import pytest
 from enums.repository_role import RepositoryRole
+from models.staging_metadata import NHS_NUMBER_PLACEHOLDER
 from services.authoriser_service import AuthoriserService
 from tests.unit.conftest import TEST_UUID
 from utils.exceptions import AuthorisationException
@@ -144,6 +145,15 @@ def test_deny_access_policy_for_various_paths_and_roles(
     actual = mock_auth_service.deny_access_policy(path, role, "122222222")
     assert actual == expected
 
+
+def test_deny_access_policy_allows_review_for_placeholder_nhs_number(
+        mock_auth_service: AuthoriserService,
+
+):
+    roles = [RepositoryRole.GP_ADMIN.value, RepositoryRole.GP_CLINICAL.value, RepositoryRole.PCSE.value]
+    for role in roles:
+        actual = mock_auth_service.deny_access_policy(f"/DocumentReview/{TEST_UUID}/1", role, NHS_NUMBER_PLACEHOLDER)
+        assert not actual
 
 @pytest.mark.parametrize(
     "path",

@@ -3,11 +3,13 @@ import uuid
 from datetime import datetime, timezone
 
 from enums.lambda_error import LambdaError
+from models.staging_metadata import NHS_NUMBER_PLACEHOLDER
 from services.base.s3_service import S3Service
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
-from utils.exceptions import DynamoServiceException
+from utils.exceptions import DynamoServiceException, OdsErrorException, UserNotAuthorisedException
 from utils.lambda_exceptions import DocumentReviewLambdaException
+from utils.ods_utils import extract_ods_code_from_request_context
 from utils.utilities import format_cloudfront_url
 
 logger = LoggingService(__name__)
@@ -39,6 +41,9 @@ class GetDocumentReviewService:
             Dictionary containing the document review details, or None if not found.
         """
         try:
+
+            reviewer_ods_code = extract_ods_code_from_request_context()
+
             logger.info(
                 f"Fetching document review for patient_id: {patient_id}, document_id: {document_id}"
             )
@@ -52,6 +57,10 @@ class GetDocumentReviewService:
             if not document_review_item:
                 logger.info(f"No document review found for document_id: {document_id}")
                 return None
+
+            if reviewer_ods_code != document_review_item.custodian:
+                raise UserNotAuthorisedException(f"{reviewer_ods_code} is not custodian of document.")
+
 
             if document_review_item.nhs_number != patient_id:
                 logger.warning(
@@ -88,6 +97,12 @@ class GetDocumentReviewService:
                 {"Result": "Failed to retrieve document review"},
             )
             raise DocumentReviewLambdaException(500, LambdaError.DocRefClient)
+        except OdsErrorException as e:
+            logger.error(e)
+            raise DocumentReviewLambdaException(403, LambdaError.DocumentReviewMissingODS)
+        except UserNotAuthorisedException as e:
+            logger.error(e)
+            raise DocumentReviewLambdaException(403, LambdaError.DocumentReviewUploadForbidden)
         except Exception as e:
             logger.error(
                 f"Unexpected error retrieving document review: {str(e)}",
