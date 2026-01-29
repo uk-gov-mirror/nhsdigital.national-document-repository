@@ -302,7 +302,7 @@ const ReviewsDetailsStage = ({
                     )}
 
                     <RecordLayout
-                        heading={reviewConfig.displayName}
+                        heading={reviewConfig.content.viewDocumentTitle as string}
                         fullScreenHandler={null}
                         detailsElement={<RecordLoader {...recordDetailsProps} />}
                         isFullScreen={session.isFullscreen || false}

@@ -280,7 +280,7 @@ describe('ReviewDetailsPage', () => {
             renderComponent(mockReviewData);
 
             await waitFor(() => {
-                expect(screen.getByText('scanned paper notes')).toBeInTheDocument();
+                expect(screen.getByText('Scanned paper notes')).toBeInTheDocument();
             });
         });
     });
@@ -873,7 +873,7 @@ describe('ReviewDetailsPage', () => {
             renderComponent(mockReviewData);
 
             await waitFor(() => {
-                expect(screen.getByText('scanned paper notes')).toBeInTheDocument();
+                expect(screen.getByText('Scanned paper notes')).toBeInTheDocument();
             });
         });
     });

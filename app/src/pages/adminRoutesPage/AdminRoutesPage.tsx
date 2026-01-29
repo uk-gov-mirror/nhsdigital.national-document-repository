@@ -237,6 +237,7 @@ const AdminRoutesPage = (): JSX.Element => {
                 element={
                     <ReviewDetailsPatientSearchStage
                         reviewData={reviewData}
+                        uploadDocuments={uploadDocuments}
                         setNewPatientDetails={setNewPatientDetails}
                     />
                 }

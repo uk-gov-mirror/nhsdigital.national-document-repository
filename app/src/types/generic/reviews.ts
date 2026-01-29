@@ -1,9 +1,6 @@
-import { v4 as uuidv4 } from 'uuid';
 import { GetDocumentResponse } from '../../helpers/requests/getDocument';
 import { DOCUMENT_TYPE, getConfigForDocType } from '../../helpers/utils/documentType';
-import { DOCUMENT_UPLOAD_STATE, UploadDocument } from '../pages/UploadDocumentsPage/types';
 import { SearchResult } from './searchResult';
-import axios from 'axios';
 
 export type ReviewFileDto = {
     fileName: string;
@@ -65,7 +62,6 @@ export class ReviewDetails {
     files: ReviewsListFiles[] | null;
     existingFiles: SearchResultsData[] | null;
     nhsNumber: string;
-    filesForUpload?: UploadDocument[];
 
     constructor(
         public id: string,
@@ -81,32 +77,6 @@ export class ReviewDetails {
         this.recordType = getConfigForDocType(snomedCode)?.displayName;
         this.files = null;
         this.existingFiles = null;
-    }
-
-    async getUploadDocuments(): Promise<UploadDocument[]> {
-        if (this.filesForUpload) {
-            return this.filesForUpload;
-        }
-        const documents: Promise<UploadDocument>[] = [
-            ...(this.files?.map(async (file) => {
-                if (!file.blob) {
-                    const { data } = await axios.get(file.presignedUrl, {
-                        responseType: 'blob',
-                    });
-                    file.blob = data;
-                }
-                return {
-                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
-                    file: new File([file.blob!], file.fileName),
-                    progress: 0,
-                    id: uuidv4(),
-                    docType: this.snomedCode,
-                    attempts: 0,
-                };
-            }) || []),
-        ];
-        this.filesForUpload = await Promise.all(documents);
-        return Promise.all(documents);
     }
 
     addReviewFiles(details: GetDocumentReviewDto): void {

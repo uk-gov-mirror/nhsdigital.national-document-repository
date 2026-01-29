@@ -24,18 +24,28 @@ import BackButton from '../../../generic/backButton/BackButton';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import ServiceError from '../../../layout/serviceErrorBox/ServiceErrorBox';
+import DocumentUploadLloydGeorgePreview from '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
+import { RecordLayout } from '../../../generic/recordCard/RecordCard';
+import { RecordLoader, RecordLoaderProps } from '../../../generic/recordLoader/RecordLoader';
+import { getConfigForDocType } from '../../../../helpers/utils/documentType';
+import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
+import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
+import { ReviewUploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
 
 export const incorrectFormatMessage = "Enter patient's 10 digit NHS number";
 
 interface ReviewDetailsPatientSearchPageProps {
     reviewData: ReviewDetails | null;
+    uploadDocuments: ReviewUploadDocument[];
     setNewPatientDetails: React.Dispatch<React.SetStateAction<PatientDetails | undefined>>;
 }
 
 const ReviewDetailsPatientSearchStage = ({
     reviewData,
+    uploadDocuments,
     setNewPatientDetails,
 }: ReviewDetailsPatientSearchPageProps): JSX.Element => {
+    const navigate = useNavigate();
     const { reviewId } = useParams<{ reviewId: string }>();
     const [submissionState, setSubmissionState] = useState<PATIENT_SEARCH_STATES>(
         PATIENT_SEARCH_STATES.IDLE,
@@ -48,7 +58,13 @@ const ReviewDetailsPatientSearchStage = ({
     const config = useConfig();
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
-    const navigate = useNavigate();
+
+    if (!reviewData) {
+        navigate(routeChildren.ADMIN_REVIEW);
+        return <></>;
+    }
+
+    const reviewConfig = getConfigForDocType(reviewData.snomedCode);
 
     const { ref: nhsNumberRef, ...searchProps } = register('nhsNumber', {
         required: incorrectFormatMessage,
@@ -106,12 +122,38 @@ const ReviewDetailsPatientSearchStage = ({
         }
     };
 
+    const downloadAction = (e: React.MouseEvent<HTMLElement>): void => {
+        e.preventDefault();
+        for (const doc of uploadDocuments ?? []) {
+            const anchor = document.createElement('a');
+            const url = URL.createObjectURL(doc.blob!);
+            anchor.href = url;
+            anchor.download = doc.file.name;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+        }
+    };
+
+    const recordDetailsProps: RecordLoaderProps = {
+        downloadStage: DOWNLOAD_STAGE.SUCCEEDED,
+        lastUpdated: getFormattedDateFromString(reviewData.lastUpdated),
+        childrenIfFailiure: <p>Failure: failed to load documents</p>,
+        fileName:
+            !reviewConfig.multifileReview && reviewData.files?.length === 1
+                ? reviewData.files[0].fileName
+                : '',
+        downloadAction,
+    };
+
     const handleFormError = (fields: FieldValues): void => {
         const errorMessages = Object.entries(fields).map(
             ([k, v]: [string, { message: string }]) => v.message,
         );
         setInputError(errorMessages[0]);
     };
+
+    const files = uploadDocuments?.filter((f) => f.file && f.file.name.endsWith('.pdf'));
 
     return (
         <>
@@ -180,6 +222,22 @@ const ReviewDetailsPatientSearchStage = ({
                     I don't know the NHS number
                 </Link>
             </p>
+
+            <RecordLayout
+                heading={reviewConfig.content.viewDocumentTitle as string}
+                fullScreenHandler={null}
+                detailsElement={<RecordLoader {...recordDetailsProps} />}
+                isFullScreen={false}
+                setStage={(): void => {}}
+                showMenu={false}
+            >
+                <DocumentUploadLloydGeorgePreview
+                    documents={files || []}
+                    setMergedPdfBlob={(): void => {}}
+                    documentConfig={reviewConfig}
+                    isReview={true}
+                />
+            </RecordLayout>
         </>
     );
 };

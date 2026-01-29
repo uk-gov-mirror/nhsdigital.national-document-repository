@@ -1,22 +1,29 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { AxiosError } from 'axios';
+import { JSX } from 'react/jsx-runtime';
+import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import getPatientDetails from '../../../../helpers/requests/getPatientDetails';
+import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
+import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import * as documentTypeModule from '../../../../helpers/utils/documentType';
+import { ReviewDetails } from '../../../../types/generic/reviews';
+import { routes } from '../../../../types/generic/routes';
 import ReviewDetailsPatientSearchStage, {
     incorrectFormatMessage,
 } from './ReviewDetailsPatientSearchStage';
-import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
-import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
-import getPatientDetails from '../../../../helpers/requests/getPatientDetails';
-import { routes } from '../../../../types/generic/routes';
-import { AxiosError } from 'axios';
-import { JSX } from 'react/jsx-runtime';
-import { ReviewDetails } from '../../../../types/generic/reviews';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import {
+    ReviewUploadDocument,
+    DOCUMENT_UPLOAD_STATE,
+} from '../../../../types/pages/UploadDocumentsPage/types';
 
 const mockNavigate = vi.fn();
 const mockUseParams = vi.fn();
 const mockUseBaseAPIUrl = vi.fn();
 const mockUseBaseAPIHeaders = vi.fn();
 const mockUseConfig = vi.fn();
+const mockUseSessionContext = vi.fn();
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -42,6 +49,37 @@ vi.mock('../../../../helpers/hooks/useConfig', () => ({
     default: (): unknown => mockUseConfig(),
 }));
 
+vi.mock('../../../../providers/sessionProvider/SessionProvider', () => ({
+    useSessionContext: (): unknown => mockUseSessionContext(),
+}));
+
+vi.mock(
+    '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview',
+    () => ({
+        default: (): React.JSX.Element => <div data-testid="lloyd-george-preview">Preview</div>,
+    }),
+);
+
+let capturedDownloadAction: ((e: React.MouseEvent<HTMLElement>) => void) | null = null;
+let anchorClickSpy: ReturnType<typeof vi.spyOn> | null = null;
+
+vi.mock('../../../generic/recordLoader/RecordLoader', () => ({
+    RecordLoader: ({
+        downloadAction,
+    }: {
+        downloadAction: (e: React.MouseEvent<HTMLElement>) => void;
+    }): React.JSX.Element => {
+        capturedDownloadAction = downloadAction;
+        return (
+            <div data-testid="record-loader">
+                <button onClick={downloadAction} data-testid="download-button">
+                    Download
+                </button>
+            </div>
+        );
+    },
+}));
+
 vi.mock('../../../../helpers/requests/getPatientDetails');
 const mockGetPatientDetails = getPatientDetails as Mock;
 
@@ -51,8 +89,18 @@ describe('ReviewDetailsPatientSearchPage', () => {
     const mockBaseHeaders = { Authorization: 'Bearer token' };
 
     const mockReviewData = {} as ReviewDetails;
+    const mockSession = {
+        auth: { authorisation_token: 'test-token' },
+        isFullscreen: false,
+    };
 
     beforeEach(() => {
+        mockUseSessionContext.mockReturnValue([mockSession, vi.fn()]);
+        const mockGetConfig = vi.spyOn(documentTypeModule, 'getConfigForDocType');
+        mockGetConfig.mockReturnValue({
+            ...documentTypeModule.getConfigForDocType('16521000000101' as DOCUMENT_TYPE),
+            multifileZipped: true,
+        });
         mockUseParams.mockReturnValue({ reviewId: mockReviewId });
         mockUseBaseAPIUrl.mockReturnValue(mockBaseUrl);
         mockUseBaseAPIHeaders.mockReturnValue(mockBaseHeaders);
@@ -70,6 +118,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('renders page heading', () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -83,6 +132,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('renders descriptive text', () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -98,6 +148,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('renders NHS number input field', () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -110,6 +161,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('renders continue button', () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -122,6 +174,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('renders back button', () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -133,6 +186,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('renders link to unknown NHS number page', async () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -152,6 +206,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('does not show error box initially', () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -165,6 +220,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('shows error when submitting empty form', async () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -183,6 +239,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('shows error for invalid NHS number format', async () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -204,6 +261,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -224,6 +282,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -244,6 +303,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -261,6 +321,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('rejects NHS number with letters', async () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -279,6 +340,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('rejects NHS number with 9 digits', async () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -297,6 +359,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('rejects NHS number with 11 digits', async () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -320,6 +383,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -345,6 +409,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -365,6 +430,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -383,6 +449,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -407,6 +474,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -439,6 +507,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -463,6 +532,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -488,6 +558,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -511,6 +582,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -535,6 +607,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -559,6 +632,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -580,6 +654,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('has autocomplete disabled', () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -592,6 +667,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('has correct input width class', () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -604,6 +680,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('has text input type', () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -618,12 +695,484 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('accepts reviewData prop', () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
             );
 
-            expect(screen.getByRole('heading')).toBeInTheDocument();
+            expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+            expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
+        });
+    });
+
+    describe('Navigation', () => {
+        it('redirects to admin review page when reviewData is null', () => {
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
+                    reviewData={null}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('/admin/reviews'));
+        });
+
+        it('renders empty fragment when reviewData is null', () => {
+            const { container } = render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
+                    reviewData={null}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            expect(container.firstChild).toBeNull();
+        });
+    });
+
+    describe('Download Action', () => {
+        beforeEach(() => {
+            capturedDownloadAction = null;
+            global.URL.createObjectURL = vi.fn(() => 'blob:mock-url-123');
+            global.URL.revokeObjectURL = vi.fn();
+            anchorClickSpy = vi
+                .spyOn(HTMLAnchorElement.prototype, 'click')
+                .mockImplementation(() => {});
+        });
+
+        afterEach(() => {
+            anchorClickSpy?.mockRestore();
+            anchorClickSpy = null;
+            vi.clearAllMocks();
+        });
+
+        it('download action is provided to RecordLoader', () => {
+            const reviewDataWithFiles = {
+                ...mockReviewData,
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+                addReviewFiles: vi.fn(),
+            } as any as ReviewDetails;
+
+            const mockUploadDocuments = [
+                {
+                    file: new File(['content'], 'test.pdf', { type: 'application/pdf' }),
+                    blob: new Blob(['content'], { type: 'application/pdf' }),
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    id: '1',
+                    attempts: 0,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                },
+            ] as ReviewUploadDocument[];
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={mockUploadDocuments}
+                    reviewData={reviewDataWithFiles}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            expect(capturedDownloadAction).not.toBeNull();
+            expect(typeof capturedDownloadAction).toBe('function');
+        });
+
+        it('triggers URL.createObjectURL for multiple file blobs when download is clicked', async () => {
+            const reviewDataWithFiles = {
+                ...mockReviewData,
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+                addReviewFiles: vi.fn(),
+            } as any as ReviewDetails;
+
+            const mockBlob1 = new Blob(['content1'], { type: 'application/pdf' });
+            const mockBlob2 = new Blob(['content2'], { type: 'application/pdf' });
+            const mockUploadDocuments = [
+                {
+                    file: new File(['content1'], 'test1.pdf', { type: 'application/pdf' }),
+                    blob: mockBlob1,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    id: '1',
+                    attempts: 0,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                },
+                {
+                    file: new File(['content2'], 'test2.pdf', { type: 'application/pdf' }),
+                    blob: mockBlob2,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    id: '2',
+                    attempts: 0,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                },
+            ] as ReviewUploadDocument[];
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={mockUploadDocuments}
+                    reviewData={reviewDataWithFiles}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            if (capturedDownloadAction) {
+                const mockEvent = { preventDefault: vi.fn() } as any;
+                capturedDownloadAction(mockEvent);
+
+                expect(global.URL.createObjectURL).toHaveBeenCalledTimes(2);
+                expect(global.URL.createObjectURL).toHaveBeenCalledWith(mockBlob1);
+                expect(global.URL.createObjectURL).toHaveBeenCalledWith(mockBlob2);
+            }
+        });
+
+        it('triggers URL.createObjectURL for single file', async () => {
+            const reviewDataWithSingleFile = {
+                ...mockReviewData,
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+                addReviewFiles: vi.fn(),
+            } as any as ReviewDetails;
+
+            const mockBlob = new Blob(['content'], { type: 'application/pdf' });
+            const mockUploadDocuments = [
+                {
+                    file: new File(['content'], 'single-file.pdf', { type: 'application/pdf' }),
+                    blob: mockBlob,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    id: '1',
+                    attempts: 0,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                },
+            ] as ReviewUploadDocument[];
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={mockUploadDocuments}
+                    reviewData={reviewDataWithSingleFile}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            if (capturedDownloadAction) {
+                const mockEvent = { preventDefault: vi.fn() } as any;
+                capturedDownloadAction(mockEvent);
+
+                expect(global.URL.createObjectURL).toHaveBeenCalledWith(mockBlob);
+            }
+        });
+
+        it('handles download with no files gracefully', async () => {
+            const reviewDataWithoutFiles = {
+                ...mockReviewData,
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+                addReviewFiles: vi.fn(),
+            } as any as ReviewDetails;
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
+                    reviewData={reviewDataWithoutFiles}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            if (capturedDownloadAction) {
+                const mockEvent = { preventDefault: vi.fn() } as any;
+                capturedDownloadAction(mockEvent);
+
+                expect(global.URL.createObjectURL).not.toHaveBeenCalled();
+            }
+        });
+
+        it('handles download when files is null', async () => {
+            const reviewDataWithNullFiles = {
+                ...mockReviewData,
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+                addReviewFiles: vi.fn(),
+            } as any as ReviewDetails;
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={null as any}
+                    reviewData={reviewDataWithNullFiles}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            if (capturedDownloadAction) {
+                const mockEvent = { preventDefault: vi.fn() } as any;
+                capturedDownloadAction(mockEvent);
+
+                expect(global.URL.createObjectURL).not.toHaveBeenCalled();
+            }
+        });
+
+        it('prevents default event behavior', () => {
+            const reviewDataWithFiles = {
+                ...mockReviewData,
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+                addReviewFiles: vi.fn(),
+            } as any as ReviewDetails;
+
+            const mockUploadDocuments = [
+                {
+                    file: new File(['content'], 'test.pdf', { type: 'application/pdf' }),
+                    blob: new Blob(['content'], { type: 'application/pdf' }),
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    id: '1',
+                    attempts: 0,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                },
+            ] as ReviewUploadDocument[];
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={mockUploadDocuments}
+                    reviewData={reviewDataWithFiles}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            expect(capturedDownloadAction).not.toBeNull();
+
+            if (capturedDownloadAction) {
+                const mockEvent = {
+                    preventDefault: vi.fn(),
+                } as unknown as React.MouseEvent<HTMLElement>;
+
+                capturedDownloadAction(mockEvent);
+
+                expect(mockEvent.preventDefault).toHaveBeenCalled();
+            }
+        });
+    });
+
+    describe('File Filtering', () => {
+        it('renders with mixed PDF and non-PDF files', () => {
+            const mockPdfFile1 = new File(['pdf1'], 'document1.pdf', {
+                type: 'application/pdf',
+            });
+            const mockPdfFile2 = new File(['pdf2'], 'document2.pdf', {
+                type: 'application/pdf',
+            });
+            const mockNonPdfFile = new File(['txt'], 'document.txt', { type: 'text/plain' });
+
+            const uploadDocs = [
+                {
+                    file: mockPdfFile1,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    id: '1',
+                    attempts: 0,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                },
+                {
+                    file: mockPdfFile2,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    id: '2',
+                    attempts: 0,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                },
+                {
+                    file: mockNonPdfFile,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    id: '3',
+                    attempts: 0,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                },
+            ] as ReviewUploadDocument[];
+
+            const reviewDataWithLastUpdated = {
+                ...mockReviewData,
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+            } as ReviewDetails;
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={uploadDocs}
+                    reviewData={reviewDataWithLastUpdated}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            expect(
+                screen.getByRole('heading', { name: 'Search for the correct patient' }),
+            ).toBeInTheDocument();
+        });
+
+        it('handles empty uploadDocuments array', () => {
+            const reviewDataWithLastUpdated = {
+                ...mockReviewData,
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+            } as ReviewDetails;
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
+                    reviewData={reviewDataWithLastUpdated}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            expect(
+                screen.getByRole('heading', { name: 'Search for the correct patient' }),
+            ).toBeInTheDocument();
+        });
+
+        it('handles undefined uploadDocuments', () => {
+            const reviewDataWithLastUpdated = {
+                ...mockReviewData,
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+            } as ReviewDetails;
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={undefined as any}
+                    reviewData={reviewDataWithLastUpdated}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            expect(
+                screen.getByRole('heading', { name: 'Search for the correct patient' }),
+            ).toBeInTheDocument();
+        });
+    });
+
+    describe('Callback Functions', () => {
+        it('calls setNewPatientDetails when patient search succeeds', async () => {
+            const mockSetNewPatientDetails = vi.fn();
+            const mockPatient = buildPatientDetails({ nhsNumber: '9000000009' });
+            mockGetPatientDetails.mockResolvedValue(mockPatient);
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
+                    reviewData={mockReviewData}
+                    setNewPatientDetails={mockSetNewPatientDetails}
+                />,
+            );
+
+            const input = screen.getByTestId('nhs-number-input');
+            await userEvent.type(input, '9000000009');
+            await userEvent.click(screen.getByTestId('continue-button'));
+
+            await waitFor(() => {
+                expect(mockSetNewPatientDetails).toHaveBeenCalledWith(mockPatient);
+            });
+        });
+
+        it('does not call setNewPatientDetails on search failure', async () => {
+            const mockSetNewPatientDetails = vi.fn();
+            const error = {
+                response: { status: 404, data: { err_code: 'PATIENT_NOT_FOUND' } },
+            } as AxiosError;
+            mockGetPatientDetails.mockRejectedValue(error);
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
+                    reviewData={mockReviewData}
+                    setNewPatientDetails={mockSetNewPatientDetails}
+                />,
+            );
+
+            const input = screen.getByTestId('nhs-number-input');
+            await userEvent.type(input, '9000000009');
+            await userEvent.click(screen.getByTestId('continue-button'));
+
+            await waitFor(() => {
+                expect(screen.getByText('There is a problem')).toBeInTheDocument();
+            });
+
+            expect(mockSetNewPatientDetails).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('RecordLoader Props', () => {
+        it('renders with single file in non-multifile review', () => {
+            const mockGetConfig = vi.spyOn(documentTypeModule, 'getConfigForDocType');
+            mockGetConfig.mockReturnValue({
+                ...documentTypeModule.getConfigForDocType('16521000000101' as DOCUMENT_TYPE),
+                multifileReview: false,
+            });
+
+            const reviewDataWithSingleFile = {
+                ...mockReviewData,
+                files: [{ fileName: 'single-file.pdf', blob: new Blob(['content']) }],
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+            } as ReviewDetails;
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
+                    reviewData={reviewDataWithSingleFile}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            expect(
+                screen.getByRole('heading', { name: 'Search for the correct patient' }),
+            ).toBeInTheDocument();
+        });
+
+        it('renders with multiple files in multifile review', () => {
+            const mockGetConfig = vi.spyOn(documentTypeModule, 'getConfigForDocType');
+            mockGetConfig.mockReturnValue({
+                ...documentTypeModule.getConfigForDocType('16521000000101' as DOCUMENT_TYPE),
+                multifileReview: true,
+            });
+
+            const reviewDataWithMultipleFiles = {
+                ...mockReviewData,
+                files: [
+                    { fileName: 'file1.pdf', blob: new Blob(['content1']) },
+                    { fileName: 'file2.pdf', blob: new Blob(['content2']) },
+                ],
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+            } as ReviewDetails;
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
+                    reviewData={reviewDataWithMultipleFiles}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            expect(
+                screen.getByRole('heading', { name: 'Search for the correct patient' }),
+            ).toBeInTheDocument();
+        });
+
+        it('renders when no files present', () => {
+            const reviewDataNoFiles = {
+                ...mockReviewData,
+                files: undefined,
+                lastUpdated: '2024-01-01T10:00:00Z',
+                snomedCode: '16521000000101',
+                addReviewFiles: vi.fn(),
+            } as any as ReviewDetails;
+
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
+                    reviewData={reviewDataNoFiles}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            expect(
+                screen.getByRole('heading', { name: 'Search for the correct patient' }),
+            ).toBeInTheDocument();
         });
     });
 
@@ -631,6 +1180,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('passes axe tests in initial state', async () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -643,6 +1193,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('passes axe tests with validation error', async () => {
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
@@ -665,6 +1216,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             render(
                 <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
                     reviewData={mockReviewData}
                     setNewPatientDetails={(): void => {}}
                 />,
