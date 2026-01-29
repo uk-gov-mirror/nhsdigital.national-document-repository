@@ -1,7 +1,6 @@
 from io import BytesIO
 
 import pytest
-
 from utils.exceptions import CorruptedFileException
 from utils.pdf_validator import validate_pdf_integrity
 

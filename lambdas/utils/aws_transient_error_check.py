@@ -1,14 +1,13 @@
 from botocore.exceptions import ClientError
 
-
 TRANSIENT_ERROR_CODES = {
-    'RequestTimeout',
+    "RequestTimeout",
     "RequestTimeoutException",
-    'PriorRequestNotComplete',
-    'HTTPClientError',
-    'ConnectionError',
-    'RequestLimitExceeded',
-    'ThrottlingException'
+    "PriorRequestNotComplete",
+    "HTTPClientError",
+    "ConnectionError",
+    "RequestLimitExceeded",
+    "ThrottlingException",
 }
 
 
@@ -27,8 +26,10 @@ def is_transient_error(error: Exception) -> bool:
         True if the error is transient and should be retried, False otherwise
     """
     if isinstance(error, ClientError):
-        error_code = error.response.get('Error', {}).get('Code', '')
-        http_status_code = error.response.get('ResponseMetadata', {}).get('HTTPStatusCode', 0)
+        error_code = error.response.get("Error", {}).get("Code", "")
+        http_status_code = error.response.get("ResponseMetadata", {}).get(
+            "HTTPStatusCode", 0
+        )
 
         if error_code in TRANSIENT_ERROR_CODES:
             return True
@@ -40,4 +41,3 @@ def is_transient_error(error: Exception) -> bool:
             return True
 
     return False
-

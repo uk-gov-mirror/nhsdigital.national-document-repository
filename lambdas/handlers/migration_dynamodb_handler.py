@@ -81,9 +81,9 @@ def validate_event_input(event):
         table_name,
         environment,
         region,
-        run_migration, 
+        run_migration,
         migration_script,
-        execution_id
+        execution_id,
     )
 
 
@@ -92,12 +92,12 @@ def lambda_handler(event, context):
         (
             segment,
             total_segments,
-            table_name, 
+            table_name,
             environment,
             region,
             run_migration,
-            migration_script, 
-            execution_id
+            migration_script,
+            execution_id,
         ) = validate_event_input(event)
 
         logger.info(
@@ -111,7 +111,7 @@ def lambda_handler(event, context):
             environment=environment,
             run_migration=run_migration,
             migration_script=migration_script,
-            execution_id=execution_id
+            execution_id=execution_id,
         )
 
         result = service.execute_migration()

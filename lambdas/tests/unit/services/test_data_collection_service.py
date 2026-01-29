@@ -67,6 +67,7 @@ def mock_dynamo_service(mocker):
         if table_name == MOCK_LG_TABLE_NAME:
             return MOCK_LG_SCAN_RESULT
         return None
+
     patched_instance = mocker.patch(
         "services.data_collection_service.DynamoDBService", spec=DynamoDBService
     ).return_value
@@ -82,6 +83,7 @@ def mock_s3_list_all_objects(mocker):
         if bucket_name == MOCK_LG_BUCKET:
             return MOCK_LG_LIST_OBJECTS_RESULT
         return None
+
     patched_instance = mocker.patch(
         "services.data_collection_service.S3Service", spec=S3Service
     ).return_value
@@ -113,6 +115,7 @@ def mock_query_logs(mocker):
         elif query_params == OdsReportsCreated:
             return MOCK_ODS_REPORT_CREATED
         return []
+
     patched_instance = mocker.patch(
         "services.data_collection_service.CloudwatchService",
         spec=CloudwatchService,
@@ -297,9 +300,7 @@ def test_get_cloud_watch_query_result(set_env, mock_query_logs):
 
 
 def test_get_total_number_of_records(mock_service):
-    actual = mock_service.get_total_number_of_records(
-        MOCK_LG_SCAN_RESULT
-    )
+    actual = mock_service.get_total_number_of_records(MOCK_LG_SCAN_RESULT)
     expected = [
         {"ods_code": "H81109", "total_number_of_records": 6},
         {"ods_code": "Y12345", "total_number_of_records": 2},
@@ -323,9 +324,7 @@ def test_get_total_number_of_records_larger_mock_data(mock_service, larger_mock_
 
 
 def test_get_number_of_patients(mock_service):
-    actual = mock_service.get_number_of_patients(
-        MOCK_LG_SCAN_RESULT
-    )
+    actual = mock_service.get_number_of_patients(MOCK_LG_SCAN_RESULT)
     expected = unordered(
         [
             {"ods_code": "Y12345", "number_of_patients": 1},
@@ -338,9 +337,7 @@ def test_get_number_of_patients(mock_service):
 
 def test_get_metrics_for_total_and_average_file_sizes(mock_service):
     mock_dynamo_scan_result = MOCK_LG_SCAN_RESULT
-    mock_s3_list_objects_result = (
-        MOCK_LG_LIST_OBJECTS_RESULT
-    )
+    mock_s3_list_objects_result = MOCK_LG_LIST_OBJECTS_RESULT
 
     actual = mock_service.get_metrics_for_total_and_average_file_sizes(
         mock_dynamo_scan_result, mock_s3_list_objects_result
@@ -393,9 +390,7 @@ def test_get_metrics_for_total_and_average_file_sizes_larger_mock_data(
 
 
 def test_get_number_of_document_types(mock_service):
-    actual = mock_service.get_number_of_document_types(
-        MOCK_LG_SCAN_RESULT
-    )
+    actual = mock_service.get_number_of_document_types(MOCK_LG_SCAN_RESULT)
     expected = unordered(
         [
             {"ods_code": "Y12345", "number_of_document_types": 2},
@@ -407,9 +402,7 @@ def test_get_number_of_document_types(mock_service):
 
 
 def test_get_average_number_of_file_per_patient(mock_service):
-    actual = mock_service.get_average_number_of_files_per_patient(
-        MOCK_LG_SCAN_RESULT
-    )
+    actual = mock_service.get_average_number_of_files_per_patient(MOCK_LG_SCAN_RESULT)
     expected = unordered(
         [
             {"ods_code": "Y12345", "average_records_per_patient": 2},

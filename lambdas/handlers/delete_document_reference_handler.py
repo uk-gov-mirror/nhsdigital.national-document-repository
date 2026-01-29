@@ -1,5 +1,6 @@
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
+from enums.supported_document_types import SupportedDocumentTypes
 from services.document_deletion_service import DocumentDeletionService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -13,8 +14,6 @@ from utils.decorators.validate_patient_id import (
 from utils.document_type_utils import extract_document_type_to_enum
 from utils.lambda_response import ApiGatewayResponse
 from utils.request_context import request_context
-
-from enums.supported_document_types import SupportedDocumentTypes
 
 logger = LoggingService(__name__)
 

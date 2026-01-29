@@ -2,7 +2,6 @@ import importlib
 import logging
 
 import boto3
-
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 
@@ -18,8 +17,16 @@ class DynamoDBMigrationService:
       - Updates records via DynamoDBService.
     """
 
-    def __init__(self, segment: int, total_segments: int, table_name: str,
-                 environment: str, run_migration: bool, migration_script: str, execution_id: str):
+    def __init__(
+        self,
+        segment: int,
+        total_segments: int,
+        table_name: str,
+        environment: str,
+        run_migration: bool,
+        migration_script: str,
+        execution_id: str,
+    ):
         self.segment = segment
         self.total_segments = total_segments
         self.table_name = table_name
@@ -41,7 +48,6 @@ class DynamoDBMigrationService:
             f"(segment {self.segment}/{self.total_segments})"
         )
 
-
     def load_migration_instance(self):
         logger.info(f"Importing migration script: {self.migration_script}")
         migration_module = importlib.import_module(self.migration_script)
@@ -49,26 +55,29 @@ class DynamoDBMigrationService:
         migration_class = None
         for attr_name in dir(migration_module):
             attr = getattr(migration_module, attr_name)
-            if isinstance(attr, type) and issubclass(attr, MigrationBase) and attr is not MigrationBase:
+            if (
+                isinstance(attr, type)
+                and issubclass(attr, MigrationBase)
+                and attr is not MigrationBase
+            ):
                 migration_class = attr
                 break
 
         if not migration_class:
-            raise ValueError(f"No subclass of MigrationBase found in {self.migration_script}")
+            raise ValueError(
+                f"No subclass of MigrationBase found in {self.migration_script}"
+            )
 
         migration_instance = migration_class(
             environment=self.environment,
             table_name=self.table_name,
-            run_migration=self.run_migration
+            run_migration=self.run_migration,
         )
 
         return migration_instance
 
     def scan_segment(self, last_evaluated_key=None):
-        scan_kwargs = {
-            "Segment": self.segment,
-            "TotalSegments": self.total_segments
-        }
+        scan_kwargs = {"Segment": self.segment, "TotalSegments": self.total_segments}
 
         if last_evaluated_key:
             scan_kwargs["ExclusiveStartKey"] = last_evaluated_key
@@ -88,27 +97,30 @@ class DynamoDBMigrationService:
                     entries=items,
                     update_fn=update_fn,
                     segment=self.segment,
-                    execution_id=self.execution_id
+                    execution_id=self.execution_id,
                 )
-                self.processed_count += segment_run_output.get("successful_item_runs", 0)
+                self.processed_count += segment_run_output.get(
+                    "successful_item_runs", 0
+                )
                 self.error_count += segment_run_output.get("failed_items_count", 0)
                 self.skipped_count += segment_run_output.get("skipped_items_count", 0)
             except Exception:
                 self.error_count += 1
-                raise 
+                raise
 
-    def iterate_segment_items(self,migration_instance):
-       last_evaluated_key = None
+    def iterate_segment_items(self, migration_instance):
+        last_evaluated_key = None
 
-       while last_evaluated_key is not False:
-           response, items = self.scan_segment(last_evaluated_key)
-           self.process_items(migration_instance, items)
+        while last_evaluated_key is not False:
+            response, items = self.scan_segment(last_evaluated_key)
+            self.process_items(migration_instance, items)
 
-           last_evaluated_key = response.get("LastEvaluatedKey", False)
-
+            last_evaluated_key = response.get("LastEvaluatedKey", False)
 
     def execute_migration(self):
-        logger.info(f"Starting migration for segment {self.segment}/{self.total_segments}")
+        logger.info(
+            f"Starting migration for segment {self.segment}/{self.total_segments}"
+        )
         migration_instance = self.load_migration_instance()
         self.iterate_segment_items(migration_instance)
 
@@ -124,5 +136,7 @@ class DynamoDBMigrationService:
             "status": status,
         }
 
-        logger.info(f"Segment {self.segment}/{self.total_segments} completed with status: {status}")
+        logger.info(
+            f"Segment {self.segment}/{self.total_segments} completed with status: {status}"
+        )
         return result

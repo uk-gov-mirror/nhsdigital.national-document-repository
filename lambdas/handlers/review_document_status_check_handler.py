@@ -19,9 +19,7 @@ from utils.ods_utils import extract_ods_code_from_request_context
 logger = LoggingService(__name__)
 
 
-@ensure_environment_variables(
-    names=["DOCUMENT_REVIEW_DYNAMODB_NAME"]
-)
+@ensure_environment_variables(names=["DOCUMENT_REVIEW_DYNAMODB_NAME"])
 @set_request_context_for_logging
 @handle_lambda_exceptions
 def lambda_handler(event, context):

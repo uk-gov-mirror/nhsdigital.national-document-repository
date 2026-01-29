@@ -28,9 +28,9 @@ def validate_document_type(lambda_func: Callable):
                     LambdaError.DocTypeNull.create_error_body(),
                     event["httpMethod"],
                 ).create_api_gateway_response()
-            
+
             extract_document_type_to_enum(doc_type)
-                
+
         except ValueError:
             return ApiGatewayResponse(
                 400,

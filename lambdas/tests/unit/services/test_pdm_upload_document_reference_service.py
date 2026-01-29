@@ -9,7 +9,6 @@ from services.mock_virus_scan_service import MockVirusScanService
 from services.upload_document_reference_service import UploadDocumentReferenceService
 from tests.unit.conftest import (
     MOCK_LG_BUCKET,
-    MOCK_LG_TABLE_NAME,
     MOCK_PDM_BUCKET,
     MOCK_PDM_TABLE_NAME,
     MOCK_STAGING_STORE_BUCKET,

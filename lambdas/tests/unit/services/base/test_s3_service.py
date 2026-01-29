@@ -570,12 +570,15 @@ def test_copy_across_bucket_retries_on_409_conflict(mock_service, mock_client):
     mock_client.copy_object.side_effect = [
         ClientError(
             {
-                "Error": {"Code": "PreconditionFailed", "Message": "Precondition Failed"},
-                "ResponseMetadata": {"HTTPStatusCode": 409}
+                "Error": {
+                    "Code": "PreconditionFailed",
+                    "Message": "Precondition Failed",
+                },
+                "ResponseMetadata": {"HTTPStatusCode": 409},
             },
-            "CopyObject"
+            "CopyObject",
         ),
-        {"CopyObjectResult": {"ETag": "mock-etag"}}  # Success on retry
+        {"CopyObjectResult": {"ETag": "mock-etag"}},  # Success on retry
     ]
 
     mock_service.copy_across_bucket(

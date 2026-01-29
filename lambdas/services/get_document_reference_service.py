@@ -1,19 +1,19 @@
 import os
 import uuid
 from datetime import datetime, timezone
-from services.get_fhir_document_reference_service import (
-    GetFhirDocumentReferenceService,
-)
-from utils.audit_logging_setup import LoggingService
-from utils.lambda_exceptions import GetDocumentRefException
-from enums.lambda_error import LambdaError
-from utils.utilities import format_cloudfront_url
-from models.document_reference import DocumentReference
-from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
+
 from enums.dynamo_filter import AttributeOperator
+from enums.lambda_error import LambdaError
+from models.document_reference import DocumentReference
+from services.get_fhir_document_reference_service import GetFhirDocumentReferenceService
+from utils.audit_logging_setup import LoggingService
 from utils.common_query_filters import NotDeleted
+from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
+from utils.lambda_exceptions import GetDocumentRefException
+from utils.utilities import format_cloudfront_url
 
 logger = LoggingService(__name__)
+
 
 class GetDocumentReferenceService:
     def __init__(self):
@@ -27,17 +27,13 @@ class GetDocumentReferenceService:
 
     def get_document_url_by_id(self, document_id: str, nhs_number: str):
         document_reference = self.get_document_reference(document_id, nhs_number)
-        
+
         presigned_s3_url = self.create_document_presigned_url(
-            document_reference.s3_bucket_name,
-            document_reference.s3_file_key
-            )
-        
-        return {
-            "url": presigned_s3_url,
-            "contentType": document_reference.content_type
-        }
-    
+            document_reference.s3_bucket_name, document_reference.s3_file_key
+        )
+
+        return {"url": presigned_s3_url, "contentType": document_reference.content_type}
+
     def create_document_presigned_url(self, bucket_name, file_location):
         presigned_url_response = self.s3_service.create_download_presigned_url(
             s3_bucket_name=bucket_name,
@@ -58,8 +54,10 @@ class GetDocumentReferenceService:
             },
         )
         return format_cloudfront_url(presigned_id, self.cloudfront_url)
-    
-    def get_document_reference(self, document_id: str, nhs_number: str) -> DocumentReference:
+
+    def get_document_reference(
+        self, document_id: str, nhs_number: str
+    ) -> DocumentReference:
         filter_builder = DynamoQueryFilterBuilder()
         filter_builder.add_condition("DocStatus", AttributeOperator.EQUAL, "final")
         filter_builder.add_condition("NhsNumber", AttributeOperator.EQUAL, nhs_number)
@@ -78,6 +76,4 @@ class GetDocumentReferenceService:
             logger.info("Document found for given id")
             return documents[0]
         else:
-            raise GetDocumentRefException(
-                404, LambdaError.DocumentReferenceNotFound
-            )
+            raise GetDocumentRefException(404, LambdaError.DocumentReferenceNotFound)

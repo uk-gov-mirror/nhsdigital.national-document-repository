@@ -2,10 +2,12 @@ from pathlib import Path
 
 import boto3
 import pytest
-from syrupy.filters import paths
-
 from services.base.dynamo_service import DynamoDBService
-from tests.e2e.bulk_upload.conftest import read_metadata_csv, get_entry_from_table_by_nhs_number
+from syrupy.filters import paths
+from tests.e2e.bulk_upload.conftest import (
+    get_entry_from_table_by_nhs_number,
+    read_metadata_csv,
+)
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 dynamo_service = DynamoDBService()
@@ -40,18 +42,22 @@ def bulk_upload_table_records():
     general_reject_test_cases,
 )
 def test_general_reject_ingestions(
-        nhs_number,
-        description,
-        snapshot_json,
-        bulk_upload_table_records,
+    nhs_number,
+    description,
+    snapshot_json,
+    bulk_upload_table_records,
 ) -> None:
     records_by_num = {
         "_description": description,
-        "metadata": get_entry_from_table_by_nhs_number(nhs_number, bulk_upload_table_records["lloyd_george_records"]),
+        "metadata": get_entry_from_table_by_nhs_number(
+            nhs_number, bulk_upload_table_records["lloyd_george_records"]
+        ),
         "bulk_upload_report": get_entry_from_table_by_nhs_number(
             nhs_number, bulk_upload_table_records["bulk_upload_report_records"]
         ),
-        "unstitched": get_entry_from_table_by_nhs_number(nhs_number, bulk_upload_table_records["unstitched_records"]),
+        "unstitched": get_entry_from_table_by_nhs_number(
+            nhs_number, bulk_upload_table_records["unstitched_records"]
+        ),
     }
     assert records_by_num == snapshot_json(
         exclude=paths(
@@ -68,18 +74,22 @@ def test_general_reject_ingestions(
     usb_reject_test_cases,
 )
 def test_usb_reject_ingestions(
-        nhs_number,
-        description,
-        snapshot_json,
-        bulk_upload_table_records,
+    nhs_number,
+    description,
+    snapshot_json,
+    bulk_upload_table_records,
 ) -> None:
     records_by_num = {
         "_description": description,
-        "metadata": get_entry_from_table_by_nhs_number(nhs_number, bulk_upload_table_records["lloyd_george_records"]),
+        "metadata": get_entry_from_table_by_nhs_number(
+            nhs_number, bulk_upload_table_records["lloyd_george_records"]
+        ),
         "bulk_upload_report": get_entry_from_table_by_nhs_number(
             nhs_number, bulk_upload_table_records["bulk_upload_report_records"]
         ),
-        "unstitched": get_entry_from_table_by_nhs_number(nhs_number, bulk_upload_table_records["unstitched_records"]),
+        "unstitched": get_entry_from_table_by_nhs_number(
+            nhs_number, bulk_upload_table_records["unstitched_records"]
+        ),
     }
     assert records_by_num == snapshot_json(
         exclude=paths(
@@ -91,16 +101,20 @@ def test_usb_reject_ingestions(
     )
 
 
-@pytest.mark.parametrize("nhs_number,description", [("123456789", "Prevent Fixed on File and NhsNumber")])
+@pytest.mark.parametrize(
+    "nhs_number,description", [("123456789", "Prevent Fixed on File and NhsNumber")]
+)
 def test_remap_and_fixed_reject(
-        nhs_number,
-        description,
-        snapshot_json,
-        bulk_upload_table_records,
+    nhs_number,
+    description,
+    snapshot_json,
+    bulk_upload_table_records,
 ) -> None:
     records_by_num = {
         "_description": description,
-        "metadata": get_entry_from_table_by_nhs_number(nhs_number, bulk_upload_table_records["lloyd_george_records"]),
+        "metadata": get_entry_from_table_by_nhs_number(
+            nhs_number, bulk_upload_table_records["lloyd_george_records"]
+        ),
         "bulk_upload_report": get_entry_from_table_by_nhs_number(
             nhs_number, bulk_upload_table_records["bulk_upload_report_records"]
         ),

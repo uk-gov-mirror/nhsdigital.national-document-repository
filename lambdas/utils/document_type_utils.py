@@ -1,5 +1,6 @@
 from enums.supported_document_types import SupportedDocumentTypes
 
+
 def extract_document_type_to_enum(value: str) -> list[SupportedDocumentTypes]:
     received_document_types = value.replace(" ", "").split(",")
     converted_document_types = []

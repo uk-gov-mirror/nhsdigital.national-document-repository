@@ -5,7 +5,10 @@ from models.document_reference import DocumentReference
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 from utils.audit_logging_setup import LoggingService
-from utils.exceptions import MigrationUnrecoverableException, MigrationRetryableException
+from utils.exceptions import (
+    MigrationRetryableException,
+    MigrationUnrecoverableException,
+)
 
 
 class VersionMigration(MigrationBase):
@@ -148,7 +151,8 @@ class VersionMigration(MigrationBase):
                 f"{entry.get('ID')}: Document has a status of uploading and uploaded."
             )
             raise MigrationUnrecoverableException(
-                message="Document has a status of uploading and uploaded", item_id=entry.get("ID")
+                message="Document has a status of uploading and uploaded",
+                item_id=entry.get("ID"),
             )
 
         if entry.get("DocStatus", "") == inferred_status:

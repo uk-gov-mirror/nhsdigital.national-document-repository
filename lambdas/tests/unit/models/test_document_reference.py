@@ -2,7 +2,6 @@ from datetime import datetime
 
 import pytest
 from freezegun import freeze_time
-
 from models.document_reference import DocumentReference
 from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_SEARCH_RESPONSE
 
@@ -200,6 +199,8 @@ def test_set_location_properties_complex_s3_location():
         doc_ref.file_location
         == "s3://prod-bucket/year/2024/month/10/patient/9000000009/test-id-606"
     )
+
+
 def test_infer_doc_status_returns_deprecated_when_deleted():
     MOCK_DOCUMENT_REFERENCE.deleted = "2023-10-30T10:25:00.000Z"
     MOCK_DOCUMENT_REFERENCE.uploaded = True
@@ -232,11 +233,17 @@ def test_infer_doc_status_returns_preliminary_when_uploading():
 
     assert expected == actual
 
+
 @pytest.mark.parametrize(
     "deleted, uploaded, uploading, expected",
     [
-        ("2024-01-01T00:00:00Z", False, False, "deprecated"),  # deleted = string timestamp
-        ("", True, False, "final"),                            # deleted empty → not deleted
+        (
+            "2024-01-01T00:00:00Z",
+            False,
+            False,
+            "deprecated",
+        ),  # deleted = string timestamp
+        ("", True, False, "final"),  # deleted empty → not deleted
         ("", False, True, "preliminary"),
         ("", False, False, None),
     ],

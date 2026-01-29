@@ -6,9 +6,7 @@ from botocore.exceptions import ClientError
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from freezegun import freeze_time
-from models.document_review import (
-    DocumentUploadReviewReference,
-)
+from models.document_review import DocumentUploadReviewReference
 from services.document_upload_review_service import DocumentUploadReviewService
 from tests.unit.conftest import (
     MOCK_DOCUMENT_REVIEW_BUCKET,

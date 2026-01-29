@@ -49,7 +49,10 @@ def valid_id_and_arf_doctype_event():
 def valid_id_and_lg_doctype_event():
     api_gateway_proxy_event = {
         "httpMethod": "GET",
-        "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101"},
+        "queryStringParameters": {
+            "patientId": "9000000009",
+            "docType": "16521000000101",
+        },
     }
     return api_gateway_proxy_event
 
@@ -58,7 +61,10 @@ def valid_id_and_lg_doctype_event():
 def valid_id_and_both_doctype_event():
     api_gateway_proxy_event = {
         "httpMethod": "GET",
-        "queryStringParameters": {"patientId": "9000000009", "docType": "16521000000101,ARF"},
+        "queryStringParameters": {
+            "patientId": "9000000009",
+            "docType": "16521000000101,ARF",
+        },
     }
     return api_gateway_proxy_event
 

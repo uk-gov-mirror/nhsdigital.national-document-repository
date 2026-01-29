@@ -2,7 +2,6 @@ import base64
 import uuid
 
 import pytest
-
 from tests.e2e.api.fhir.conftest import (
     PDM_S3_BUCKET,
     create_and_store_pdm_record,
@@ -16,7 +15,9 @@ pdm_data_helper = PdmDataHelper()
 @pytest.mark.parametrize("file_size", [None, 10 * 1024 * 1024])
 def test_file_retrieval(test_data, file_size):
     """Test retrieval for small and large files."""
-    pdm_record = create_and_store_pdm_record(test_data, size=file_size if file_size else None)
+    pdm_record = create_and_store_pdm_record(
+        test_data, size=file_size if file_size else None
+    )
     response = get_pdm_document_reference(pdm_record["id"])
     assert response.status_code == 200
 
@@ -38,7 +39,9 @@ def test_file_retrieval(test_data, file_size):
         (str(uuid.uuid4()), 404, "RESOURCE_NOT_FOUND", "Document reference not found"),
     ],
 )
-def test_retrieve_edge_cases(record_id, expected_status, expected_code, expected_diagnostics):
+def test_retrieve_edge_cases(
+    record_id, expected_status, expected_code, expected_diagnostics
+):
     response = get_pdm_document_reference(record_id)
     assert response.status_code == expected_status
 
@@ -68,11 +71,14 @@ def test_forbidden_with_invalid_cert(test_data, temp_cert_and_key):
     # Use an invalid cert that is trusted by TLS but fails truststore validation
     cert_path, key_path = temp_cert_and_key
 
-    response = get_pdm_document_reference(pdm_record["id"], client_cert_path=cert_path, client_key_path=key_path)
+    response = get_pdm_document_reference(
+        pdm_record["id"], client_cert_path=cert_path, client_key_path=key_path
+    )
 
     body = response.json()
     assert response.status_code == 403
     assert body["message"] == "Forbidden"
+
 
 def test_retrieve_invalid_resource_type(test_data):
     pdm_record = create_and_store_pdm_record(test_data)

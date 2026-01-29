@@ -1,4 +1,3 @@
-
 import pytest
 from freezegun import freeze_time
 from openpyxl import load_workbook

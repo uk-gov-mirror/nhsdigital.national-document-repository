@@ -130,7 +130,11 @@ class AuthoriserService:
                 deny_resource = False
 
             case path if re.match(r"^/DocumentReview/[^/]+/[^/]+$", path):
-                deny_resource = False if patient_id_is_placeholder else not patient_access_is_allowed
+                deny_resource = (
+                    False
+                    if patient_id_is_placeholder
+                    else not patient_access_is_allowed
+                )
 
             case "/DocumentReview":
                 deny_resource = False

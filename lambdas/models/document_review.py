@@ -7,13 +7,7 @@ from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
 from enums.upload_forbidden_file_extensions import is_file_type_allowed
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel, to_pascal
 from utils import upload_file_configs
 from utils.exceptions import (

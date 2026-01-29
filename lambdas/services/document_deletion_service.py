@@ -67,7 +67,7 @@ class DocumentDeletionService:
         self.send_sqs_message_to_remove_pointer(
             nhs_number,
             snomed=SnomedCodes.find_by_code(document_ref.document_snomed_code_type),
-            doc_ref=document_ref
+            doc_ref=document_ref,
         )
 
     def delete_documents_by_types(
@@ -173,10 +173,10 @@ class DocumentDeletionService:
             raise DocumentDeletionServiceException(500, LambdaError.DocDelClient)
 
     def send_sqs_message_to_remove_pointer(
-        self, 
-        nhs_number: str, 
+        self,
+        nhs_number: str,
         snomed: SnomedCode,
-        doc_ref: Optional[DocumentReference] = None
+        doc_ref: Optional[DocumentReference] = None,
     ):
         delete_nrl_message = NrlSqsMessage(
             nhs_number=nhs_number,

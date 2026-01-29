@@ -1,5 +1,4 @@
 import pytest
-
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 from tests.e2e.helpers.mockcis2_helper import MockCis2Helper
 
@@ -8,7 +7,9 @@ from tests.e2e.helpers.mockcis2_helper import MockCis2Helper
 data_helper = LloydGeorgeDataHelper()
 
 
-@pytest.mark.skipif(data_helper.workspace == "pre-prod", reason="CIS2 login is not mocked in pre-prod")
+@pytest.mark.skipif(
+    data_helper.workspace == "pre-prod", reason="CIS2 login is not mocked in pre-prod"
+)
 @pytest.mark.parametrize(
     "ods_code, role_to_assume, expected_granted_role",
     [

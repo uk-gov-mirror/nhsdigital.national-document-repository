@@ -4,7 +4,8 @@ from utils.audit_logging_setup import LoggingService
 from utils.lambda_exceptions import (
     DocumentRefException,
     DocumentRefSearchException,
-    GetFhirDocumentReferenceException, DocumentReviewLambdaException,
+    DocumentReviewLambdaException,
+    GetFhirDocumentReferenceException,
 )
 from utils.lambda_header_utils import validate_common_name_in_mtls
 

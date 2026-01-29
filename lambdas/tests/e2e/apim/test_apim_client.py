@@ -4,7 +4,6 @@ import os
 
 import pytest
 import requests
-
 from tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
@@ -17,7 +16,9 @@ def test_ping(nhsd_apim_proxy_url):
 
 
 @pytest.mark.nhsd_apim_authorization(access="application", level="level3")
-def test_app_level3_access_search(test_data, nhsd_apim_proxy_url, nhsd_apim_auth_headers):
+def test_app_level3_access_search(
+    test_data, nhsd_apim_proxy_url, nhsd_apim_auth_headers
+):
     # Put PDM record
     pdm_record = pdm_data_helper.build_record()
     test_data.append(pdm_record)
@@ -27,7 +28,8 @@ def test_app_level3_access_search(test_data, nhsd_apim_proxy_url, nhsd_apim_auth
 
     # Search record via APIM
     resp = requests.get(
-        nhsd_apim_proxy_url + "/DocumentReference?subject:identifier=https://fhir.nhs.uk/Id/nhs-number%7C9912003071",
+        nhsd_apim_proxy_url
+        + "/DocumentReference?subject:identifier=https://fhir.nhs.uk/Id/nhs-number%7C9912003071",
         headers=nhsd_apim_auth_headers,
     )
     assert resp.status_code == 200
@@ -47,7 +49,9 @@ def test_app_level3_access_search(test_data, nhsd_apim_proxy_url, nhsd_apim_auth
 
 
 @pytest.mark.nhsd_apim_authorization(access="application", level="level3")
-def test_app_level3_access_retrieve(test_data, nhsd_apim_proxy_url, nhsd_apim_auth_headers):
+def test_app_level3_access_retrieve(
+    test_data, nhsd_apim_proxy_url, nhsd_apim_auth_headers
+):
     # Put PDM record
     pdm_record = pdm_data_helper.build_record()
     test_data.append(pdm_record)
@@ -73,7 +77,9 @@ def test_app_level3_access_retrieve(test_data, nhsd_apim_proxy_url, nhsd_apim_au
 
 
 @pytest.mark.nhsd_apim_authorization(access="application", level="level3")
-def test_app_level3_access_upload(test_data, nhsd_apim_proxy_url, nhsd_apim_auth_headers):
+def test_app_level3_access_upload(
+    test_data, nhsd_apim_proxy_url, nhsd_apim_auth_headers
+):
     # Build PDM record
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
     with open(sample_pdf_path, "rb") as f:

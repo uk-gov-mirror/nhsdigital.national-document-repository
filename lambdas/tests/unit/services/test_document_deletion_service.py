@@ -8,7 +8,6 @@ from enums.supported_document_types import SupportedDocumentTypes
 from models.document_reference import DocumentReference
 from services.document_deletion_service import DocumentDeletionService
 from tests.unit.conftest import (
-    MOCK_ARF_TABLE_NAME,
     MOCK_BUCKET,
     MOCK_CLIENT_ERROR,
     MOCK_LG_TABLE_NAME,
@@ -314,7 +313,7 @@ def test_delete_documents_references_in_stitch_table(mock_deletion_service):
 def test_send_sqs_message_to_remove_pointer(mocker, mock_deletion_service):
     mocker.patch("uuid.uuid4", return_value="test_uuid")
 
-    snomed=SnomedCodes.LLOYD_GEORGE.value
+    snomed = SnomedCodes.LLOYD_GEORGE.value
     expected_message_body = (
         '{{"nhs_number":"{}",'
         '"snomed_code_doc_type":{},'

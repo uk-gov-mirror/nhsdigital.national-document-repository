@@ -1,8 +1,8 @@
-import boto3
 from datetime import datetime
 from typing import List, Optional
 
-from models.ssh_key import SSHKey, KeyExpiryReport
+import boto3
+from models.ssh_key import KeyExpiryReport, SSHKey
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import SSHKeyManagementException
 

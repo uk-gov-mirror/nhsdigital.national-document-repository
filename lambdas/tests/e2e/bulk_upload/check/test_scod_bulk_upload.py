@@ -1,13 +1,12 @@
 from pathlib import Path
 
 import pytest
-from syrupy.filters import paths
-
 from services.base.dynamo_service import DynamoDBService
+from syrupy.filters import paths
 from tests.e2e.bulk_upload.conftest import (
     get_all_entries_from_table_by_nhs_number,
-    read_metadata_csv,
     get_entry_from_table_by_nhs_number,
+    read_metadata_csv,
 )
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
@@ -37,19 +36,22 @@ def bulk_upload_table_records():
     accept_test_cases,
 )
 def test_scod_ingestions(
-        nhs_number,
-        description,
-        snapshot_json,
-        bulk_upload_table_records,
+    nhs_number,
+    description,
+    snapshot_json,
+    bulk_upload_table_records,
 ) -> None:
     records_by_num = {
         "_description": description,
-        "metadata": get_entry_from_table_by_nhs_number(nhs_number, bulk_upload_table_records["lloyd_george_records"]),
+        "metadata": get_entry_from_table_by_nhs_number(
+            nhs_number, bulk_upload_table_records["lloyd_george_records"]
+        ),
         "bulk_upload_report": get_entry_from_table_by_nhs_number(
             nhs_number, bulk_upload_table_records["bulk_upload_report_records"]
         ),
-        "unstitched": get_all_entries_from_table_by_nhs_number(nhs_number,
-                                                               bulk_upload_table_records["unstitched_records"]),
+        "unstitched": get_all_entries_from_table_by_nhs_number(
+            nhs_number, bulk_upload_table_records["unstitched_records"]
+        ),
     }
     assert records_by_num == snapshot_json(
         exclude=paths(
@@ -70,5 +72,7 @@ def test_scod_ingestions(
         metadata_s3_key = metadata.get("S3FileKey")
         s3_version_id = metadata.get("S3VersionID")
 
-        exists = lloyd_george_data_helper.check_record_exists_in_s3_with_version(metadata_s3_key, s3_version_id)
+        exists = lloyd_george_data_helper.check_record_exists_in_s3_with_version(
+            metadata_s3_key, s3_version_id
+        )
         assert exists

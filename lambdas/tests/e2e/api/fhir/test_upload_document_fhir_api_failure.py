@@ -5,7 +5,6 @@ import os
 
 import pytest
 import requests
-
 from tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
     retrieve_document_with_retry,
@@ -14,6 +13,7 @@ from tests.e2e.api.fhir.conftest import (
 from tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
+
 
 def test_create_document_presign_fails():
     record = {
@@ -38,7 +38,9 @@ def test_create_document_virus(test_data):
     }
 
     # Attach EICAR data
-    eicar_string = r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    eicar_string = (
+        r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    )
     record["data"] = base64.b64encode(eicar_string.encode()).decode()
     payload = pdm_data_helper.create_upload_payload(record)
 
@@ -56,7 +58,9 @@ def test_create_document_virus(test_data):
             "final",
         )
 
-    raw_retrieve_response = retrieve_document_with_retry(upload_response["id"], condition)
+    raw_retrieve_response = retrieve_document_with_retry(
+        upload_response["id"], condition
+    )
     retrieve_response = raw_retrieve_response.json()
 
     assert retrieve_response["docStatus"] == "cancelled"
@@ -79,7 +83,9 @@ def test_create_document_virus(test_data):
         ),
     ],
 )
-def test_search_edge_cases(nhs_number, expected_status, expected_code, expected_diagnostics):
+def test_search_edge_cases(
+    nhs_number, expected_status, expected_code, expected_diagnostics
+):
     record = {
         "ods": "H81109",
         "nhs_number": f"{nhs_number}",
@@ -116,7 +122,9 @@ def test_forbidden_with_invalid_cert(temp_cert_and_key):
     url = f"https://{MTLS_ENDPOINT}/DocumentReference"
     headers = {"Authorization": "Bearer 123", "X-Correlation-Id": "1234"}
 
-    response = requests.post(url, headers=headers, cert=(cert_path, key_path), data=payload)
+    response = requests.post(
+        url, headers=headers, cert=(cert_path, key_path), data=payload
+    )
     body = response.json()
     assert response.status_code == 403
     assert body["message"] == "Forbidden"
@@ -143,7 +151,10 @@ def test_create_document_with_invalid_author_returns_error(test_data, author_pay
     response_json = raw_upload_response.json()
     assert raw_upload_response.status_code == 400
     assert response_json["resourceType"] == "OperationOutcome"
-    assert response_json["issue"][0]["details"]["coding"][0]["code"] == "VALIDATION_ERROR"
+    assert (
+        response_json["issue"][0]["details"]["coding"][0]["code"] == "VALIDATION_ERROR"
+    )
+
 
 def test_upload_invalid_resource_type(test_data):
     record = {

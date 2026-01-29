@@ -45,7 +45,9 @@ class MetadataMappingValidatorService:
         )
         return dynamic_model
 
-    def validate_and_normalize_metadata(self, records: list[dict],fixed_values: dict, remappings: dict):
+    def validate_and_normalize_metadata(
+        self, records: list[dict], fixed_values: dict, remappings: dict
+    ):
         model = self.create_metadata_model(remappings)
         validated_rows, rejected_rows, rejected_reasons = [], [], []
         required_fields = [
@@ -58,10 +60,10 @@ class MetadataMappingValidatorService:
             try:
                 # Merge fixed values into the row before validation to account for these.
                 row_with_fixed = {**row, **fixed_values} if fixed_values else row
-                
+
                 instance = model.model_validate(row_with_fixed)
                 data = instance.model_dump(by_alias=False)
-                
+
                 empty_required_fields = self.get_empty_required_fields(
                     data, required_fields
                 )
@@ -162,14 +164,12 @@ class MetadataMappingValidatorService:
         remapped_values = set(remappings.values())
 
         for field_name in fixed_values.keys():
-            if field_name not in remapped_values and field_name not in self.model_aliases:
+            if (
+                field_name not in remapped_values
+                and field_name not in self.model_aliases
+            ):
                 errors.append(
                     f"Fixed value field '{field_name}' is not a valid metadata field alias. "
                     f"Valid aliases are: {', '.join(sorted(self.model_aliases))}"
                 )
         return errors
-
-
-
-
-

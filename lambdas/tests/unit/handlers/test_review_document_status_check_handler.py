@@ -296,4 +296,3 @@ def test_lambda_handler_returns_404_no_document_review_reference_found(
 
     actual = lambda_handler(event_valid_event, context)
     assert actual == expected
-

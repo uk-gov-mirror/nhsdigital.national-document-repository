@@ -9,7 +9,9 @@ UNAUTHORISED_CLIENT_KEY_PATH = os.environ.get("UNAUTHORISED_CLIENT_KEY_PATH")
 
 def test_mtls_invalid_common_name():
     record_id = str(uuid.uuid4())
-    response = get_pdm_document_reference(record_id, UNAUTHORISED_CLIENT_CERT_PATH, UNAUTHORISED_CLIENT_KEY_PATH)
+    response = get_pdm_document_reference(
+        record_id, UNAUTHORISED_CLIENT_CERT_PATH, UNAUTHORISED_CLIENT_KEY_PATH
+    )
     assert response.status_code == 400
 
     data = response.json()

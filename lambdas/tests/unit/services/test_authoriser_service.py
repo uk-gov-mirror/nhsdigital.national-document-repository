@@ -37,6 +37,7 @@ def mock_auth_service(set_env, mocker):
     mock_test_auth_service.allowed_nhs_numbers = []
     mock_test_auth_service.deceased_nhs_numbers = []
 
+
 def build_decoded_token_for_role(role: str) -> dict:
     return {
         "exp": 12345678960,
@@ -91,7 +92,9 @@ def test_deny_access_policy_returns_true_for_gp_clinical_on_paths(
     assert actual == expected
 
 
-@pytest.mark.parametrize("test_path", ["/DocumentManifest", "/DocumentDelete", "/DocumentStatus", "Any"])
+@pytest.mark.parametrize(
+    "test_path", ["/DocumentManifest", "/DocumentDelete", "/DocumentStatus", "Any"]
+)
 def test_deny_access_policy_returns_true_for_nhs_number_not_in_allowed(
     test_path,
     mock_auth_service: AuthoriserService,
@@ -123,9 +126,21 @@ def test_deny_access_policy_returns_false_for_nhs_number_in_allowed(
         ("/DocumentReference", RepositoryRole.GP_ADMIN.value, False),
         ("/DocumentReference", RepositoryRole.GP_CLINICAL.value, False),
         ("/DocumentReference", RepositoryRole.PCSE.value, True),
-        ("/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7", RepositoryRole.GP_ADMIN.value, False),
-        ("/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7", RepositoryRole.GP_CLINICAL.value, False),
-        ("/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7", RepositoryRole.PCSE.value, True),
+        (
+            "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7",
+            RepositoryRole.GP_ADMIN.value,
+            False,
+        ),
+        (
+            "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7",
+            RepositoryRole.GP_CLINICAL.value,
+            False,
+        ),
+        (
+            "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7",
+            RepositoryRole.PCSE.value,
+            True,
+        ),
         (f"/DocumentReview/{TEST_UUID}/1", RepositoryRole.GP_ADMIN.value, False),
         (f"/DocumentReview/{TEST_UUID}/1", RepositoryRole.GP_CLINICAL.value, False),
         (f"/DocumentReview/{TEST_UUID}/1", RepositoryRole.PCSE.value, False),
@@ -135,10 +150,10 @@ def test_deny_access_policy_returns_false_for_nhs_number_in_allowed(
     ],
 )
 def test_deny_access_policy_for_various_paths_and_roles(
-        mock_auth_service: AuthoriserService,
-        path: str,
-        role: str,
-        expected: bool,
+    mock_auth_service: AuthoriserService,
+    path: str,
+    role: str,
+    expected: bool,
 ):
     mock_auth_service.allowed_nhs_numbers.append("122222222")
 
@@ -147,13 +162,19 @@ def test_deny_access_policy_for_various_paths_and_roles(
 
 
 def test_deny_access_policy_allows_review_for_placeholder_nhs_number(
-        mock_auth_service: AuthoriserService,
-
+    mock_auth_service: AuthoriserService,
 ):
-    roles = [RepositoryRole.GP_ADMIN.value, RepositoryRole.GP_CLINICAL.value, RepositoryRole.PCSE.value]
+    roles = [
+        RepositoryRole.GP_ADMIN.value,
+        RepositoryRole.GP_CLINICAL.value,
+        RepositoryRole.PCSE.value,
+    ]
     for role in roles:
-        actual = mock_auth_service.deny_access_policy(f"/DocumentReview/{TEST_UUID}/1", role, NHS_NUMBER_PLACEHOLDER)
+        actual = mock_auth_service.deny_access_policy(
+            f"/DocumentReview/{TEST_UUID}/1", role, NHS_NUMBER_PLACEHOLDER
+        )
         assert not actual
+
 
 @pytest.mark.parametrize(
     "path",
@@ -178,6 +199,7 @@ def test_deny_document_reference_as_any_role_on_deceased_patient_returns_true(
     ):
         actual = mock_auth_service.deny_access_policy(path, role, "122222222")
         assert actual == expected
+
 
 @pytest.mark.parametrize(
     ["test_path", "nhs_number"],

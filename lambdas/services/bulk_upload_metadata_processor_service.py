@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pydantic
 from botocore.exceptions import ClientError
-
 from enums.document_review_reason import DocumentReviewReason
 from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
 from enums.upload_status import UploadStatus
@@ -55,12 +54,12 @@ UNSUCCESSFUL = "Unsuccessful bulk upload"
 class BulkUploadMetadataProcessorService:
 
     def __init__(
-            self,
-            metadata_formatter_service: MetadataPreprocessorService,
-            metadata_heading_remap: dict,
-            input_file_location: str = "",
-            fixed_values: dict = None,
-            send_to_review_enabled: bool = False,
+        self,
+        metadata_formatter_service: MetadataPreprocessorService,
+        metadata_heading_remap: dict,
+        input_file_location: str = "",
+        fixed_values: dict = None,
+        send_to_review_enabled: bool = False,
     ):
         self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
         self.metadata_queue_url = os.getenv("METADATA_SQS_QUEUE_URL")
@@ -97,7 +96,9 @@ class BulkUploadMetadataProcessorService:
                 download_path=local_file_path,
             )
         except ClientError:
-            raise BulkUploadMetadataException(f"Could not retrieve the following metadata file: {self.file_key}")
+            raise BulkUploadMetadataException(
+                f"Could not retrieve the following metadata file: {self.file_key}"
+            )
         return local_file_path
 
     def process_metadata(self):
@@ -125,7 +126,9 @@ class BulkUploadMetadataProcessorService:
 
         except ClientError as e:
             if "HeadObject" in str(e):
-                failure_msg = f'No metadata file could be found with the name {self.file_key}"'
+                failure_msg = (
+                    f'No metadata file could be found with the name {self.file_key}"'
+                )
             else:
                 failure_msg = str(e)
             logger.error(failure_msg, {"Result": UNSUCCESSFUL})
@@ -141,11 +144,13 @@ class BulkUploadMetadataProcessorService:
         )
 
         with open(
-                csv_file_path, mode="r", encoding="utf-8-sig", errors="replace"
+            csv_file_path, mode="r", encoding="utf-8-sig", errors="replace"
         ) as csv_file:
             csv_reader = csv.DictReader(csv_file)
             if csv_reader.fieldnames is None:
-                raise BulkUploadMetadataException("Metadata file is empty or missing headers.")
+                raise BulkUploadMetadataException(
+                    "Metadata file is empty or missing headers."
+                )
 
             headers = [h.strip() for h in csv_reader.fieldnames]
             records = list(csv_reader)
@@ -187,9 +192,10 @@ class BulkUploadMetadataProcessorService:
         ]
 
     def process_metadata_row(
-            self, row: dict,
-            patients: dict[tuple[str, str], list[BulkUploadQueueMetadata]],
-            failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]]
+        self,
+        row: dict,
+        patients: dict[tuple[str, str], list[BulkUploadQueueMetadata]],
+        failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]],
     ) -> None:
         """Validate individual file metadata and attach to a patient group."""
         file_metadata = MetadataFile.model_validate(row)
@@ -202,7 +208,9 @@ class BulkUploadMetadataProcessorService:
         try:
             correct_file_name = self.validate_and_correct_filename(file_metadata)
         except InvalidFileNameException as error:
-            self.handle_invalid_filename(file_metadata, error, nhs_number, ods_code, failed_files)
+            self.handle_invalid_filename(
+                file_metadata, error, nhs_number, ods_code, failed_files
+            )
             return
 
         sqs_metadata = self.convert_to_sqs_metadata(file_metadata, correct_file_name)
@@ -223,13 +231,14 @@ class BulkUploadMetadataProcessorService:
         for field_name, fixed_value in self.fixed_values.items():
             metadata_dict[field_name] = fixed_value
             logger.info(
-                f"Applied fixed value for field '{field_name}': '{fixed_value}'")
+                f"Applied fixed value for field '{field_name}': '{fixed_value}'"
+            )
 
         return MetadataFile.model_validate(metadata_dict)
 
     @staticmethod
     def convert_to_sqs_metadata(
-            file: MetadataFile, stored_file_name: str
+        file: MetadataFile, stored_file_name: str
     ) -> BulkUploadQueueMetadata:
         """Convert a MetadataFile into BulkUploadQueueMetadata."""
         return BulkUploadQueueMetadata(
@@ -263,8 +272,7 @@ class BulkUploadMetadataProcessorService:
             return file_metadata.file_path
         except LGInvalidFilesException:
             return self.metadata_formatter_service.validate_record_filename(
-                file_metadata.file_path,
-                file_metadata.nhs_number
+                file_metadata.file_path, file_metadata.nhs_number
             )
 
     def validate_expedite_file(self, s3_object_key: str):
@@ -317,12 +325,12 @@ class BulkUploadMetadataProcessorService:
             raise BulkUploadMetadataException(failure_msg)
 
     def handle_invalid_filename(
-            self,
-            file_metadata: MetadataFile,
-            error: InvalidFileNameException,
-            nhs_number: str,
-            ods_code: str,
-            failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]]
+        self,
+        file_metadata: MetadataFile,
+        error: InvalidFileNameException,
+        nhs_number: str,
+        ods_code: str,
+        failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]],
     ) -> None:
         """Handle invalid filenames by logging, storing failure in Dynamo, and tracking for review."""
         logger.error(
@@ -340,8 +348,7 @@ class BulkUploadMetadataProcessorService:
         )
 
     def send_failed_files_to_review_queue(
-            self,
-            failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]]
+        self, failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]]
     ) -> None:
         for (nhs_number, ods_code), files in failed_files.items():
             staging_metadata = StagingSqsMetadata(nhs_number=nhs_number, files=files)
@@ -355,7 +362,7 @@ class BulkUploadMetadataProcessorService:
             )
 
     def send_metadata_to_fifo_sqs(
-            self, staging_sqs_metadata_list: list[StagingSqsMetadata]
+        self, staging_sqs_metadata_list: list[StagingSqsMetadata]
     ) -> None:
         """Send validated metadata entries to SQS FIFO queue."""
         for staging_sqs_metadata in staging_sqs_metadata_list:
@@ -370,7 +377,7 @@ class BulkUploadMetadataProcessorService:
         logger.info("Sent bulk upload metadata to sqs queue")
 
     def send_metadata_to_expedite_sqs(
-            self, staging_sqs_metadata: StagingSqsMetadata
+        self, staging_sqs_metadata: StagingSqsMetadata
     ) -> None:
         """Send validated metadata entries to SQS expedite queue."""
         sqs_group_id = f"bulk_upload_{uuid.uuid4()}"

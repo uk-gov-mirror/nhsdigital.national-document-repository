@@ -29,9 +29,7 @@ def mns_service(mocker, set_env, monkeypatch):
 
 
 @pytest.fixture
-def mns_service_feature_disabled(
-    mocker, set_env, monkeypatch
-):
+def mns_service_feature_disabled(mocker, set_env, monkeypatch):
     monkeypatch.setenv("PDS_FHIR_IS_STUBBED", "False")
     service = MNSNotificationService()
     mocker.patch.object(service, "pds_service")
@@ -500,4 +498,3 @@ def test_handle_death_notification_removed_with_only_review_documents(
     mns_service.update_all_patient_documents.assert_called_once_with(
         [], mock_document_review_references, NEW_ODS_CODE
     )
-

@@ -100,7 +100,9 @@ def test_get_document_review_status_throws_404_no_document_reference_found(
     mock_service_user_is_author.review_document_service.get_document.return_value = None
 
     with pytest.raises(DocumentReviewLambdaException) as e:
-        mock_service_user_is_author.get_document_review_status(MOCK_PREVIOUS_ODS_CODE, TEST_UUID, 1)
+        mock_service_user_is_author.get_document_review_status(
+            MOCK_PREVIOUS_ODS_CODE, TEST_UUID, 1
+        )
 
     assert e.value.status_code == 404
     assert e.value.err_code == "DRV_4041"

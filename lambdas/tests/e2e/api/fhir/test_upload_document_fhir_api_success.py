@@ -32,13 +32,18 @@ def test_create_document_base64(test_data):
     # Validate attachment URL
     upload_response = raw_upload_response.json()
     attachment_url = upload_response["content"][0]["attachment"]["url"]
-    assert f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~" in attachment_url
+    assert (
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~"
+        in attachment_url
+    )
 
     def condition(response_json):
         logging.info(response_json)
         return response_json["content"][0]["attachment"].get("data", False)
 
-    raw_retrieve_response = retrieve_document_with_retry(upload_response["id"], condition)
+    raw_retrieve_response = retrieve_document_with_retry(
+        upload_response["id"], condition
+    )
     retrieve_response = raw_retrieve_response.json()
 
     # Validate base64 data
@@ -79,7 +84,9 @@ def test_create_document_without_author_or_type(test_data):
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
     with open(sample_pdf_path, "rb") as f:
         record["data"] = base64.b64encode(f.read()).decode("utf-8")
-    payload = pdm_data_helper.create_upload_payload(record=record, exclude=["type", "author"])
+    payload = pdm_data_helper.create_upload_payload(
+        record=record, exclude=["type", "author"]
+    )
 
     for field in ["type", "author"]:
         assert field not in payload

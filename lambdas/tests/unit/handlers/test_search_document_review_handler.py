@@ -101,7 +101,7 @@ def mocked_extract_ods_with_ods_code(mocker):
 
 @pytest.fixture()
 def mocked_extract_ods_code_error(mocker):
-    mocked_extract =  mocker.patch(
+    mocked_extract = mocker.patch(
         "handlers.search_document_review_handler.extract_ods_code_from_request_context",
     )
     mocked_extract.side_effect = OdsErrorException()
@@ -160,7 +160,7 @@ def test_process_request_called_with_correct_arguments(
     context,
     set_env,
     event_with_all_params,
-        mocked_extract_ods_with_ods_code,
+    mocked_extract_ods_with_ods_code,
 ):
 
     lambda_handler(event_with_all_params, context)

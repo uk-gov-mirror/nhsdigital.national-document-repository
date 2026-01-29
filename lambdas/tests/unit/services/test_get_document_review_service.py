@@ -85,7 +85,9 @@ def mock_document_review():
     return review
 
 
-def test_get_document_review_success(mock_service, mock_document_review, mocker, mock_extract_ods):
+def test_get_document_review_success(
+    mock_service, mock_document_review, mocker, mock_extract_ods
+):
     """Test successful retrieval of a document review with pre-signed URLs."""
     mock_extract_ods.return_value = TEST_ODS_CODE
 
@@ -161,7 +163,9 @@ def test_get_document_review_not_found(mock_service, mock_extract_ods):
     )
 
 
-def test_get_document_review_nhs_number_mismatch(mock_service, mock_document_review, mock_extract_ods):
+def test_get_document_review_nhs_number_mismatch(
+    mock_service, mock_document_review, mock_extract_ods
+):
     """Test when document review exists but the NHS number doesn't match."""
     mock_extract_ods.return_value = TEST_ODS_CODE
 
@@ -183,7 +187,9 @@ def test_get_document_review_nhs_number_mismatch(mock_service, mock_document_rev
     mock_service.s3_service.create_download_presigned_url.assert_not_called()
 
 
-def test_get_document_review_handles_placeholder_nhs_number(mock_service, mock_extract_ods, mock_document_review):
+def test_get_document_review_handles_placeholder_nhs_number(
+    mock_service, mock_extract_ods, mock_document_review
+):
     mock_extract_ods.return_value = TEST_ODS_CODE
     unknown_patient_review = deepcopy(mock_document_review)
     unknown_patient_review.nhs_number = NHS_NUMBER_PLACEHOLDER
@@ -238,7 +244,9 @@ def test_get_document_review_unexpected_exception(mock_service, mock_extract_ods
     assert e.value.error == LambdaError.DocRefClient
 
 
-def test_get_document_review_throws_error_user_not_custodian(mock_service, mock_extract_ods):
+def test_get_document_review_throws_error_user_not_custodian(
+    mock_service, mock_extract_ods
+):
     mock_extract_ods.return_value = "Z67890"
 
     with pytest.raises(DocumentReviewLambdaException) as e:

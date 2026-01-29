@@ -113,9 +113,7 @@ class PdfStitchingService:
 
     def calculate_created_date(self) -> str:
         created_values = [
-            r.created
-            for r in self.multipart_references
-            if getattr(r, "created", None)
+            r.created for r in self.multipart_references if getattr(r, "created", None)
         ]
         date_now = datetime.now(timezone.utc)
         if not created_values:

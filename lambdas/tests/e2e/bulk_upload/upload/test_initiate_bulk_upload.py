@@ -3,9 +3,7 @@ from pathlib import Path
 
 import boto3
 import pytest
-
-from tests.e2e.bulk_upload.conftest import empty_table
-from tests.e2e.bulk_upload.conftest import read_metadata_csv
+from tests.e2e.bulk_upload.conftest import empty_table, read_metadata_csv
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 s3_client = boto3.client("s3")
@@ -33,7 +31,9 @@ def upload_record(record: str, pdf_path: Path, prefix=None, infected=False):
 
     with open(pdf_path, "rb") as f:
         lloyd_george_helper.upload_to_staging_directory(s3_key, f.read())
-        lloyd_george_helper.add_virus_scan_tag(s3_key, virus_scanner_result_value, virus_scanner_date_value)
+        lloyd_george_helper.add_virus_scan_tag(
+            s3_key, virus_scanner_result_value, virus_scanner_date_value
+        )
 
 
 def generate_corrupt_file(source_file: Path) -> Path:
@@ -57,7 +57,9 @@ def upload_corrupted_record(record: str, pdf_path: Path, prefix="reject"):
 
     with open(path, "rb") as f:
         lloyd_george_helper.upload_to_staging_directory(s3_key, f.read())
-        lloyd_george_helper.add_virus_scan_tag(s3_key, virus_scanner_result_value, virus_scanner_date_value)
+        lloyd_george_helper.add_virus_scan_tag(
+            s3_key, virus_scanner_result_value, virus_scanner_date_value
+        )
 
 
 def run_bulk_upload(metadata_filename, pre_format_type="general"):
@@ -66,8 +68,14 @@ def run_bulk_upload(metadata_filename, pre_format_type="general"):
     return response
 
 
-def run_bulk_upload_with_remappings_and_fixes(metada_filename, remappings, fixed_values):
-    payload = {"inputFileLocation": metada_filename, "metadataFieldRemappings": remappings, "fixedValues": fixed_values}
+def run_bulk_upload_with_remappings_and_fixes(
+    metada_filename, remappings, fixed_values
+):
+    payload = {
+        "inputFileLocation": metada_filename,
+        "metadataFieldRemappings": remappings,
+        "fixedValues": fixed_values,
+    }
     response = lloyd_george_helper.run_bulk_upload(payload=payload)
     return response
 
@@ -151,7 +159,9 @@ def test_run_bulk_upload_remap_and_fixed():
         "FILEPATH": "file",
     }
     fixed_values = {"GP-PRACTICE-CODE": "M85143", "SCAN-DATE": "01/01/2022"}
-    run_bulk_upload_with_remappings_and_fixes(s3_key, metdata_field_remappings, fixed_values)
+    run_bulk_upload_with_remappings_and_fixes(
+        s3_key, metdata_field_remappings, fixed_values
+    )
 
 
 def test_run_bulk_upload_fixed_reject():
@@ -169,7 +179,9 @@ def test_run_bulk_upload_fixed_reject():
     metdata_field_remappings = {}
 
     fixed_values = {"NHS-NO": "123456789", "FILEPATH": "myfile.pdf"}
-    run_bulk_upload_with_remappings_and_fixes(s3_key, metdata_field_remappings, fixed_values)
+    run_bulk_upload_with_remappings_and_fixes(
+        s3_key, metdata_field_remappings, fixed_values
+    )
 
 
 def test_run_bulk_upload_scod():

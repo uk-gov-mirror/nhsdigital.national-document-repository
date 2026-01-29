@@ -40,4 +40,6 @@ def lambda_handler(event, context):
 
         service.handle_upload_document_reference_request(object_key, object_size)
 
-    return ApiGatewayResponse(200, "Virus Scan was successful", "POST").create_api_gateway_response()
+    return ApiGatewayResponse(
+        200, "Virus Scan was successful", "POST"
+    ).create_api_gateway_response()

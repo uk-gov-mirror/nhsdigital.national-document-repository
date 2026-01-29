@@ -59,8 +59,14 @@ def test_extract_document_type_arf(value):
         ("16521000000101", [SupportedDocumentTypes.LG]),
         ("16521000000101 ", [SupportedDocumentTypes.LG]),
         (" 16521000000101", [SupportedDocumentTypes.LG]),
-        (" ARF, 16521000000101 ", [SupportedDocumentTypes.ARF, SupportedDocumentTypes.LG]),
-        (" 16521000000101  , ARF ", [SupportedDocumentTypes.LG, SupportedDocumentTypes.ARF]),
+        (
+            " ARF, 16521000000101 ",
+            [SupportedDocumentTypes.ARF, SupportedDocumentTypes.LG],
+        ),
+        (
+            " 16521000000101  , ARF ",
+            [SupportedDocumentTypes.LG, SupportedDocumentTypes.ARF],
+        ),
     ],
 )
 def test_extract_document_type_as_enum(value, expected):
@@ -68,8 +74,10 @@ def test_extract_document_type_as_enum(value, expected):
 
     assert expected == actual
 
+
 @pytest.mark.parametrize(
-    "value", ["MANGO"],
+    "value",
+    ["MANGO"],
 )
 def test_extract_invalid_document_type_throws_exception(value):
     with pytest.raises(ValueError):

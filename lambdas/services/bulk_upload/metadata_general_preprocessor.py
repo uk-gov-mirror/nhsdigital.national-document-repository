@@ -36,8 +36,8 @@ class MetadataGeneralPreprocessor(MetadataPreprocessorService):
             logger.info("Failed to find NHS number or date")
             raise InvalidFileNameException("Incorrect NHS number or date format")
 
-        nhs_number, current_file_name = (
-            extract_nhs_number_from_bulk_upload_file_name(current_file_name)
+        nhs_number, current_file_name = extract_nhs_number_from_bulk_upload_file_name(
+            current_file_name
         )
         date, current_file_name = extract_date_from_bulk_upload_file_name(
             current_file_name
@@ -56,4 +56,3 @@ class MetadataGeneralPreprocessor(MetadataPreprocessorService):
         )
         logger.info(f"Finished processing, new file name is: {file_name}")
         return file_name
-

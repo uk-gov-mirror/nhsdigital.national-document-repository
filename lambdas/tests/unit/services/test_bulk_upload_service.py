@@ -73,7 +73,9 @@ def repo_with_review_enabled(set_env, mocker):
     mocker.patch("services.bulk_upload_service.BulkUploadDynamoRepository")
     mocker.patch("services.bulk_upload_service.BulkUploadSqsRepository")
     mocker.patch("services.bulk_upload_service.BulkUploadS3Repository")
-    mocker.patch("services.bulk_upload_service.allowed_to_ingest_ods_code", return_value=True)
+    mocker.patch(
+        "services.bulk_upload_service.allowed_to_ingest_ods_code", return_value=True
+    )
     service = BulkUploadService(
         strict_mode=True, bypass_pds=False, send_to_review_enabled=True
     )
@@ -1288,13 +1290,17 @@ def test_sends_to_review_queue_when_patient_not_found(
 
     repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
 
-    call_args = repo_with_review_enabled.sqs_repository.send_message_to_review_queue.call_args
+    call_args = (
+        repo_with_review_enabled.sqs_repository.send_message_to_review_queue.call_args
+    )
     staging_metadata_arg = call_args[1]["staging_metadata"]
 
     assert staging_metadata_arg.nhs_number == "0000000000"
     assert staging_metadata_arg.files == TEST_STAGING_METADATA.files
     assert call_args[1]["failure_reason"] == DocumentReviewReason.UNSUCCESSFUL_UPLOAD
-    assert call_args[1]["uploader_ods"] == TEST_STAGING_METADATA.files[0].gp_practice_code
+    assert (
+        call_args[1]["uploader_ods"] == TEST_STAGING_METADATA.files[0].gp_practice_code
+    )
 
 
 def test_sends_to_review_queue_when_invalid_files(
@@ -1357,4 +1363,3 @@ def test_does_not_send_to_review_queue_when_s3_file_not_found(
     repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
 
     repo_with_review_enabled.sqs_repository.send_message_to_review_queue.assert_not_called()
-

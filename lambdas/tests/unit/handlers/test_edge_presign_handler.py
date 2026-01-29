@@ -55,7 +55,10 @@ def test_lambda_handler_get_exception(valid_event, context, mock_edge_presign_se
     assert actual_response["message"] == "Client error"
     assert actual_response["err_code"] == "AB_XXXX"
 
-def test_lambda_handler_options_success(valid_event, context, mock_edge_presign_service):
+
+def test_lambda_handler_options_success(
+    valid_event, context, mock_edge_presign_service
+):
     valid_event["Records"][0]["cf"]["request"]["method"] = "OPTIONS"
 
     response = lambda_handler(valid_event, context)

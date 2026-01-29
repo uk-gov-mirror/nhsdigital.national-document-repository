@@ -1,5 +1,7 @@
+import json
 from typing import Dict, List, Optional
 
+from enums.snomed_codes import SnomedCodes
 from enums.supported_document_types import SupportedDocumentTypes
 from freezegun import freeze_time
 from models.document_reference import DocumentReference
@@ -11,8 +13,6 @@ from tests.unit.conftest import (
     TEST_UUID,
 )
 from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_SEARCH_RESPONSE
-from enums.snomed_codes import SnomedCodes
-import json
 
 
 def create_test_doc_store_refs():
@@ -123,6 +123,7 @@ def create_test_doc_refs_as_dict(
         for doc_ref in test_doc_refs
     ]
 
+
 def create_valid_fhir_doc_json(nhs_number: str = "9000000009"):
     return json.dumps(
         {
@@ -168,8 +169,6 @@ def create_valid_fhir_doc_json(nhs_number: str = "9000000009"):
                     }
                 }
             ],
-            "meta": {
-                "versionId": "1"
-            }
+            "meta": {"versionId": "1"},
         }
     )

@@ -5,7 +5,6 @@ import os
 
 import requests
 from syrupy.filters import paths
-
 from tests.e2e.conftest import (
     API_ENDPOINT,
     API_KEY,
@@ -85,7 +84,9 @@ def test_create_document_base64(test_data, snapshot_json):
     lloyd_george_record["id"] = upload_response["id"].split("~")[1]
     test_data.append(lloyd_george_record)
 
-    retrieve_url = f"https://{API_ENDPOINT}/FhirDocumentReference/{upload_response['id']}"
+    retrieve_url = (
+        f"https://{API_ENDPOINT}/FhirDocumentReference/{upload_response['id']}"
+    )
 
     def condition(response_json):
         logging.info(response_json)
@@ -96,14 +97,19 @@ def test_create_document_base64(test_data, snapshot_json):
 
     attachment_url = upload_response["content"][0]["attachment"]["url"]
     assert (
-            f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{LLOYD_GEORGE_SNOMED}~" in attachment_url
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{LLOYD_GEORGE_SNOMED}~"
+        in attachment_url
     )
 
     base64_data = retrieve_response["content"][0]["attachment"]["data"]
     assert base64.b64decode(base64_data, validate=True)
 
-    assert upload_response == snapshot_json(exclude=paths("id", "date", "content.0.attachment.url"))
-    assert retrieve_response == snapshot_json(exclude=paths("id", "date", "content.0.attachment.data"))
+    assert upload_response == snapshot_json(
+        exclude=paths("id", "date", "content.0.attachment.url")
+    )
+    assert retrieve_response == snapshot_json(
+        exclude=paths("id", "date", "content.0.attachment.data")
+    )
 
 
 def test_create_document_presign(test_data, snapshot_json):
@@ -128,7 +134,9 @@ def test_create_document_presign(test_data, snapshot_json):
         presign_response = requests.put(presign_uri, files=files)
         assert presign_response.status_code == 200
 
-    retrieve_url = f"https://{API_ENDPOINT}/FhirDocumentReference/{upload_response['id']}"
+    retrieve_url = (
+        f"https://{API_ENDPOINT}/FhirDocumentReference/{upload_response['id']}"
+    )
 
     def condition(response_json):
         logging.info(response_json)
@@ -144,7 +152,9 @@ def test_create_document_presign(test_data, snapshot_json):
 
     assert upload_response == snapshot_json(exclude=paths("id", "date"))
     assert retrieve_response == snapshot_json(
-        exclude=paths("id", "date", "content.0.attachment.url", "content.0.attachment.size")
+        exclude=paths(
+            "id", "date", "content.0.attachment.url", "content.0.attachment.size"
+        )
     )
 
 
@@ -155,7 +165,9 @@ def test_create_document_virus(test_data, snapshot_json):
     lloyd_george_record["nhs_number"] = "9730154260"
 
     # Attach EICAR data
-    eicar_string = r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    eicar_string = (
+        r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+    )
     lloyd_george_record["data"] = base64.b64encode(eicar_string.encode()).decode()
 
     payload = create_upload_payload(lloyd_george_record)
@@ -167,7 +179,9 @@ def test_create_document_virus(test_data, snapshot_json):
     lloyd_george_record["id"] = upload_response["id"].split("~")[1]
     test_data.append(lloyd_george_record)
 
-    retrieve_url = f"https://{API_ENDPOINT}/FhirDocumentReference/{upload_response['id']}"
+    retrieve_url = (
+        f"https://{API_ENDPOINT}/FhirDocumentReference/{upload_response['id']}"
+    )
 
     # Poll until processing/scan completes
     def condition(response_json):
@@ -180,7 +194,9 @@ def test_create_document_virus(test_data, snapshot_json):
     raw_retrieve_response = fetch_with_retry(retrieve_url, condition)
     retrieve_response = raw_retrieve_response.json()
 
-    assert upload_response == snapshot_json(exclude=paths("id", "date", "content.0.attachment.url"))
+    assert upload_response == snapshot_json(
+        exclude=paths("id", "date", "content.0.attachment.url")
+    )
     assert retrieve_response == snapshot_json(exclude=paths("id", "date"))
 
 

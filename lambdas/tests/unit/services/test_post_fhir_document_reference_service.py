@@ -208,7 +208,6 @@ def test_validation_error(
     assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
-
 @pytest.mark.parametrize(
     "nhs_number,expected_error_message",
     [
@@ -234,7 +233,9 @@ def test_doc_ref_no_parse_message_includes_details_format(
     invalid_nhs_doc_json = json.dumps(doc)
 
     with pytest.raises(DocumentRefException) as error:
-        mock_post_fhir_doc_ref_service.process_fhir_document_reference(invalid_nhs_doc_json)
+        mock_post_fhir_doc_ref_service.process_fhir_document_reference(
+            invalid_nhs_doc_json
+        )
 
     assert error.value.status_code == 400
     assert error.value.error == LambdaError.DocRefNoParse

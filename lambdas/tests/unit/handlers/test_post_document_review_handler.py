@@ -72,6 +72,7 @@ def valid_event():
     }
     yield event
 
+
 @pytest.fixture
 def invalid_event_missing_body():
     event = {
@@ -170,7 +171,10 @@ def test_lambda_handler_returns_400_invalid_event(
 
 
 def test_lambda_handler_returns_400_no_body_in_event(
-    invalid_event_missing_body, context, mock_upload_document_iteration_3_enabled, set_env
+    invalid_event_missing_body,
+    context,
+    mock_upload_document_iteration_3_enabled,
+    set_env,
 ):
     body = {
         "message": LambdaError.DocumentReviewInvalidBody.value["message"],

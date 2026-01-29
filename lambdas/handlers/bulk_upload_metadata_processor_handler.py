@@ -31,7 +31,9 @@ def lambda_handler(event, _context):
     ]
 
     if send_to_review_enabled:
-        logger.info("Bulk upload send to review queue is enabled for metadata processor")
+        logger.info(
+            "Bulk upload send to review queue is enabled for metadata processor"
+        )
 
     raw_pre_format_type = event.get(
         "preFormatType", LloydGeorgePreProcessFormat.GENERAL
@@ -67,8 +69,7 @@ def lambda_handler(event, _context):
     fixed_values = event.get("fixedValues", {})
 
     validator_service = MetadataMappingValidatorService()
-    validator_service.validate_fixed_values(
-        fixed_values, remappings)
+    validator_service.validate_fixed_values(fixed_values, remappings)
 
     metadata_service = BulkUploadMetadataProcessorService(
         metadata_formatter_service=metadata_formatter_service,

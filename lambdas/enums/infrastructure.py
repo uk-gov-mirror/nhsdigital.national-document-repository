@@ -1,5 +1,5 @@
 import os
-from enum import StrEnum, EnumMeta
+from enum import EnumMeta, StrEnum
 
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
@@ -23,7 +23,9 @@ class DynamoTables(StrEnum, metaclass=DynamoMeta):
     def __str__(self) -> str:
         workspace = os.getenv("WORKSPACE")
         if not workspace:
-            logger.error("No workspace environment variable found during table definition.")
+            logger.error(
+                "No workspace environment variable found during table definition."
+            )
             raise DocumentRefException(500, LambdaError.EnvMissing)
         return f"{workspace}_{self.value}"
 

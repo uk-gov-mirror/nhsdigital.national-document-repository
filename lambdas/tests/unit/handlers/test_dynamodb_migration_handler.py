@@ -1,31 +1,51 @@
 import pytest
-
 from handlers.migration_dynamodb_handler import (
-    lambda_handler,
     extract_table_info,
+    lambda_handler,
     validate_event_input,
 )
+
 
 @pytest.fixture
 def mock_validate_event_input(mocker):
     return mocker.patch(
         "handlers.migration_dynamodb_handler.validate_event_input",
-        return_value=(0, 10, "my_table", "dev", "eu-west-2", False, "scripts.my_script", "test-exec-id")
+        return_value=(
+            0,
+            10,
+            "my_table",
+            "dev",
+            "eu-west-2",
+            False,
+            "scripts.my_script",
+            "test-exec-id",
+        ),
     )
+
 
 @pytest.fixture
 def mock_service(mocker):
-    mock_class = mocker.patch("handlers.migration_dynamodb_handler.DynamoDBMigrationService")
+    mock_class = mocker.patch(
+        "handlers.migration_dynamodb_handler.DynamoDBMigrationService"
+    )
     instance = mock_class.return_value
     instance.execute_migration.return_value = {
         "segmentId": 0,
         "totalSegments": 10,
-        "status": "SUCCEEDED"
+        "status": "SUCCEEDED",
     }
     return instance
 
-def test_handler_calls_dependencies_and_returns_result(mock_validate_event_input, mock_service, context):
-    event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script", "executionId": "test-exec-id"}
+
+def test_handler_calls_dependencies_and_returns_result(
+    mock_validate_event_input, mock_service, context
+):
+    event = {
+        "segment": 0,
+        "totalSegments": 10,
+        "migrationScript": "scripts.my_script",
+        "executionId": "test-exec-id",
+    }
 
     result = lambda_handler(event, context)
 
@@ -33,16 +53,24 @@ def test_handler_calls_dependencies_and_returns_result(mock_validate_event_input
     mock_service.execute_migration.assert_called_once()
     assert result["status"] == "SUCCEEDED"
 
+
 def test_handler_catches_client_error(mocker, mock_validate_event_input, context):
     from botocore.exceptions import ClientError
 
-    mock_service_class = mocker.patch("handlers.migration_dynamodb_handler.DynamoDBMigrationService")
+    mock_service_class = mocker.patch(
+        "handlers.migration_dynamodb_handler.DynamoDBMigrationService"
+    )
     mock_instance = mock_service_class.return_value
     mock_instance.execute_migration.side_effect = ClientError(
         {"Error": {"Code": "AccessDeniedException", "Message": "Denied"}}, "Scan"
     )
 
-    event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script", "executionId": "test-exec-id"}
+    event = {
+        "segment": 0,
+        "totalSegments": 10,
+        "migrationScript": "scripts.my_script",
+        "executionId": "test-exec-id",
+    }
 
     with pytest.raises(ClientError):
         lambda_handler(event, context)
@@ -65,7 +93,7 @@ def test_validate_event_invalid_inputs_raise_valueerror(update, expected_message
         "tableName": "my_table",
         "environment": "dev",
         "migrationScript": "scripts.my_script",
-        "executionId": "test-exec-id"
+        "executionId": "test-exec-id",
     }
 
     event.update(update)
@@ -81,6 +109,7 @@ def test_validate_event_missing_required_field():
     with pytest.raises(ValueError) as exc:
         validate_event_input(event)
     assert "Missing required field" in str(exc.value)
+
 
 def test_extract_table_info_extract_arn():
     arn = "arn:aws:dynamodb:eu-west-2:123456789012:table/dev_MyTable"
@@ -112,6 +141,7 @@ def test_extract_table_info_invalid_arn_format():
     with pytest.raises(ValueError):
         extract_table_info(event)
 
+
 def test_extract_table_info_raises_valueerror():
     bad_arn = "arn:aws:dynamodb"
     event = {"tableArn": bad_arn}
@@ -127,7 +157,12 @@ def test_lambda_handler_catches_valueerror_exception(mocker, context):
     )
     mock_logger = mocker.patch("handlers.migration_dynamodb_handler.logger")
 
-    event = {"segment": 0, "totalSegments": 10, "migrationScript": "scripts.my_script", "executionId": "test-exec-id"}
+    event = {
+        "segment": 0,
+        "totalSegments": 10,
+        "migrationScript": "scripts.my_script",
+        "executionId": "test-exec-id",
+    }
 
     with pytest.raises(ValueError):
         lambda_handler(event, context)
@@ -135,6 +170,7 @@ def test_lambda_handler_catches_valueerror_exception(mocker, context):
     mock_logger.error.assert_any_call(
         "Unexpected error in dynamodb_migration_handler: bad event", exc_info=True
     )
+
 
 def test_validate_event_input_run_migration_true(mocker):
     event = {
@@ -144,10 +180,11 @@ def test_validate_event_input_run_migration_true(mocker):
         "environment": "dev",
         "migrationScript": "scripts.my_script",
         "executionId": "test-exec-id",
-        "runMigration": True
+        "runMigration": True,
     }
     result = validate_event_input(event)
     assert result[5] is True  # run_migration
+
 
 def test_validate_event_input_region_extracted_from_arn(mocker):
     event = {
@@ -155,16 +192,18 @@ def test_validate_event_input_region_extracted_from_arn(mocker):
         "totalSegments": 10,
         "tableArn": "arn:aws:dynamodb:eu-west-2:123456789012:table/dev_MyTable",
         "migrationScript": "scripts.my_script",
-        "executionId": "test-exec-id"
+        "executionId": "test-exec-id",
     }
     result = validate_event_input(event)
     assert result[4] == "eu-west-2"
+
 
 def test_extract_table_info_invalid_arn_prefix():
     event = {"tableArn": "invalid-arn"}
     with pytest.raises(ValueError) as exc:
         extract_table_info(event)
     assert "Invalid DynamoDB ARN format" in str(exc.value)
+
 
 def test_extract_table_info_unable_to_parse_arn():
     event = {"tableArn": "arn:aws:dynamodb:eu-west-2:bad"}
@@ -174,26 +213,30 @@ def test_extract_table_info_unable_to_parse_arn():
     assert environment == "unknown"
     assert region == "eu-west-2"
 
+
 def test_validate_event_input_missing_execution_id():
     event = {
         "segment": 0,
         "totalSegments": 10,
         "tableName": "my_table",
         "environment": "dev",
-        "migrationScript": "scripts.my_script"
+        "migrationScript": "scripts.my_script",
     }
     with pytest.raises(ValueError) as exc:
         validate_event_input(event)
     assert "Missing required field: 'executionId' in event" in str(exc.value)
+
 
 def test_validate_event_input_missing_table_info():
     event = {
         "segment": 0,
         "totalSegments": 10,
         "migrationScript": "scripts.my_script",
-        "executionId": "test-exec-id"
+        "executionId": "test-exec-id",
     }
     with pytest.raises(ValueError) as exc:
         validate_event_input(event)
-    assert "Event must include either 'tableArn' or both 'tableName' and 'environment'" in str(exc.value)
-
+    assert (
+        "Event must include either 'tableArn' or both 'tableName' and 'environment'"
+        in str(exc.value)
+    )

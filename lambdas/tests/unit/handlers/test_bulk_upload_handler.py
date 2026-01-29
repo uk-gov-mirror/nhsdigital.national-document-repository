@@ -60,7 +60,9 @@ def test_lambda_handler_handles_bulk_upload_exception(
     set_env,
     mock_validation_strict_and_bulk_upload_send_to_review_disabled,
 ):
-    mock_bulk_upload_service_instance.process_message_queue.side_effect = BulkUploadException()
+    mock_bulk_upload_service_instance.process_message_queue.side_effect = (
+        BulkUploadException()
+    )
 
     response = lambda_handler(TEST_EVENT_WITH_SQS_MESSAGES, context)
 
@@ -154,4 +156,3 @@ def test_lambda_handler_instantiates_service_with_bypass_pds_enabled(
     mock_bulk_upload_service_class.assert_called_once_with(
         strict_mode=False, bypass_pds=True, send_to_review_enabled=False
     )
-

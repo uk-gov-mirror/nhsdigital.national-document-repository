@@ -15,7 +15,7 @@ def lambda_handler(event, context):
     logger.info("Edge received S3 request")
     logger.info(f"Request: {request}")
 
-    if request['method'] == 'OPTIONS':
+    if request["method"] == "OPTIONS":
         logger.info("Edge received OPTIONS request, forwarding without modification")
         return request
 

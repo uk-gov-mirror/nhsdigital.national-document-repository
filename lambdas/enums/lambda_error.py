@@ -5,6 +5,7 @@ from enums.fhir.fhir_issue_type import FhirIssueCoding, UKCoreSpineError
 from utils.error_response import ErrorResponse
 from utils.request_context import request_context
 
+
 class ErrorMessage(StrEnum):
     MISSING_POST = "Missing POST request body"
     MISSING_KEY = "An error occurred due to missing key"
@@ -13,6 +14,7 @@ class ErrorMessage(StrEnum):
     FAILED_TO_VALIDATE = "Failed to validate data"
     FAILED_TO_UPDATE_DYNAMO = "Failed to update DynamoDB"
     FAILED_TO_CREATE_TRANSACTION = "Failed to create transaction"
+
 
 class LambdaError(Enum):
 
@@ -345,10 +347,7 @@ class LambdaError(Enum):
         "err_code": "DDS_4002",
         "message": "Failed to delete document object",
     }
-    DocDelInvalidRequest = {
-        "err_code": "DDS_4003",
-        "message": "Invalid Request"
-    }
+    DocDelInvalidRequest = {"err_code": "DDS_4003", "message": "Invalid Request"}
     DocDelClient = {
         "err_code": "DDS_5001",
         "message": "Failed to delete documents",
@@ -580,10 +579,7 @@ class LambdaError(Enum):
         "message": "Invalid query string passed",
     }
 
-    DocumentReviewUploadForbidden = {
-        "err_code": "UDR_4031",
-        "message": "Forbidden"
-    }
+    DocumentReviewUploadForbidden = {"err_code": "UDR_4031", "message": "Forbidden"}
 
     DocumentReviewPresignedFailure = {
         "err_code": "UDR_5003",

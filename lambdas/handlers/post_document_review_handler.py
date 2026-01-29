@@ -10,7 +10,7 @@ from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.set_audit_arg import set_request_context_for_logging
-from utils.exceptions import InvalidNhsNumberException, InvalidFileTypeException
+from utils.exceptions import InvalidFileTypeException, InvalidNhsNumberException
 from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_response import ApiGatewayResponse
 
@@ -37,9 +37,7 @@ def lambda_handler(event, context):
         validated_event_body = validate_event_body(event["body"])
     except KeyError as e:
         logger.error(e)
-        raise DocumentReviewLambdaException(
-            400, LambdaError.DocumentReviewInvalidBody
-        )
+        raise DocumentReviewLambdaException(400, LambdaError.DocumentReviewInvalidBody)
 
     post_document_review_service = PostDocumentReviewService()
     logger.info(f"Processing event: {event}.")
@@ -57,9 +55,7 @@ def validate_event_body(body):
         return event_body
     except (ValidationError, InvalidNhsNumberException) as e:
         logger.error(e)
-        raise DocumentReviewLambdaException(
-            400, LambdaError.DocumentReviewInvalidBody
-        )
+        raise DocumentReviewLambdaException(400, LambdaError.DocumentReviewInvalidBody)
     except InvalidFileTypeException as e:
         logger.error(e)
         raise DocumentReviewLambdaException(

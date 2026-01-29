@@ -2,7 +2,6 @@ import os
 
 from botocore.exceptions import ClientError
 from enums.death_notification_status import DeathNotificationStatus
-from enums.feature_flags import FeatureFlags
 from enums.mns_notification_types import MNSNotificationTypes
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from models.document_reference import DocumentReference
@@ -140,4 +139,3 @@ class MNSNotificationService:
             self.document_review_service.update_document_review_custodian(
                 review_documents, updated_ods_code
             )
-

@@ -12,7 +12,6 @@ from utils.exceptions import AuthorisationException, OidcApiException
 from utils.lambda_exceptions import DocumentRefSearchException
 from utils.lambda_handler_utils import extract_bearer_token
 
-
 MOCK_DOCUMENT_REFERENCE_RESULT = {
     "entry": [
         {

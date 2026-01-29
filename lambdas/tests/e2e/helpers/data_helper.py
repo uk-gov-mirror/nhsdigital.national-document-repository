@@ -6,18 +6,17 @@ import uuid
 
 import boto3
 from enums.snomed_codes import SnomedCodes
-
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 
 
 class DataHelper:
     def __init__(
-            self,
-            table_name: str,
-            bucket_name: str,
-            snomed_code: str,
-            record_type: str,
+        self,
+        table_name: str,
+        bucket_name: str,
+        snomed_code: str,
+        record_type: str,
     ):
         self.workspace = os.environ.get("AWS_WORKSPACE", "")
         self.dynamo_table = None
@@ -43,7 +42,9 @@ class DataHelper:
             "ndr-test": "internal-qa.api.service.nhs.uk",
             "ndr-dev": "internal-dev.api.service.nhs.uk",
         }
-        self.apim_url = apim_map.get(str(self.workspace), "internal-dev.api.service.nhs.uk")
+        self.apim_url = apim_map.get(
+            str(self.workspace), "internal-dev.api.service.nhs.uk"
+        )
 
         domain = (
             "national-document-repository.nhs.uk"
@@ -52,13 +53,16 @@ class DataHelper:
         )
 
         self.api_endpoint = (
-            f"api.{self.workspace}.{domain}" if self.workspace in {"pre-prod",
-                                                                   "ndr-test"} else f"api-{self.workspace}.{domain}"
+            f"api.{self.workspace}.{domain}"
+            if self.workspace in {"pre-prod", "ndr-test"}
+            else f"api-{self.workspace}.{domain}"
         )
 
         self.mtls_endpoint = f"mtls.{self.workspace}.{domain}"
 
-    def build_record(self, nhs_number="9912003071", data=None, doc_status=None, size=None):
+    def build_record(
+        self, nhs_number="9912003071", data=None, doc_status=None, size=None
+    ):
         record = {
             "id": str(uuid.uuid4()),
             "nhs_number": nhs_number,
@@ -103,7 +107,9 @@ class DataHelper:
         )
 
     def retrieve_document_reference(self, record):
-        return self.dynamo_service.get_item(table_name=self.dynamo_table, key={"ID": record["id"]})
+        return self.dynamo_service.get_item(
+            table_name=self.dynamo_table, key={"ID": record["id"]}
+        )
 
     def create_upload_payload(self, record, exclude=[], return_json=False):
         """Helper to build DocumentReference payload."""
@@ -221,7 +227,9 @@ class LloydGeorgeDataHelper(DataHelper):
     def build_env(self, table_name, bucket_name):
         super().build_env(table_name, bucket_name)
         self.bulk_upload_table = f"{self.workspace}_{self.bulk_upload_table_name}"
-        self.metadata_processor_lambda = f"{self.workspace}_{self.metadata_processor_lambda_name}"
+        self.metadata_processor_lambda = (
+            f"{self.workspace}_{self.metadata_processor_lambda_name}"
+        )
         self.unstitched_table = f"{self.workspace}_{self.unstitched_table_name}"
         self.staging_bucket = f"{self.workspace}-{self.staging_bucket}"
 
@@ -234,7 +242,9 @@ class LloydGeorgeDataHelper(DataHelper):
     def run_bulk_upload(self, payload):
         payload = json.dumps(payload)
         response = self.lambda_client.invoke(
-            FunctionName=self.metadata_processor_lambda, InvocationType="RequestResponse", Payload=payload
+            FunctionName=self.metadata_processor_lambda,
+            InvocationType="RequestResponse",
+            Payload=payload,
         )
         return response
 
@@ -263,7 +273,9 @@ class LloydGeorgeDataHelper(DataHelper):
         s3_client = boto3.client("s3")
         try:
             if version_id:
-                _ = s3_client.head_object(Bucket=self.s3_bucket, Key=key, VersionId=version_id)
+                _ = s3_client.head_object(
+                    Bucket=self.s3_bucket, Key=key, VersionId=version_id
+                )
             else:
                 _ = s3_client.head_object(Bucket=self.s3_bucket, Key=key)
             return True

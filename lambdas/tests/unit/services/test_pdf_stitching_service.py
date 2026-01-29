@@ -8,18 +8,15 @@ from random import shuffle
 from unittest.mock import call
 
 import pytest
-from freezegun.api import freeze_time
-from pypdf import PdfReader, PdfWriter
-
-import lambdas.services.pdf_stitching_service as pdf_service_mod
 from enums.lambda_error import LambdaError
-from enums.supported_document_types import SupportedDocumentTypes
-from enums.snomed_codes import SnomedCodes
 from enums.nrl_sqs_upload import NrlActionTypes
-from lambdas.services.pdf_stitching_service import PdfStitchingService
+from enums.snomed_codes import SnomedCodes
+from enums.supported_document_types import SupportedDocumentTypes
+from freezegun.api import freeze_time
 from models.fhir.R4.fhir_document_reference import Attachment
 from models.sqs.nrl_sqs_message import NrlSqsMessage
 from models.sqs.pdf_stitching_sqs_message import PdfStitchingSqsMessage
+from pypdf import PdfReader, PdfWriter
 from tests.unit.conftest import (
     MOCK_CLIENT_ERROR,
     MOCK_LG_BUCKET,
@@ -35,6 +32,9 @@ from tests.unit.helpers.data.test_documents import (
     create_test_lloyd_george_doc_store_refs,
 )
 from utils.lambda_exceptions import PdfStitchingException
+
+import lambdas.services.pdf_stitching_service as pdf_service_mod
+from lambdas.services.pdf_stitching_service import PdfStitchingService
 
 TEST_DOCUMENT_REFERENCES = create_test_lloyd_george_doc_store_refs()
 TEST_1_OF_1_DOCUMENT_REFERENCE = create_singular_test_lloyd_george_doc_store_ref()
@@ -142,6 +142,7 @@ def mock_download_fileobj():
         Fileobj.seek(0)
 
     return _mock_download_fileobj
+
 
 @pytest.mark.parametrize(
     "doc_type",
@@ -251,7 +252,9 @@ def test_process_message_handles_singular_or_none_references(
 
 
 def test_process_message_raises_for_non_lg(mock_service):
-    non_lg = next(code for code in SnomedCodes if code != SnomedCodes.LLOYD_GEORGE).value
+    non_lg = next(
+        code for code in SnomedCodes if code != SnomedCodes.LLOYD_GEORGE
+    ).value
 
     msg = PdfStitchingSqsMessage(
         nhs_number=TEST_NHS_NUMBER,
@@ -263,7 +266,6 @@ def test_process_message_raises_for_non_lg(mock_service):
 
     assert e.value.status_code == 400
     assert e.value.error is LambdaError.StitchError
-
 
 
 @freeze_time("2025-01-01 12:00:00")
@@ -292,7 +294,9 @@ def test_create_stitched_reference(mock_service, mock_uuid, document_reference):
     assert actual.content_type == "application/pdf"
     assert actual.created == "2024-01-01T12:00:00.000000Z"
     assert actual.deleted is None
-    assert actual.file_location == f"s3://{MOCK_LG_BUCKET}/{TEST_NHS_NUMBER}/{TEST_UUID}"
+    assert (
+        actual.file_location == f"s3://{MOCK_LG_BUCKET}/{TEST_NHS_NUMBER}/{TEST_UUID}"
+    )
     assert (
         actual.file_name
         == "1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000009]_[30-12-2019].pdf"
@@ -428,7 +432,9 @@ def test_migrate_multipart_references(mock_service):
     mock_service.dynamo_service.delete_item.assert_has_calls(expected_delete_calls)
 
 
-def test_migrate_multipart_references_handles_client_error_on_create(mock_service, caplog):
+def test_migrate_multipart_references_handles_client_error_on_create(
+    mock_service, caplog
+):
     mock_service.multipart_references = TEST_DOCUMENT_REFERENCES
     mock_service.dynamo_service.create_item.side_effect = MOCK_CLIENT_ERROR
 
@@ -439,7 +445,9 @@ def test_migrate_multipart_references_handles_client_error_on_create(mock_servic
     assert e.value.error is LambdaError.MultipartError
 
 
-def test_migrate_multipart_references_handles_client_error_on_delete(mock_service, caplog):
+def test_migrate_multipart_references_handles_client_error_on_delete(
+    mock_service, caplog
+):
     mock_service.multipart_references = TEST_DOCUMENT_REFERENCES
     mock_service.dynamo_service.delete_item.side_effect = MOCK_CLIENT_ERROR
 
@@ -495,7 +503,9 @@ def test_publish_nrl_message(mock_service, mock_uuid):
         attachment=expected_apim_attachment,
     )
 
-    mock_service.publish_nrl_message(snomed_code_doc_type=SnomedCodes.LLOYD_GEORGE.value)
+    mock_service.publish_nrl_message(
+        snomed_code_doc_type=SnomedCodes.LLOYD_GEORGE.value
+    )
 
     mock_service.sqs_service.send_message_fifo.assert_called_once_with(
         queue_url="https://test-queue.com",
@@ -509,7 +519,9 @@ def test_publish_nrl_message_handles_client_error(mock_service):
     mock_service.sqs_service.send_message_fifo.side_effect = MOCK_CLIENT_ERROR
 
     with pytest.raises(PdfStitchingException):
-        mock_service.publish_nrl_message(snomed_code_doc_type=SnomedCodes.LLOYD_GEORGE.value)
+        mock_service.publish_nrl_message(
+            snomed_code_doc_type=SnomedCodes.LLOYD_GEORGE.value
+        )
 
 
 def test_sort_multipart_object_keys_sorts_references_and_returns_keys(mock_service):
@@ -611,7 +623,9 @@ def test_update_stitched_reference_with_version_id(mock_service):
     assert mock_service.stitched_reference.s3_version_id == test_version_id
 
 
-def test_process_manual_trigger_calls_process_message_for_each_nhs_number(mocker, mock_service):
+def test_process_manual_trigger_calls_process_message_for_each_nhs_number(
+    mocker, mock_service
+):
     test_ods_code = "A12345"
     test_nhs_numbers = ["1234567890", "9876543210"]
 
@@ -629,23 +643,32 @@ def test_process_manual_trigger_calls_process_message_for_each_nhs_number(mocker
     mock_get_nhs_numbers.assert_called_once_with(ods_code=test_ods_code)
     assert mock_send_message.call_count == 1
 
-def test_calculate_created_date_returns_now_when_no_created_values(mock_service, patch_pdf_stitching_service_datetime):
+
+def test_calculate_created_date_returns_now_when_no_created_values(
+    mock_service, patch_pdf_stitching_service_datetime
+):
     mock_service.multipart_references = copy.deepcopy(TEST_DOCUMENT_REFERENCES)
     for r in mock_service.multipart_references:
         r.created = None
 
     actual = mock_service.calculate_created_date()
-    assert actual == patch_pdf_stitching_service_datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    assert actual == patch_pdf_stitching_service_datetime.strftime(
+        "%Y-%m-%dT%H:%M:%S.%fZ"
+    )
 
 
-def test_calculate_created_date_returns_now_when_all_created_invalid(mock_service, patch_pdf_stitching_service_datetime):
+def test_calculate_created_date_returns_now_when_all_created_invalid(
+    mock_service, patch_pdf_stitching_service_datetime
+):
     mock_service.multipart_references = copy.deepcopy(TEST_DOCUMENT_REFERENCES)
     mock_service.multipart_references[0].created = "not-a-date"
     mock_service.multipart_references[1].created = "also-bad"
     mock_service.multipart_references[2].created = "2024/01/01"
 
     actual = mock_service.calculate_created_date()
-    assert actual == patch_pdf_stitching_service_datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    assert actual == patch_pdf_stitching_service_datetime.strftime(
+        "%Y-%m-%dT%H:%M:%S.%fZ"
+    )
 
 
 def test_calculate_created_date_returns_min_valid_date_ignoring_invalid(mock_service):
@@ -658,21 +681,28 @@ def test_calculate_created_date_returns_min_valid_date_ignoring_invalid(mock_ser
     assert actual == "2024-01-02T12:00:00.000000Z"
 
 
-def test_retrieve_multipart_references_returns_empty_if_any_1of1_present_for_lg(mock_service):
+def test_retrieve_multipart_references_returns_empty_if_any_1of1_present_for_lg(
+    mock_service,
+):
     # Ensure we cover the "any('1of1' in file_name)" check with mixed refs
     mixed = copy.deepcopy(TEST_DOCUMENT_REFERENCES)
     mixed[0].file_name = "2of3_something.pdf"
     mixed[1].file_name = "1of1_already-stitched.pdf"
     mixed[2].file_name = "3of3_something.pdf"
 
-    mock_service.document_service.fetch_available_document_references_by_type.return_value = mixed
+    mock_service.document_service.fetch_available_document_references_by_type.return_value = (
+        mixed
+    )
 
     actual = mock_service.retrieve_multipart_references(
         nhs_number=TEST_NHS_NUMBER, doc_type=SupportedDocumentTypes.LG
     )
     assert actual == []
 
-def test_process_stitching_raises_pdf_stitching_exception_on_s3_client_error(mock_service):
+
+def test_process_stitching_raises_pdf_stitching_exception_on_s3_client_error(
+    mock_service,
+):
     mock_service.s3_service.client.download_fileobj.side_effect = MOCK_CLIENT_ERROR
 
     with pytest.raises(PdfStitchingException) as e:
@@ -681,7 +711,10 @@ def test_process_stitching_raises_pdf_stitching_exception_on_s3_client_error(moc
     assert e.value.status_code == 400
     assert e.value.error is LambdaError.StitchError
 
-def test_upload_stitched_file_raises_pdf_stitching_exception_on_s3_client_error(mock_service):
+
+def test_upload_stitched_file_raises_pdf_stitching_exception_on_s3_client_error(
+    mock_service,
+):
     mock_service.stitched_reference = copy.deepcopy(TEST_1_OF_1_DOCUMENT_REFERENCE)
     mock_service.stitched_reference.s3_file_key = f"{TEST_NHS_NUMBER}/stitched-key"
 
@@ -711,7 +744,9 @@ def test_process_message_rolls_back_if_upload_fails(
 
     test_stream = BytesIO(b"x")
     mock_retrieve_multipart_references.return_value = TEST_DOCUMENT_REFERENCES
-    mock_sort_multipart_object_keys.return_value = [r.s3_file_key for r in TEST_DOCUMENT_REFERENCES]
+    mock_sort_multipart_object_keys.return_value = [
+        r.s3_file_key for r in TEST_DOCUMENT_REFERENCES
+    ]
     mock_process_stitching.return_value = test_stream
 
     def set_stitched_reference(document_reference, stitch_file_size, *args, **kwargs):
@@ -720,7 +755,9 @@ def test_process_message_rolls_back_if_upload_fails(
         mock_service.stitched_reference = copied_ref
 
     mock_create_stitched_reference.side_effect = set_stitched_reference
-    mock_upload_stitched_file.side_effect = PdfStitchingException(400, LambdaError.StitchError)
+    mock_upload_stitched_file.side_effect = PdfStitchingException(
+        400, LambdaError.StitchError
+    )
 
     with pytest.raises(PdfStitchingException):
         mock_service.process_message(msg)
@@ -743,7 +780,9 @@ def test_process_manual_trigger_returns_early_if_no_nhs_numbers(mock_service, mo
     mock_send_batch.assert_not_called()
 
 
-def test_process_manual_trigger_logs_error_when_batch_has_failures(mock_service, mocker, caplog):
+def test_process_manual_trigger_logs_error_when_batch_has_failures(
+    mock_service, mocker, caplog
+):
     test_nhs_numbers = ["1234567890"]
     mocker.patch.object(
         mock_service.document_service,

@@ -55,21 +55,21 @@ LG_FILE_LIST = [
         "contentType": "application/pdf",
         "docType": "16521000000101",
         "clientId": "uuid1",
-        "versionId": "1"
+        "versionId": "1",
     },
     {
         "fileName": f"2of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
         "contentType": "application/pdf",
         "docType": "16521000000101",
         "clientId": "uuid2",
-        "versionId": "2"
+        "versionId": "2",
     },
     {
         "fileName": f"3of3_Lloyd_George_Record_[Joe Bloggs]_[{TEST_NHS_NUMBER}]_[25-12-2019].pdf",
         "contentType": "application/pdf",
         "docType": "16521000000101",
         "clientId": "uuid3",
-        "versionId": "3"
+        "versionId": "3",
     },
 ]
 
@@ -78,7 +78,7 @@ LG_FILE = {
     "contentType": "application/pdf",
     "docType": "16521000000101",
     "clientId": "uuid1",
-    "versionId": "1"
+    "versionId": "1",
 }
 
 PARSED_LG_FILE_LIST = [
@@ -87,7 +87,7 @@ PARSED_LG_FILE_LIST = [
         content_type="application/pdf",
         doc_type="16521000000101",
         client_id=f"uuid{i}",
-        version_id=f"{i}"
+        version_id=f"{i}",
     )
     for i in [1, 2, 3]
 ]

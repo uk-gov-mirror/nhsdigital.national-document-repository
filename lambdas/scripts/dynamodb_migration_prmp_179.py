@@ -1,10 +1,13 @@
 from typing import Callable, Iterable
 
-from utils.exceptions import MigrationUnrecoverableException, MigrationRetryableException
 from scripts.MigrationBase import MigrationBase
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
+from utils.exceptions import (
+    MigrationRetryableException,
+    MigrationUnrecoverableException,
+)
 
 
 class S3MetadataMigration(MigrationBase):
@@ -70,18 +73,24 @@ class S3MetadataMigration(MigrationBase):
         file_location = entry.get("FileLocation")
         if not file_location:
             self.logger.warning(f"Missing FileLocation for entry: {entry.get('ID')}")
-            raise MigrationUnrecoverableException(message="Missing FileLocation", item_id=entry.get("ID"))
+            raise MigrationUnrecoverableException(
+                message="Missing FileLocation", item_id=entry.get("ID")
+            )
 
         parsed = self.parse_s3_path(file_location)
         if not parsed:
             self.logger.warning(f"Invalid S3 path format: {file_location}")
-            raise MigrationUnrecoverableException(message="Invalid S3 path format", item_id=entry.get("ID"))
+            raise MigrationUnrecoverableException(
+                message="Invalid S3 path format", item_id=entry.get("ID")
+            )
 
         s3_bucket, s3_key = parsed
         metadata = self.get_s3_metadata(s3_bucket, s3_key)
         if not metadata:
             self.logger.warning(f"Could not retrieve S3 metadata for key: {s3_key}")
-            raise MigrationUnrecoverableException(message="Could not retrieve S3 metadata", item_id=entry.get("ID"))
+            raise MigrationUnrecoverableException(
+                message="Could not retrieve S3 metadata", item_id=entry.get("ID")
+            )
 
         content_length, version_id = metadata
         updated_fields = {}
@@ -117,5 +126,7 @@ class S3MetadataMigration(MigrationBase):
                 return s3_head.get("ContentLength"), s3_head.get("VersionId")
         except Exception as e:
             self.logger.error(f"Failed to retrieve S3 metadata for {key}: {e}")
-            raise MigrationUnrecoverableException(message="Failed to retrieve S3 metadata", item_id=key)
+            raise MigrationUnrecoverableException(
+                message="Failed to retrieve S3 metadata", item_id=key
+            )
         return None

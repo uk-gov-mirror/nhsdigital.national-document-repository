@@ -9,7 +9,11 @@ from models.document_review import (
 from models.pds_models import PatientDetails
 from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
 from services.document_review_processor_service import ReviewProcessorService
-from utils.exceptions import PdsErrorException, InvalidResourceIdException, PatientNotFoundException
+from utils.exceptions import (
+    InvalidResourceIdException,
+    PatientNotFoundException,
+    PdsErrorException,
+)
 
 
 @pytest.fixture
@@ -412,6 +416,7 @@ def test_workflow_handles_multiple_different_patients(service_under_test):
     )
     assert service_under_test.s3_service.copy_across_bucket.call_count == 3
 
+
 def test_get_patient_custodian_returns_gp_ods_from_pds(
     service_under_test, sample_review_message, mock_pds_service
 ):
@@ -427,9 +432,7 @@ def test_get_patient_custodian_returns_uploader_ods_when_nhs_number_is_none(
     message = ReviewMessageBody(
         upload_id="test-upload-id",
         files=[
-            ReviewMessageFile(
-                file_name="test.pdf", file_path="staging/test/test.pdf"
-            )
+            ReviewMessageFile(file_name="test.pdf", file_path="staging/test/test.pdf")
         ],
         nhs_number="",
         failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
@@ -448,9 +451,7 @@ def test_get_patient_custodian_returns_uploader_ods_when_nhs_number_is_placehold
     message = ReviewMessageBody(
         upload_id="test-upload-id",
         files=[
-            ReviewMessageFile(
-                file_name="test.pdf", file_path="staging/test/test.pdf"
-            )
+            ReviewMessageFile(file_name="test.pdf", file_path="staging/test/test.pdf")
         ],
         nhs_number="0000000000",
         failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
@@ -500,5 +501,3 @@ def test_get_patient_custodian_handles_patient_not_found_sets_placeholder(
 
     assert result == "Y12345"
     assert sample_review_message.nhs_number == "0000000000"
-
-

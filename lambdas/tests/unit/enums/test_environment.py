@@ -1,5 +1,4 @@
 import pytest
-
 from enums.environment import Environment
 
 

@@ -9,8 +9,12 @@ from models.document_review import (
 from services.base.s3_service import S3Service
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
-from utils.exceptions import PdsErrorException, DocumentReviewException, InvalidResourceIdException, \
-    PatientNotFoundException
+from utils.exceptions import (
+    DocumentReviewException,
+    InvalidResourceIdException,
+    PatientNotFoundException,
+    PdsErrorException,
+)
 from utils.lambda_exceptions import UpdateDocumentReviewException
 from utils.ods_utils import PCSE_ODS_CODE
 from utils.utilities import get_pds_service
@@ -67,7 +71,9 @@ class UpdateDocumentReviewService:
                 f"Successfully updated document review for document_id: {document_id}"
             )
         except DocumentReviewException:
-            raise UpdateDocumentReviewException(400, LambdaError.DocumentReviewGeneralError)
+            raise UpdateDocumentReviewException(
+                400, LambdaError.DocumentReviewGeneralError
+            )
 
     def _fetch_document(self, document_id: str, document_version: int):
         review_document = self.document_review_service.get_document_review_by_id(
@@ -79,9 +85,7 @@ class UpdateDocumentReviewService:
                 f"Document review not found for document_id: {document_id}",
                 {"Result": self.FAILED_LOG_MESSAGE},
             )
-            raise UpdateDocumentReviewException(
-                404, LambdaError.DocumentReviewNotFound
-            )
+            raise UpdateDocumentReviewException(404, LambdaError.DocumentReviewNotFound)
 
         return review_document
 
@@ -217,7 +221,11 @@ class UpdateDocumentReviewService:
             pds_service = get_pds_service()
             patient_details = pds_service.fetch_patient_details(patient_nhs_number)
             return patient_details.general_practice_ods
-        except (PdsErrorException, PatientNotFoundException, InvalidResourceIdException):
+        except (
+            PdsErrorException,
+            PatientNotFoundException,
+            InvalidResourceIdException,
+        ):
             logger.error(
                 f"Failed to fetch patient details for NHS number: {patient_nhs_number}"
             )

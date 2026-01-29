@@ -14,11 +14,11 @@ from models.document_reference import DocumentReference
 from tests.unit.conftest import TEST_UUID
 from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_SEARCH_RESPONSE
 from utils.exceptions import OidcApiException
-from utils.lambda_handler_utils import extract_bearer_token
 from utils.lambda_exceptions import (
     GetFhirDocumentReferenceException,
     SearchPatientException,
 )
+from utils.lambda_handler_utils import extract_bearer_token
 
 SNOMED_CODE = SnomedCodes.LLOYD_GEORGE.value.code
 

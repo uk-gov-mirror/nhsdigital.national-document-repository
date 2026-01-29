@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
 import boto3
 
@@ -42,7 +42,9 @@ def empty_table(table_name):
 
     # Continue if paginated
     while "LastEvaluatedKey" in response:
-        response = table.scan(ProjectionExpression="ID", ExclusiveStartKey=response["LastEvaluatedKey"])
+        response = table.scan(
+            ProjectionExpression="ID", ExclusiveStartKey=response["LastEvaluatedKey"]
+        )
         items = response.get("Items", [])
         with table.batch_writer() as batch:
             for item in items:

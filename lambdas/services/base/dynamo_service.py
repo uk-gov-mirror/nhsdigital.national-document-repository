@@ -460,11 +460,11 @@ class DynamoDBService:
                 "MaxItems": limit,
                 "PageSize": page_size,
             }
-            
+
             # Only include StartingToken if start_key is not None or empty
             if start_key:
                 pagination_config["StartingToken"] = start_key
-            
+
             query_params = {
                 "TableName": table_name,
                 "IndexName": index_name,

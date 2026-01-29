@@ -42,8 +42,8 @@ def lambda_handler(event, context):
         logger.error(f"Error processing FHIR document reference: {str(exception)}")
         return ApiGatewayResponse(
             status_code=exception.status_code,
-            body=exception.error.create_error_response(details=exception.details).create_error_fhir_response(
-                exception.error.value.get("fhir_coding")
-            ),
+            body=exception.error.create_error_response(
+                details=exception.details
+            ).create_error_fhir_response(exception.error.value.get("fhir_coding")),
             methods="POST",
         ).create_api_gateway_response()

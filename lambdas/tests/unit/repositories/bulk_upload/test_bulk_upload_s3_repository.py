@@ -213,7 +213,12 @@ def test_check_pdf_integrity_raises_S3FileNotFoundException_when_file_not_found(
     repo_under_test, set_env, mock_file_path_cache
 ):
     mock_s3_exception = ClientError(
-        {"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}},
+        {
+            "Error": {
+                "Code": "NoSuchKey",
+                "Message": "The specified key does not exist.",
+            }
+        },
         "GetObject",
     )
 

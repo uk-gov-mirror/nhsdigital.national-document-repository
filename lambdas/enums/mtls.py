@@ -1,11 +1,10 @@
-import boto3
 import json
-
 from enum import StrEnum, auto
 from functools import lru_cache
 
-from enums.lambda_error import LambdaError
+import boto3
 from enums.environment import Environment
+from enums.lambda_error import LambdaError
 from utils.audit_logging_setup import LoggingService
 from utils.lambda_exceptions import InvalidDocTypeException
 

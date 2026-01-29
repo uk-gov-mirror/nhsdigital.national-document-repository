@@ -28,9 +28,8 @@ def calculate_reporting_window():
         int(today_7am.timestamp()),
     )
 
-@ensure_environment_variables(
-    names=["BULK_UPLOAD_REPORT_TABLE_NAME"]
-)
+
+@ensure_environment_variables(names=["BULK_UPLOAD_REPORT_TABLE_NAME"])
 @override_error_check
 @handle_lambda_exceptions
 @set_request_context_for_logging

@@ -2,7 +2,6 @@ import json
 import os
 
 import boto3
-
 from utils.audit_logging_setup import LoggingService
 
 logger = LoggingService(__name__)
@@ -15,6 +14,7 @@ def response(message: str):
         "statusCode": 200,
         "body": json.dumps({"message": message}),
     }
+
 
 class ExpediteKillSwitchService:
     def __init__(self):
@@ -124,9 +124,8 @@ class ExpediteKillSwitchService:
             return False
 
         quarantine_prefix = f"{self.staging_bucket}/expedite/"
-        return (
-                bucket.startswith("cloudstoragesecquarantine-")
-                and key.startswith(quarantine_prefix)
+        return bucket.startswith("cloudstoragesecquarantine-") and key.startswith(
+            quarantine_prefix
         )
 
     def get_transfer_server_id(self) -> str:

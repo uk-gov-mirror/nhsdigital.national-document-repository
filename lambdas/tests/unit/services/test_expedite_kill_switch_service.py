@@ -1,9 +1,9 @@
 import json
-import pytest
 
+import pytest
 from services.expedite_transfer_family_kill_switch_service import (
-    ExpediteKillSwitchService,
     EXPECTED_SCAN_RESULTS,
+    ExpediteKillSwitchService,
     response,
 )
 
@@ -12,6 +12,7 @@ from services.expedite_transfer_family_kill_switch_service import (
 def mock_transfer_client(mocker):
     transfer_client = mocker.Mock()
     cloudwatch_client = mocker.Mock()
+
     class ResourceNotFoundException(Exception):
         pass
 
@@ -60,6 +61,7 @@ def sns_event():
 
 def extract_message(resp):
     return json.loads(resp["body"])["message"]
+
 
 def test_response_builds_expected_http_shape():
     msg = "hello world"
@@ -133,6 +135,7 @@ def test_get_transfer_server_id_returns_empty_on_generic_error(
 
     assert server_id == ""
 
+
 def test_handle_scan_message_calls_stop_server_for_infected_expedite(
     service, sns_event, mocker
 ):
@@ -150,6 +153,7 @@ def test_handle_scan_message_calls_stop_server_for_infected_expedite(
     mock_stop.assert_called_once_with(server_id)
     assert extract_message(resp) == "Server stopped"
 
+
 def test_is_relevant_scan_result_true_for_expected_values(service):
     for value in EXPECTED_SCAN_RESULTS:
         assert service.is_relevant_scan_result(value) is True
@@ -160,6 +164,7 @@ def test_is_relevant_scan_result_false_for_other_values(service):
     assert service.is_relevant_scan_result("") is False
     assert service.is_relevant_scan_result(None) is False
 
+
 def test_has_required_fields_true_when_bucket_and_key_present(service):
     assert service.has_required_fields("bucket", "key") is True
 
@@ -169,6 +174,7 @@ def test_has_required_fields_false_when_bucket_or_key_missing(service):
     assert service.has_required_fields("bucket", "") is False
     assert service.has_required_fields(None, "key") is False
     assert service.has_required_fields("bucket", None) is False
+
 
 def test_is_quarantine_expedite_true_for_valid_quarantine_key(service):
     bucket = "cloudstoragesecquarantine-xyz"
@@ -213,6 +219,7 @@ def test_extract_sns_message_returns_none_for_invalid_shapes(service):
     assert service.extract_sns_message({"Records": [{}]}) is None
     assert service.extract_sns_message({"Records": [{"Sns": {}}]}) is None
 
+
 def test_stop_transfer_family_server_happy_path_stops_server(
     service, mock_transfer_client
 ):
@@ -247,6 +254,7 @@ def test_stop_transfer_family_server_handles_generic_exception(
     mock_transfer_client.stop_server.assert_not_called()
     assert extract_message(resp) == "Failed to stop server"
 
+
 def test_handle_scan_message_ignores_irrelevant_scan_result(service, mocker):
     message = {
         "scanResult": "Clean",
@@ -264,7 +272,9 @@ def test_handle_scan_message_ignores_irrelevant_scan_result(service, mocker):
     mock_stop.assert_not_called()
 
 
-def test_handle_scan_message_returns_invalid_payload_when_bucket_missing(service, mocker):
+def test_handle_scan_message_returns_invalid_payload_when_bucket_missing(
+    service, mocker
+):
     message = {
         "scanResult": "Infected",
         "key": "pre-prod-staging-bulk-store/expedite/folder/file.pdf",
@@ -332,6 +342,7 @@ def test_handle_scan_message_non_infected_expedite(service, mocker):
     )
     mock_stop.assert_not_called()
 
+
 def test_extract_sns_message_returns_none_on_invalid_json(service):
     event = {
         "Records": [
@@ -346,6 +357,7 @@ def test_extract_sns_message_returns_none_on_invalid_json(service):
     msg = service.extract_sns_message(event)
 
     assert msg is None
+
 
 def test_stop_transfer_family_server_handles_metric_failure(
     service, mock_transfer_client, mocker
@@ -363,6 +375,5 @@ def test_stop_transfer_family_server_handles_metric_failure(
     mock_transfer_client.describe_server.assert_called_once_with(ServerId="srv-xyz")
     mock_transfer_client.stop_server.assert_called_once_with(ServerId="srv-xyz")
     assert (
-        extract_message(resp)
-        == "Server srv-xyz stopped, but failed to alert the team"
+        extract_message(resp) == "Server srv-xyz stopped, but failed to alert the team"
     )

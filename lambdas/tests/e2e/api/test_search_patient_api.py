@@ -4,7 +4,6 @@ import uuid
 
 import requests
 from syrupy.filters import paths
-
 from tests.e2e.conftest import API_ENDPOINT, API_KEY, APIM_ENDPOINT, LLOYD_GEORGE_SNOMED
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
@@ -34,7 +33,8 @@ def test_search_patient_details(test_data, snapshot_json):
 
     attachment_url = bundle["entry"][0]["resource"]["content"][0]["attachment"]["url"]
     assert (
-            f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{LLOYD_GEORGE_SNOMED}~" in attachment_url
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{LLOYD_GEORGE_SNOMED}~"
+        in attachment_url
     )
 
     assert bundle == snapshot_json(
@@ -80,9 +80,15 @@ def test_multiple_cancelled_search_patient_details(test_data, snapshot_json):
     bundle = response.json()
 
     assert bundle["entry"][0] == snapshot_json(
-        exclude=paths("resource.id", "resource.date", "resource.content.0.attachment.url"))
+        exclude=paths(
+            "resource.id", "resource.date", "resource.content.0.attachment.url"
+        )
+    )
     assert bundle["entry"][1] == snapshot_json(
-        exclude=paths("resource.id", "resource.date", "resource.content.0.attachment.url"))
+        exclude=paths(
+            "resource.id", "resource.date", "resource.content.0.attachment.url"
+        )
+    )
 
 
 def test_no_records(snapshot_json):

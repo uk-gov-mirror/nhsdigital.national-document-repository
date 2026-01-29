@@ -115,7 +115,6 @@ class TestMNSDeathNotification:
         update_successful = mns_helper.wait_for_update(check_update)
         assert update_successful, "Lloyd George record was not marked as deceased"
 
-
     def test_formal_death_updates_both_tables(
         self, mns_helper, setup_death_both_tables_test
     ):

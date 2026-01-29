@@ -81,9 +81,16 @@ clean-test:
 	find . -name '.cache' -exec rm -fr {} +
 
 format:
+ifeq ($(CONTAINER), true)
+	./.venv/bin/python3 -m isort --profile black lambdas/
+	./.venv/bin/python3 -m black lambdas/
+	./.venv/bin/ruff check lambdas/ --fix
+else
 	./lambdas/venv/bin/python3 -m isort --profile black lambdas/
 	./lambdas/venv/bin/python3 -m black lambdas/
 	./lambdas/venv/bin/ruff check lambdas/ --fix
+endif
+
 
 sort-requirements:
 	sort -o $(TEST_REQUIREMENTS) $(TEST_REQUIREMENTS)

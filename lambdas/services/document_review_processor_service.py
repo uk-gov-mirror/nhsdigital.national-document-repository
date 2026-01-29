@@ -14,9 +14,10 @@ from services.base.s3_service import S3Service
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import (
+    InvalidNhsNumberException,
     InvalidResourceIdException,
     PatientNotFoundException,
-    PdsErrorException, InvalidNhsNumberException,
+    PdsErrorException,
 )
 from utils.request_context import request_context
 from utils.utilities import get_pds_service, validate_nhs_number
@@ -75,7 +76,11 @@ class ReviewProcessorService:
         except PdsErrorException:
             logger.info("Error when searching PDS. Using uploader ODS as custodian")
             return review_message.uploader_ods
-        except (PatientNotFoundException, InvalidResourceIdException, InvalidNhsNumberException):
+        except (
+            PatientNotFoundException,
+            InvalidResourceIdException,
+            InvalidNhsNumberException,
+        ):
             logger.info(
                 "Patient not found in PDS. Using uploader ODS as custodian, and nhs number placeholder"
             )
