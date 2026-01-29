@@ -65,6 +65,7 @@ const DocumentSelectStage = ({
     const fileInputAreaRef = useRef<HTMLFieldSetElement>(null);
     const [lastErrorsLength, setLastErrorsLength] = useState(0);
     const [tooManyFilesAdded, setTooManyFilesAdded] = useState<boolean>(false);
+    const [removeFilesToSkip, setRemoveFilesToSkip] = useState<boolean>(false);
     const journey = getJourney();
 
     const navigate = useEnhancedNavigate();
@@ -109,6 +110,7 @@ const DocumentSelectStage = ({
         }
 
         if (!multifile && fileArray.length > 1) {
+            resetErrors();
             setTooManyFilesAdded(true);
             return;
         }
@@ -199,6 +201,10 @@ const DocumentSelectStage = ({
         let updatedDocList: UploadDocument[] = [...documents];
         updatedDocList.splice(index, 1);
 
+        if (updatedDocList.filter((doc) => doc.docType === documentType).length === 0) {
+            setRemoveFilesToSkip(false);
+        }
+
         updateDocuments(updatedDocList);
     };
 
@@ -209,8 +215,6 @@ const DocumentSelectStage = ({
                 ...doc,
                 position: index + 1,
             }));
-
-        setNoFilesSelected(sortedDocs.length === 0);
 
         setDocuments((previousState) => {
             const docs = previousState.filter((doc) => doc.docType !== documentType);
@@ -248,6 +252,8 @@ const DocumentSelectStage = ({
     };
 
     const continueClicked = (): void => {
+        resetErrors();
+        
         if (!validateDocuments()) {
             scrollToRef.current?.scrollIntoView({ behavior: 'smooth' });
             return;
@@ -263,10 +269,19 @@ const DocumentSelectStage = ({
             return;
         }
 
-        skipClicked();
+        skipClicked(false);
     };
 
-    const skipClicked = (): void => {
+    const skipClicked = (checkDocCount: boolean = true): void => {
+        if (checkDocCount && documents.some(doc => doc.docType === documentType)) {
+            resetErrors();
+            setRemoveFilesToSkip(true);
+            setTimeout(() => {
+                scrollToRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 0);
+            return;
+        }
+
         if (goToNextDocType) {
             goToNextDocType();
             window.scrollTo(0, 0);
@@ -337,6 +352,11 @@ const DocumentSelectStage = ({
                 linkId: 'upload-files',
                 error: UPLOAD_FILE_ERROR_TYPE.tooManyFiles,
             });
+        } else if (removeFilesToSkip) {
+            errors.push({
+                linkId: 'upload-files',
+                error: UPLOAD_FILE_ERROR_TYPE.removeFilesToSkip,
+            });
         } else {
             errorDocs().forEach((doc) => {
                 errors.push({
@@ -352,6 +372,7 @@ const DocumentSelectStage = ({
     const resetErrors = (): void => {
         setNoFilesSelected(false);
         setTooManyFilesAdded(false);
+        setRemoveFilesToSkip(false);
     };
 
     const backClicked = (): void => {
@@ -371,7 +392,7 @@ const DocumentSelectStage = ({
                 Go back
             </BackLink>
 
-            {(errorDocs().length > 0 || noFilesSelected || tooManyFilesAdded) && (
+            {(errorDocs().length > 0 || noFilesSelected || tooManyFilesAdded || removeFilesToSkip) && (
                 <ErrorBox
                     dataTestId="error-box"
                     errorBoxSummaryId="failed-document-uploads-summary-title"
@@ -541,7 +562,7 @@ const DocumentSelectStage = ({
                     Continue
                 </Button>
                 {showSkiplink && (
-                    <LinkButton data-testid="skip-link" onClick={skipClicked}>
+                    <LinkButton data-testid="skip-link" onClick={() => skipClicked()}>
                         {documentConfig.content.skipDocumentLinkText}
                     </LinkButton>
                 )}

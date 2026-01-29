@@ -12,6 +12,7 @@ export enum UPLOAD_FILE_ERROR_TYPE {
     duplicatePositionError = 'duplicatePositionError',
     duplicateFileName = 'duplicateFileName',
     invalidFileType = 'invalidFileType',
+    removeFilesToSkip = 'removeFilesToSkip',
 }
 
 export enum PDF_PARSING_ERROR_TYPE {
@@ -74,5 +75,9 @@ export const fileUploadErrorMessages: ErrorMessageType = {
         inline: 'This file is not in the correct file format',
         errorBox: 'This file is not in the correct file format',
         selectFileError: 'This file is not a PDF. Convert to PDF and try again.',
+    },
+    removeFilesToSkip: {
+        inline: 'Remove files before you skip to the next step',
+        errorBox: 'Remove files before you skip to the next step',
     },
 };

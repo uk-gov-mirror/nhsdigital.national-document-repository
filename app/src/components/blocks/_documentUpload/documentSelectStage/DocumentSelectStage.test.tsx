@@ -146,6 +146,29 @@ describe('DocumentSelectStage', () => {
             const expectedDob = getFormattedDate(new Date(patientDetails.birthDate));
             expect(screen.getByText(expectedDob)).toBeInTheDocument();
         });
+
+        it('should show remove files error message when skip is clicked after selecting a file', async () => {
+            const config = {
+                ...docConfig,
+                stitched: false,
+            };
+            renderApp(history, {
+                showSkipLink: true,
+                documentConfig: config,
+            });
+
+            await userEvent.upload(screen.getByTestId('button-input'), [
+                buildLgFile(1),
+            ]);
+
+            await userEvent.click(await screen.findByTestId('skip-link'));
+
+            await waitFor(() => {
+                expect(screen.getByTestId('error-box')).toHaveTextContent(
+                    'Remove files before you skip to the next step',
+                );
+            });
+        });
     });
 
     describe('Navigation', () => {
