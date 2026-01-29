@@ -15,25 +15,23 @@
     "content": {
         "viewDocumentTitle": "Electronic health record",
         "addFilesSelectTitle": "",
-        "uploadFilesSelectTitle": "Choose an electronic health record (EHR) to upload",
+        "uploadFilesSelectTitle": "Choose an electronic health record (EHR) notes to upload",
         "uploadFilesBulletPoints": [
             "You can only upload 1 file",
-            "The file must be in PDF format",
-            "You need to convert your file to PDF if it's not one already",
-            "Check your file opens correctly",
-            "Remove any password protection from the file",
-            "If there is a problem with your file during upload, you'll need to resolve it before continuing"
+            "You can only upload a PDF file",
+            "If your file is not a PDF, you'll need to convert it to one before uploading",
+            "If there's a problem with your files during upload, you'll need to resolve these before continuing"
         ],
-        "chooseFilesMessage": "Choose PDF file to upload",
+        "chooseFilesMessage": "Choose a file to upload",
         "chooseFilesButtonLabel": "Choose PDF file",
         "chooseFilesWarningText": "EHR warning text",
         "confirmFilesTitle": "Check file is for the correct patient",
         "confirmFilesTableTitle": "Electronic health record (EHR) to upload",
         "confirmFilesTableParagraph": "",
-        "beforeYouUploadTitle": "Before you upload the EHR summary",
+        "beforeYouUploadTitle": "Before you upload",
         "previewUploadTitle": "Preview this electronic health record",
         "uploadFilesExtraParagraph": "",
         "reviewList": "Electronic Health Record",
-        "skipDocumentLinkText": "Continue without uploading an EHR summary"
+        "skipDocumentLinkText": "Continue without uploading EHR notes"
     }
 }

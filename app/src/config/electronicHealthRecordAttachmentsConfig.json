@@ -16,9 +16,9 @@
         "addFilesSelectTitle": "",
         "uploadFilesSelectTitle": "Choose electronic health record attachment files to upload",
         "uploadFilesBulletPoints": [
-            "You can upload files in any format apart from .zip and .exe files",
+            "You can upload files in any format except .zip and .exe files",
             "If you add more than one attachment, we'll automatically zip them when you upload",
-            "If there is a problem with your any of your files during upload, you'll need to resolve these before continuing"
+            "If there's a problem with your files during upload, you'll need to resolve these before continuing"
         ],
         "chooseFilesMessage": "Choose files to upload",
         "chooseFilesButtonLabel": "Choose files",
@@ -26,7 +26,7 @@
         "confirmFilesTitle": "Check files are for the correct patient",
         "confirmFilesTableTitle": "Attachments to this EHR to upload",
         "confirmFilesTableParagraph": "You can upload files in any format but you can only view PDF files in this service.",
-        "beforeYouUploadTitle": "Before you upload the EHR attachments",
+        "beforeYouUploadTitle": "Before you upload",
         "previewUploadTitle": "Preview electronic health record attachment",
         "uploadFilesExtraParagraph": "",
         "reviewList": "EHR Attachments",
