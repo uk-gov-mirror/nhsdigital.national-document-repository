@@ -365,6 +365,43 @@ def write_to_dynamodb(review_objects: List[Dict[str, Any]], table_name: str):
         print(f"Error writing to DynamoDB: {e.response['Error']['Message']}")
         raise
 
+def clear_review_store(bucket_name):
+    s3 = boto3.resource("s3")
+    bucket = s3.Bucket(bucket_name)
+
+    bucket.objects.all().delete()
+
+    bucket.object_versions.delete()
+
+def clear_dynamodb_table(table_name: str):
+    dynamodb = boto3.resource("dynamodb")
+    table = dynamodb.Table(table_name)
+
+    try:
+        scan_response = table.scan()
+        items = scan_response.get('Items', [])
+
+        while 'LastEvaluatedKey' in scan_response:
+            scan_response = table.scan(ExclusiveStartKey=scan_response['LastEvaluatedKey'])
+            items.extend(scan_response.get('Items', []))
+
+        if not items:
+            print(f"Table {table_name} is already empty")
+            return
+
+        with table.batch_writer() as batch:
+            for item in items:
+                batch.delete_item(
+                    Key={
+                        'ID': item['ID'],
+                        'Version': item['Version']
+                    }
+                )
+
+        print(f"Successfully cleared {len(items)} items from DynamoDB table {table_name}")
+    except ClientError as e:
+        print(f"Error clearing DynamoDB table: {e.response['Error']['Message']}")
+        raise
 
 def main():
     environment = os.environ.get("ENVIRONMENT", "ndr-dev")
@@ -373,6 +410,8 @@ def main():
     patient_file = os.environ.get("PATIENT_DATA_FILE", "ODS_Code_H81109.csv")
 
     try:
+        clear_review_store(bucket_name)
+        clear_dynamodb_table(table_name)
         patients_data = get_patients(patient_file)
         patients = [parse_patient_record(record) for record in patients_data]
         print(f"Loaded {len(patients)} patients")
