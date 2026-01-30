@@ -122,7 +122,7 @@ Cypress.Commands.add('navigateToDownloadReportPage', () => {
     cy.getByTestId('download-report-btn').should('exist');
     cy.getByTestId('download-report-btn').click();
 
-    cy.url().should('contain', baseUrl + `${routes.createReport}?reportType=0`);
+    cy.url().should('contain', baseUrl + `${routes.createReport}?reportType=PATIENT`);
 });
 
 declare global {

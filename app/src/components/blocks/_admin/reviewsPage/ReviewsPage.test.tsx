@@ -732,4 +732,18 @@ describe('ReviewsPage', () => {
             });
         });
     });
+
+    describe('Report Download Link', () => {
+        it('renders download report link with correct href', async () => {
+            renderComponent();
+
+            await waitFor(() => {
+                expect(screen.getByText('900 000 0001')).toBeInTheDocument();
+            });
+
+            const downloadLink = screen.getByText('Download a report on this data');
+            expect(downloadLink).toBeInTheDocument();
+            expect(downloadLink).toHaveAttribute('href', '/create-report?reportType=REVIEW');
+        });
+    });
 });

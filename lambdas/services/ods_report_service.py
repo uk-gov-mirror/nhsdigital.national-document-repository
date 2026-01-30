@@ -64,7 +64,7 @@ class OdsReportService:
         if output_file_type != FileType.CSV:
             raise OdsReportException(400, LambdaError.UnsupportedFileType)
 
-        query_filter = self.document_upload_review_service.build_review_query_filter()
+        query_filter = self.document_upload_review_service.build_review_dynamo_filter()
 
         results = self.document_upload_review_service.fetch_documents_from_table(
             search_key="Custodian",

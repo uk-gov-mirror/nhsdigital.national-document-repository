@@ -1,8 +1,8 @@
 import axios, { AxiosError } from 'axios';
 import downloadReport from './downloadReport';
-import { ReportData } from '../../types/generic/reports';
+import { REPORT_TYPE, ReportData } from '../../types/generic/reports';
 import { AuthHeaders } from '../../types/blocks/authHeaders';
-import { describe, expect, it, vi, Mocked, beforeEach, afterEach, Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, Mock, Mocked, vi } from 'vitest';
 import { Procedure } from '@vitest/spy';
 
 vi.mock('axios');
@@ -12,6 +12,7 @@ const mockedAxios = axios as Mocked<typeof axios>;
 describe('downloadReport', () => {
     const report = {
         endpoint: '/download',
+        reportType: REPORT_TYPE.ODS_REVIEW_SUMMARY,
     } as ReportData;
 
     let clickSpy: Mock<Procedure>;
@@ -55,7 +56,7 @@ describe('downloadReport', () => {
 
         expect(getSpy).toHaveBeenCalledWith(args.baseUrl + report.endpoint, {
             headers: args.baseHeaders,
-            params: { outputFileFormat: args.fileType, odsReportType: 'PATIENT' },
+            params: { outputFileFormat: args.fileType, odsReportType: 'REVIEW' },
         });
 
         expect(mockAnchor.setAttribute).toHaveBeenCalledWith('download', '');
@@ -90,7 +91,7 @@ describe('downloadReport', () => {
         expect(errorCode).toBe(404);
         expect(getSpy).toHaveBeenCalledWith(args.baseUrl + report.endpoint, {
             headers: args.baseHeaders,
-            params: { outputFileFormat: args.fileType, odsReportType: 'PATIENT' },
+            params: { outputFileFormat: args.fileType, odsReportType: 'REVIEW' },
         });
     });
 });

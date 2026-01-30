@@ -1,8 +1,10 @@
 import LloydGeorgeSummaryDescription from '../../components/blocks/_downloadReport/downloadReportSelectStage/ReportDescriptions/LloydGeorgeSummaryDescription';
 import { endpoints } from './endpoints';
+import ReviewSummaryDescription from '../../components/blocks/_downloadReport/downloadReportSelectStage/ReportDescriptions/ReviewSummaryDescription';
 
 export enum REPORT_TYPE {
-    ODS_PATIENT_SUMMARY = '0',
+    ODS_PATIENT_SUMMARY = 'PATIENT',
+    ODS_REVIEW_SUMMARY = 'REVIEW',
 }
 
 export type FileTypeData = {
@@ -32,6 +34,13 @@ export const reports: ReportData[] = [
             { extension: 'pdf', label: 'a PDF' },
         ],
         reportType: REPORT_TYPE.ODS_PATIENT_SUMMARY,
+        endpoint: endpoints.ODS_REPORT,
+    },
+    {
+        title: 'Documents review summary report',
+        description: ReviewSummaryDescription,
+        fileTypes: [{ extension: 'csv', label: 'a CSV' }],
+        reportType: REPORT_TYPE.ODS_REVIEW_SUMMARY,
         endpoint: endpoints.ODS_REPORT,
     },
 ];

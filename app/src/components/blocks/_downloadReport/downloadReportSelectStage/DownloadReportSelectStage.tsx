@@ -1,17 +1,17 @@
 import { useNavigate } from 'react-router-dom';
 import { FileTypeData, ReportData } from '../../../../types/generic/reports';
 import { routeChildren, routes } from '../../../../types/generic/routes';
-import { BackLink, Button } from 'nhsuk-react-components';
+import { Button } from 'nhsuk-react-components';
 import downloadReport from '../../../../helpers/requests/downloadReport';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
-import useConfig from '../../../../helpers/hooks/useConfig';
 import { AxiosError } from 'axios';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import { JSX, ReactNode, useRef } from 'react';
 import NotificationBanner from '../../../layout/notificationBanner/NotificationBanner';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import React from 'react';
+import BackButton from '../../../generic/backButton/BackButton';
 
 type Props = {
     report: ReportData;
@@ -20,7 +20,6 @@ type Props = {
 const DownloadReportSelectStage = (props: Props): JSX.Element => {
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
-    const config = useConfig();
     const navigate = useNavigate();
     const [downloading, setDownloading] = React.useState(false);
     const [downloadError, setDownloadError] = React.useState<ReactNode>(null);
@@ -30,7 +29,6 @@ const DownloadReportSelectStage = (props: Props): JSX.Element => {
         navigate(`${routeChildren.REPORT_DOWNLOAD_COMPLETE}?reportType=${props.report.reportType}`);
     };
 
-    const uploadV3Enabled: boolean = !!config.featureFlags.uploadDocumentIteration3Enabled;
     const noDataContent = (): JSX.Element => {
         return (
             <>
@@ -88,7 +86,12 @@ const DownloadReportSelectStage = (props: Props): JSX.Element => {
         setDownloading(true);
 
         try {
-            await downloadReport({ report: props.report, fileType, baseUrl, baseHeaders });
+            await downloadReport({
+                report: props.report,
+                fileType,
+                baseUrl,
+                baseHeaders,
+            });
             handleSuccess();
         } catch (e) {
             const error = e as AxiosError;
@@ -129,17 +132,7 @@ const DownloadReportSelectStage = (props: Props): JSX.Element => {
 
     return (
         <>
-            <BackLink
-                data-testid="return-to-home-button"
-                asElement="a"
-                href='#'
-                onClick={(): void => {
-                    uploadV3Enabled ? navigate(routes.ADMIN_ROUTE) : navigate(routes.HOME);
-                }}
-                className="mb-5"
-            >
-                {uploadV3Enabled ? 'Go back' : 'Go to home'}
-            </BackLink>
+            <BackButton dataTestid="go-back-button"></BackButton>
             {downloadError && (
                 <NotificationBanner
                     title="Important"

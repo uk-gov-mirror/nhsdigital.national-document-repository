@@ -12,7 +12,6 @@ import { beforeEach, describe, expect, it, vi, MockedFunction, Mock } from 'vite
 const mockDownloadReport = downloadReport as MockedFunction<typeof downloadReport>;
 const mockUseConfig = vi.fn();
 
-
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -46,7 +45,7 @@ describe('DownloadReportSelectStage', () => {
             const report = getReportByType(REPORT_TYPE.ODS_PATIENT_SUMMARY);
             render(<DownloadReportSelectStage report={report!} />);
 
-            expect(screen.getByTestId('return-to-home-button')).toBeInTheDocument();
+            expect(screen.getByTestId('go-back-button')).toBeInTheDocument();
             const title = screen.getByTestId('title');
             expect(title).toBeInTheDocument();
             expect(title.innerHTML).toContain(report!.title);
@@ -56,7 +55,7 @@ describe('DownloadReportSelectStage', () => {
                 ).toBeInTheDocument();
             });
             expect(screen.queryByTestId('error-notification-banner')).not.toBeInTheDocument();
-            expect(screen.getByText('Go to home')).toBeInTheDocument();
+            expect(screen.getByText('Go back')).toBeInTheDocument();
         });
 
         it('should render error notification when download fails', async () => {
@@ -107,33 +106,16 @@ describe('DownloadReportSelectStage', () => {
         });
     });
 
-    it('should navigate to home when clicking go to home link', async () => {
+    it('should navigate to back when clicking go back link', async () => {
         const report = getReportByType(REPORT_TYPE.ODS_PATIENT_SUMMARY);
         render(<DownloadReportSelectStage report={report!} />);
-
-        await userEvent.click(screen.getByText('Go to home'));
-        await waitFor(() => {
-            expect(mockedUseNavigate).toHaveBeenCalledWith(routes.HOME);
-        });
-    });
-
-    it ('should navigate to admin hub, upload version 3 enabled', async () => {
-        mockUseConfig.mockReturnValue({
-            featureFlags: { uploadDocumentIteration3Enabled: true },
-        });
-
-        const report = getReportByType(REPORT_TYPE.ODS_PATIENT_SUMMARY);
-        render(<DownloadReportSelectStage report={report!} />);
-
         let backLink: Element;
-        backLink = screen.getByTestId('return-to-home-button');
-
+        backLink = screen.getByTestId('go-back-button');
         expect(backLink).toHaveTextContent('Go back');
 
         await userEvent.click(backLink);
-
         await waitFor(() => {
-            expect(mockedUseNavigate).toHaveBeenCalledWith(routes.ADMIN_ROUTE);
-        })
+            expect(mockedUseNavigate).toHaveBeenCalledWith(-1);
+        });
     });
 });

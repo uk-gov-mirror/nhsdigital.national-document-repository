@@ -55,7 +55,7 @@ describe('AdminPage', (): void => {
         it('renders the Download a report card with correct href', (): void => {
             render(<AdminPage />);
             const reportLink = screen.getByTestId('download-report-btn');
-            expect(reportLink).toHaveAttribute('href', '/create-report?reportType=0');
+            expect(reportLink).toHaveAttribute('href', '/create-report?reportType=PATIENT');
         });
 
         it('renders the Download a report card description', (): void => {

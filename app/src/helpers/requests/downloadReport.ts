@@ -12,7 +12,6 @@ type Args = {
 type DownloadReportResponseData = {
     data: { url: string };
 };
-
 const downloadReport = async ({ report, fileType, baseUrl, baseHeaders }: Args): Promise<void> => {
     const gatewayUrl = baseUrl + report.endpoint;
 
@@ -23,7 +22,7 @@ const downloadReport = async ({ report, fileType, baseUrl, baseHeaders }: Args):
             },
             params: {
                 outputFileFormat: fileType,
-                odsReportType: 'PATIENT',
+                odsReportType: report.reportType,
             },
         });
 

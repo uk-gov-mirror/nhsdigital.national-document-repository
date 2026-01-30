@@ -421,7 +421,7 @@ def test_get_documents_for_review(
 
     mocker.patch.object(
         ods_report_service.document_upload_review_service,
-        "build_review_query_filter",
+        "build_review_dynamo_filter",
         return_value=expected_query_filter,
     )
 

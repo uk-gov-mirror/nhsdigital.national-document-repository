@@ -33,7 +33,7 @@ describe('GP Workflow: Download Lloyd George summary report', () => {
 
                 cy.url().should(
                     'contain',
-                    Cypress.config('baseUrl') + `${routes.createReportComplete}?reportType=0`,
+                    Cypress.config('baseUrl') + `${routes.createReportComplete}?reportType=PATIENT`,
                 );
 
                 cy.getByTestId('logout-btn').click();

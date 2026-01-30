@@ -19,6 +19,7 @@ import BackButton from '../../../generic/backButton/BackButton';
 import { Pagination } from '../../../generic/paginationV2/Pagination';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import SpinnerV2 from '../../../generic/spinnerV2/SpinnerV2';
+import { REPORT_TYPE } from '../../../../types/generic/reports';
 import { AxiosError } from 'axios';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
 
@@ -292,6 +293,13 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
             </p>
 
             <Table.Panel heading="Documents to review" className="reviews-page" allowFullScreen>
+                <div className="nhsuk-u-text-align-right">
+                    <a
+                        href={`${routes.REPORT_DOWNLOAD}?reportType=${REPORT_TYPE.ODS_REVIEW_SUMMARY}`}
+                    >
+                        Download a report on this data
+                    </a>
+                </div>
                 {/* Search box */}
                 <form
                     id="search-form"

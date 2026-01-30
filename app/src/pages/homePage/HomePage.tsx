@@ -93,7 +93,8 @@ const HomePage = (): React.JSX.Element => {
                                     <Card.Link
                                         data-testid="download-report-btn"
                                         href="#"
-                                        onClick={(): void => {
+                                        onClick={(e): void => {
+                                            e.preventDefault()
                                             navigate(
                                                 `${routes.REPORT_DOWNLOAD}?reportType=${REPORT_TYPE.ODS_PATIENT_SUMMARY}`,
                                             );
