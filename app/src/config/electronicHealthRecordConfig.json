@@ -24,7 +24,11 @@
         ],
         "chooseFilesMessage": "Choose a file to upload",
         "chooseFilesButtonLabel": "Choose PDF file",
-        "chooseFilesWarningText": "EHR warning text",
+        "chooseFilesWarningText": [
+            "The electronic health record (EHR) notes contain the patient's personal details and all notes from their consultations and interactions with the practice or other healthcare providers. You may also call them the 'journal', 'practice notes' or a 'full EHR summary'.",
+            "They are downloaded as a single file from the clinical system.",
+            "The file does not include attachments such as letters or other documents. You'll be asked to upload those separately in the next step."
+        ],
         "confirmFilesTitle": "Check file is for the correct patient",
         "confirmFilesTableTitle": "Electronic health record (EHR) to upload",
         "confirmFilesTableParagraph": "",

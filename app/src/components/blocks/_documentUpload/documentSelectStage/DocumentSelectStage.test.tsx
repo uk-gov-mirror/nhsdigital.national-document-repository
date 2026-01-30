@@ -63,6 +63,17 @@ describe('DocumentSelectStage', () => {
                 screen.getByText(docConfig.content.uploadFilesSelectTitle as string),
             ).toBeInTheDocument();
         });
+
+        const warningTexts = docConfig.content.chooseFilesWarningText;
+        if (warningTexts) {
+            expect(screen.getByText('Important')).toBeInTheDocument();
+            const textsArray = ([] as string[]).concat(warningTexts);
+            textsArray.forEach((text) => {
+                const p = screen.getByText(text);
+                expect(p.tagName.toLowerCase()).toBe('p');
+                expect(screen.getByText(text)).toBeInTheDocument();
+            });
+        }
     });
 
     describe('file handling', () => {

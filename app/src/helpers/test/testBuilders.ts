@@ -199,7 +199,7 @@ const buildDocumentConfig = (
             ],
             chooseFilesMessage: 'Choose PDF files to upload',
             chooseFilesButtonLabel: 'Choose PDF files',
-            chooseFilesWarningText: '',
+            chooseFilesWarningText: ['paragraph1', 'paragraph2', 'paragraph3'],
             confirmFilesTitle: 'Check your files before uploading',
             beforeYouUploadTitle: 'Before you upload',
             previewUploadTitle: 'Preview this scanned paper notes record',

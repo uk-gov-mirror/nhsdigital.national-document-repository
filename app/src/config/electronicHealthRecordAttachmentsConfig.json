@@ -22,7 +22,7 @@
         ],
         "chooseFilesMessage": "Choose files to upload",
         "chooseFilesButtonLabel": "Choose files",
-        "chooseFilesWarningText": "",
+        "chooseFilesWarningText": "Electronic health record attachments are all the documents stored in the patient's EHR with the EHR notes. For example, letters, laboratory results, scans and x rays.",
         "confirmFilesTitle": "Check files are for the correct patient",
         "confirmFilesTableTitle": "Attachments to this EHR to upload",
         "confirmFilesTableParagraph": "You can upload files in any format but you can only view PDF files in this service.",

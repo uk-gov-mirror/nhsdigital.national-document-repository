@@ -417,9 +417,11 @@ const DocumentSelectStage = ({
             {documentConfig.content.chooseFilesWarningText && (
                 <WarningCallout>
                     <WarningCallout.Label>Important</WarningCallout.Label>
-                    <p data-testid="warning-text">
-                        {documentConfig.content.chooseFilesWarningText}
-                    </p>
+                    {([] as string[])
+                        .concat(documentConfig.content.chooseFilesWarningText)
+                        .map((text) => (
+                            <p key={text}>{text}</p>
+                        ))}
                 </WarningCallout>
             )}
 
@@ -535,7 +537,9 @@ const DocumentSelectStage = ({
                             </Table.Row>
                         </Table.Head>
 
-                        <Table.Body>{documents.map(DocumentRow)}</Table.Body>
+                        <Table.Body>
+                            {documents.map((document, index) => DocumentRow(document, index))}
+                        </Table.Body>
                     </Table>
                     {multifile && (
                         <LinkButton
