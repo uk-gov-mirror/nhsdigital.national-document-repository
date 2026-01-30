@@ -254,6 +254,7 @@ $hunit: '%';
 }
 
 // Lloyd George
+.document,
 .lloydgeorge {
     &_record-stage {
         &_links {
@@ -571,6 +572,7 @@ $hunit: '%';
 }
 
 .lloydgeorge,
+.document,
 .report {
     &_download-complete {
         max-width: 711px;
@@ -618,6 +620,7 @@ $hunit: '%';
 
 @media (max-width: 685px) {
     .nhsuk-card__heading.report_download-complete_details-content_header,
+    .nhsuk-card__heading.document_download-complete_details-content_header,
     .nhsuk-card__heading.lloydgeorge_download-complete_details-content_header {
         font-size: 2rem;
     }
@@ -625,11 +628,13 @@ $hunit: '%';
 
 @media (max-width: 435px) {
     .nhsuk-card__heading.report_download-complete_details-content_header,
+    .nhsuk-card__heading.document_download-complete_details-content_header,
     .nhsuk-card__heading.lloydgeorge_download-complete_details-content_header {
         font-size: 1.5rem;
     }
 
     .nhsuk-card__description.report_download-complete_details-content_description,
+    .nhsuk-card__description.document_download-complete_details-content_description,
     .nhsuk-card__description.lloydgeorge_download-complete_details-content_description {
         font-size: 1.2rem !important;
     }
@@ -929,6 +934,7 @@ $hunit: '%';
         margin-bottom: 50px;
     }
 
+    .document_drag-and-drop,
     .lloydgeorge_drag-and-drop {
         border-color: $nhsuk-error-color;
     }
@@ -975,6 +981,7 @@ $hunit: '%';
             padding: 0;
         }
 
+        .document_record-stage,
         .lloydgeorge_record-stage {
             height: calc(100vh - 93px);
             position: relative;

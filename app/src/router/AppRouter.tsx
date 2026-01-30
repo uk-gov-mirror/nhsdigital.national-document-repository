@@ -28,6 +28,7 @@ import PatientAccessAuditPage from '../pages/patientAccessAuditPage/PatientAcces
 import MockLoginPage from '../pages/mockLoginPage/MockLoginPage';
 import DocumentUploadPage from '../pages/documentUploadPage/DocumentUploadPage';
 import AdminRoutesPage from '../pages/adminRoutesPage/AdminRoutesPage';
+import DownloadCompletePage from '../pages/downloadCompletePage/DownloadCompletePage';
 
 const {
     START,
@@ -58,6 +59,7 @@ const {
     DOCUMENT_UPLOAD_WILDCARD,
     ADMIN_ROUTE,
     ADMIN_ROUTE_WILDCARD,
+    DOWNLOAD_COMPLETE,
 } = routes;
 
 type Routes = {
@@ -247,7 +249,7 @@ export const routeMap: Routes = {
         type: ROUTE_TYPE.PRIVATE,
     },
 
-    // App guard routes
+    // Patient guard routes
     [VERIFY_PATIENT]: {
         page: <PatientResultPage />,
         type: ROUTE_TYPE.PATIENT,
@@ -284,6 +286,10 @@ export const routeMap: Routes = {
     },
     [DOCUMENT_UPLOAD_WILDCARD]: {
         page: <DocumentUploadPage />,
+        type: ROUTE_TYPE.PATIENT,
+    },
+    [DOWNLOAD_COMPLETE]: {
+        page: <DownloadCompletePage />,
         type: ROUTE_TYPE.PATIENT,
     },
 };

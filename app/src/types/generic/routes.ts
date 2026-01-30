@@ -33,6 +33,8 @@ export enum routes {
 
     ADMIN_ROUTE = '/admin',
     ADMIN_ROUTE_WILDCARD = '/admin/*',
+
+    DOWNLOAD_COMPLETE = '/download-complete',
 }
 
 export enum routeChildren {

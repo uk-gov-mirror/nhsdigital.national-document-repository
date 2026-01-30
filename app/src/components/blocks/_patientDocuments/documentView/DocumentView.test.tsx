@@ -349,10 +349,23 @@ describe('DocumentView', () => {
         it('calls removeDocument when remove action is triggered', () => {
             renderComponent();
 
-            // Assuming the first record link is remove action
+            // assume first link is remove
             const removeRecordLink = screen.getByTestId(lloydGeorgeRecordLinks[0].key);
             fireEvent.click(removeRecordLink);
             expect(mockRemoveDocument).toHaveBeenCalled();
+        });
+
+        it('navigates to download success page when download action is triggered', () => {
+            vi.useFakeTimers();
+            renderComponent();
+
+            // assume second link is download
+            const downloadRecordLink = screen.getByTestId(lloydGeorgeRecordLinks[1].key);
+            fireEvent.click(downloadRecordLink);
+
+            vi.advanceTimersByTime(5000000);
+            expect(mockUseNavigate).toHaveBeenCalledWith(routes.DOWNLOAD_COMPLETE);
+            vi.useRealTimers();
         });
     });
 

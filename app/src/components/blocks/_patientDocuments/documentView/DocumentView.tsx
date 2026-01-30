@@ -70,12 +70,12 @@ const DocumentView = ({
 
     const details = (): React.JSX.Element => {
         return (
-            <div className="lloydgeorge_record-details">
-                <div className="lloydgeorge_record-details_details">
-                    <div className="lloydgeorge_record-details_details--last-updated mt-3">
+            <div className="document_record-details">
+                <div className="document_record-details_details">
+                    <div className="document_record-details_details--last-updated mt-3">
                         Filename: {documentReference.fileName}
                     </div>
-                    <div className="lloydgeorge_record-details_details--last-updated mt-3">
+                    <div className="document_record-details_details--last-updated mt-3">
                         Last updated: {getFormattedDate(new Date(documentReference.created))}
                     </div>
                 </div>
@@ -85,12 +85,18 @@ const DocumentView = ({
 
     const downloadClicked = (): void => {
         if (documentReference.url) {
+            const estimatedDownloadDuration = 
+                Math.floor(documentReference.fileSize / 5000000 * 1000); // Estimate 5MB/s download speed
             const anchor = document.createElement('a');
             anchor.href = documentReference.url;
             anchor.download = documentReference.fileName;
             document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
+
+            setTimeout(() => {
+                navigate(routes.DOWNLOAD_COMPLETE);
+            }, estimatedDownloadDuration);
         }
     };
 
@@ -182,10 +188,10 @@ const DocumentView = ({
         return session.isFullscreen ? (
             card
         ) : (
-            <div className="lloydgeorge_record-stage_flex">
+            <div className="document_record-stage_flex">
                 <div
                     data-testid="record-card-container"
-                    className={`lloydgeorge_record-stage_flex-row lloydgeorge_record-stage_flex-row${showMenu ? '--menu' : '--upload'}`}
+                    className={`document_record-stage_flex-row document_record-stage_flex-row${showMenu ? '--menu' : '--upload'}`}
                 >
                     {card}
                 </div>
@@ -200,7 +206,7 @@ const DocumentView = ({
         (role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL);
 
     return (
-        <div className="lloydgeorge_record-stage">
+        <div className="document_record-stage">
             {session.isFullscreen && (
                 <div className="header">
                     <div className="header-items">
