@@ -31,6 +31,7 @@ import { ErrorMessageListItem } from '../../../../types/pages/genericPageErrors'
 import { getJourney, useEnhancedNavigate } from '../../../../helpers/utils/urlManipulations';
 import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 import rejectedFileTypes from '../../../../config/rejectedFileTypes.json';
+import parseTextWithLinks from '../../../../helpers/utils/parseTextWithLinks';
 
 export type Props = {
     setDocuments: SetUploadDocuments;
@@ -253,7 +254,7 @@ const DocumentSelectStage = ({
 
     const continueClicked = (): void => {
         resetErrors();
-        
+
         if (!validateDocuments()) {
             scrollToRef.current?.scrollIntoView({ behavior: 'smooth' });
             return;
@@ -273,7 +274,7 @@ const DocumentSelectStage = ({
     };
 
     const skipClicked = (checkDocCount: boolean = true): void => {
-        if (checkDocCount && documents.some(doc => doc.docType === documentType)) {
+        if (checkDocCount && documents.some((doc) => doc.docType === documentType)) {
             resetErrors();
             setRemoveFilesToSkip(true);
             setTimeout(() => {
@@ -392,7 +393,10 @@ const DocumentSelectStage = ({
                 Go back
             </BackLink>
 
-            {(errorDocs().length > 0 || noFilesSelected || tooManyFilesAdded || removeFilesToSkip) && (
+            {(errorDocs().length > 0 ||
+                noFilesSelected ||
+                tooManyFilesAdded ||
+                removeFilesToSkip) && (
                 <ErrorBox
                     dataTestId="error-box"
                     errorBoxSummaryId="failed-document-uploads-summary-title"
@@ -420,7 +424,7 @@ const DocumentSelectStage = ({
                     {([] as string[])
                         .concat(documentConfig.content.chooseFilesWarningText)
                         .map((text) => (
-                            <p key={text}>{text}</p>
+                            <p key={text}>{parseTextWithLinks(text)}</p>
                         ))}
                 </WarningCallout>
             )}

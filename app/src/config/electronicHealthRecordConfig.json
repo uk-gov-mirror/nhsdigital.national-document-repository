@@ -26,7 +26,7 @@
         "chooseFilesButtonLabel": "Choose PDF file",
         "chooseFilesWarningText": [
             "The electronic health record (EHR) notes contain the patient's personal details and all notes from their consultations and interactions with the practice or other healthcare providers. You may also call them the 'journal', 'practice notes' or a 'full EHR summary'.",
-            "They are downloaded as a single file from the clinical system.",
+            "They are downloaded as a single file from the clinical system. See [help and guidance](https://digital.nhs.uk/services/access-and-store-digital-patient-documents/help-and-guidance) for instructions on how best to do this.",
             "The file does not include attachments such as letters or other documents. You'll be asked to upload those separately in the next step."
         ],
         "confirmFilesTitle": "Check file is for the correct patient",

@@ -168,9 +168,7 @@ describe('DocumentSelectStage', () => {
                 documentConfig: config,
             });
 
-            await userEvent.upload(screen.getByTestId('button-input'), [
-                buildLgFile(1),
-            ]);
+            await userEvent.upload(screen.getByTestId('button-input'), [buildLgFile(1)]);
 
             await userEvent.click(await screen.findByTestId('skip-link'));
 
@@ -263,8 +261,8 @@ describe('DocumentSelectStage', () => {
 
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith({
-                    "pathname": routeChildren.DOCUMENT_UPLOAD_SELECT_ORDER,
-                    "search": "",
+                    pathname: routeChildren.DOCUMENT_UPLOAD_SELECT_ORDER,
+                    search: '',
                 });
             });
         });
@@ -283,8 +281,8 @@ describe('DocumentSelectStage', () => {
 
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith({
-                    "pathname": routeChildren.DOCUMENT_UPLOAD_CONFIRMATION,
-                    "search": "",
+                    pathname: routeChildren.DOCUMENT_UPLOAD_CONFIRMATION,
+                    search: '',
                 });
             });
         });
@@ -566,7 +564,13 @@ describe('DocumentSelectStage', () => {
         documentConfig?: DOCUMENT_TYPE_CONFIG;
     };
 
-    const TestApp = ({ goToPreviousDocType, goToNextDocType, backLinkOverride, showSkipLink, documentConfig }: TestAppProps): JSX.Element => {
+    const TestApp = ({
+        goToPreviousDocType,
+        goToNextDocType,
+        backLinkOverride,
+        showSkipLink,
+        documentConfig,
+    }: TestAppProps): JSX.Element => {
         const [documents, setDocuments] = useState<Array<UploadDocument>>([]);
         const filesErrorRef = useRef<boolean>(false);
 
