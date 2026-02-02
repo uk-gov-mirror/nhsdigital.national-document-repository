@@ -40,7 +40,7 @@ const getDocumentSearchResults = async ({
         if (isLocal) {
             return [
                 {
-                    fileName: 'Mock Document 1',
+                    fileName: 'document_1.pdf',
                     created: '2023-01-01T12:00:00Z',
                     virusScannerResult: 'CLEAN',
                     id: 'mock-document-id-1',

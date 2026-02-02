@@ -448,6 +448,219 @@ describe('ReviewDetailsAssessmentPage', () => {
                 expect(mockGetReviewById).toHaveBeenCalled();
             });
         });
+
+        it('displays selected new file when viewing', async () => {
+            const user = userEvent.setup();
+            const reviewData = createMockReviewData();
+            const mockGetReviewById = vi.spyOn(getReviewsModule, 'getReviewById');
+            mockGetReviewById.mockResolvedValue(reviewData as any);
+
+            render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={reviewData}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={createMockUploadDocuments()}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={true}
+                />,
+            );
+
+            const viewButtons = screen.getAllByRole('button', { name: /View/i });
+            await act(async () => {
+                await user.click(viewButtons[1]);
+            });
+
+            await waitFor(() => {
+                expect(
+                    screen.getByText((content, element) => {
+                        return (
+                            element?.tagName.toLowerCase() === 'strong' &&
+                            content.includes('You are currently viewing:') &&
+                            content.includes('new-file-1.pdf')
+                        );
+                    }),
+                ).toBeInTheDocument();
+            });
+        });
+
+        it('displays selected existing file when viewing', async () => {
+            const user = userEvent.setup();
+            const reviewData = createMockReviewData();
+
+            render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={reviewData}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={createMockUploadDocuments()}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={true}
+                />,
+            );
+
+            const existingFileViewButton = screen.getByTestId('existing-record-table');
+            const viewButton = existingFileViewButton.querySelector('button');
+
+            await act(async () => {
+                await user.click(viewButton!);
+            });
+
+            await waitFor(() => {
+                expect(
+                    screen.getByText((content, element) => {
+                        return (
+                            element?.tagName.toLowerCase() === 'strong' &&
+                            content.includes('You are currently viewing:') &&
+                            content.includes('existing-file-1.pdf')
+                        );
+                    }),
+                ).toBeInTheDocument();
+            });
+        });
+
+        it('displays "(new files)" label when multiple documents have same filename', async () => {
+            const user = userEvent.setup();
+            const reviewData = createMockReviewData();
+            const mockGetReviewById = vi.spyOn(getReviewsModule, 'getReviewById');
+            mockGetReviewById.mockResolvedValue(reviewData as any);
+
+            // Create upload documents with duplicate filenames
+            const uploadDocsWithDuplicates: ReviewUploadDocument[] = [
+                {
+                    id: 'new-1',
+                    file: new File(['test content 1'], 'duplicate.pdf', {
+                        type: 'application/pdf',
+                    }),
+                    type: UploadDocumentType.REVIEW,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                    attempts: 0,
+                },
+                {
+                    id: 'new-2',
+                    file: new File(['test content 2'], 'duplicate.pdf', {
+                        type: 'application/pdf',
+                    }),
+                    type: UploadDocumentType.REVIEW,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                    attempts: 0,
+                },
+            ];
+
+            reviewData.files = [
+                {
+                    fileName: 'duplicate.pdf',
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    presignedUrl: 'https://test-url-1.com',
+                },
+            ];
+
+            render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={reviewData}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={uploadDocsWithDuplicates}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={true}
+                />,
+            );
+
+            const viewButtons = screen.getAllByRole('button', { name: /View duplicate.pdf/i });
+            await act(async () => {
+                await user.click(viewButtons[0]); // Click first duplicate
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText(/\(new files\)/)).toBeInTheDocument();
+                expect(
+                    screen.getByText((content, element) => {
+                        return (
+                            element?.tagName.toLowerCase() === 'strong' &&
+                            content.includes('You are currently viewing') &&
+                            content.includes('duplicate.pdf')
+                        );
+                    }),
+                ).toBeInTheDocument();
+            });
+        });
+
+        it('displays "(existing files)" label when multiple existing documents have same filename', async () => {
+            const user = userEvent.setup();
+            const reviewData = createMockReviewData();
+
+            // Create upload documents with duplicate existing filenames
+            const uploadDocsWithDuplicates: ReviewUploadDocument[] = [
+                {
+                    id: 'existing-1',
+                    file: new File(['existing content 1'], 'existing-dup.pdf', {
+                        type: 'application/pdf',
+                    }),
+                    type: UploadDocumentType.EXISTING,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                    attempts: 0,
+                },
+                {
+                    id: 'existing-2',
+                    file: new File(['existing content 2'], 'existing-dup.pdf', {
+                        type: 'application/pdf',
+                    }),
+                    type: UploadDocumentType.EXISTING,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                    attempts: 0,
+                },
+            ];
+
+            reviewData.existingFiles = [
+                {
+                    fileName: 'existing-dup.pdf',
+                    created: '2023-12-01T10:00:00Z',
+                    virusScannerResult: 'Clean',
+                    id: 'existing-1',
+                    fileSize: 1024,
+                    version: '1',
+                    documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                    contentType: 'application/pdf',
+                    url: 'https://existing-url-1.com',
+                    blob: undefined,
+                },
+            ];
+
+            render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={reviewData}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={uploadDocsWithDuplicates}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={true}
+                />,
+            );
+
+            const existingFileViewButton = screen.getByTestId('existing-record-table');
+            const viewButton = existingFileViewButton.querySelector('button');
+
+            await act(async () => {
+                await user.click(viewButton!);
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText(/\(existing files\)/)).toBeInTheDocument();
+                expect(
+                    screen.getByText((content, element) => {
+                        return (
+                            element?.tagName.toLowerCase() === 'strong' &&
+                            content.includes('You are currently viewing') &&
+                            content.includes('existing-dup.pdf')
+                        );
+                    }),
+                ).toBeInTheDocument();
+            });
+        });
     });
 
     describe('Radio button selection', () => {
@@ -832,17 +1045,32 @@ describe('ReviewDetailsAssessmentPage', () => {
     describe('Navigation with accept action and multifileReview', () => {
         it('navigates to UPLOAD when accept is selected with single file', async () => {
             const user = userEvent.setup();
-            const singleFileReviewData = createMockReviewData(false, true, false, '24511000000107' as DOCUMENT_TYPE);
-            singleFileReviewData.files = [{ fileName: 'single-file.pdf', uploadDate: '2024-01-15T09:00:00Z', presignedUrl: 'http://example.com' }];
-            
-            const singleUploadDoc = [{
-                id: 'new-1',
-                file: new File(['test content'], 'single-file.pdf', { type: 'application/pdf' }),
-                type: UploadDocumentType.REVIEW,
-                state: DOCUMENT_UPLOAD_STATE.SELECTED,
-                docType: '24511000000107' as DOCUMENT_TYPE,
-                attempts: 0,
-            }];
+            const singleFileReviewData = createMockReviewData(
+                false,
+                true,
+                false,
+                '24511000000107' as DOCUMENT_TYPE,
+            );
+            singleFileReviewData.files = [
+                {
+                    fileName: 'single-file.pdf',
+                    uploadDate: '2024-01-15T09:00:00Z',
+                    presignedUrl: 'http://example.com',
+                },
+            ];
+
+            const singleUploadDoc = [
+                {
+                    id: 'new-1',
+                    file: new File(['test content'], 'single-file.pdf', {
+                        type: 'application/pdf',
+                    }),
+                    type: UploadDocumentType.REVIEW,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    docType: '24511000000107' as DOCUMENT_TYPE,
+                    attempts: 0,
+                },
+            ];
 
             render(
                 <ReviewDetailsAssessmentStage
@@ -871,10 +1099,23 @@ describe('ReviewDetailsAssessmentPage', () => {
 
         it('navigates to UPLOAD_FILE_ORDER when accept is selected with multiple files', async () => {
             const user = userEvent.setup();
-            const multipleFileReviewData = createMockReviewData(false, true, false, '24511000000107' as DOCUMENT_TYPE);
+            const multipleFileReviewData = createMockReviewData(
+                false,
+                true,
+                false,
+                '24511000000107' as DOCUMENT_TYPE,
+            );
             multipleFileReviewData.files = [
-                { fileName: 'file-1.pdf', uploadDate: '2024-01-15T09:00:00Z', presignedUrl: 'http://example.com/1' },
-                { fileName: 'file-2.pdf', uploadDate: '2024-01-16T09:00:00Z', presignedUrl: 'http://example.com/2' },
+                {
+                    fileName: 'file-1.pdf',
+                    uploadDate: '2024-01-15T09:00:00Z',
+                    presignedUrl: 'http://example.com/1',
+                },
+                {
+                    fileName: 'file-2.pdf',
+                    uploadDate: '2024-01-16T09:00:00Z',
+                    presignedUrl: 'http://example.com/2',
+                },
             ];
 
             const multiUploadDocs: ReviewUploadDocument[] = [

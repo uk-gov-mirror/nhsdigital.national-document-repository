@@ -14,6 +14,7 @@ import {
     UploadDocumentType,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
+import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
 
 export type ReviewDetailsFileSelectStageProps = {
     reviewData: ReviewDetails | null;
@@ -49,7 +50,9 @@ const ReviewDetailsFileSelectStage = ({
 
     const handleFileView = (filename: string): void => {
         setSelectedFile(filename);
-        const selectedDocument = uploadDocuments.find((doc) => doc.file.name === filename);
+        const selectedDocument = uploadDocuments.find(
+            (doc) => doc.type === UploadDocumentType.REVIEW && doc.file.name === filename,
+        );
         if (!selectedDocument?.file) {
             return;
         }
@@ -68,7 +71,7 @@ const ReviewDetailsFileSelectStage = ({
         if (isChecked) {
             setUploadDocuments((prevDocuments) => {
                 return prevDocuments.map((doc) =>
-                    doc.file.name === filename
+                    doc.type === UploadDocumentType.REVIEW && doc.file.name === filename
                         ? { ...doc, state: DOCUMENT_UPLOAD_STATE.SELECTED }
                         : doc,
                 );
@@ -76,7 +79,7 @@ const ReviewDetailsFileSelectStage = ({
         } else {
             setUploadDocuments((prevDocuments) => {
                 return prevDocuments.map((doc) =>
-                    doc.file.name === filename
+                    doc.type === UploadDocumentType.REVIEW && doc.file.name === filename
                         ? { ...doc, state: DOCUMENT_UPLOAD_STATE.UNSELECTED }
                         : doc,
                 );
@@ -231,7 +234,9 @@ const RenderFileRows = ({
                             <Table.Cell>
                                 <strong>{doc.file.name}</strong>
                             </Table.Cell>
-                            <Table.Cell>{reviewFile?.uploadDate}</Table.Cell>
+                            <Table.Cell>
+                                {getFormattedDateFromString(reviewFile?.uploadDate)}
+                            </Table.Cell>
                             <Table.Cell>
                                 <button
                                     type="button"

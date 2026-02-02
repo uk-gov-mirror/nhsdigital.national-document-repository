@@ -40,6 +40,8 @@ export type ReviewDetailsAssessmentStageProps = {
     hasExistingRecordInStorage: boolean;
 };
 
+export type SelectedFile = { fileName: string; reviewType: UploadDocumentType };
+
 const ReviewDetailsAssessmentStage = ({
     reviewData,
     setReviewData,
@@ -52,7 +54,7 @@ const ReviewDetailsAssessmentStage = ({
     const { reviewId } = useParams<{ reviewId: string }>();
     const navigate = useNavigate();
 
-    const [selectedFile, setSelectedFile] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
     const [fileAction, setFileAction] = useState<FileAction>('');
     const [showError, setShowError] = useState(false);
     const errorSummaryRef = useRef<HTMLDivElement>(null);
@@ -70,7 +72,7 @@ const ReviewDetailsAssessmentStage = ({
                 return;
             }
             getPdfObjectUrl(file.url || '', (): void => {}, setDownloadStage);
-            setSelectedFile(filename);
+            setSelectedFile({ fileName: filename, reviewType: UploadDocumentType.EXISTING });
             return;
         }
 
@@ -78,7 +80,7 @@ const ReviewDetailsAssessmentStage = ({
         if (!existing) {
             return;
         }
-        setSelectedFile(filename);
+        setSelectedFile({ fileName: filename, reviewType: UploadDocumentType.EXISTING });
     };
 
     const handleNewFileView = async (file: ReviewsListFiles): Promise<void> => {
@@ -88,7 +90,7 @@ const ReviewDetailsAssessmentStage = ({
         }
 
         if (isLocal) {
-            setSelectedFile(file.fileName);
+            setSelectedFile({ fileName: file.fileName, reviewType: UploadDocumentType.REVIEW });
             getPdfObjectUrl(file.presignedUrl, (): void => {}, setDownloadStage);
             return;
         }
@@ -129,7 +131,7 @@ const ReviewDetailsAssessmentStage = ({
                 setReviewData(reviewData);
             }
 
-            setSelectedFile(file.fileName);
+            setSelectedFile({ fileName: file.fileName, reviewType: UploadDocumentType.REVIEW });
         }
         setDownloadStage(DOWNLOAD_STAGE.SUCCEEDED);
     };
@@ -411,14 +413,26 @@ const ReviewDetailsAssessmentStage = ({
             {selectedFile && (
                 <section className="file-viewer mb-4">
                     <p>
-                        <strong>You are currently viewing: {selectedFile}</strong>
+                        <strong>
+                            You are currently viewing
+                            {uploadDocuments.filter((f) => f.file.name === selectedFile.fileName)
+                                .length >= 2 &&
+                                (selectedFile.reviewType === UploadDocumentType.EXISTING
+                                    ? ' (existing files)'
+                                    : ' (new files)')}
+                            {': '}
+                            {selectedFile.fileName}
+                        </strong>
                     </p>
                     {downloadStage === DOWNLOAD_STAGE.PENDING ? (
                         <Spinner status="Preparing file for viewing..." />
                     ) : (
                         <DocumentUploadLloydGeorgePreview
                             documents={uploadDocuments.filter(
-                                (f) => f.file.name === selectedFile && f.file.name.endsWith('.pdf'),
+                                (f) =>
+                                    f.type === selectedFile.reviewType &&
+                                    f.file.name === selectedFile.fileName &&
+                                    f.file.name.endsWith('.pdf'),
                             )}
                             setMergedPdfBlob={(): void => {}}
                             stitchedBlobLoaded={(): void => {}}
