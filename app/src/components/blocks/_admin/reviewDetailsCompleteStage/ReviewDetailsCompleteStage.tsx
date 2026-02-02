@@ -28,19 +28,6 @@ type ReviewDetailsCompleteStageProps = {
     newPatientDetails?: PatientDetails;
 };
 
-export const getReviewStatus = (completeState: CompleteState): DocumentReviewStatus => {
-    if (completeState === CompleteState.PATIENT_MATCHED) {
-        return DocumentReviewStatus.REASSIGNED;
-    }
-    if (completeState === CompleteState.PATIENT_UNKNOWN) {
-        return DocumentReviewStatus.REASSIGNED_PATIENT_UNKNOWN;
-    }
-    if (completeState === CompleteState.NO_FILES_CHOICE) {
-        return DocumentReviewStatus.REJECTED;
-    }
-    return DocumentReviewStatus.APPROVED;
-};
-
 const ReviewDetailsCompleteStage = ({
     completeState,
     reviewData,
@@ -56,6 +43,19 @@ const ReviewDetailsCompleteStage = ({
 
     useTitle({ pageTitle: 'Review complete' });
 
+    const getReviewStatus = (completeState: CompleteState): DocumentReviewStatus => {
+        if (completeState === CompleteState.PATIENT_MATCHED) {
+            return DocumentReviewStatus.REASSIGNED;
+        }
+        if (completeState === CompleteState.PATIENT_UNKNOWN) {
+            return DocumentReviewStatus.REASSIGNED_PATIENT_UNKNOWN;
+        }
+        if (completeState === CompleteState.NO_FILES_CHOICE) {
+            return DocumentReviewStatus.REJECTED;
+        }
+        return DocumentReviewStatus.APPROVED;
+    };
+
     const patchReviewStatus = async (): Promise<void> => {
         try {
             setLoading(true);
@@ -66,9 +66,10 @@ const ReviewDetailsCompleteStage = ({
             const status = getReviewStatus(completeState);
             const req: PatchDocumentReviewRequestDto = {
                 reviewStatus: status,
-                documentReferenceId: status === DocumentReviewStatus.APPROVED 
-                    ? reviewUploadDocuments[0].ref
-                    : undefined,
+                documentReferenceId:
+                    status === DocumentReviewStatus.APPROVED
+                        ? reviewUploadDocuments[0].ref
+                        : undefined,
             };
             if (newPatientDetails) {
                 req.nhsNumber = newPatientDetails.nhsNumber;
@@ -126,7 +127,7 @@ const ReviewDetailsCompleteStage = ({
             return 'Review complete';
         }
         if (completeState === CompleteState.REVIEW_COMPLETE) {
-            return 'Review complete';
+            return 'Upload complete';
         }
         return '';
     };
@@ -141,6 +142,7 @@ const ReviewDetailsCompleteStage = ({
                 </p>
             );
         }
+
         if (completeState === CompleteState.PATIENT_UNKNOWN) {
             return (
                 <p>
@@ -149,6 +151,7 @@ const ReviewDetailsCompleteStage = ({
                 </p>
             );
         }
+
         if (completeState === CompleteState.NO_FILES_CHOICE && patientDetails) {
             const formattedNhsNumber = formatNhsNumber(patientDetails.nhsNumber);
             const dob = getFormattedDateFromString(patientDetails.birthDate);
@@ -171,26 +174,20 @@ const ReviewDetailsCompleteStage = ({
                 </>
             );
         }
+
         if (completeState === CompleteState.REVIEW_COMPLETE && patientDetails) {
             const formattedNhsNumber = formatNhsNumber(patientDetails.nhsNumber);
             const dob = getFormattedDateFromString(patientDetails.birthDate);
             const patientName = getFormattedPatientFullName(patientDetails);
 
             return (
-                <>
-                    <p>
-                        You've completed the review of this document. It has been removed from your
-                        list of documents to review.
-                    </p>
+                <div className="mt-p pt-9">
+                    <strong data-testid="patient-name">Patient name: {patientName}</strong>
                     <br />
-                    <div>
-                        <strong data-testid="patient-name">Patient name: {patientName}</strong>
-                        <br />
-                        <span data-testid="nhs-number">NHS number: {formattedNhsNumber}</span>
-                        <br />
-                        <span data-testid="dob">Date of birth: {dob}</span>
-                    </div>
-                </>
+                    <span data-testid="nhs-number">NHS number: {formattedNhsNumber}</span>
+                    <br />
+                    <span data-testid="dob">Date of birth: {dob}</span>
+                </div>
             );
         }
         return <></>;
@@ -226,9 +223,29 @@ const ReviewDetailsCompleteStage = ({
         if (completeState === CompleteState.REVIEW_COMPLETE) {
             return (
                 <>
-                    <h2>Files added for this patient</h2>
-                    <p>{reviewUploadDocuments.map((doc) => doc.file.name).join(', ')}</p>
-                    <h2>What happens next</h2>
+                    <p className="nhsuk-u-font-weight-bold nhsuk-u-font-size-22">
+                        <strong>
+                            You have completed the review of this document. It has been removed from
+                            your list of documents to review.
+                        </strong>
+                    </p>
+                    <h2>What to do next</h2>
+                    <ol>
+                        <li>
+                            You'll find this document in the patient's record within this service,
+                            which you can access by{' '}
+                            <a href={routes.SEARCH_PATIENT}>searching using their NHS number</a>.
+                        </li>
+                        <li>
+                            Follow your usual process for managing a new patient record. For
+                            example, storing and summarising on the clinical system and logging any
+                            SNOMED codes.
+                        </li>
+                        <li>
+                            When you've done this, you can remove any digital copies of these files
+                            from your computer.
+                        </li>
+                    </ol>
                     {getDefaultPrmEmailSupportMessage()}
                 </>
             );
@@ -255,7 +272,7 @@ const ReviewDetailsCompleteStage = ({
             {getBody()}
 
             <Button data-testid="review-another-btn" type="button" onClick={OnComplete}>
-                Review another document
+                Go to Documents to Review
             </Button>
         </div>
     );

@@ -2,13 +2,16 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
-import ReviewDetailsCompleteStage, { getReviewStatus } from './ReviewDetailsCompleteStage';
+import ReviewDetailsCompleteStage from './ReviewDetailsCompleteStage';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import { CompleteState } from '../../../../pages/adminRoutesPage/AdminRoutesPage';
 import { routeChildren } from '../../../../types/generic/routes';
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
-import { DOCUMENT_UPLOAD_STATE, UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
+import {
+    DOCUMENT_UPLOAD_STATE,
+    UploadDocument,
+} from '../../../../types/pages/UploadDocumentsPage/types';
 import { DocumentReviewStatus } from '../../../../types/blocks/documentReview';
 import { patchReview } from '../../../../helpers/requests/patchReviews';
 import { ReviewDetails } from '../../../../types/generic/reviews';
@@ -64,32 +67,6 @@ describe('ReviewDetailsCompletePage', () => {
         mockUsePatientDetailsContext.mockReturnValue([mockPatientDetails, mockSetPatientDetails]);
     });
 
-    describe('getReviewStatus', () => {
-        it('maps PATIENT_MATCHED to REASSIGNED', () => {
-            expect(getReviewStatus(CompleteState.PATIENT_MATCHED)).toBe(
-                DocumentReviewStatus.REASSIGNED,
-            );
-        });
-
-        it('maps PATIENT_UNKNOWN to REASSIGNED_PATIENT_UNKNOWN', () => {
-            expect(getReviewStatus(CompleteState.PATIENT_UNKNOWN)).toBe(
-                DocumentReviewStatus.REASSIGNED_PATIENT_UNKNOWN,
-            );
-        });
-
-        it('maps NO_FILES_CHOICE to REJECTED', () => {
-            expect(getReviewStatus(CompleteState.NO_FILES_CHOICE)).toBe(
-                DocumentReviewStatus.REJECTED,
-            );
-        });
-
-        it('defaults to APPROVED (e.g. REVIEW_COMPLETE)', () => {
-            expect(getReviewStatus(CompleteState.REVIEW_COMPLETE)).toBe(
-                DocumentReviewStatus.APPROVED,
-            );
-        });
-    });
-
     describe('Rendering', () => {
         it('renders the page with correct test id', () => {
             render(
@@ -128,7 +105,7 @@ describe('ReviewDetailsCompletePage', () => {
             );
 
             expect(
-                screen.getByRole('button', { name: 'Review another document' }),
+                screen.getByRole('button', { name: 'Go to Documents to Review' }),
             ).toBeInTheDocument();
         });
     });
@@ -439,10 +416,10 @@ describe('ReviewDetailsCompletePage', () => {
                 />,
             );
 
-            expect(screen.getByRole('heading', { name: 'Review complete' })).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: 'Upload complete' })).toBeInTheDocument();
         });
 
-        it('renders correct panel body message', () => {
+        it('renders completion message', () => {
             render(
                 <ReviewDetailsCompleteStage
                     completeState={CompleteState.REVIEW_COMPLETE}
@@ -453,7 +430,7 @@ describe('ReviewDetailsCompletePage', () => {
 
             expect(
                 screen.getByText(
-                    /You've completed the review of this document. It has been removed from your list/,
+                    /You have completed the review of this document. It has been removed from your list of documents to review/,
                 ),
             ).toBeInTheDocument();
         });
@@ -494,7 +471,19 @@ describe('ReviewDetailsCompletePage', () => {
             expect(screen.getByTestId('dob')).toHaveTextContent('Date of birth: 1 January 1970');
         });
 
-        it('renders files added section', () => {
+        it('renders "What to do next" heading', () => {
+            render(
+                <ReviewDetailsCompleteStage
+                    completeState={CompleteState.REVIEW_COMPLETE}
+                    reviewData={mockReviewData}
+                    reviewUploadDocuments={mockReviewUploadDocuments}
+                />,
+            );
+
+            expect(screen.getByRole('heading', { name: 'What to do next' })).toBeInTheDocument();
+        });
+
+        it('renders ordered list with instructions', () => {
             render(
                 <ReviewDetailsCompleteStage
                     completeState={CompleteState.REVIEW_COMPLETE}
@@ -504,12 +493,21 @@ describe('ReviewDetailsCompletePage', () => {
             );
 
             expect(
-                screen.getByRole('heading', { name: 'Files added for this patient' }),
+                screen.getByText(
+                    /You'll find this document in the patient's record within this service/,
+                ),
             ).toBeInTheDocument();
-            expect(screen.getByText('LloydGeorgerecords.zip')).toBeInTheDocument();
+            expect(
+                screen.getByText(/Follow your usual process for managing a new patient record/),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByText(
+                    /When you've done this, you can remove any digital copies of these files/,
+                ),
+            ).toBeInTheDocument();
         });
 
-        it('renders "What happens next" heading', () => {
+        it('renders link to search for patient', () => {
             render(
                 <ReviewDetailsCompleteStage
                     completeState={CompleteState.REVIEW_COMPLETE}
@@ -518,20 +516,9 @@ describe('ReviewDetailsCompletePage', () => {
                 />,
             );
 
-            expect(screen.getByRole('heading', { name: 'What happens next' })).toBeInTheDocument();
-        });
-
-        it('does not render duplicate "What happens next" heading outside panel', () => {
-            render(
-                <ReviewDetailsCompleteStage
-                    completeState={CompleteState.REVIEW_COMPLETE}
-                    reviewData={mockReviewData}
-                    reviewUploadDocuments={mockReviewUploadDocuments}
-                />,
-            );
-
-            const headings = screen.getAllByRole('heading', { name: 'What happens next' });
-            expect(headings).toHaveLength(1);
+            const searchLink = screen.getByRole('link', { name: 'searching using their NHS number' });
+            expect(searchLink).toBeInTheDocument();
+            expect(searchLink).toHaveAttribute('href', '/patient/search');
         });
 
         it('renders PRM team contact email link', () => {
@@ -590,7 +577,7 @@ describe('ReviewDetailsCompletePage', () => {
                 />,
             );
 
-            const button = screen.getByRole('button', { name: 'Review another document' });
+            const button = screen.getByRole('button', { name: 'Go to Documents to Review' });
             await user.click(button);
 
             expect(mockSetPatientDetails).toHaveBeenCalledWith(null);
@@ -607,7 +594,7 @@ describe('ReviewDetailsCompletePage', () => {
                 />,
             );
 
-            const button = screen.getByRole('button', { name: 'Review another document' });
+            const button = screen.getByRole('button', { name: 'Go to Documents to Review' });
             await user.click(button);
 
             expect(mockNavigate).toHaveBeenCalledWith(routeChildren.ADMIN_REVIEW, {
@@ -626,7 +613,7 @@ describe('ReviewDetailsCompletePage', () => {
                 />,
             );
 
-            const button = screen.getByRole('button', { name: 'Review another document' });
+            const button = screen.getByRole('button', { name: 'Go to Documents to Review' });
             await user.click(button);
 
             expect(mockSetPatientDetails).toHaveBeenCalledBefore(mockNavigate as Mock);
@@ -724,7 +711,7 @@ describe('ReviewDetailsCompletePage', () => {
                 reviewData.id,
                 reviewData.version,
                 reviewData.nhsNumber,
-                expectedRequest
+                expectedRequest,
             );
         });
     });
