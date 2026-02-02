@@ -39,20 +39,26 @@ from tests.unit.helpers.data.statistic.mock_logs_query_results import (
     MOCK_DECEASED_ACCESS,
     MOCK_LG_DELETED,
     MOCK_LG_DOWNLOADED,
-    MOCK_LG_STORED,
+    MOCK_LG_UPLOADED,
     MOCK_LG_VIEWED,
     MOCK_ODS_REPORT_CREATED,
     MOCK_ODS_REPORT_REQUESTED,
     MOCK_PATIENT_SEARCHED,
     MOCK_UNIQUE_ACTIVE_USER_IDS,
+    MOCK_USERS_LG_UPLOADED,
+    MOCK_USERS_LG_REASSIGNED,
+    MOCK_USERS_LG_REVIEWED,
 )
 from utils.cloudwatch_logs_query import (
     CloudwatchLogsQueryParams,
     CountUsersAccessedDeceasedPatient,
+    CountUsersLloydGeorgeRecordsUploaded,
+    CountUsersLloydGeorgeRecordsReassigned,
+    CountUsersLloydGeorgeRecordsReviewed,
     LloydGeorgeRecordsDeleted,
     LloydGeorgeRecordsDownloaded,
     LloydGeorgeRecordsSearched,
-    LloydGeorgeRecordsStored,
+    LloydGeorgeRecordsUploaded,
     LloydGeorgeRecordsViewed,
     OdsReportsCreated,
     OdsReportsRequested,
@@ -102,8 +108,14 @@ def mock_query_logs(mocker):
             return MOCK_LG_DOWNLOADED
         elif query_params == LloydGeorgeRecordsDeleted:
             return MOCK_LG_DELETED
-        elif query_params == LloydGeorgeRecordsStored:
-            return MOCK_LG_STORED
+        elif query_params == LloydGeorgeRecordsUploaded:
+            return MOCK_LG_UPLOADED
+        elif query_params == CountUsersLloydGeorgeRecordsUploaded:
+            return MOCK_USERS_LG_UPLOADED
+        elif query_params == CountUsersLloydGeorgeRecordsReviewed:
+            return MOCK_USERS_LG_REVIEWED
+        elif query_params == CountUsersLloydGeorgeRecordsReassigned:
+            return MOCK_USERS_LG_REASSIGNED
         elif query_params == UniqueActiveUserIds:
             return MOCK_UNIQUE_ACTIVE_USER_IDS
         elif query_params == LloydGeorgeRecordsSearched:

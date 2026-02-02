@@ -58,6 +58,7 @@ def lambda_handler(event, context):
         document_ids=documents_id_list, nhs_number=nhs_number_query_string
     )
     if results:
+        logger.info("All documents processed successfully")
         return ApiGatewayResponse(
             status_code=200, body=json.dumps(results), methods="GET"
         ).create_api_gateway_response()

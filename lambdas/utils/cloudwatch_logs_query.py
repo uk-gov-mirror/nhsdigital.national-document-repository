@@ -34,12 +34,22 @@ LloydGeorgeRecordsDeleted = CloudwatchLogsQueryParams(
     """,
 )
 
-LloydGeorgeRecordsStored = CloudwatchLogsQueryParams(
-    lambda_name="UploadConfirmResultLambda",
+LloydGeorgeRecordsUploaded = CloudwatchLogsQueryParams(
+    lambda_name="DocumentStatusCheckLambda",
     query_string="""
         fields @timestamp, Message, Authorisation.selected_organisation.org_ods_code AS ods_code
-        | filter Message = 'Finished processing all documents'
-        | stats count() AS daily_count_stored BY ods_code
+        | filter Message = 'All documents processed successfully'
+        | stats count() AS daily_count_uploaded BY ods_code
+    """,
+)
+
+CountUsersLloydGeorgeRecordsUploaded = CloudwatchLogsQueryParams(
+    lambda_name="DocumentStatusCheckLambda",
+    query_string="""
+        fields @timestamp, Message, Authorisation.nhs_user_id AS user_id, 
+        Authorisation.selected_organisation.org_ods_code AS ods_code
+        | filter Message = 'All documents processed successfully' 
+        | stats count_distinct(user_id) AS daily_count_users_uploaded BY ods_code
     """,
 )
 
@@ -90,5 +100,25 @@ UniqueActiveUserIds = CloudwatchLogsQueryParams(
         Authorisation.repository_role AS user_role
         | filter ispresent(ods_code) AND ispresent(user_id)
         | dedup(ods_code, user_id, user_role, role_code)
+    """,
+)
+
+CountUsersLloydGeorgeRecordsReviewed = CloudwatchLogsQueryParams(
+    lambda_name="PatchDocumentReview",
+    query_string="""
+        fields @timestamp, Message, Authorisation.nhs_user_id AS user_id, 
+        Authorisation.selected_organisation.org_ods_code AS ods_code
+        | filter Message like /Successfully updated document review for document_id/
+        | stats count_distinct(user_id) AS daily_count_users_reviewed BY ods_code
+    """,
+)
+
+CountUsersLloydGeorgeRecordsReassigned = CloudwatchLogsQueryParams(
+    lambda_name="PatchDocumentReview",
+    query_string="""
+        fields @timestamp, Message, Authorisation.nhs_user_id AS user_id, 
+        Authorisation.selected_organisation.org_ods_code AS ods_code
+        | filter Message like /Document .* reassigned to patient .*/
+        | stats count_distinct(user_id) AS daily_count_users_reviewed BY ods_code
     """,
 )

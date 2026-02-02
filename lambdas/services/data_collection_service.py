@@ -19,10 +19,13 @@ from utils.audit_logging_setup import LoggingService
 from utils.cloudwatch_logs_query import (
     CloudwatchLogsQueryParams,
     CountUsersAccessedDeceasedPatient,
+    CountUsersLloydGeorgeRecordsUploaded,
+    CountUsersLloydGeorgeRecordsReassigned,
+    CountUsersLloydGeorgeRecordsReviewed,
     LloydGeorgeRecordsDeleted,
     LloydGeorgeRecordsDownloaded,
     LloydGeorgeRecordsSearched,
-    LloydGeorgeRecordsStored,
+    LloydGeorgeRecordsUploaded,
     LloydGeorgeRecordsViewed,
     OdsReportsCreated,
     OdsReportsRequested,
@@ -191,8 +194,17 @@ class DataCollectionService:
         daily_count_deleted = self.get_cloud_watch_query_result(
             LloydGeorgeRecordsDeleted, start_date, end_date
         )
-        daily_count_stored = self.get_cloud_watch_query_result(
-            LloydGeorgeRecordsStored, start_date, end_date
+        daily_count_uploaded = self.get_cloud_watch_query_result(
+            LloydGeorgeRecordsUploaded, start_date, end_date
+        )
+        daily_count_users_uploaded = self.get_cloud_watch_query_result(
+            CountUsersLloydGeorgeRecordsUploaded, start_date, end_date
+        )
+        daily_count_users_reviewed = self.get_cloud_watch_query_result(
+            CountUsersLloydGeorgeRecordsReviewed, start_date, end_date
+        )
+        daily_count_users_reassigned = self.get_cloud_watch_query_result(
+            CountUsersLloydGeorgeRecordsReassigned, start_date, end_date
         )
         daily_count_searched = self.get_cloud_watch_query_result(
             LloydGeorgeRecordsSearched, start_date, end_date
@@ -213,7 +225,10 @@ class DataCollectionService:
                 daily_count_viewed,
                 daily_count_downloaded,
                 daily_count_deleted,
-                daily_count_stored,
+                daily_count_uploaded,
+                daily_count_users_uploaded,
+                daily_count_users_reviewed,
+                daily_count_users_reassigned,
                 daily_count_searched,
                 daily_count_deceased,
                 daily_count_ods_report_requested,

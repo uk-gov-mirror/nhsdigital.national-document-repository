@@ -25,7 +25,7 @@ class MockLoginRedirectService(LoginRedirectService):
 
         state = "".join(random.choices(string.ascii_letters + string.digits, k=30))
         self.save_state_in_dynamo_db(state)
-        if os.getenv("WORKSPACE") == "pre-prod":
+        if os.getenv("WORKSPACE") in ["pre-prod", "ndr-test"]:
             clean_url = re.sub(r"^api.", "", host)
         else:
             clean_url = re.sub(r"^api-", "", host)

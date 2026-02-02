@@ -52,11 +52,14 @@ class RecordStoreData(StatisticData):
 class OrganisationData(StatisticData):
     number_of_patients: int = 0
     average_records_per_patient: Decimal = Decimal(0)
-    daily_count_stored: int = 0
+    daily_count_uploaded: int = 0
     daily_count_viewed: int = 0
     daily_count_downloaded: int = 0
     daily_count_deleted: int = 0
     daily_count_searched: int = 0
+    daily_count_users_uploaded: int = 0
+    daily_count_users_reviewed: int = 0
+    daily_count_users_reassigned: int = 0
     daily_count_users_accessing_deceased: int = 0
     daily_count_ods_report_requested: int = 0
     daily_count_ods_report_created: int = 0

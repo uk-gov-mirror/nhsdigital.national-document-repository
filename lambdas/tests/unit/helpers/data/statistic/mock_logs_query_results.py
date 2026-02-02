@@ -57,15 +57,36 @@ MOCK_LG_DELETED = [
     },
 ]
 
-MOCK_LG_STORED = [
+MOCK_LG_UPLOADED = [
     {
         "ods_code": "Y12345",
-        "daily_count_stored": "2",
+        "daily_count_uploaded": "2",
     },
     {
         "ods_code": "H81109",
-        "daily_count_stored": "4",
+        "daily_count_uploaded": "4",
     },
+]
+
+MOCK_USERS_LG_UPLOADED = [
+    {
+        "ods_code": "Y12345",
+        "daily_count_users_uploaded": "2",
+    },
+    {
+        "ods_code": "H81109",
+        "daily_count_users_uploaded": "4",
+    },
+]
+
+MOCK_USERS_LG_REVIEWED = [
+    {"ods_code": "Y12345", "daily_count_users_reviewed": "1"},
+    {"ods_code": "H81109", "daily_count_users_reviewed": "2"},
+]
+
+MOCK_USERS_LG_REASSIGNED = [
+    {"ods_code": "Y12345", "daily_count_users_reassigned": "1"},
+    {"ods_code": "H81109", "daily_count_users_reassigned": "2"},
 ]
 
 MOCK_PATIENT_SEARCHED = [

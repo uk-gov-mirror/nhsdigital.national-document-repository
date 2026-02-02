@@ -211,7 +211,7 @@ def test_summarise_organisation_data_larger_mock_data(mock_service):
 
 
 def assert_weekly_counts_match_sum_of_daily_counts(mock_data, row_in_actual_data):
-    for count_type in ["viewed", "downloaded", "stored", "deleted"]:
+    for count_type in ["viewed", "downloaded", "uploaded", "deleted"]:
         expected_weekly_count = sum(
             getattr(data, f"daily_count_{count_type}") for data in mock_data
         )
