@@ -12,6 +12,7 @@ class SupportedDocumentTypes(StrEnum):
     LG = SnomedCodes.LLOYD_GEORGE.value.code
     EHR = SnomedCodes.EHR.value.code
     EHR_ATTACHMENTS = SnomedCodes.EHR_ATTACHMENTS.value.code
+    LETTERS_AND_DOCUMENTS = SnomedCodes.LETTERS_AND_DOCUMENTS.value.code
 
     @staticmethod
     def list():
@@ -39,6 +40,9 @@ class SupportedDocumentTypes(StrEnum):
             SupportedDocumentTypes.EHR_ATTACHMENTS: os.getenv(
                 "LLOYD_GEORGE_DYNAMODB_NAME"
             ),
+            SupportedDocumentTypes.LETTERS_AND_DOCUMENTS: os.getenv(
+                "LLOYD_GEORGE_BUCKET_NAME"
+            ),
         }
         return document_type_to_table_name[self]
 
@@ -48,6 +52,9 @@ class SupportedDocumentTypes(StrEnum):
             SupportedDocumentTypes.LG: os.getenv("LLOYD_GEORGE_BUCKET_NAME"),
             SupportedDocumentTypes.EHR: os.getenv("LLOYD_GEORGE_BUCKET_NAME"),
             SupportedDocumentTypes.EHR_ATTACHMENTS: os.getenv(
+                "LLOYD_GEORGE_BUCKET_NAME"
+            ),
+            SupportedDocumentTypes.LETTERS_AND_DOCUMENTS: os.getenv(
                 "LLOYD_GEORGE_BUCKET_NAME"
             ),
         }

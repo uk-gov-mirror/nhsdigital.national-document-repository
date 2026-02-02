@@ -50,6 +50,13 @@ describe('documentType', () => {
             expect(config.multifileUpload).toBe(true);
         });
 
+        it('should return config for LETTERS_AND_DOCS', () => {
+            const config = getConfigForDocType(DOCUMENT_TYPE.LETTERS_AND_DOCS);
+            expect(config.snomedCode).toBe(DOCUMENT_TYPE.LETTERS_AND_DOCS);
+            expect(config.displayName).toBe('other docs and letters');
+            expect(config.multifileUpload).toBe(true);
+        });
+
         it('should throw error for unknown document type', () => {
             expect(() => getConfigForDocType('unknown' as DOCUMENT_TYPE)).toThrow(
                 'No config found for document type: unknown',

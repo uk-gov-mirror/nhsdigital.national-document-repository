@@ -348,6 +348,7 @@ class DocTypeTableRouter:
             SnomedCodes.LLOYD_GEORGE.value.code: self.lg_dynamo_table,
             SnomedCodes.EHR.value.code: self.lg_dynamo_table,
             SnomedCodes.EHR_ATTACHMENTS.value.code: self.lg_dynamo_table,
+            SnomedCodes.LETTERS_AND_DOCUMENTS.value.code: self.lg_dynamo_table,
             SnomedCodes.PATIENT_DATA.value.code: self.core_dynamo_table,
         }
 

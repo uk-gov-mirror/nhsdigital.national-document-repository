@@ -16,6 +16,12 @@ describe('PatientSummary', () => {
         vi.clearAllMocks();
     });
 
+    it('renders nothing when patient details are null', () => {
+        mockedUsePatient.mockReturnValue(null);
+        const { container } = render(<PatientSummary />);
+        expect(container).toBeEmptyDOMElement();
+    });
+
     it('renders provided patient information', () => {
         const mockDetails = buildPatientDetails({
             familyName: 'Jones',
@@ -242,21 +248,6 @@ describe('PatientSummary', () => {
             expect(screen.getByText('John Michael')).toBeInTheDocument();
             expect(screen.getByTestId('patient-summary-given-name')).toBeInTheDocument();
             expect(screen.getByText('First name')).toBeInTheDocument();
-        });
-
-        it('handles null patient details gracefully', () => {
-            mockedUsePatient.mockReturnValue(null);
-            render(
-                <PatientSummary>
-                    <PatientSummary.Child item={PatientInfo.FAMILY_NAME} />
-                    <PatientSummary.Child item={PatientInfo.GIVEN_NAME} />
-                    <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
-                    <PatientSummary.Child item={PatientInfo.POSTAL_CODE} />
-                </PatientSummary>,
-            );
-
-            expect(screen.getByTestId('patient-summary')).toBeInTheDocument();
-            // Components should render but with empty/default values
         });
 
         it('handles empty NHS number', () => {

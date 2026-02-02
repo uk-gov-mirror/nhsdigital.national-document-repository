@@ -19,6 +19,7 @@ class DocumentReferenceMetadataFields(Enum):
     DOC_STATUS = "DocStatus"
     CUSTODIAN = "Custodian"
     DOCUMENT_SCAN_CREATION = "DocumentScanCreation"
+    DOCUMENT_SNOMED_CODE_TYPE = "DocumentSnomedCodeType"
 
     @staticmethod
     def list() -> list[str]:

@@ -1,0 +1,36 @@
+{
+    "snomedCode": "162931000000103",
+    "displayName": "other docs and letters",
+    "filenameOverride": "",
+    "canBeUpdated": false,
+    "associatedSnomed": "",
+    "multifileUpload": true,
+    "multifileZipped": false,
+    "multifileReview": false,
+    "canBeDiscarded": true,
+    "stitched": false,
+    "stitchedFilenamePrefix": "",
+    "singleDocumentOnly": false,
+    "acceptedFileTypes": [],
+    "content": {
+        "viewDocumentTitle": "Letters and documents",
+        "addFilesSelectTitle": "",
+        "uploadFilesSelectTitle": "Choose documents to upload",
+        "uploadFilesBulletPoints": [
+            "There is no maximum number of size of files you can upload",
+            "You can upload files in any format except .zip and .exe files",
+            "If there is a problem with your files during upload, you'll need to resolve these before continuing"
+        ],
+        "chooseFilesMessage": "Choose files to upload",
+        "chooseFilesButtonLabel": "Choose files",
+        "chooseFilesWarningText": "",
+        "skipDocumentLinkText": "",
+        "confirmFilesTitle": "Check files are for the correct patient",
+        "confirmFilesTableTitle": "Files to upload",
+        "confirmFilesTableParagraph": "",
+        "beforeYouUploadTitle": "Before you upload",
+        "previewUploadTitle": "Preview your PDF files",
+        "uploadFilesExtraParagraph": "",
+        "reviewDocumentTitle": "Letters and documents"
+    }
+}

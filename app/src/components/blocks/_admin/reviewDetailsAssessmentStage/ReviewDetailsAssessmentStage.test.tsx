@@ -12,6 +12,7 @@ import {
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import * as getReviewsModule from '../../../../helpers/requests/getReviews';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 
 const mockedUseNavigate = vi.fn();
 const mockSetPatientDetails = vi.fn();
@@ -375,7 +376,7 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('displays patient demographics', async () => {
-            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+            mockUsePatientDetailsContext.mockReturnValue([buildPatientDetails(), mockSetPatientDetails]);
 
             render(
                 <ReviewDetailsAssessmentStage

@@ -167,6 +167,26 @@ describe('DeleteSubmitStage', () => {
             });
         });
 
+        it('renders DeletionCompleteStage when the Yes is selected and Continue clicked, when user role is PCSE and feature flag is disabled', async () => {
+            mockedUseRole.mockReturnValue(REPOSITORY_ROLE.PCSE);
+
+            mockedAxios.delete.mockReturnValue(Promise.resolve({ status: 200, data: 'Success' }));
+
+            renderComponent(DOCUMENT_TYPE.LLOYD_GEORGE, history);
+
+            expect(screen.getByRole('radio', { name: 'Yes' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+
+            await userEvent.click(screen.getByRole('radio', { name: 'Yes' }));
+            await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(
+                    routeChildren.DOCUMENT_DELETE_COMPLETE,
+                );
+            });
+        });
+
         it('renders DeletionCompleteStage when the Yes is selected and Continue clicked, when user role is GP_ADMIN and feature flag is enabled', async () => {
             mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
             mockuseConfig.mockReturnValue({

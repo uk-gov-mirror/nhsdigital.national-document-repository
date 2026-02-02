@@ -114,8 +114,10 @@ const DocumentUploadConfirmStage = ({
         setCurrentPreviewDocument(document);
         // timeout to wait for first render before scrolling
         setTimeout(() => {
-            documentPreviewRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 0);
+            if (typeof documentPreviewRef?.current?.scrollIntoView === 'function') {
+                documentPreviewRef?.current?.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 2);
     };
 
     const removeDocument = (docToRemove: UploadDocument): void => {
@@ -123,7 +125,10 @@ const DocumentUploadConfirmStage = ({
 
         groupDocumentsByType(updatedDocs);
 
-        if (updatedDocs.length === 1) {
+        if (currentPreviewDocument?.id === docToRemove.id) {
+            setCurrentPreviewDocument(undefined);
+        }
+        else if (updatedDocs.length === 1 && updatedDocs[0].file.type === 'application/pdf') {
             setCurrentPreviewDocument(updatedDocs[0]);
         }
 
@@ -156,7 +161,7 @@ const DocumentUploadConfirmStage = ({
 
     const documentPreview = (): React.JSX.Element => {
         if (!currentPreviewDocument) {
-            return <></>;
+            return <div ref={documentPreviewRef}></div>;
         }
 
         const config = getConfigForDocType(currentPreviewDocument.docType);
@@ -170,8 +175,7 @@ const DocumentUploadConfirmStage = ({
         const showCurrentlyViewingText =
             hasUnstitchedDocType &&
             documents.length > 0 &&
-            !!groupedDocuments &&
-            Object.keys(groupedDocuments).length > 1;
+            !!groupedDocuments;
 
         return (
             <div ref={documentPreviewRef}>

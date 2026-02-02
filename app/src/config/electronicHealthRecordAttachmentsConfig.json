@@ -32,7 +32,7 @@
         "beforeYouUploadTitle": "Before you upload",
         "previewUploadTitle": "Preview electronic health record attachment",
         "uploadFilesExtraParagraph": "",
-        "reviewList": "EHR Attachments",
+        "reviewDocumentTitle": "EHR Attachments",
         "skipDocumentLinkText": "Continue without uploading any EHR attachments"
     }
 }

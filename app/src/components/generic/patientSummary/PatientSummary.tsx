@@ -133,7 +133,12 @@ const PatientSummary = ({
     if (reviewPatientDetails) {
         patientDetails = reviewPatientDetails;
     }
+    
     const patientDetailsContextValue = useMemo(() => ({ patientDetails }), [patientDetails]);
+
+    if (!patientDetails) {
+        return <></>;
+    }
 
     if (oneLine) {
         const nameLengthLimit = 30;
@@ -168,11 +173,11 @@ const PatientSummary = ({
                                 data-testid="patient-summary-small-nhs-number"
                                 className="nhsuk-u-padding-right-9"
                             >
-                                NHS number: {formatNhsNumber(patientDetails!.nhsNumber)}
+                                NHS number: {formatNhsNumber(patientDetails.nhsNumber)}
                             </span>
                             <span data-testid="patient-summary-small-date-of-birth">
                                 Date of birth:{' '}
-                                {getFormattedDate(new Date(patientDetails!.birthDate))}
+                                {getFormattedDate(new Date(patientDetails.birthDate))}
                             </span>
                         </p>
                     </div>

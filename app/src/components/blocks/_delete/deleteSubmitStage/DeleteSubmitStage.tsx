@@ -84,7 +84,7 @@ export const DeleteSubmitStageIndexView = ({
             resetDocState();
             setDeletionStage(SUBMISSION_STATE.SUCCEEDED);
             navigate(
-                config.featureFlags.uploadDocumentIteration3Enabled
+                config.featureFlags.uploadDocumentIteration3Enabled || role === REPOSITORY_ROLE.PCSE
                     ? routeChildren.DOCUMENT_DELETE_COMPLETE
                     : routeChildren.LLOYD_GEORGE_DELETE_COMPLETE,
             );

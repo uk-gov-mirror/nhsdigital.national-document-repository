@@ -31,8 +31,8 @@
         "confirmFilesTableTitle": "Scanned paper notes to upload",
         "confirmFilesTableParagraph": "",
         "beforeYouUploadTitle": "Before you upload",
-        "previewUploadTitle": "Preview this scanned paper notes record",
+        "previewUploadTitle": "Preview these scanned paper notes",
         "uploadFilesExtraParagraph": "You can add a note to the patient's electronic health record to say their Lloyd George record is stored in this service. Use SNOMED code 16521000000101.",
-        "reviewList": "Scanned Paper Notes"
+        "reviewDocumentTitle": "Scanned paper notes"
     }
 }

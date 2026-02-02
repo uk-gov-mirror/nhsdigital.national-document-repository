@@ -71,6 +71,15 @@ describe('DocumentUploadCompleteStage', () => {
 
         const expectedDob = getFormattedDate(new Date(patientDetails.birthDate));
         expect(screen.getByTestId('dob').textContent).toEqual('Date of birth: ' + expectedDob);
+
+        expect(
+            screen.queryByText(
+                'You are not the data controller',
+                {
+                    exact: false,
+                }
+            ),
+        ).not.toBeInTheDocument();
     });
 
     it('should navigate to search when clicking the search link', async () => {
@@ -151,6 +160,25 @@ describe('DocumentUploadCompleteStage', () => {
         await userEvent.click(screen.getByTestId('accordion-toggle-button'));
 
         expect(screen.getByText(documents[1].file.name)).toBeInTheDocument();
+    });
+
+    it('should render non-data controller message when user is not data controller', async () => {
+        vi.mocked(usePatient).mockReturnValueOnce(
+            buildPatientDetails({
+                canManageRecord: false,
+            }),
+        );
+
+        renderApp(documents);
+
+        expect(
+            screen.getByText(
+                'You are not the data controller',
+                {
+                    exact: false,
+                }
+            ),
+        ).toBeInTheDocument();
     });
 
     const renderApp = (documents: UploadDocument[]) => {

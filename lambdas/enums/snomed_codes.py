@@ -21,6 +21,9 @@ class SnomedCodes(Enum):
     EHR_ATTACHMENTS = SnomedCode(
         code="24511000000107", display_name="Electronic Health Record Attachments"
     )
+    LETTERS_AND_DOCUMENTS = SnomedCode(
+        code="162931000000103", display_name="Care record elements"
+    )
     # Temporary snomed code used.
     PATIENT_DATA = SnomedCode(
         code="717391000000106", display_name="Confidential patient data"

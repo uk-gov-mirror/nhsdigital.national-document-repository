@@ -87,6 +87,16 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                                 fileName: 'EHR Attachments.zip',
                                 contentType: 'application/zip',
                             }),
+                            buildSearchResult({
+                                documentSnomedCodeType: DOCUMENT_TYPE.LETTERS_AND_DOCS,
+                                fileName: 'Later letter.pdf',
+                                contentType: 'application/pdf',
+                            }),
+                            buildSearchResult({
+                                documentSnomedCodeType: DOCUMENT_TYPE.LETTERS_AND_DOCS,
+                                fileName: 'Later letter 2.docx',
+                                contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            }),
                         ]);
                         setSubmissionState(SUBMISSION_STATE.SUCCEEDED);
                     } else {

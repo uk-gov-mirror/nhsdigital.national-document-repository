@@ -8,7 +8,7 @@ def test_can_get_one_field_name():
 
 def test_returns_all_as_list():
     subject = DocumentReferenceMetadataFields.list()
-    assert len(subject) == 16
+    assert len(subject) == 17
     assert DocumentReferenceMetadataFields.ID.value in subject
     assert DocumentReferenceMetadataFields.CONTENT_TYPE.value in subject
     assert DocumentReferenceMetadataFields.CREATED.value in subject
@@ -25,3 +25,4 @@ def test_returns_all_as_list():
     assert DocumentReferenceMetadataFields.DOCUMENT_SCAN_CREATION.value in subject
     assert DocumentReferenceMetadataFields.CUSTODIAN.value in subject
     assert DocumentReferenceMetadataFields.FILE_SIZE.value in subject
+    assert DocumentReferenceMetadataFields.DOCUMENT_SNOMED_CODE_TYPE.value in subject

@@ -11,6 +11,7 @@ import {
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import { routeChildren } from '../../../../types/generic/routes';
 import '../../../../helpers/utils/string-extensions';
+import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 
 vi.mock('../../../../helpers/utils/documentType');
 vi.mock('../../../../helpers/hooks/useTitle', () => ({
@@ -134,7 +135,9 @@ describe('ReviewDetailsFileSelectStage', () => {
         expect(screen.queryByText('existing.pdf')).not.toBeInTheDocument();
     });
 
-    it('renders patient demograhics', () => {
+    it('renders patient demographics', () => {
+        mockUsePatientDetailsContext.mockReturnValue([buildPatientDetails(), mockSetPatientDetails]);
+
         const documents: ReviewUploadDocument[] = [
             makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.UNSELECTED, UploadDocumentType.REVIEW),
             makeReviewDoc(
@@ -144,7 +147,7 @@ describe('ReviewDetailsFileSelectStage', () => {
             ),
         ];
 
-        renderApp({ reviewData: mockReviewData, uploadDocuments: documents });
+        renderApp({ reviewData: mockReviewData, uploadDocuments: documents, mockPatientContext: false });
 
         expect(screen.getByTestId('patient-summary')).toBeInTheDocument();
         expect(screen.getByTestId('patient-summary-full-name')).toBeInTheDocument();

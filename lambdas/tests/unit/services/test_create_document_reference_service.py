@@ -2,7 +2,9 @@ import json
 from datetime import datetime
 
 import pytest
+from enums.dynamo_filter import AttributeOperator
 from enums.lambda_error import LambdaError
+from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
 from freezegun import freeze_time
 from models.document_reference import DocumentReference, UploadRequestDocument
@@ -19,7 +21,9 @@ from tests.unit.helpers.data.create_document_reference import (
 from tests.unit.helpers.data.test_documents import (
     create_test_lloyd_george_doc_store_refs,
 )
+from utils.common_query_filters import NotDeleted
 from utils.constants.ssm import UPLOAD_PILOT_ODS_ALLOWED_LIST
+from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.exceptions import PatientNotFoundException
 from utils.lambda_exceptions import DocumentRefException
 from utils.lloyd_george_validator import LGInvalidFilesException
@@ -120,12 +124,12 @@ def mock_remove_records(mock_create_doc_ref_service, mocker):
 
 
 @pytest.fixture()
-def mock_check_existing_lloyd_george_records_and_remove_failed_upload(
+def mock_check_existing_records_and_remove_failed_upload(
     mock_create_doc_ref_service, mocker
 ):
     yield mocker.patch.object(
         mock_create_doc_ref_service,
-        "check_existing_lloyd_george_records_and_remove_failed_upload",
+        "check_existing_records_and_remove_failed_upload",
     )
 
 
@@ -197,7 +201,7 @@ def test_create_document_reference_request_with_lg_list_happy_path(
     mock_process_fhir_document_reference,
     mock_getting_patient_info_from_pds,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
-    mock_check_existing_lloyd_george_records_and_remove_failed_upload,
+    mock_check_existing_records_and_remove_failed_upload,
     mock_fetch_available_document_references_by_type,
     mock_check_for_duplicate_files,
 ):
@@ -216,8 +220,8 @@ def test_create_document_reference_request_with_lg_list_happy_path(
     }
     assert url_references == expected_response
 
-    mock_check_existing_lloyd_george_records_and_remove_failed_upload.assert_called_with(
-        TEST_NHS_NUMBER
+    mock_check_existing_records_and_remove_failed_upload.assert_called_with(
+        TEST_NHS_NUMBER, LG_FILE_LIST[0]["docType"]
     )
     mock_check_for_duplicate_files.assert_called_once()
 
@@ -231,7 +235,7 @@ def test_create_document_reference_request_raise_error_when_invalid_lg(
     mock_check_for_duplicate_files,
     mock_getting_patient_info_from_pds,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
-    mock_check_existing_lloyd_george_records_and_remove_failed_upload,
+    mock_check_existing_records_and_remove_failed_upload,
 ):
     document_references = []
     side_effects = []
@@ -329,7 +333,7 @@ def test_cdr_non_pdf_file_raises_exception(
     mock_check_for_duplicate_files,
     mock_getting_patient_info_from_pds,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
-    mock_check_existing_lloyd_george_records_and_remove_failed_upload,
+    mock_check_existing_records_and_remove_failed_upload,
 ):
     mock_check_for_duplicate_files.side_effect = LGInvalidFilesException
     mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
@@ -399,7 +403,7 @@ def test_create_document_reference_request_lg_upload_throw_lambda_error_if_got_a
     assert e.value == DocumentRefException(422, LambdaError.DocRefRecordAlreadyInPlace)
 
 
-def test_check_existing_lloyd_george_records_remove_previous_failed_upload_and_continue(
+def test_check_existing_records_remove_previous_failed_upload_and_continue(
     mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mock_fetch_available_document_references_by_type,
@@ -415,8 +419,8 @@ def test_check_existing_lloyd_george_records_remove_previous_failed_upload_and_c
     mock_create_doc_ref_service.stop_if_all_records_uploaded = mocker.MagicMock()
     mock_create_doc_ref_service.stop_if_upload_is_in_process = mocker.MagicMock()
 
-    mock_create_doc_ref_service.check_existing_lloyd_george_records_and_remove_failed_upload(
-        TEST_NHS_NUMBER
+    mock_create_doc_ref_service.check_existing_records_and_remove_failed_upload(
+        TEST_NHS_NUMBER, mock_doc_refs_of_failed_upload[0].document_snomed_code_type
     )
     mock_remove_records.assert_called_with(
         MOCK_LG_TABLE_NAME, mock_doc_refs_of_failed_upload
@@ -505,7 +509,7 @@ def test_prepare_doc_object_lg_happy_path(
     )
 
 
-def test_check_existing_lloyd_george_records_does_nothing_if_no_record_exist(
+def test_check_existing_records_does_nothing_if_no_record_exist(
     mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mock_fetch_available_document_references_by_type,
@@ -515,8 +519,9 @@ def test_check_existing_lloyd_george_records_does_nothing_if_no_record_exist(
     mock_fetch_available_document_references_by_type.return_value = []
 
     assert (
-        mock_create_doc_ref_service.check_existing_lloyd_george_records_and_remove_failed_upload(
-            TEST_NHS_NUMBER
+        mock_create_doc_ref_service.check_existing_records_and_remove_failed_upload(
+            TEST_NHS_NUMBER,
+            SupportedDocumentTypes.LG
         )
         is None
     )
@@ -524,7 +529,7 @@ def test_check_existing_lloyd_george_records_does_nothing_if_no_record_exist(
 
 
 @freeze_time("2023-10-30T10:25:00")
-def test_check_existing_lloyd_george_records_throw_error_if_upload_in_progress(
+def test_check_existing_records_throw_error_if_upload_in_progress(
     mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mock_fetch_available_document_references_by_type,
@@ -542,8 +547,9 @@ def test_check_existing_lloyd_george_records_throw_error_if_upload_in_progress(
     )
 
     with pytest.raises(Exception) as e:
-        mock_create_doc_ref_service.check_existing_lloyd_george_records_and_remove_failed_upload(
-            TEST_NHS_NUMBER
+        mock_create_doc_ref_service.check_existing_records_and_remove_failed_upload(
+            TEST_NHS_NUMBER,
+            SupportedDocumentTypes.LG
         )
     ex = e.value
     assert isinstance(ex, DocumentRefException)
@@ -553,7 +559,7 @@ def test_check_existing_lloyd_george_records_throw_error_if_upload_in_progress(
     mock_remove_records.assert_not_called()
 
 
-def test_check_existing_lloyd_george_records_throw_error_if_got_a_full_set_of_uploaded_record(
+def test_check_existing_records_throw_error_if_got_a_full_set_of_uploaded_record(
     mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mock_fetch_available_document_references_by_type,
@@ -564,8 +570,9 @@ def test_check_existing_lloyd_george_records_throw_error_if_got_a_full_set_of_up
     )
 
     with pytest.raises(Exception) as e:
-        mock_create_doc_ref_service.check_existing_lloyd_george_records_and_remove_failed_upload(
-            TEST_NHS_NUMBER
+        mock_create_doc_ref_service.check_existing_records_and_remove_failed_upload(
+            TEST_NHS_NUMBER,
+            SupportedDocumentTypes.LG
         )
 
     ex = e.value
@@ -648,7 +655,7 @@ def test_patient_ods_does_not_match_user_ods_and_raises_exception(
     mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
     mock_create_document_reference,
-    mock_check_existing_lloyd_george_records_and_remove_failed_upload,
+    mock_check_existing_records_and_remove_failed_upload,
 ):
 
     with pytest.raises(DocumentRefException) as exc_info:
@@ -667,10 +674,10 @@ def test_patient_ods_does_not_match_user_ods_and_raises_exception(
     )
 
 
-def test_unable_to_find_config_reiases_exception(
+def test_unable_to_find_config_raises_exception(
     mock_fhir_doc_ref_base_service,
     mock_create_doc_ref_service,
-    mock_check_existing_lloyd_george_records_and_remove_failed_upload,
+    mock_check_existing_records_and_remove_failed_upload,
     mock_getting_patient_info_from_pds,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_process_fhir_document_reference,
@@ -689,7 +696,36 @@ def test_unable_to_find_config_reiases_exception(
     assert exception.status_code == 400
     assert (
         exception.message
-        == "Failed to parse document upload request data due to invalid document type"
+        == "Invalid files or id"
     )
 
     mock_process_fhir_document_reference.assert_not_called()
+
+def test_check_existing_records_fetches_previous_records_for_doc_type(
+    mock_fhir_doc_ref_base_service,
+    mock_create_doc_ref_service,
+    mock_fetch_available_document_references_by_type,
+    mock_remove_records,
+    mocker
+):
+    doc_type = SupportedDocumentTypes.LG
+
+    expected_query_filter = NotDeleted & DynamoQueryFilterBuilder().add_condition(
+        DocumentReferenceMetadataFields.DOCUMENT_SNOMED_CODE_TYPE,
+        AttributeOperator.EQUAL,
+        doc_type
+    ).build()
+    mocker.patch(
+        "services.create_document_reference_service.get_document_type_filter"
+    ).return_value = expected_query_filter
+
+    mock_create_doc_ref_service.check_existing_records_and_remove_failed_upload(
+        TEST_NHS_NUMBER,
+        doc_type
+    )
+
+    mock_fetch_available_document_references_by_type.assert_called_with(
+        nhs_number=TEST_NHS_NUMBER,
+        doc_type=doc_type,
+        query_filter=expected_query_filter
+    )

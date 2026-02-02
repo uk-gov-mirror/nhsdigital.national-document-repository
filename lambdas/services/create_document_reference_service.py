@@ -15,8 +15,9 @@ from services.post_fhir_document_reference_service import (
 )
 from utils import upload_file_configs
 from utils.audit_logging_setup import LoggingService
-from utils.common_query_filters import NotDeleted
+from utils.common_query_filters import get_document_type_filter
 from utils.constants.ssm import UPLOAD_PILOT_ODS_ALLOWED_LIST
+from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.exceptions import (
     ConfigNotFoundException,
     InvalidNhsNumberException,
@@ -60,14 +61,6 @@ class CreateDocumentReferenceService:
         url_responses = {}
         upload_request_documents = self.parse_documents_list(documents_list)
 
-        if any(
-            document.doc_type == SupportedDocumentTypes.LG
-            for document in upload_request_documents
-        ):
-            self.check_existing_lloyd_george_records_and_remove_failed_upload(
-                nhs_number
-            )
-
         try:
             user_ods_code = extract_ods_code_from_request_context()
 
@@ -80,12 +73,21 @@ class CreateDocumentReferenceService:
 
             for validated_doc in upload_request_documents:
                 snomed_code = validated_doc.doc_type
+                config = upload_file_configs.get_config_by_snomed_code(
+                    snomed_code
+                )
+
+                if config.single_file_only:
+                    self.check_existing_records_and_remove_failed_upload(
+                        nhs_number,
+                        snomed_code
+                    )
 
                 document_reference = self.create_document_reference(
                     nhs_number, user_ods_code, validated_doc, snomed_code
                 )
 
-                self.validate_document_file_type(validated_doc, snomed_code)
+                self.validate_document_file_type(validated_doc, config)
 
                 upload_document_names.append(validated_doc.file_name)
 
@@ -115,6 +117,7 @@ class CreateDocumentReferenceService:
             InvalidNhsNumberException,
             LGInvalidFilesException,
             PdsTooManyRequestsException,
+            ConfigNotFoundException,
         ) as e:
             logger.error(
                 f"{LambdaError.DocRefInvalidFiles.to_str()} :{str(e)}",
@@ -122,12 +125,8 @@ class CreateDocumentReferenceService:
             )
             raise DocumentRefException(400, LambdaError.DocRefInvalidFiles)
 
-    def validate_document_file_type(self, validated_doc, snomed_code):
-        accepted_file_types = self.get_accepted_file_types(
-            snomed_code, upload_file_configs
-        )
-
-        if not is_file_type_allowed(validated_doc.file_name, accepted_file_types):
+    def validate_document_file_type(self, validated_doc, document_config):
+        if not is_file_type_allowed(validated_doc.file_name, document_config.accepted_file_types):
             raise LGInvalidFilesException(
                 f"Unsupported file type for file: {validated_doc.file_name}"
             )
@@ -158,18 +157,6 @@ class CreateDocumentReferenceService:
                 f"{LambdaError.DocRefUnauthorizedOdsCode.to_str()}",
             )
             raise DocumentRefException(401, LambdaError.DocRefUnauthorizedOdsCode)
-
-    def get_accepted_file_types(self, snomed_code, upload_file_configs):
-        try:
-            return upload_file_configs.get_config_by_snomed_code(
-                snomed_code
-            ).accepted_file_types
-        except ConfigNotFoundException:
-            logger.error(
-                f"{LambdaError.DocRefInvalidType.to_str()}",
-                {"Result": UPLOAD_REFERENCE_FAILED_MESSAGE},
-            )
-            raise DocumentRefException(400, LambdaError.DocRefInvalidType)
 
     def build_doc_ref_info(
         self, validated_doc, nhs_number, snomed_code, user_ods_code
@@ -247,16 +234,19 @@ class CreateDocumentReferenceService:
         )
         return document_reference
 
-    def check_existing_lloyd_george_records_and_remove_failed_upload(
+    def check_existing_records_and_remove_failed_upload(
         self,
         nhs_number: str,
+        doc_type: str,
     ) -> None:
         logger.info("Looking for previous records for this patient...")
 
+        query_filter = get_document_type_filter(DynamoQueryFilterBuilder(), doc_type)
+
         previous_records = self.post_fhir_doc_ref_service.document_service.fetch_available_document_references_by_type(
             nhs_number=nhs_number,
-            doc_type=SupportedDocumentTypes.LG,
-            query_filter=NotDeleted,
+            doc_type=SupportedDocumentTypes(doc_type),
+            query_filter=query_filter,
         )
         if not previous_records:
             logger.info(

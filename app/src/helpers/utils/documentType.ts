@@ -1,6 +1,7 @@
 import lloydGeorgeConfig from '../../config/lloydGeorgeConfig.json';
 import electronicHealthRecordConfig from '../../config/electronicHealthRecordConfig.json';
 import electronicHealthRecordAttachmentsConfig from '../../config/electronicHealthRecordAttachmentsConfig.json';
+import lettersAndDocumentsConfig from '../../config/lettersAndDocumentsConfig.json';
 
 export enum DOCUMENT_TYPE {
     LLOYD_GEORGE = '16521000000101',
@@ -11,7 +12,7 @@ export enum DOCUMENT_TYPE {
 }
 
 export type ContentKey =
-    | 'reviewList'
+    | 'reviewDocumentTitle'
     | 'viewDocumentTitle'
     | 'addFilesSelectTitle'
     | 'uploadFilesSelectTitle'
@@ -83,6 +84,8 @@ export const getConfigForDocType = (docType: DOCUMENT_TYPE): DOCUMENT_TYPE_CONFI
             return electronicHealthRecordConfig as DOCUMENT_TYPE_CONFIG;
         case DOCUMENT_TYPE.EHR_ATTACHMENTS:
             return electronicHealthRecordAttachmentsConfig as DOCUMENT_TYPE_CONFIG;
+        case DOCUMENT_TYPE.LETTERS_AND_DOCS:
+            return lettersAndDocumentsConfig as DOCUMENT_TYPE_CONFIG;
         default:
             throw new Error(`No config found for document type: ${docType}`);
     }

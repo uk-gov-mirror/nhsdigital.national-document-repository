@@ -209,21 +209,21 @@ describe('ReviewsPage', () => {
             if (snomed === '16521000000101') {
                 return {
                     content: {
-                        reviewList: 'Lloyd George',
+                        reviewDocumentTitle: 'Scanned paper notes',
                     },
-                    displayName: 'Lloyd George Record',
+                    displayName: 'scanned paper notes',
                 };
             } else if (snomed === '717391000000106') {
                 return {
                     content: {
-                        reviewList: 'Electronic Health Record',
+                        reviewDocumentTitle: 'Electronic health record',
                     },
-                    displayName: 'Electronic Health Record',
+                    displayName: 'electronic health record',
                 };
             }
             return {
                 content: {
-                    reviewList: 'Unknown Type',
+                    reviewDocumentTitle: 'Unknown Type',
                 },
                 displayName: 'Unknown Type',
             };
@@ -289,8 +289,8 @@ describe('ReviewsPage', () => {
             });
 
             expect(screen.getByText('900 000 0002')).toBeInTheDocument();
-            expect(screen.getByText('Lloyd George')).toBeInTheDocument();
-            expect(screen.getByText('Electronic Health Record')).toBeInTheDocument();
+            expect(screen.getByText('Scanned paper notes')).toBeInTheDocument();
+            expect(screen.getByText('Electronic health record')).toBeInTheDocument();
             expect(screen.getByText('Y12345')).toBeInTheDocument();
             expect(screen.getByText('Y67890')).toBeInTheDocument();
         });
@@ -334,10 +334,10 @@ describe('ReviewsPage', () => {
             renderComponent();
 
             await waitFor(() => {
-                expect(screen.getByText('Lloyd George')).toBeInTheDocument();
+                expect(screen.getByText('Scanned paper notes')).toBeInTheDocument();
             });
 
-            expect(screen.getByText('Electronic Health Record')).toBeInTheDocument();
+            expect(screen.getByText('Electronic health record')).toBeInTheDocument();
         });
 
         it('displays "Unknown Type" for unrecognized SNOMED codes', async () => {

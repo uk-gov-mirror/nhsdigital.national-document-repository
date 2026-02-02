@@ -126,6 +126,13 @@ const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): Reac
                 </p>
             )}
 
+            {patientDetails.canManageRecord === false && (
+                <p>
+                    You are not the data controller for this patient so you cannot view the files
+                    you have uploaded in this service.
+                </p>
+            )}
+
             <p>
                 If you think you've made a mistake, contact the Patient Record Management team at{' '}
                 <a href="mailto:england.prmteam@nhs.net">england.prmteam@nhs.net</a>.

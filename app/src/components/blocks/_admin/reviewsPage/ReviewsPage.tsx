@@ -219,7 +219,7 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
             let recordType: string = '';
             try {
                 recordType = getConfigForDocType(dto.documentSnomedCodeType).content
-                    .reviewList as string;
+                    .reviewDocumentTitle as string;
             } catch {}
 
             return {

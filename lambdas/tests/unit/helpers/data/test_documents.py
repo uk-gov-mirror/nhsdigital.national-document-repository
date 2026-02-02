@@ -56,15 +56,18 @@ def create_test_lloyd_george_doc_store_refs(
     refs[0].s3_file_key = f"{TEST_NHS_NUMBER}/test-key-1"
     refs[0].file_location = f"s3://{MOCK_LG_BUCKET}/{TEST_NHS_NUMBER}/test-key-1"
     refs[0].s3_bucket_name = MOCK_LG_BUCKET
+    refs[0].document_snomed_code_type = SnomedCodes.LLOYD_GEORGE.value.code
     refs[1].file_name = filename_2
     refs[1].s3_file_key = f"{TEST_NHS_NUMBER}/test-key-2"
     refs[1].file_location = f"s3://{MOCK_LG_BUCKET}/{TEST_NHS_NUMBER}/test-key-2"
     refs[1].s3_bucket_name = MOCK_LG_BUCKET
+    refs[1].document_snomed_code_type = SnomedCodes.LLOYD_GEORGE.value.code
     refs[2].file_name = filename_3
     refs[2].s3_file_key = f"{TEST_NHS_NUMBER}/test-key-3"
     refs[2].file_location = f"s3://{MOCK_LG_BUCKET}/{TEST_NHS_NUMBER}/test-key-3"
     refs[2].s3_bucket_name = MOCK_LG_BUCKET
-
+    refs[2].document_snomed_code_type = SnomedCodes.LLOYD_GEORGE.value.code
+    
     if override:
         refs = [doc_ref.model_copy(update=override) for doc_ref in refs]
     return refs

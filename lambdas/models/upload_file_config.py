@@ -19,6 +19,7 @@ class DocumentConfig(BaseModel):
     multifile_zipped: bool
     multifile_review: bool
     can_be_discarded: bool
+    single_file_only: bool
     stitched: bool
     accepted_file_types: List[str]
     content: List[Any]

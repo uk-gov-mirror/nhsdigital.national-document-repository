@@ -13,6 +13,7 @@ LLOYD_GEORGE = DocumentConfig(
     multifile_zipped=False,
     multifile_review=True,
     can_be_discarded=True,
+    single_file_only=True,
     stitched=True,
     accepted_file_types=["PDF"],
     content=[],
@@ -27,6 +28,7 @@ ELECTRONIC_HEALTH_RECORD = DocumentConfig(
     multifile_zipped=False,
     multifile_review=True,
     can_be_discarded=True,
+    single_file_only=False,
     stitched=True,
     accepted_file_types=["PDF"],
     content=[],
@@ -41,8 +43,24 @@ ATTACHMENTS = DocumentConfig(
     multifile_zipped=False,
     multifile_review=True,
     can_be_discarded=True,
+    single_file_only=False,
     stitched=True,
     accepted_file_types=["ZIP"],
+    content=[],
+)
+
+LETTERS_AND_DOCUMENTS = DocumentConfig(
+    snomed_code=SnomedCodes.LETTERS_AND_DOCUMENTS.value.code,
+    display_name="Letters and Documents",
+    can_be_updated=False,
+    associated_snomed="",
+    multifile_upload=True,
+    multifile_zipped=False,
+    multifile_review=False,
+    can_be_discarded=True,
+    single_file_only=False,
+    stitched=False,
+    accepted_file_types=[],
     content=[],
 )
 
@@ -50,6 +68,7 @@ ALL_CONFIGS = [
     LLOYD_GEORGE,
     ELECTRONIC_HEALTH_RECORD,
     ATTACHMENTS,
+    LETTERS_AND_DOCUMENTS,
 ]
 
 CONFIG_BY_SNOMED: Dict[str, DocumentConfig] = {

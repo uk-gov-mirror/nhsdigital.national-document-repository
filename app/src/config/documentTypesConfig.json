@@ -28,5 +28,15 @@
             "upload_title": "",
             "upload_description": ""
         }
+    },
+    {
+        "name": "Letters and Documents",
+        "snomed_code": "162931000000103",
+        "config_name": "lettersAndDocumentsConfig",
+        "canUploadIndependently": true,
+        "content": {
+            "upload_title": "Other documents",
+            "upload_description": "Upload other letters and documents that have arrived for this patient after they have left your practice. For example, letters, test results and referrals."
+        }
     }
 ]

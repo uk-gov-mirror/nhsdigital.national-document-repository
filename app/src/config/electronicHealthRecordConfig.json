@@ -35,7 +35,7 @@
         "beforeYouUploadTitle": "Before you upload",
         "previewUploadTitle": "Preview this electronic health record",
         "uploadFilesExtraParagraph": "",
-        "reviewList": "Electronic Health Record",
+        "reviewDocumentTitle": "Electronic health record",
         "skipDocumentLinkText": "Continue without uploading EHR notes"
     }
 }
