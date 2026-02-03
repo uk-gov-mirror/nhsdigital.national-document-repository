@@ -21,8 +21,10 @@ import { routeChildren, routes } from '../../../../types/generic/routes';
 import {
     DOCUMENT_UPLOAD_STATE,
     FileInputEvent,
+    ReviewUploadDocument,
     SetUploadDocuments,
     UploadDocument,
+    UploadDocumentType,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import LinkButton from '../../../generic/linkButton/LinkButton';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
@@ -35,15 +37,17 @@ import parseTextWithLinks from '../../../../helpers/utils/parseTextWithLinks';
 
 export type Props = {
     setDocuments: SetUploadDocuments;
-    documents: Array<UploadDocument>;
+    documents: UploadDocument[] | ReviewUploadDocument[];
     documentType: DOCUMENT_TYPE;
     filesErrorRef: RefObject<boolean>;
     documentConfig: DOCUMENT_TYPE_CONFIG;
     onSuccessOverride?: () => void;
     backLinkOverride?: string;
+    removeAllFilesLinkOverride?: string;
     goToNextDocType?: () => void;
     goToPreviousDocType?: () => void;
     showSkiplink?: boolean;
+    isReview?: boolean;
 };
 
 type UploadFilesError = ErrorMessageListItem<UPLOAD_FILE_ERROR_TYPE>;
@@ -56,9 +60,11 @@ const DocumentSelectStage = ({
     documentConfig,
     onSuccessOverride,
     backLinkOverride,
+    removeAllFilesLinkOverride,
     goToNextDocType,
     goToPreviousDocType,
     showSkiplink,
+    isReview = false,
 }: Props): JSX.Element => {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [noFilesSelected, setNoFilesSelected] = useState<boolean>(false);
@@ -293,25 +299,47 @@ const DocumentSelectStage = ({
         resetErrors();
     };
 
-    const DocumentRow = (document: UploadDocument, index: number): JSX.Element => {
+    const DocumentRow = (
+        document: UploadDocument | ReviewUploadDocument,
+        index: number,
+    ): JSX.Element => {
+        const isReviewDocument =
+            isReview && (document as ReviewUploadDocument).type !== UploadDocumentType.REVIEW;
         return (
             <Table.Row key={document.id} id={document.file.name}>
                 <Table.Cell className={document.error ? 'error-cell' : ''}>
                     <strong>{document.file.name}</strong>
                 </Table.Cell>
                 <Table.Cell>{formatFileSize(document.file.size)}</Table.Cell>
-                <Table.Cell>
-                    <button
-                        type="button"
-                        aria-label={`Remove ${document.file.name} from selection`}
-                        className="link-button"
-                        onClick={(): void => {
-                            onRemove(index);
-                        }}
-                    >
-                        Remove
-                    </button>
-                </Table.Cell>
+                {isReviewDocument && (
+                    <Table.Cell>
+                        <button
+                            type="button"
+                            aria-label={`Remove ${document.file.name} from selection`}
+                            className="link-button"
+                            onClick={(): void => {
+                                onRemove(index);
+                            }}
+                        >
+                            Remove
+                        </button>
+                    </Table.Cell>
+                )}
+                {isReview && !isReviewDocument && <Table.Cell>-</Table.Cell>}
+                {!isReview && (
+                    <Table.Cell>
+                        <button
+                            type="button"
+                            aria-label={`Remove ${document.file.name} from selection`}
+                            className="link-button"
+                            onClick={(): void => {
+                                onRemove(index);
+                            }}
+                        >
+                            Remove
+                        </button>
+                    </Table.Cell>
+                )}
             </Table.Row>
         );
     };
@@ -551,6 +579,10 @@ const DocumentSelectStage = ({
                             className="remove-all-button mb-5"
                             data-testid="remove-all-button"
                             onClick={(): void => {
+                                if (isReview && removeAllFilesLinkOverride) {
+                                    navigate(removeAllFilesLinkOverride);
+                                    return;
+                                }
                                 navigate.withParams(routeChildren.DOCUMENT_UPLOAD_REMOVE_ALL);
                             }}
                         >

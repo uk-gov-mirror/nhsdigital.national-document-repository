@@ -16,8 +16,13 @@ import { PDF_PARSING_ERROR_TYPE } from '../../../../helpers/utils/fileUploadErro
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { routeChildren, routes } from '../../../../types/generic/routes';
-import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
-import DocumentSelectStage, { Props } from './DocumentSelectStage';
+import {
+    UploadDocument,
+    UploadDocumentType,
+    ReviewUploadDocument,
+    DOCUMENT_UPLOAD_STATE,
+} from '../../../../types/pages/UploadDocumentsPage/types';
+import DocumentSelectStage from './DocumentSelectStage';
 import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPatientFullName';
 import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 
@@ -168,7 +173,9 @@ describe('DocumentSelectStage', () => {
                 documentConfig: config,
             });
 
-            await userEvent.upload(screen.getByTestId('button-input'), [buildLgFile(1)]);
+            await userEvent.upload(screen.getByTestId('button-input'), [
+                buildLgFile(1),
+            ]);
 
             await userEvent.click(await screen.findByTestId('skip-link'));
 
@@ -556,22 +563,215 @@ describe('DocumentSelectStage', () => {
         });
     });
 
+    describe('isReview mode', () => {
+        const mockReviewDocument: ReviewUploadDocument = {
+            id: 'review-doc-1',
+            file: new File(['review'], 'review.pdf', { type: 'application/pdf' }),
+            state: DOCUMENT_UPLOAD_STATE.SELECTED,
+            progress: 0,
+            docType: docConfig.snomedCode as DOCUMENT_TYPE,
+            attempts: 0,
+            numPages: 1,
+            type: UploadDocumentType.REVIEW,
+        };
+
+        const mockAdditionalDocument: ReviewUploadDocument = {
+            id: 'additional-doc-1',
+            file: new File(['additional'], 'additional.pdf', { type: 'application/pdf' }),
+            state: DOCUMENT_UPLOAD_STATE.SELECTED,
+            progress: 0,
+            docType: docConfig.snomedCode as DOCUMENT_TYPE,
+            attempts: 0,
+            numPages: 1,
+            type: undefined,
+        };
+
+        it('renders Remove button for additional documents (non-REVIEW type)', async () => {
+            renderApp(history, {
+                isReview: true,
+                initialDocuments: [mockAdditionalDocument],
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('additional.pdf')).toBeInTheDocument();
+            });
+
+            const removeButton = screen.getByRole('button', {
+                name: 'Remove additional.pdf from selection',
+            });
+            expect(removeButton).toBeInTheDocument();
+            expect(removeButton).toHaveTextContent('Remove');
+        });
+
+        it('renders dash (-) for review documents (REVIEW type)', async () => {
+            renderApp(history, {
+                isReview: true,
+                initialDocuments: [mockReviewDocument],
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('review.pdf')).toBeInTheDocument();
+            });
+
+            const removeButton = screen.queryByRole('button', {
+                name: 'Remove review.pdf from selection',
+            });
+            expect(removeButton).not.toBeInTheDocument();
+
+            const tableCells = screen.getAllByRole('cell');
+            const dashCell = tableCells.find((cell) => cell.textContent === '-');
+            expect(dashCell).toBeInTheDocument();
+        });
+
+        it('renders both Remove button and dash for mixed documents', async () => {
+            renderApp(history, {
+                isReview: true,
+                initialDocuments: [mockReviewDocument, mockAdditionalDocument],
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('review.pdf')).toBeInTheDocument();
+                expect(screen.getByText('additional.pdf')).toBeInTheDocument();
+            });
+
+            const removeReviewButton = screen.queryByRole('button', {
+                name: 'Remove review.pdf from selection',
+            });
+            expect(removeReviewButton).not.toBeInTheDocument();
+
+            const removeAdditionalButton = screen.getByRole('button', {
+                name: 'Remove additional.pdf from selection',
+            });
+            expect(removeAdditionalButton).toBeInTheDocument();
+
+            const tableCells = screen.getAllByRole('cell');
+            const dashCell = tableCells.find((cell) => cell.textContent === '-');
+            expect(dashCell).toBeInTheDocument();
+        });
+
+        it('allows removing additional documents but not review documents', async () => {
+            renderApp(history, {
+                isReview: true,
+                initialDocuments: [mockReviewDocument, mockAdditionalDocument],
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('additional.pdf')).toBeInTheDocument();
+            });
+
+            const removeButton = screen.getByRole('button', {
+                name: 'Remove additional.pdf from selection',
+            });
+
+            await userEvent.click(removeButton);
+
+            await waitFor(() => {
+                expect(screen.queryByText('additional.pdf')).not.toBeInTheDocument();
+            });
+
+            expect(screen.getByText('review.pdf')).toBeInTheDocument();
+        });
+
+        it('navigates to removeAllFilesLinkOverride when Remove all files is clicked in review mode', async () => {
+            const mockRemoveAllLink = '/admin/reviews/test-123/remove-all';
+
+            renderApp(history, {
+                isReview: true,
+                removeAllFilesLinkOverride: mockRemoveAllLink,
+                initialDocuments: [mockReviewDocument, mockAdditionalDocument],
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('remove-all-button')).toBeInTheDocument();
+            });
+
+            const removeAllButton = screen.getByTestId('remove-all-button');
+            await userEvent.click(removeAllButton);
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(mockRemoveAllLink);
+            });
+        });
+    });
+
+    describe('non-review mode', () => {
+        it('renders Remove button for all documents when isReview is false', async () => {
+            const mockDocument: UploadDocument = {
+                id: 'doc-1',
+                file: new File(['test'], 'test.pdf', { type: 'application/pdf' }),
+                state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                progress: 0,
+                docType: docConfig.snomedCode as DOCUMENT_TYPE,
+                attempts: 0,
+                numPages: 1,
+            };
+
+            renderApp(history, {
+                isReview: false,
+                initialDocuments: [mockDocument],
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('test.pdf')).toBeInTheDocument();
+            });
+
+            const removeButton = screen.getByRole('button', {
+                name: 'Remove test.pdf from selection',
+            });
+            expect(removeButton).toBeInTheDocument();
+            expect(removeButton).toHaveTextContent('Remove');
+        });
+
+        it('does not show dash when isReview is false', async () => {
+            const mockDocument: UploadDocument = {
+                id: 'doc-1',
+                file: new File(['test'], 'test.pdf', { type: 'application/pdf' }),
+                state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                progress: 0,
+                docType: docConfig.snomedCode as DOCUMENT_TYPE,
+                attempts: 0,
+                numPages: 1,
+            };
+
+            renderApp(history, {
+                isReview: false,
+                initialDocuments: [mockDocument],
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('test.pdf')).toBeInTheDocument();
+            });
+
+            const tableCells = screen.getAllByRole('cell');
+            const dashCell = tableCells.find((cell) => cell.textContent === '-');
+            expect(dashCell).toBeUndefined();
+        });
+    });
+
     type TestAppProps = {
         goToPreviousDocType?: () => void;
         goToNextDocType?: () => void;
         backLinkOverride?: string;
+        removeAllFilesLinkOverride?: string;
         showSkipLink?: boolean;
         documentConfig?: DOCUMENT_TYPE_CONFIG;
+        isReview?: boolean;
+        initialDocuments?: Array<UploadDocument | ReviewUploadDocument>;
     };
 
     const TestApp = ({
         goToPreviousDocType,
         goToNextDocType,
         backLinkOverride,
+        removeAllFilesLinkOverride,
         showSkipLink,
         documentConfig,
+        isReview,
+        initialDocuments,
     }: TestAppProps): JSX.Element => {
-        const [documents, setDocuments] = useState<Array<UploadDocument>>([]);
+        const [documents, setDocuments] = useState<Array<UploadDocument | ReviewUploadDocument>>(
+            initialDocuments ?? [],
+        );
         const filesErrorRef = useRef<boolean>(false);
 
         return (
@@ -585,6 +785,8 @@ describe('DocumentSelectStage', () => {
                 goToNextDocType={goToNextDocType}
                 showSkiplink={showSkipLink}
                 backLinkOverride={backLinkOverride}
+                removeAllFilesLinkOverride={removeAllFilesLinkOverride}
+                isReview={isReview}
             />
         );
     };

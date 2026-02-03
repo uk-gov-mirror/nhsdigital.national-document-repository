@@ -13,12 +13,14 @@ type Props = {
     documents: UploadDocument[];
     setDocuments: SetUploadDocuments;
     documentType: DOCUMENT_TYPE;
+    onSuccess?: () => void;
 };
 
 const DocumentUploadRemoveFilesStage = ({
     documents,
     setDocuments,
     documentType,
+    onSuccess,
 }: Props): React.JSX.Element => {
     const navigate = useEnhancedNavigate();
 
@@ -33,7 +35,12 @@ const DocumentUploadRemoveFilesStage = ({
                 type="button"
                 id="remove-files-button"
                 data-testid="remove-files-button"
-                onClick={(): void => {
+                onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>): void => {
+                    e.preventDefault();
+                    if (onSuccess) {
+                        onSuccess();
+                        return;
+                    }
                     setDocuments(documents.filter((doc) => doc.docType !== documentType));
                     navigate.withParams(routes.DOCUMENT_UPLOAD);
                 }}

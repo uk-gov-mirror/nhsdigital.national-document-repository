@@ -71,6 +71,11 @@ const ReviewDetailsDocumentSelectStage = ({
                 ':reviewId',
                 `${reviewData?.id}.${reviewData?.version}`,
             )}
+            removeAllFilesLinkOverride={routeChildren.ADMIN_REVIEW_REMOVE_ALL.replaceAll(
+                ':reviewId',
+                `${reviewData?.id}.${reviewData?.version}`,
+            )}
+            isReview={true}
         />
     );
 };

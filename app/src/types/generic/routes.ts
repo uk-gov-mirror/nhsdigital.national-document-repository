@@ -80,6 +80,7 @@ export enum routeChildren {
     ADMIN_REVIEW_CHOOSE_WHICH_FILES = '/admin/reviews/:reviewId/files',
     ADMIN_REVIEW_DOWNLOAD_CHOICE = '/admin/reviews/:reviewId/download-choice',
     ADMIN_REVIEW_UPLOAD_ADDITIONAL_FILES = '/admin/reviews/:reviewId/upload-additional-files',
+    ADMIN_REVIEW_REMOVE_ALL = '/admin/reviews/:reviewId/remove-all',
     ADMIN_REVIEW_UPLOAD_FILE_ORDER = '/admin/reviews/:reviewId/upload-file-order',
     ADMIN_REVIEW_UPLOAD = '/admin/reviews/:reviewId/upload',
 

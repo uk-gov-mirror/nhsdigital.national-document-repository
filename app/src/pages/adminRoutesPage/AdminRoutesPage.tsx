@@ -6,6 +6,7 @@ import ReviewDetailsCompleteStage from '../../components/blocks/_admin/reviewDet
 import ReviewDetailsDocumentSelectOrderStage from '../../components/blocks/_admin/reviewDetailsDocumentSelectOrderStage/ReviewDetailsDocumentSelectOrderStage';
 import ReviewDetailsDocumentSelectStage from '../../components/blocks/_admin/reviewDetailsDocumentSelectStage/ReviewDetailsDocumentSelectStage';
 import ReviewDetailsDocumentUploadingStage from '../../components/blocks/_admin/reviewDetailsDocumentUploadingStage/ReviewDetailsDocumentUploadingStage';
+import ReviewDetailsDocumentRemoveAllStage from '../../components/blocks/_admin/reviewDetailsDocumentRemoveAllStage/ReviewDetailsDocumentRemoveAllStage';
 import ReviewDetailsDontKnowNHSNumberStage from '../../components/blocks/_admin/reviewDetailsDontKnowNHSNumberStage/ReviewDetailsDontKnowNHSNumberStage';
 import ReviewDetailsDownloadChoiceStage from '../../components/blocks/_admin/reviewDetailsDownloadChoiceStage/ReviewDetailsDownloadChoiceStage';
 import ReviewDetailsFileSelectStage from '../../components/blocks/_admin/reviewDetailsFileSelectStage/ReviewDetailsFileSelectStage';
@@ -159,6 +160,16 @@ const AdminRoutesPage = (): JSX.Element => {
                         documents={uploadDocuments}
                         setDocuments={setUploadDocuments}
                         existingId={existingUploadDocuments[0]?.id}
+                    />
+                }
+            />
+            <Route
+                path="reviews/:reviewId/remove-all"
+                element={
+                    <ReviewDetailsDocumentRemoveAllStage
+                        reviewData={reviewData}
+                        documents={additionalFiles}
+                        setDocuments={setAdditionalFiles}
                     />
                 }
             />
