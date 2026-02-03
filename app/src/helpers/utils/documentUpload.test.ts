@@ -814,7 +814,7 @@ describe('documentUpload', () => {
             expect(updatedDocs[0].state).toBe(DOCUMENT_UPLOAD_STATE.INFECTED);
         });
 
-        it('should set state to FAILED when virus-failed.pdf file is detected in local mode', async () => {
+        it('should set state to ERROR when virus-failed.pdf file is detected in local mode', async () => {
             vi.spyOn(isLocal, 'isLocal', 'get').mockReturnValue(true);
 
             const failedDoc = {
@@ -839,7 +839,7 @@ describe('documentUpload', () => {
             await vi.advanceTimersByTimeAsync(1000);
 
             const updatedDocs = mockSetDocuments.mock.calls[0][0];
-            expect(updatedDocs[0].state).toBe(DOCUMENT_UPLOAD_STATE.FAILED);
+            expect(updatedDocs[0].state).toBe(DOCUMENT_UPLOAD_STATE.ERROR);
         });
 
         it('should not change state when already SCANNING in local mode', async () => {

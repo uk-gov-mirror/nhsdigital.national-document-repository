@@ -73,12 +73,9 @@ describe('DocumentUploadCompleteStage', () => {
         expect(screen.getByTestId('dob').textContent).toEqual('Date of birth: ' + expectedDob);
 
         expect(
-            screen.queryByText(
-                'You are not the data controller',
-                {
-                    exact: false,
-                }
-            ),
+            screen.queryByText('You are not the data controller', {
+                exact: false,
+            }),
         ).not.toBeInTheDocument();
     });
 
@@ -123,9 +120,29 @@ describe('DocumentUploadCompleteStage', () => {
         });
     });
 
+    it('should navigate to patient documents if partial upload complete', async () => {
+        documents.push({
+            docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+            id: '2',
+            file: buildLgFile(2),
+            attempts: 0,
+            state: DOCUMENT_UPLOAD_STATE.ERROR,
+            numPages: 3,
+            position: 2,
+        });
+
+        renderApp(documents);
+
+        await userEvent.click(screen.getByTestId('patient-docs-btn'));
+
+        await waitFor(async () => {
+            expect(mockNavigate).toHaveBeenCalledWith(routes.PATIENT_DOCUMENTS, { replace: true });
+        });
+    });
+
     it.each([
         { docState: DOCUMENT_UPLOAD_STATE.SUCCEEDED, expectedTitle: 'Upload complete' },
-        { docState: DOCUMENT_UPLOAD_STATE.FAILED, expectedTitle: 'Upload partially complete' },
+        { docState: DOCUMENT_UPLOAD_STATE.ERROR, expectedTitle: 'Upload partially complete' },
     ])('should set the page title based on upload success', async ({ docState, expectedTitle }) => {
         documents = [
             {
@@ -150,7 +167,7 @@ describe('DocumentUploadCompleteStage', () => {
             id: '2',
             file: buildLgFile(2),
             attempts: 0,
-            state: DOCUMENT_UPLOAD_STATE.FAILED,
+            state: DOCUMENT_UPLOAD_STATE.ERROR,
             numPages: 3,
             position: 2,
         });
@@ -172,16 +189,13 @@ describe('DocumentUploadCompleteStage', () => {
         renderApp(documents);
 
         expect(
-            screen.getByText(
-                'You are not the data controller',
-                {
-                    exact: false,
-                }
-            ),
+            screen.getByText('You are not the data controller', {
+                exact: false,
+            }),
         ).toBeInTheDocument();
     });
 
-    const renderApp = (documents: UploadDocument[]) => {
+    const renderApp = (documents: UploadDocument[]): void => {
         render(
             <MemoryRouter>
                 <DocumentUploadCompleteStage documents={documents} documentConfig={docConfig} />,

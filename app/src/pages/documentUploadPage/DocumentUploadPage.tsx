@@ -182,16 +182,12 @@ const DocumentUploadPage = (): React.JSX.Element => {
                 uploadSession,
                 setDocuments,
             });
-        } catch (e) {
-            window.clearInterval(intervalTimer);
-            markDocumentAsFailed(document);
-
-            const error = e as AxiosError;
-            navigate(routes.SERVER_ERROR + errorToParams(error));
+        } catch {
+            markDocumentWithError(document);
         }
     };
 
-    const markDocumentAsFailed = (document: UploadDocument): void => {
+    const markDocumentWithError = (document: UploadDocument): void => {
         setSingleDocument(setDocuments, {
             id: document.id,
             state: DOCUMENT_UPLOAD_STATE.ERROR,
@@ -265,7 +261,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
             }
 
             const updateStateInterval = startIntervalTimer(
-                uploadingDocuments,
+                uploadingDocuments.filter(d => d.state !== DOCUMENT_UPLOAD_STATE.ERROR),
                 interval,
                 documents,
                 setDocuments,

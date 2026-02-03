@@ -244,6 +244,7 @@ def test__process_preliminary_document_reference_clean_virus_scan(
     mock_finalize_transaction = mocker.patch.object(
         pdm_service, "_finalize_and_supersede_with_transaction"
     )
+    mock_delete = mocker.patch.object(pdm_service, "delete_file_from_staging_bucket")
 
     pdm_service._process_preliminary_document_reference(
         mock_pdm_document_reference, object_key, 1222
@@ -254,7 +255,7 @@ def test__process_preliminary_document_reference_clean_virus_scan(
     assert mock_pdm_document_reference.doc_status == "final"
     assert mock_pdm_document_reference.uploaded is True
     assert mock_pdm_document_reference.uploading is False
-
+    mock_delete.assert_called_once()
 
 def test__process_preliminary_document_reference_infected_virus_scan(
     pdm_service, mock_document_reference, mocker
@@ -265,6 +266,8 @@ def test__process_preliminary_document_reference_infected_virus_scan(
     mocker.patch.object(
         pdm_service, "_perform_virus_scan", return_value=VirusScanResult.INFECTED
     )
+    mock_delete = mocker.patch.object(pdm_service, "delete_file_from_staging_bucket")
+
     mock_process_clean = mocker.patch.object(pdm_service, "_process_clean_document")
     mock_update_dynamo = mocker.patch.object(pdm_service, "_update_dynamo_table")
     pdm_service._process_preliminary_document_reference(
@@ -273,6 +276,7 @@ def test__process_preliminary_document_reference_infected_virus_scan(
 
     mock_process_clean.assert_not_called()
     mock_update_dynamo.assert_called_once()
+    mock_delete.assert_called_once()
 
 
 def test_perform_virus_scan_returns_clean_hardcoded(
@@ -302,7 +306,6 @@ def test_process_clean_document_success(pdm_service, mock_document_reference, mo
     object_key = "staging/test-doc-id"
 
     mock_copy = mocker.patch.object(pdm_service, "copy_files_from_staging_bucket")
-    mock_delete = mocker.patch.object(pdm_service, "delete_file_from_staging_bucket")
 
     pdm_service._process_clean_document(
         mock_document_reference,
@@ -310,7 +313,6 @@ def test_process_clean_document_success(pdm_service, mock_document_reference, mo
     )
 
     mock_copy.assert_called_once_with(mock_document_reference, object_key)
-    mock_delete.assert_called_once_with(object_key)
 
 
 def test_process_clean_document_exception_restores_original_values(

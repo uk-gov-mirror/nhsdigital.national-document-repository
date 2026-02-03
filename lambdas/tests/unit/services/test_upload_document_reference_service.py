@@ -11,7 +11,7 @@ from utils.common_query_filters import (
     FinalOrPreliminaryAndNotSuperseded,
     PreliminaryStatus,
 )
-from utils.exceptions import DocumentServiceException, FileProcessingException
+from utils.exceptions import DocumentServiceException, FileProcessingException, TransactionConflictException
 from utils.lambda_exceptions import InvalidDocTypeException
 
 from lambdas.enums.snomed_codes import SnomedCodes
@@ -185,6 +185,8 @@ def test__process_preliminary_document_reference_clean_virus_scan(
     mocker.patch.object(
         service, "_perform_virus_scan", return_value=VirusScanResult.CLEAN
     )
+    mock_delete = mocker.patch.object(service, "delete_file_from_staging_bucket")
+
     mock_process_clean = mocker.patch.object(service, "_process_clean_document")
     mock_finalize_transaction = mocker.patch.object(
         service, "_finalize_and_supersede_with_transaction"
@@ -199,6 +201,7 @@ def test__process_preliminary_document_reference_clean_virus_scan(
     assert mock_document_reference.doc_status == "final"
     assert mock_document_reference.uploaded is True
     assert mock_document_reference.uploading is False
+    mock_delete.assert_called_once_with(object_key)
 
 
 def test__process_preliminary_document_reference_infected_virus_scan(
@@ -210,6 +213,8 @@ def test__process_preliminary_document_reference_infected_virus_scan(
     mocker.patch.object(
         service, "_perform_virus_scan", return_value=VirusScanResult.INFECTED
     )
+    mock_delete = mocker.patch.object(service, "delete_file_from_staging_bucket")
+
     mock_process_clean = mocker.patch.object(service, "_process_clean_document")
     mock_update_dynamo = mocker.patch.object(service, "_update_dynamo_table")
     service._process_preliminary_document_reference(
@@ -218,7 +223,7 @@ def test__process_preliminary_document_reference_infected_virus_scan(
 
     mock_process_clean.assert_not_called()
     mock_update_dynamo.assert_called_once()
-
+    mock_delete.assert_called_once_with(object_key)
 
 def test_perform_virus_scan_returns_clean_hardcoded(service, mock_document_reference):
     """Test virus scan returns hardcoded CLEAN result"""
@@ -245,7 +250,6 @@ def test_process_clean_document_success(service, mock_document_reference, mocker
     object_key = "staging/test-doc-id"
 
     mock_copy = mocker.patch.object(service, "copy_files_from_staging_bucket")
-    mock_delete = mocker.patch.object(service, "delete_file_from_staging_bucket")
 
     service._process_clean_document(
         mock_document_reference,
@@ -253,7 +257,6 @@ def test_process_clean_document_success(service, mock_document_reference, mocker
     )
 
     mock_copy.assert_called_once_with(mock_document_reference, object_key)
-    mock_delete.assert_called_once_with(object_key)
 
 
 def test_process_clean_document_exception_restores_original_values(
@@ -598,8 +601,6 @@ def test_finalize_and_supersede_with_transaction_skips_same_id(
 def test_finalize_and_supersede_with_transaction_handles_transaction_cancelled(
     service, mock_document_reference
 ):
-    """Test handling of TransactionCanceledException (concurrent update detected)"""
-    from utils.exceptions import TransactionConflictException
 
     new_doc = mock_document_reference
     new_doc.id = "new-doc-id"
@@ -613,16 +614,13 @@ def test_finalize_and_supersede_with_transaction_handles_transaction_cancelled(
     mock_build_update = Mock(return_value={"Update": "transaction"})
     service.dynamo_service.build_update_transaction_item = mock_build_update
 
-    # Simulate TransactionCanceledException
     transaction_error = ClientError(
         error_response={"Error": {"Code": "TransactionCanceledException"}},
         operation_name="TransactWriteItems",
     )
     service.dynamo_service.transact_write_items.side_effect = transaction_error
 
-    # Should raise TransactionConflictException
-    with pytest.raises(TransactionConflictException):
-        service._finalize_and_supersede_with_transaction(new_doc)
+    service._finalize_and_supersede_with_transaction(new_doc)
 
 
 def test_handle_upload_document_reference_request_no_document_found(service):
@@ -659,7 +657,6 @@ def test_process_preliminary_document_reference_exception_during_processing(
         )
 
     assert "Processing failed" in str(exc_info.value)
-
 
 def test_get_infrastructure_for_document_key_non_pdm(service):
     assert service.table_name == ""

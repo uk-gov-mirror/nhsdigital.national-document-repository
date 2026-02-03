@@ -30,16 +30,13 @@ const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): Reac
     const journey = getJourney();
     const [showFiles, setShowFiles] = useState(false);
 
-    const failedDocuments = documents.filter((doc) => doc.state === DOCUMENT_UPLOAD_STATE.FAILED);
+    const failedDocuments = documents.filter((doc) => doc.state === DOCUMENT_UPLOAD_STATE.ERROR);
 
     const pageTitle = failedDocuments.length > 0 ? 'Upload partially complete' : 'Upload complete';
     useTitle({ pageTitle });
 
-    const docsAreInFinishedState = () =>
-        allDocsHaveState(documents, [
-            DOCUMENT_UPLOAD_STATE.SUCCEEDED,
-            DOCUMENT_UPLOAD_STATE.FAILED,
-        ]);
+    const docsAreInFinishedState = (): boolean =>
+        allDocsHaveState(documents, [DOCUMENT_UPLOAD_STATE.SUCCEEDED, DOCUMENT_UPLOAD_STATE.ERROR]);
 
     useEffect(() => {
         if (!docsAreInFinishedState() || patientDetails === null) {
@@ -66,13 +63,12 @@ const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): Reac
                     <span data-testid="dob">Date of birth: {dob}</span>
                 </div>
             </div>
-
-            {failedDocuments.length > 0 && (
+            {failedDocuments.length > 0 ? (
                 <div className="govuk-accordion mb-8 govuk-frontend-supported">
                     <h3>Some of your files failed to upload</h3>
                     <button
                         className="toggle-button govuk-accordion__section-button"
-                        onClick={() => setShowFiles(!showFiles)}
+                        onClick={(): void => setShowFiles(!showFiles)}
                         data-testid="accordion-toggle-button"
                         aria-expanded={showFiles}
                         aria-controls="failed-files-list"
@@ -103,66 +99,86 @@ const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): Reac
                             ))}
                         </div>
                     )}
-                </div>
-            )}
-
-            <h3>What happens next</h3>
-
-            {journey === 'update' && patientDetails.canManageRecord && (
-                <p>
-                    You can now view the updated {documentConfig.displayName} for this patient in
-                    this service by{' '}
-                    <Link
-                        to=""
-                        onClick={(e): void => {
-                            e.preventDefault();
-                            navigate(routes.SEARCH_PATIENT, { replace: true });
+                    <br />
+                    <h3>What you need to do</h3>
+                    <p>
+                        You must note which files uploaded successfully, then return to the
+                        patient's record to upload any files that failed.
+                    </p>
+                    <Button
+                        data-testid="patient-docs-btn"
+                        type="button"
+                        onClick={(): void => {
+                            navigate(routes.PATIENT_DOCUMENTS, { replace: true });
                         }}
-                        data-testid="search-patient-link"
                     >
-                        searching using their NHS number
-                    </Link>
-                    {'.'}
-                </p>
+                        Go to Lloyd George records
+                    </Button>
+                </div>
+            ) : (
+                <>
+                    <h3>What happens next</h3>
+
+                    {journey === 'update' && patientDetails.canManageRecord && (
+                        <p>
+                            You can now view the updated {documentConfig.displayName} for this
+                            patient in this service by{' '}
+                            <Link
+                                to=""
+                                onClick={(e): void => {
+                                    e.preventDefault();
+                                    navigate(routes.SEARCH_PATIENT, { replace: true });
+                                }}
+                                data-testid="search-patient-link"
+                            >
+                                searching using their NHS number
+                            </Link>
+                            {'.'}
+                        </p>
+                    )}
+
+                    {patientDetails.canManageRecord === false && (
+                        <p>
+                            You are not the data controller for this patient so you cannot view the
+                            files you have uploaded in this service.
+                        </p>
+                    )}
+
+                    <p>
+                        If you think you've made a mistake, contact the Patient Record Management
+                        team at{' '}
+                        <a id="mail" href="mailto:england.prmteam@nhs.net">
+                            england.prmteam@nhs.net
+                        </a>
+                        .
+                    </p>
+
+                    {documentConfig.content.uploadFilesExtraParagraph && (
+                        <p>{documentConfig.content.uploadFilesExtraParagraph}</p>
+                    )}
+
+                    <p>
+                        For information on destroying your paper records and removing the digital
+                        files from your system, read the article{' '}
+                        <Link
+                            to="https://future.nhs.uk/DigitalPC/view?objectId=185217477"
+                            data-testid="digitisation-link"
+                        >
+                            Digitisation of Lloyd George records
+                        </Link>
+                        {'.'}
+                    </p>
+                    <Button
+                        data-testid="home-btn"
+                        type="button"
+                        onClick={(): void => {
+                            navigate(routes.HOME, { replace: true });
+                        }}
+                    >
+                        Go to home
+                    </Button>
+                </>
             )}
-
-            {patientDetails.canManageRecord === false && (
-                <p>
-                    You are not the data controller for this patient so you cannot view the files
-                    you have uploaded in this service.
-                </p>
-            )}
-
-            <p>
-                If you think you've made a mistake, contact the Patient Record Management team at{' '}
-                <a href="mailto:england.prmteam@nhs.net">england.prmteam@nhs.net</a>.
-            </p>
-
-            {documentConfig.content.uploadFilesExtraParagraph && (
-                <p>{documentConfig.content.uploadFilesExtraParagraph}</p>
-            )}
-
-            <p>
-                For information on destroying your paper records and removing the digital files from
-                your system, read the article{' '}
-                <Link
-                    to="https://future.nhs.uk/DigitalPC/view?objectId=185217477"
-                    data-testid="digitisation-link"
-                >
-                    Digitisation of Lloyd George records
-                </Link>
-                {'.'}
-            </p>
-
-            <Button
-                data-testid="home-btn"
-                type="button"
-                onClick={(): void => {
-                    navigate(routes.HOME, { replace: true });
-                }}
-            >
-                Go to home
-            </Button>
         </div>
     );
 };

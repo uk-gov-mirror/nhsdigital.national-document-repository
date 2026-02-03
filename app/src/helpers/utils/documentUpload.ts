@@ -225,53 +225,52 @@ export const startIntervalTimer = (
 ): number => {
     return window.setInterval(async () => {
         interval.current = interval.current + 1;
-        if (isLocal) {
-            const updatedDocuments = uploadDocuments.map((doc) => {
-                const min = (doc.progress ?? 0) + 40;
-                const max = 70;
-                doc.progress = Math.random() * (min + max - (min + 1)) + min;
-                doc.progress = Math.min(doc.progress, 100);
-                if (doc.progress < 100) {
-                    doc.state = DOCUMENT_UPLOAD_STATE.UPLOADING;
-                } else if (doc.state !== DOCUMENT_UPLOAD_STATE.SCANNING) {
-                    const hasVirusFile = documents.filter(
-                        (d) => d.file.name.toLocaleLowerCase() === 'virus.pdf',
-                    );
-                    const hasFailedFile = documents.filter(
-                        (d) => d.file.name.toLocaleLowerCase() === 'virus-failed.pdf',
-                    );
+        try {
+            if (isLocal) {
+                const updatedDocuments = uploadDocuments.map((doc) => {
+                    const min = (doc.progress ?? 0) + 40;
+                    const max = 70;
+                    doc.progress = Math.random() * (min + max - (min + 1)) + min;
+                    doc.progress = Math.min(doc.progress, 100);
+                    if (doc.progress < 100) {
+                        doc.state = DOCUMENT_UPLOAD_STATE.UPLOADING;
+                    } else if (doc.state !== DOCUMENT_UPLOAD_STATE.SCANNING) {
+                        const hasVirusFile = documents.filter(
+                            (d) => d.file.name.toLocaleLowerCase() === 'virus.pdf',
+                        );
 
-                    if (hasVirusFile.length > 0) {
-                        doc.state = DOCUMENT_UPLOAD_STATE.INFECTED;
-                    } else if (hasFailedFile.length > 0) {
-                        doc.state = DOCUMENT_UPLOAD_STATE.FAILED;
-                    } else {
-                        doc.state = DOCUMENT_UPLOAD_STATE.SUCCEEDED;
+                        if (hasVirusFile.length > 0) {
+                            doc.state = DOCUMENT_UPLOAD_STATE.INFECTED;
+                        } else if (doc.file.name.toLocaleLowerCase() === 'virus-failed.pdf') {
+                            doc.state = DOCUMENT_UPLOAD_STATE.ERROR;
+                        } else {
+                            doc.state = DOCUMENT_UPLOAD_STATE.SUCCEEDED;
+                        }
                     }
-                }
 
-                return doc;
-            });
-            setDocuments(updatedDocuments);
-        } else if (patientDetails?.canManageRecord) {
-            const documentStatusResult = await getDocumentStatus({
-                documents: uploadDocuments,
-                baseUrl,
-                baseHeaders,
-                nhsNumber,
-            });
-
-            handleDocStatusResult(documentStatusResult, setDocuments);
-        } else {
-            uploadDocuments.forEach(async (document) => {
-                void getDocumentReviewStatus({
-                    document,
+                    return doc;
+                });
+                setDocuments(updatedDocuments);
+            } else if (patientDetails?.canManageRecord) {
+                const documentStatusResult = await getDocumentStatus({
+                    documents: uploadDocuments,
                     baseUrl,
                     baseHeaders,
                     nhsNumber,
-                }).then((result) => handleDocReviewStatusResult(result, setDocuments));
-            });
-        }
+                });
+
+                handleDocStatusResult(documentStatusResult, setDocuments);
+            } else {
+                uploadDocuments.forEach(async (document) => {
+                    void getDocumentReviewStatus({
+                        document,
+                        baseUrl,
+                        baseHeaders,
+                        nhsNumber,
+                    }).then((result) => handleDocReviewStatusResult(result, setDocuments));
+                });
+            }
+        } catch {}
     }, timeout);
 };
 

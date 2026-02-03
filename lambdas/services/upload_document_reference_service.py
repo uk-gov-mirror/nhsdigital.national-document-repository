@@ -182,16 +182,13 @@ class UploadDocumentReferenceService:
             else:
                 self._update_dynamo_table(preliminary_document_reference)
 
-        except TransactionConflictException as e:
-            logger.error(
-                f"Transaction conflict while processing document {preliminary_document_reference.id}: {str(e)}"
-            )
-            raise
         except Exception as e:
             logger.error(
                 f"Error processing document reference {preliminary_document_reference.id}: {str(e)}"
             )
             raise
+
+        self.delete_file_from_staging_bucket(object_key)
 
     def _finalize_and_supersede_with_transaction(self, new_document: DocumentReference):
         """
@@ -314,10 +311,16 @@ class UploadDocumentReferenceService:
                     )
                 raise
 
-        except TransactionConflictException:
-            logger.info(
-                f"Cancelling preliminary document {new_document.id} due to transaction conflict"
-            )
+        except Exception as e:
+            if isinstance(e, TransactionConflictException):
+                logger.error(
+                    f"Cancelling preliminary document {new_document.id} due to transaction conflict"
+                )
+            else:
+                logger.error(
+                    f"Unexpected error while finalizing document for {new_document.nhs_number}: {e}"
+                )
+                
             new_document.doc_status = "cancelled"
             new_document.uploaded = False
             new_document.uploading = False
@@ -326,12 +329,6 @@ class UploadDocumentReferenceService:
             self.delete_file_from_bucket(
                 new_document.file_location, new_document.s3_version_id
             )
-            raise
-        except Exception as e:
-            logger.error(
-                f"Unexpected error while finalizing document for {new_document.nhs_number}: {e}"
-            )
-            raise
 
     def document_reference_key(self, document_id):
         return {DocumentReferenceMetadataFields.ID.value: document_id}
@@ -357,7 +354,7 @@ class UploadDocumentReferenceService:
         """Process a document that passed virus scanning"""
         try:
             self.copy_files_from_staging_bucket(document_reference, object_key)
-            self.delete_file_from_staging_bucket(object_key)
+            
             logger.info(
                 f"Successfully processed clean document: {document_reference.id}"
             )
