@@ -18,15 +18,15 @@ describe('Home Page', () => {
         );
     });
 
-    it('displays correct page title on home page', { tags: 'regression' }, () => {
+    it('displays correct page title on start page', { tags: 'regression' }, () => {
         cy.get('.app-homepage-content h1').should(
             'have.text',
             'Access and store digital patient documents',
         );
     });
 
-    it('displays start now button on home page', { tags: 'regression' }, () => {
-        cy.get('.nhsuk-button').should('have.text', 'Start now');
+    it('displays start now button on start page', { tags: 'regression' }, () => {
+        cy.getByTestId('start-btn').should('have.text', 'Start now');
     });
 
     it('displays service banner', { tags: 'regression' }, () => {

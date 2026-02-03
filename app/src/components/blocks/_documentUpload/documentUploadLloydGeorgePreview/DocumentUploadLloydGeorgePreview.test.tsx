@@ -15,6 +15,12 @@ vi.mock('../../../../helpers/utils/pdfMerger');
 vi.mock('react-router-dom', () => ({
     useNavigate: () => mockNavigate,
 }));
+vi.mock('../../../../providers/analyticsProvider/AnalyticsProvider', () => ({
+    useAnalyticsContext: vi.fn(() => ([
+        null,
+        vi.fn(),
+    ])),
+}));
 
 URL.createObjectURL = () => 'https://example.com';
 

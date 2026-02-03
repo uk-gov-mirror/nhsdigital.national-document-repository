@@ -1300,6 +1300,10 @@ progress:not(.continuous-progress-bar) {
     }
 }
 
+#nhsuk-cookie-banner .nhsuk-width-container {
+    max-width: 960px !important;
+}
+
 @import '../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults.scss';
 @import '../components/blocks/_documentUpload/documentUploadCompleteStage/DocumentUploadCompleteStage.scss';
 @import '../components/blocks/_admin/reviewsPage/ReviewsPage.scss';

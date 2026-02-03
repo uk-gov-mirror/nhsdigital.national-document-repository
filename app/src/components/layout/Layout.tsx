@@ -7,6 +7,7 @@ import { SkipLink } from 'nhsuk-react-components';
 import { useLocation } from 'react-router-dom';
 import { focusElement } from '../../helpers/utils/manageFocus';
 import { useSessionContext } from '../../providers/sessionProvider/SessionProvider';
+import { useAnalyticsContext } from '../../providers/analyticsProvider/AnalyticsProvider';
 
 type Props = {
     children: ReactNode;
@@ -17,6 +18,7 @@ const Layout = ({ children }: Props): React.JSX.Element => {
     const mainRef = useRef<HTMLDivElement | null>(null);
     const location = useLocation();
     const [session] = useSessionContext();
+    const [awsRum, startAnalytics] = useAnalyticsContext();
 
     // re-focus the layout on route change, so that skip link become the next focusable element
     useEffect(() => {
@@ -28,8 +30,17 @@ const Layout = ({ children }: Props): React.JSX.Element => {
     }, [location]);
 
     useLayoutEffect(() => {
-        document.documentElement.scrollTo(0, 0);
-    }, [location.pathname]);
+        setTimeout(() => {
+            document.documentElement.scrollTo(0, 0);
+        }, 5);
+
+        if (window && (!awsRum || sessionStorage.getItem('analytics-started') === "no")) {
+            if (window.NHSCookieConsent.getStatistics()) {
+                startAnalytics();
+            }
+        }
+        
+    }, [location.pathname, awsRum, startAnalytics]);
 
     const focusMainContent = (e: MouseEvent<HTMLAnchorElement>): void => {
         /**

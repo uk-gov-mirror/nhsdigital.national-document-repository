@@ -8,8 +8,22 @@ import { buildUserAuth } from '../../helpers/test/testBuilders';
 import { runAxeTestForLayout } from '../../helpers/test/axeTestHelper';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+vi.mock('../../providers/analyticsProvider/AnalyticsProvider', () => {
+    return {
+        useAnalyticsContext: () => {
+            return [null, () => {}];
+        },
+    };
+});
+
 describe('Layout', () => {
     beforeEach(() => {
+        Object.defineProperty(window, 'NHSCookieConsent', {
+            writable: true,
+            value: {
+                getStatistics: () => true,
+            },
+        });
         window.sessionStorage.clear();
         document.documentElement.scrollTo = vi.fn();
     });

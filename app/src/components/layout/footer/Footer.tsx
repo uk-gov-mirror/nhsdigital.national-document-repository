@@ -1,5 +1,6 @@
 import { Footer as NHSFooter } from 'nhsuk-react-components';
 import { routes } from '../../../types/generic/routes';
+import { useNavigate } from 'react-router-dom';
 
 const serviceUpdatesLink =
     'https://digital.nhs.uk/services/access-and-store-digital-patient-documents/service-updates';
@@ -8,6 +9,8 @@ const helpandGuidanceLink =
     'https://digital.nhs.uk/services/access-and-store-digital-patient-documents/help-and-guidance';
 
 const Footer = (): React.JSX.Element => {
+    const navigate = useNavigate();
+
     return (
         <NHSFooter>
             <NHSFooter.List>
@@ -37,6 +40,15 @@ const Footer = (): React.JSX.Element => {
                     aria-label="Service updates - Opens in a new tab"
                 >
                     Service updates
+                </NHSFooter.ListItem>
+                <NHSFooter.ListItem 
+                    href="#"
+                    onClick={(): void => {
+                        navigate(routes.COOKIES_POLICY);
+                    }}
+                    data-testid="cookies-policy-link"
+                >
+                    Cookies policy
                 </NHSFooter.ListItem>
             </NHSFooter.List>
             <NHSFooter.Copyright className="footer-copyright-link">

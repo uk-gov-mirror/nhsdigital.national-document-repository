@@ -17,6 +17,12 @@ vi.mock('../../../../helpers/utils/documentType');
 vi.mock('../../../../helpers/hooks/useTitle', () => ({
     default: vi.fn(),
 }));
+vi.mock('../../../../providers/analyticsProvider/AnalyticsProvider', () => ({
+    useAnalyticsContext: vi.fn(() => ([
+        null,
+        vi.fn(),
+    ])),
+}));
 
 const mockNavigate = vi.fn();
 const mockSetPatientDetails = vi.fn();

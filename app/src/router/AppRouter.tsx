@@ -29,6 +29,7 @@ import MockLoginPage from '../pages/mockLoginPage/MockLoginPage';
 import DocumentUploadPage from '../pages/documentUploadPage/DocumentUploadPage';
 import AdminRoutesPage from '../pages/adminRoutesPage/AdminRoutesPage';
 import DownloadCompletePage from '../pages/downloadCompletePage/DownloadCompletePage';
+import CookiePolicyPage from '../pages/cookiePolicyPage/CookiePolicyPage';
 
 const {
     START,
@@ -60,6 +61,8 @@ const {
     ADMIN_ROUTE,
     ADMIN_ROUTE_WILDCARD,
     DOWNLOAD_COMPLETE,
+    COOKIES_POLICY,
+    COOKIES_POLICY_WILDCARD,
 } = routes;
 
 type Routes = {
@@ -158,6 +161,10 @@ export const childRoutes = [
     {
         route: routeChildren.ADMIN_REVIEW_DETAIL,
         parent: ADMIN_ROUTE,
+    },
+    {
+        route: routeChildren.COOKIES_POLICY_UPDATED,
+        parent: COOKIES_POLICY,
     },
 ];
 
@@ -291,6 +298,14 @@ export const routeMap: Routes = {
     [DOWNLOAD_COMPLETE]: {
         page: <DownloadCompletePage />,
         type: ROUTE_TYPE.PATIENT,
+    },
+    [COOKIES_POLICY]: {
+        page: <CookiePolicyPage />,
+        type: ROUTE_TYPE.PUBLIC,
+    },
+    [COOKIES_POLICY_WILDCARD]: {
+        page: <CookiePolicyPage />,
+        type: ROUTE_TYPE.PUBLIC,
     },
 };
 

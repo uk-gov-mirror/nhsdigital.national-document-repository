@@ -25,7 +25,6 @@ export enum routes {
     REPORT_DOWNLOAD_WILDCARD = '/create-report/*',
     PATIENT_ACCESS_AUDIT = '/patient/access-audit',
     PATIENT_ACCESS_AUDIT_WILDCARD = '/patient/access-audit/*',
-
     DOCUMENT_UPLOAD = '/patient/document-upload',
     DOCUMENT_UPLOAD_WILDCARD = '/patient/document-upload/*',
 
@@ -35,6 +34,9 @@ export enum routes {
     ADMIN_ROUTE_WILDCARD = '/admin/*',
 
     DOWNLOAD_COMPLETE = '/download-complete',
+    
+    COOKIES_POLICY = '/cookies-policy',
+    COOKIES_POLICY_WILDCARD = '/cookies-policy/*',
 }
 
 export enum routeChildren {
@@ -82,6 +84,7 @@ export enum routeChildren {
     ADMIN_REVIEW_UPLOAD = '/admin/reviews/:reviewId/upload',
 
     REVIEWS = 'reviews/*',
+    COOKIES_POLICY_UPDATED = '/cookies-policy/confirmation',
 }
 
 export const navigateUrlParam = (

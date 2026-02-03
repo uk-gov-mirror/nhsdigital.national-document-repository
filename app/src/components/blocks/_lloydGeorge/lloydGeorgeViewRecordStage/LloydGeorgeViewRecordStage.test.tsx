@@ -34,6 +34,12 @@ vi.mock('../../../../helpers/hooks/useConfig');
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
 vi.mock('../../../../helpers/requests/getDocumentSearchResults');
+vi.mock('../../../../providers/analyticsProvider/AnalyticsProvider', () => ({
+    useAnalyticsContext: vi.fn(() => ([
+        null,
+        vi.fn(),
+    ])),
+}));
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');

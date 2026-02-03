@@ -16,6 +16,12 @@ vi.mock('../../../helpers/hooks/useConfig');
 vi.mock('../../../helpers/hooks/useRole');
 vi.mock('../../../helpers/hooks/useBaseAPIUrl');
 vi.mock('../../../helpers/requests/getLloydGeorgeRecord');
+vi.mock('../../../providers/analyticsProvider/AnalyticsProvider', () => ({
+    useAnalyticsContext: vi.fn(() => ([
+        null,
+        vi.fn(),
+    ])),
+}));
 vi.mock('axios');
 vi.mock('react-router-dom', () => ({
     useNavigate: (): typeof mockedUseNavigate => mockedUseNavigate,

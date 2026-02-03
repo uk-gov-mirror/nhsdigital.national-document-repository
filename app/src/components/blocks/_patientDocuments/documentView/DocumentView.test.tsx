@@ -32,6 +32,12 @@ vi.mock('../../../../helpers/utils/documentType', async () => {
         getConfigForDocType: vi.fn(),
     };
 });
+vi.mock('../../../../providers/analyticsProvider/AnalyticsProvider', () => ({
+    useAnalyticsContext: vi.fn(() => ([
+        null,
+        vi.fn(),
+    ])),
+}));
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
