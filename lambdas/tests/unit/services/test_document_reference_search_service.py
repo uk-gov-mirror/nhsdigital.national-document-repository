@@ -503,3 +503,13 @@ def test_build_filter_expression_defaults(mock_document_service):
     actual_filter = mock_document_service._build_filter_expression(filter_values)
 
     assert actual_filter == expected_filter
+
+def test_build_filter_expression_document_snomed_code(mock_document_service):
+    filter_values = {"document_snomed_code": "16521000000101"}
+    expected_filter = Attr("DocumentSnomedCodeType").eq("16521000000101") & (
+        Attr("Deleted").eq("") | Attr("Deleted").not_exists()
+    )
+
+    actual_filter = mock_document_service._build_filter_expression(filter_values)
+
+    assert expected_filter == actual_filter

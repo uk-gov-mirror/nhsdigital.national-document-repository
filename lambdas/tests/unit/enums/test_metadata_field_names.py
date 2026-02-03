@@ -21,8 +21,9 @@ def test_returns_all_as_list():
     assert DocumentReferenceMetadataFields.UPLOADED.value in subject
     assert DocumentReferenceMetadataFields.UPLOADING.value in subject
     assert DocumentReferenceMetadataFields.LAST_UPDATED.value in subject
-    assert DocumentReferenceMetadataFields.DOC_STATUS.value in subject
-    assert DocumentReferenceMetadataFields.DOCUMENT_SCAN_CREATION.value in subject
-    assert DocumentReferenceMetadataFields.CUSTODIAN.value in subject
     assert DocumentReferenceMetadataFields.FILE_SIZE.value in subject
+    assert DocumentReferenceMetadataFields.DOC_STATUS.value in subject
+    assert DocumentReferenceMetadataFields.CUSTODIAN.value in subject
+    assert DocumentReferenceMetadataFields.DOCUMENT_SCAN_CREATION.value in subject
     assert DocumentReferenceMetadataFields.DOCUMENT_SNOMED_CODE_TYPE.value in subject
+    

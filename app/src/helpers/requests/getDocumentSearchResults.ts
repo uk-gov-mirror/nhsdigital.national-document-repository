@@ -21,7 +21,7 @@ const getDocumentSearchResults = async ({
     nhsNumber,
     baseUrl,
     baseHeaders,
-    docType = DOCUMENT_TYPE.ALL,
+    docType,
 }: DocumentSearchResultsArgs): Promise<Array<SearchResult>> => {
     const gatewayUrl = baseUrl + endpoints.DOCUMENT_SEARCH;
 
@@ -32,7 +32,7 @@ const getDocumentSearchResults = async ({
             },
             params: {
                 patientId: nhsNumber?.replaceAll(/\s/g, ''), // replace whitespace
-                docType: docType,
+                docType: docType == DOCUMENT_TYPE.ALL ? undefined : docType,
             },
         });
         return response?.data;

@@ -124,7 +124,7 @@ class DocumentReferenceSearchService(DocumentService):
         return document_resources or None
 
     def _get_filter_expression(
-        self, filters: dict[str, str] = None, upload_completed=False
+        self, filters: dict[str, str | None] = None, upload_completed=False
     ):
         if filters:
             return self._build_filter_expression(filters)
@@ -204,6 +204,14 @@ class DocumentReferenceSearchService(DocumentService):
             elif filter_key == "doc_status":
                 filter_builder.add_condition(
                     attribute=str(DocumentReferenceMetadataFields.DOC_STATUS.value),
+                    attr_operator=AttributeOperator.EQUAL,
+                    filter_value=filter_value,
+                )
+            elif filter_key == "document_snomed_code":
+                filter_builder.add_condition(
+                    attribute=str(
+                        DocumentReferenceMetadataFields.DOCUMENT_SNOMED_CODE_TYPE.value
+                    ),
                     attr_operator=AttributeOperator.EQUAL,
                     filter_value=filter_value,
                 )

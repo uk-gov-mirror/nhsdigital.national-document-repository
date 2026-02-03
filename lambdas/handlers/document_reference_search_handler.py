@@ -1,6 +1,7 @@
 import json
 
 from enums.feature_flags import FeatureFlags
+from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from services.document_reference_search_service import DocumentReferenceSearchService
 from services.feature_flags_service import FeatureFlagService
@@ -13,6 +14,8 @@ from utils.decorators.validate_patient_id import (
     extract_nhs_number_from_event,
     validate_patient_id,
 )
+from utils.document_type_utils import extract_document_type_to_enum
+from utils.lambda_exceptions import DocumentRefSearchException
 from utils.lambda_response import ApiGatewayResponse
 from utils.request_context import request_context
 
@@ -29,6 +32,13 @@ def lambda_handler(event, context):
     logger.info("Starting document reference search process")
 
     nhs_number = extract_nhs_number_from_event(event)
+    
+    doc_type = event.get("queryStringParameters", {}).get("docType", None)
+    try:
+        document_snomed_code = extract_document_type_to_enum(doc_type) if doc_type else None
+    except ValueError:
+        raise DocumentRefSearchException(400, LambdaError.DocTypeInvalid)
+
     request_context.patient_nhs_no = nhs_number
 
     document_reference_search_service = DocumentReferenceSearchService()
@@ -38,11 +48,17 @@ def lambda_handler(event, context):
     doc_upload_iteration2_enabled = upload_lambda_enabled_flag_object[
         FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED
     ]
-    doc_status_filter = (
-        {"doc_status": "final"} if doc_upload_iteration2_enabled else None
-    )
+
+    additional_filters = {}
+    if doc_upload_iteration2_enabled:
+        additional_filters["doc_status"] = "final"
+    if document_snomed_code:
+        additional_filters["document_snomed_code"] = document_snomed_code[0].value
+
     response = document_reference_search_service.get_document_references(
-        nhs_number, check_upload_completed=True, additional_filters=doc_status_filter
+        nhs_number, 
+        check_upload_completed=True, 
+        additional_filters=additional_filters
     )
     logger.info("User is able to view docs", {"Result": "Successful viewing docs"})
 
