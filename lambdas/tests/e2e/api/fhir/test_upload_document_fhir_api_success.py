@@ -25,7 +25,7 @@ def test_create_document_base64(test_data):
     payload = pdm_data_helper.create_upload_payload(record)
 
     raw_upload_response = upload_document(payload)
-    assert raw_upload_response.status_code == 200
+    assert raw_upload_response.status_code == 201
     record["id"] = raw_upload_response.json()["id"].split("~")[1]
     test_data.append(record)
 
@@ -63,7 +63,7 @@ def test_create_document_saves_raw(test_data):
     payload = pdm_data_helper.create_upload_payload(record)
 
     raw_upload_response = upload_document(payload)
-    assert raw_upload_response.status_code == 200
+    assert raw_upload_response.status_code == 201
     record["id"] = raw_upload_response.json()["id"].split("~")[1]
     test_data.append(record)
 
@@ -91,7 +91,7 @@ def test_create_document_without_author_or_type(test_data):
     for field in ["type", "author"]:
         assert field not in payload
     raw_upload_response = upload_document(payload)
-    assert raw_upload_response.status_code == 200
+    assert raw_upload_response.status_code == 201
     record["id"] = raw_upload_response.json()["id"].split("~")[1]
     test_data.append(record)
 

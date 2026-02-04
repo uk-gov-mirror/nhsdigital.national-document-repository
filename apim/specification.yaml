@@ -7,7 +7,7 @@ info:
     The National Document Repository (NDR) is a central place where digital patient documents can be accessed and stored by frontline services. Use this API to access, store and manage digital Lloyd George patient records.
 
     This API has different access modes, which give you access to different functionalities.
-    
+
     Depending on your access mode you can:
 
     * search for a patient’s Lloyd George record
@@ -17,7 +17,7 @@ info:
 
     *Note: The ability to use these functions will vary depending on the access mode you use.*
 
-    You cannot: 
+    You cannot:
 
     * upload documents unless you are a scanning provider
     * edit patient information within a record
@@ -42,7 +42,7 @@ info:
     [NHS Care Identity Service 2 (NHS CIS2)](https://digital.nhs.uk/services/identity-and-access-management/nhs-care-identity-service-2)
 
     ## Related APIs
-     
+
     - [National Record Locator - FHIR API v3 - Consumer](https://digital.nhs.uk/developer/api-catalogue/national-record-locator-fhir/v3/consumer)
 
     ## API status and roadmap
@@ -105,7 +105,7 @@ info:
     * 500 to 599 if it failed because of an error on our server
 
     Errors specific to each API are shown in the Endpoints section, under Response. See our [reference guide](https://digital.nhs.uk/developer/guides-and-documentation/reference-guide#http-status-codes) for more on errors.
-     
+
     Your API-calling application should have a mechanism to automatically try again, for example by giving status information to your end user, before giving up. See our [reference guide](https://digital.nhs.uk/developer/guides-and-documentation/reference-guide#error-handling) for more information about error handling.
 
     ## Open source
@@ -157,7 +157,7 @@ info:
     You need to get your software approved by us before it can go live with this API. We call this onboarding. The onboarding process can sometimes be quite long, so it’s worth planning well ahead.
 
     As part of this process, you need to demonstrate your technical conformance to the requirements for this API and that you can manage risks. This might impact the design of your software.
-     
+
     To understand how our online digital onboarding process works, see [digital onboarding](https://digital.nhs.uk/developer/guides-and-documentation/digital-onboarding#using-the-digital-onboarding-portal).
 
     <div class="nhsd-m-emphasis-box nhsd-m-emphasis-box--emphasis nhsd-!t-margin-bottom-6" aria-label="Highlighted Information">
@@ -314,7 +314,7 @@ paths:
                     creation: "2022-12-20T09:45:41+11:00"
                     data: "<base64-encoded-pdf>"
       responses:
-        "200":
+        "201":
           description: Successful upload of DocumentReference
           content:
             application/fhir+json;version=1:
@@ -408,10 +408,10 @@ paths:
                 $ref: '#/components/schemas/OperationOutcome'
               example:
                 resourceType: OperationOutcome
-                issue: 
+                issue:
                   - severity: error
                     code: exception
-                    details: 
+                    details:
                       coding:
                         - system: 'http://hl7.org/fhir/issue-type'
                           code: 'invalid'
@@ -425,10 +425,10 @@ paths:
                 $ref: '#/components/schemas/OperationOutcome'
               example:
                 resourceType: OperationOutcome
-                issue: 
+                issue:
                   - severity: error
                     code: exception
-                    details: 
+                    details:
                       coding:
                         - system: 'http://hl7.org/fhir/issue-type'
                           code: 'unknown'
@@ -442,10 +442,10 @@ paths:
                 $ref: '#/components/schemas/OperationOutcome'
               example:
                 resourceType: OperationOutcome
-                issue: 
+                issue:
                   - severity: error
                     code: exception
-                    details: 
+                    details:
                       coding:
                         - system: 'http://hl7.org/fhir/issue-type'
                           code: 'forbidden'
@@ -459,23 +459,23 @@ paths:
                 $ref: '#/components/schemas/OperationOutcome'
               example:
                 resourceType: OperationOutcome
-                issue: 
+                issue:
                   - severity: error
                     code: exception
-                    details: 
+                    details:
                       coding:
                         - system: 'http://hl7.org/fhir/issue-type'
                           code: 'not-found'
                           display: 'Not Found'
                     diagnostics: 'Document reference not found'
-              
-                  
+
+
           headers:
             X-Correlation-Id:
               $ref: '#/components/headers/CorrelationId'
             X-Request-Id:
               $ref: '#/components/headers/RequestId'
-            
+
         4XX:
           description: |
             An error occurred as follows:
@@ -584,7 +584,7 @@ components:
             type: string
             pattern: '[ \r\n\t\S]+'
             description: |-
-              This element is deprecated because it is XML specific. It is replaced by issue.expression, which is format independent, and simpler to parse. 
+              This element is deprecated because it is XML specific. It is replaced by issue.expression, which is format independent, and simpler to parse.
 
               For resource issues, this will be a simple XPath limited to element names, repetition indicators and the default child accessor that identifies one of the elements in the resource that caused this issue to be raised.  For HTTP errors, will be "http." + the parameter name.
         expression:
@@ -1279,7 +1279,7 @@ components:
         invalid_403:
           summary: User is forbidden (403)
           value: 403
-        invalid_404: 
+        invalid_404:
           summary: Document not Found, {id} does not match any documents held. (404)
           value: 404
     subject:
@@ -1398,7 +1398,7 @@ security:
 
 x-nhsd-apim:
   access:
-    - title: Application-restricted 
+    - title: Application-restricted
       grants:
         app-level3: []
         nhs-cis2-aal3: []

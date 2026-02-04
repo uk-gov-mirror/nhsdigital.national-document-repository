@@ -67,7 +67,7 @@ def test_mtls_lambda_handler_success(valid_mtls_event, context, mock_service):
 
     result = lambda_handler(valid_mtls_event, context)
 
-    assert result["statusCode"] == 200
+    assert result["statusCode"] == 201
     assert json.loads(result["body"]) == mock_response
 
     mock_service.process_fhir_document_reference.assert_called_once_with(
