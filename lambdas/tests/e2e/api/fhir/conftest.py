@@ -113,13 +113,14 @@ def create_and_store_pdm_record(
     nhs_number: str = "9912003071",
     doc_status: str | None = None,
     size: int | None = None,
+    **dynamo_kwargs,
 ):
     """Helper to create metadata and resource for a record."""
     record = pdm_data_helper.build_record(
         nhs_number=nhs_number, doc_status=doc_status, size=size
     )
     test_data.append(record)
-    pdm_data_helper.create_metadata(record)
+    pdm_data_helper.create_metadata(record, **dynamo_kwargs)
     pdm_data_helper.create_resource(record)
     return record
 

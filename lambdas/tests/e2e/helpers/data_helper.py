@@ -75,7 +75,7 @@ class DataHelper:
             record["size"] = size
         return record
 
-    def create_metadata(self, document_details):
+    def create_metadata(self, document_details, **extra_attributes):
         dynamo_item = {
             "ID": document_details["id"],
             "ContentType": "application/pdf",
@@ -97,6 +97,8 @@ class DataHelper:
             "S3VersionID": "some-version-id",
             "VirusScannerResult": "Clean",
         }
+        dynamo_item.update(extra_attributes)
+
         self.dynamo_service.create_item(self.dynamo_table, dynamo_item)
 
     def create_resource(self, record):
