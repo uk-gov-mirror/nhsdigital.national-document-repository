@@ -19,18 +19,13 @@ const AnalyticsProvider = ({ children }: Props): React.JSX.Element => {
     const [analytics, setAnalytics] = useState<AwsRum | null>(null);
 
     const startAnalytics = useCallback(() => {
-        if (sessionStorage.getItem('analytics-started') === "yes" ||
+        if (
+            sessionStorage.getItem('analytics-started') === 'yes' ||
             !import.meta.env.VITE_MONITOR_ACCOUNT_ID
         ) {
             return;
-        } 
-
-        if (contextValue[0] !== null) {
-            contextValue[0].enable();
-            sessionStorage.setItem('analytics-started', "yes");
-            return;
         }
-        
+
         let rumClient: AwsRum | null = null;
         try {
             const APPLICATION_ID: string = import.meta.env.VITE_MONITOR_ACCOUNT_ID || '';

@@ -7,6 +7,9 @@ import { runAxeTest } from '../../helpers/test/axeTestHelper';
 import { describe, expect, it, vi, Mock } from 'vitest';
 
 vi.mock('../../helpers/hooks/useBaseAPIUrl');
+vi.mock('../../providers/analyticsProvider/AnalyticsProvider', () => ({
+    useAnalyticsContext: (): [null, () => void] => [null, (): void => {}],
+}));
 
 const originalWindowLocation = window.location;
 const mockLocationReplace = vi.fn();

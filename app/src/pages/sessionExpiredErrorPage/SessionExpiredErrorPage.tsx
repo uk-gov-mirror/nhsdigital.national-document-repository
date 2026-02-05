@@ -1,19 +1,26 @@
 import { ButtonLink } from 'nhsuk-react-components';
-import React, { MouseEvent, useState } from 'react';
+import React, { MouseEvent, useEffect, useState } from 'react';
 import { endpoints } from '../../types/generic/endpoints';
 import Spinner from '../../components/generic/spinner/Spinner';
 import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import useTitle from '../../helpers/hooks/useTitle';
+import { useAnalyticsContext } from '../../providers/analyticsProvider/AnalyticsProvider';
 
 const SessionExpiredErrorPage = (): React.JSX.Element => {
     const baseAPIUrl = useBaseAPIUrl();
     const [isLoading, setIsLoading] = useState(false);
+    const [awsRum] = useAnalyticsContext();
 
     const handleLogin = (e: MouseEvent<HTMLAnchorElement>): void => {
         setIsLoading(true);
         e.preventDefault();
         window.location.replace(`${baseAPIUrl}${endpoints.LOGIN}`);
     };
+
+    useEffect(() => {
+        awsRum?.disable();
+        sessionStorage.setItem('analytics-started', 'no');
+    }, []);
 
     const pageHeader = 'We signed you out due to inactivity';
     useTitle({ pageTitle: pageHeader });
