@@ -73,10 +73,9 @@ Cypress.Commands.add('login', (role, featureFlags) => {
     cy.wait('@featureFlags');
 });
 
-Cypress.Commands.add('smokeLogin', (role) => {
+Cypress.Commands.add('smokeLogin', (role, odsCode = 'H81109') => {
     const baseUrl = Cypress.config('baseUrl');
     const key = Cypress.env('KEY');
-    const odsCode = Cypress.env('ODSCODE');
 
     const startUrl = '/';
     cy.visit(startUrl);
@@ -145,8 +144,9 @@ declare global {
             /**
              * Real user login via CIS2 and redirect back to {baseUrl}/auth-callback.
              * @param {Roles} role - The user role to login with. Must be an enum of Roles
+             * @param {string} odsCode - The ODS code to use for login. Defaults to 'H81109'
              */
-            smokeLogin(role: RoleKey | RoleId | string): Chainable<void>;
+            smokeLogin(role: RoleKey | RoleId | string, odsCode?: string): Chainable<void>;
             /**
              * Add file to s3 bucket
              * @param {string} bucketName - Name of the target S3 bucket
