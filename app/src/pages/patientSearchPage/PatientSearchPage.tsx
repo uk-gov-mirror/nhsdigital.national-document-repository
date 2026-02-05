@@ -125,12 +125,12 @@ const PatientSearchPage = (): JSX.Element => {
     };
     return (
         <>
-            <BackLink 
+            <BackLink
                 data-testid="go-to-home-link"
                 asElement="a"
-                href='#'
+                href="#"
                 onClick={(): void => {
-                    navigate(routes.HOME)
+                    navigate(routes.HOME);
                 }}
             >
                 Go to home

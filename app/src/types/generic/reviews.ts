@@ -52,8 +52,7 @@ export type ReviewsListFiles = {
 };
 
 export interface SearchResultsData
-    extends SearchResult,
-        Partial<Omit<GetDocumentResponse, 'contentType'>> {
+    extends SearchResult, Partial<Omit<GetDocumentResponse, 'contentType'>> {
     blob?: Blob;
 }
 

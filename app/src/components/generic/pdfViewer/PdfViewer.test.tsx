@@ -1,10 +1,9 @@
 import { render, screen, act } from '@testing-library/react';
 import PdfViewer from './PdfViewer';
-import { describe, expect, it, vi, beforeEach, afterEach, Mock } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useAnalyticsContext } from '../../../providers/analyticsProvider/AnalyticsProvider';
 
 const mockRecordEvent = vi.fn();
-const mockedUseAnalyticsContext = useAnalyticsContext as Mock;
 
 vi.mock('../../../providers/analyticsProvider/AnalyticsProvider');
 
@@ -68,10 +67,7 @@ describe('PdfViewer', () => {
     });
 
     it('does not record event when print button is clicked but awsRum is null', async () => {
-        vi.mocked(useAnalyticsContext).mockReturnValue([
-            null,
-            vi.fn(),
-        ]);
+        vi.mocked(useAnalyticsContext).mockReturnValue([null, vi.fn()]);
 
         const fileUrl = 'https://test';
         render(<PdfViewer fileUrl={fileUrl} />);

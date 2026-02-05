@@ -18,7 +18,7 @@
         "object-curly-spacing": ["warn", "always"],
         "@typescript-eslint/semi": ["off"],
         "@typescript-eslint/no-unused-vars": [
-            "warn",
+            "error",
             {
                 "vars": "all",
                 "args": "none"
@@ -62,7 +62,6 @@
                 ]
             }
         ],
-
         "react/jsx-props-no-spreading": "off",
         "import/prefer-default-export": "off",
         "react/jsx-boolean-value": "off",
@@ -72,22 +71,21 @@
         "react/jsx-wrap-multilines": "off",
         "react/destructuring-assignment": "off",
         "no-console": "warn",
-        "extensions": "off",
-        "prettier/prettier": "warn",
-        "unused-imports/no-unused-imports": "warn",
+        "prettier/prettier": "error",
+        "unused-imports/no-unused-imports": "error",
         "react-hooks/exhaustive-deps": "off",
-        "@typescript-eslint/explicit-function-return-type": "warn"
+        "@typescript-eslint/explicit-function-return-type": "error"
     },
     "overrides": [
           {
             "files": ["cypress/**/*.{ts,js}"],
             "extends": ["plugin:cypress/recommended"],
             "rules": {
-            "import/no-extraneous-dependencies": [
-            "error",
-                { "devDependencies": true },
-            ],
-            },
+                "import/no-extraneous-dependencies": [
+                    "error",
+                    { "devDependencies": true }
+                ]
+            }
         },
         {
             "files": ["**/*.test.tsx", "**/*.test.ts"],

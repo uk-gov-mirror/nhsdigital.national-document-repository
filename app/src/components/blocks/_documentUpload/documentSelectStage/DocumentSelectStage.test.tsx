@@ -173,9 +173,7 @@ describe('DocumentSelectStage', () => {
                 documentConfig: config,
             });
 
-            await userEvent.upload(screen.getByTestId('button-input'), [
-                buildLgFile(1),
-            ]);
+            await userEvent.upload(screen.getByTestId('button-input'), [buildLgFile(1)]);
 
             await userEvent.click(await screen.findByTestId('skip-link'));
 

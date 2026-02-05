@@ -14,7 +14,7 @@ const mockedUseRole = useRole as Mock;
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockedUseNavigate,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
 
 describe('Header', () => {
@@ -67,7 +67,7 @@ describe('Header', () => {
         });
     });
 
-    const renderHeaderWithRouter = () => {
+    const renderHeaderWithRouter = (): void => {
         const auth: Session = {
             auth: buildUserAuth(),
             isLoggedIn: true,

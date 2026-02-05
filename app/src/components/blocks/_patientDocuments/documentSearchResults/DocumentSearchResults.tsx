@@ -12,7 +12,11 @@ type Props = {
     documentConfig?: DOCUMENT_TYPE_CONFIG;
 };
 
-const DocumentSearchResults = ({ searchResults, onViewDocument, documentConfig }: Props) => {
+const DocumentSearchResults = ({
+    searchResults,
+    onViewDocument,
+    documentConfig,
+}: Props): React.JSX.Element => {
     const [session] = useSessionContext();
 
     const canViewFiles =
@@ -69,7 +73,7 @@ const DocumentSearchResults = ({ searchResults, onViewDocument, documentConfig }
                                 >
                                     {canViewFiles && onViewDocument && (
                                         <LinkButton
-                                            onClick={() => onViewDocument(result)}
+                                            onClick={(): void => onViewDocument(result)}
                                             id={`available-files-row-${index}-view-link`}
                                             data-testid={`view-${index}-link`}
                                             href="#"

@@ -5,7 +5,7 @@ import CookiePolicy from '../../components/blocks/_cookiesPolicy/cookiesPolicy/C
 import CookiesPolicyUpdatedStage from '../../components/blocks/_cookiesPolicy/cookiesPolicyUpdated/CookiesPolicyUpdatedStage';
 import { getLastURLPath } from '../../helpers/utils/urlManipulations';
 
-const CookiePolicyPage = () => {
+const CookiePolicyPage = (): React.JSX.Element => {
     const pageTitle = 'Cookies policy';
     useTitle({ pageTitle });
 

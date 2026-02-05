@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, RenderResult, screen } from '@testing-library/react';
 import PatientDetailsProvider from '../../providers/patientProvider/PatientProvider';
 import { PatientDetails } from '../../types/generic/patientDetails';
 import usePatient from './usePatient';
@@ -25,12 +25,12 @@ describe('usePatient', () => {
     });
 });
 
-const TestApp = () => {
+const TestApp = (): React.JSX.Element => {
     const patient = usePatient();
     return <div>{`PATIENT: ${patient?.nhsNumber ?? null}`.normalize()}</div>;
 };
 
-const renderHook = (patient?: PatientDetails) => {
+const renderHook = (patient?: PatientDetails): RenderResult => {
     return render(
         <PatientDetailsProvider patientDetails={patient}>
             <TestApp />

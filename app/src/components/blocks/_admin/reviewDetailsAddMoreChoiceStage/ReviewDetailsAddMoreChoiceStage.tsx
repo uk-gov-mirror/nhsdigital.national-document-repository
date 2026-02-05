@@ -37,7 +37,7 @@ const ReviewDetailsAddMoreChoiceStage: React.FC<ReviewDetailsAddMoreChoicePagePr
                     ? routeChildren.ADMIN_REVIEW_UPLOAD_FILE_ORDER
                     : routeChildren.ADMIN_REVIEW_UPLOAD,
                 { reviewId },
-                navigate
+                navigate,
             );
         }
     };

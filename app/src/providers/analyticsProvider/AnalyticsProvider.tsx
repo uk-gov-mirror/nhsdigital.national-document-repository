@@ -8,10 +8,7 @@ type Props = {
     children: ReactNode;
 };
 
-export type AnalyticsContextType = [
-    AwsRum | null,
-    () => void,
-];
+export type AnalyticsContextType = [AwsRum | null, () => void];
 
 const AnalyticsContext = createContext<AnalyticsContextType | null>(null);
 
@@ -41,14 +38,9 @@ const AnalyticsProvider = ({ children }: Props): React.JSX.Element => {
                 enableXRay: false,
             };
 
-            rumClient = new AwsRum(
-                APPLICATION_ID,
-                APPLICATION_VERSION,
-                APPLICATION_REGION,
-                config,
-            );
+            rumClient = new AwsRum(APPLICATION_ID, APPLICATION_VERSION, APPLICATION_REGION, config);
 
-            sessionStorage.setItem('analytics-started', "yes");
+            sessionStorage.setItem('analytics-started', 'yes');
 
             const session = sessionStorage.getItem('UserSession');
 
@@ -73,9 +65,7 @@ const AnalyticsProvider = ({ children }: Props): React.JSX.Element => {
                     }
                 }
             }
-        } catch (e) {
-            console.log(e)
-        }
+        } catch {}
 
         setAnalytics(rumClient);
     }, []);
@@ -85,11 +75,7 @@ const AnalyticsProvider = ({ children }: Props): React.JSX.Element => {
         [analytics],
     );
 
-    return (
-        <AnalyticsContext.Provider value={contextValue}>
-            {children}
-        </AnalyticsContext.Provider>
-    );
+    return <AnalyticsContext.Provider value={contextValue}>{children}</AnalyticsContext.Provider>;
 };
 
 export default AnalyticsProvider;

@@ -23,9 +23,9 @@ import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', async () => ({
-    Link: (props: LinkProps) => <a {...props} role="link" />,
+    Link: (props: LinkProps): React.JSX.Element => <a {...props} role="link" />,
     ...(await vi.importActual('react-router-dom')),
-    useNavigate: () => mockedUseNavigate,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
 vi.mock('../../../../helpers/hooks/useRole');
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
@@ -181,7 +181,7 @@ describe('DeceasedPatientAccessAudit', () => {
     });
 });
 
-const renderDeceasedPatientAccessAudit = () => {
+const renderDeceasedPatientAccessAudit = (): void => {
     const patientAccessAudit: PatientAccessAudit[] = buildPatientAccessAudit();
 
     render(

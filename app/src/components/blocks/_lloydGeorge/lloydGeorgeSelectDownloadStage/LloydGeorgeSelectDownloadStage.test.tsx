@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, RenderResult, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { buildPatientDetails, buildSearchResult } from '../../../../helpers/test/testBuilders';
 import usePatient from '../../../../helpers/hooks/usePatient';
@@ -22,9 +22,9 @@ vi.mock('axios');
 
 vi.mock('react-router-dom', async () => ({
     ...(await vi.importActual('react-router-dom')),
-    useNavigate: () => mockNavigate,
+    useNavigate: (): Mock => mockNavigate,
 }));
-Date.now = () => new Date('2020-01-01T00:00:00.000Z').getTime();
+Date.now = (): number => new Date('2020-01-01T00:00:00.000Z').getTime();
 
 let history: MemoryHistory = createMemoryHistory({
     initialEntries: ['/'],
@@ -127,7 +127,7 @@ describe.skip('LloydGeorgeSelectDownloadStage', () => {
     });
 });
 
-const renderComponent = (history: MemoryHistory) => {
+const renderComponent = (history: MemoryHistory): RenderResult => {
     return render(
         <ReactRouter.Router navigator={history} location={history.location}>
             <LloydGeorgeSelectDownloadStage

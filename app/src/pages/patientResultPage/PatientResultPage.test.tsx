@@ -12,8 +12,8 @@ import useConfig from '../../helpers/hooks/useConfig';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockedUseNavigate,
-    useLocation: () => vi.fn(),
+    useNavigate: (): Mock => mockedUseNavigate,
+    useLocation: (): Mock => vi.fn(),
 }));
 vi.mock('../../helpers/hooks/useRole');
 vi.mock('../../helpers/hooks/usePatient');

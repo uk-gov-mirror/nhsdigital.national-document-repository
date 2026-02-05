@@ -5,12 +5,12 @@ import { LinkProps } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { routes } from '../../types/generic/routes';
 import { runAxeTest } from '../../helpers/test/axeTestHelper';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, Mock, vi } from 'vitest';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
-    Link: (props: LinkProps) => <a {...props} role="link" />,
-    useNavigate: () => mockedUseNavigate,
+    Link: (props: LinkProps): React.JSX.Element => <a {...props} role="link" />,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
 vi.mock('../../helpers/hooks/useBaseAPIUrl');
 

@@ -18,10 +18,7 @@ vi.mock('../../../../helpers/hooks/useTitle', () => ({
     default: vi.fn(),
 }));
 vi.mock('../../../../providers/analyticsProvider/AnalyticsProvider', () => ({
-    useAnalyticsContext: vi.fn(() => ([
-        null,
-        vi.fn(),
-    ])),
+    useAnalyticsContext: vi.fn(() => [null, vi.fn()]),
 }));
 
 const mockNavigate = vi.fn();
@@ -115,13 +112,7 @@ describe('ReviewDetailsFileSelectStage', () => {
     it('renders a spinner when reviewData is null', () => {
         mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
 
-        render(
-            <ReviewDetailsFileSelectStage
-                reviewData={null}
-                uploadDocuments={[]}
-                setUploadDocuments={vi.fn() as any}
-            />,
-        );
+        renderApp({ reviewData: null });
 
         expect(screen.getByLabelText('Loading')).toBeInTheDocument();
     });
@@ -136,13 +127,10 @@ describe('ReviewDetailsFileSelectStage', () => {
             ),
         ];
 
-        render(
-            <ReviewDetailsFileSelectStage
-                reviewData={mockReviewData}
-                uploadDocuments={documents}
-                setUploadDocuments={vi.fn() as any}
-            />,
-        );
+        renderApp({
+            reviewData: mockReviewData,
+            uploadDocuments: documents,
+        });
 
         expect(
             screen.getByRole('heading', {
@@ -156,7 +144,10 @@ describe('ReviewDetailsFileSelectStage', () => {
     });
 
     it('renders patient demographics', () => {
-        mockUsePatientDetailsContext.mockReturnValue([buildPatientDetails(), mockSetPatientDetails]);
+        mockUsePatientDetailsContext.mockReturnValue([
+            buildPatientDetails(),
+            mockSetPatientDetails,
+        ]);
 
         const documents: ReviewUploadDocument[] = [
             makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.UNSELECTED, UploadDocumentType.REVIEW),
@@ -167,7 +158,11 @@ describe('ReviewDetailsFileSelectStage', () => {
             ),
         ];
 
-        renderApp({ reviewData: mockReviewData, uploadDocuments: documents, mockPatientContext: false });
+        renderApp({
+            reviewData: mockReviewData,
+            uploadDocuments: documents,
+            mockPatientContext: false,
+        });
 
         expect(screen.getByTestId('patient-summary')).toBeInTheDocument();
         expect(screen.getByTestId('patient-summary-full-name')).toBeInTheDocument();
@@ -181,13 +176,10 @@ describe('ReviewDetailsFileSelectStage', () => {
             makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.UNSELECTED, UploadDocumentType.REVIEW),
         ];
 
-        render(
-            <ReviewDetailsFileSelectStage
-                reviewData={mockReviewData}
-                uploadDocuments={documents}
-                setUploadDocuments={vi.fn() as any}
-            />,
-        );
+        renderApp({
+            reviewData: mockReviewData,
+            uploadDocuments: documents,
+        });
 
         await user.click(screen.getByRole('button', { name: /View file1\.pdf/i }));
 
@@ -202,13 +194,10 @@ describe('ReviewDetailsFileSelectStage', () => {
             makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.UNSELECTED, UploadDocumentType.REVIEW),
         ];
 
-        render(
-            <ReviewDetailsFileSelectStage
-                reviewData={mockReviewData}
-                uploadDocuments={documents}
-                setUploadDocuments={vi.fn() as any}
-            />,
-        );
+        renderApp({
+            reviewData: mockReviewData,
+            uploadDocuments: documents,
+        });
 
         await user.click(screen.getByRole('button', { name: 'Continue' }));
 
@@ -259,13 +248,10 @@ describe('ReviewDetailsFileSelectStage', () => {
             makeReviewDoc('file2.pdf', DOCUMENT_UPLOAD_STATE.SELECTED, UploadDocumentType.REVIEW),
         ];
 
-        render(
-            <ReviewDetailsFileSelectStage
-                reviewData={mockReviewData}
-                uploadDocuments={initialDocs}
-                setUploadDocuments={vi.fn() as any}
-            />,
-        );
+        renderApp({
+            reviewData: mockReviewData,
+            uploadDocuments: initialDocs,
+        });
 
         await user.click(screen.getByRole('button', { name: 'Continue' }));
 
@@ -282,13 +268,10 @@ describe('ReviewDetailsFileSelectStage', () => {
             makeReviewDoc('file2.pdf', DOCUMENT_UPLOAD_STATE.UNSELECTED, UploadDocumentType.REVIEW),
         ];
 
-        render(
-            <ReviewDetailsFileSelectStage
-                reviewData={mockReviewData}
-                uploadDocuments={initialDocs}
-                setUploadDocuments={vi.fn() as any}
-            />,
-        );
+        renderApp({
+            reviewData: mockReviewData,
+            uploadDocuments: initialDocs,
+        });
 
         await user.click(screen.getByRole('button', { name: 'Continue' }));
         expect(mockNavigate).toHaveBeenCalledWith(
@@ -303,13 +286,7 @@ describe('ReviewDetailsFileSelectStage', () => {
             makeReviewDoc('file1.pdf', DOCUMENT_UPLOAD_STATE.SELECTED, UploadDocumentType.REVIEW),
         ];
 
-        render(
-            <ReviewDetailsFileSelectStage
-                reviewData={mockReviewData}
-                uploadDocuments={documents}
-                setUploadDocuments={vi.fn() as any}
-            />,
-        );
+        renderApp({ reviewData: mockReviewData, uploadDocuments: documents });
 
         expect(screen.getByRole('checkbox', { name: /Select file1\.pdf/i })).toBeChecked();
     });
@@ -444,7 +421,7 @@ describe('ReviewDetailsFileSelectStage', () => {
 
         expect(screen.getByText('file1.pdf')).toBeInTheDocument();
         expect(screen.getByText('file2.pdf')).toBeInTheDocument();
-        
+
         const dates = screen.getAllByText('21 January 1970');
         expect(dates).toHaveLength(2);
     });

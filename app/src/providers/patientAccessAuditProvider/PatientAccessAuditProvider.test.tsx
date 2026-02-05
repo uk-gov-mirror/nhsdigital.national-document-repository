@@ -34,7 +34,7 @@ type TestProps = {
     patientAccessAudit: PatientAccessAudit[];
 };
 
-const TestComponent = (props: TestProps) => {
+const TestComponent = (props: TestProps): React.JSX.Element => {
     const [patientAccessAudit, setPatientAccessAudit] = usePatientAccessAuditContext();
 
     const audit = patientAccessAudit?.[0];
@@ -43,7 +43,7 @@ const TestComponent = (props: TestProps) => {
         <>
             <p>NHS Number: {audit?.nhsNumber ?? 'Null'}</p>
             <p>Access Audit Type: {audit?.accessAuditType ?? 'Null'}</p>
-            <button onClick={() => setPatientAccessAudit(props.patientAccessAudit)}>
+            <button onClick={(): void => setPatientAccessAudit(props.patientAccessAudit)}>
                 Update Patient Access Audit
             </button>
         </>

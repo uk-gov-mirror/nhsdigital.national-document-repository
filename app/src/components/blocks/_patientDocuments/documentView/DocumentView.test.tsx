@@ -3,12 +3,7 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import DocumentView from './DocumentView';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import useTitle from '../../../../helpers/hooks/useTitle';
-import {
-    DOCUMENT_TYPE,
-    DOCUMENT_TYPE_CONFIG,
-    getConfigForDocType,
-    getDocumentTypeLabel,
-} from '../../../../helpers/utils/documentType';
+import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import { buildDocumentConfig, buildPatientDetails } from '../../../../helpers/test/testBuilders';
@@ -33,17 +28,14 @@ vi.mock('../../../../helpers/utils/documentType', async () => {
     };
 });
 vi.mock('../../../../providers/analyticsProvider/AnalyticsProvider', () => ({
-    useAnalyticsContext: vi.fn(() => ([
-        null,
-        vi.fn(),
-    ])),
+    useAnalyticsContext: vi.fn(() => [null, vi.fn()]),
 }));
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockUseNavigate,
-        createSearchParams: () => mockCreateSearchParams,
+        useNavigate: (): Mock => mockUseNavigate,
+        createSearchParams: (): Mock => mockCreateSearchParams,
     };
 });
 
@@ -71,7 +63,7 @@ const mockDocumentReference: DocumentReference = {
 
 const mockPatientDetails = buildPatientDetails();
 
-const simulateFullscreenChange = (isFullscreen: boolean) => {
+const simulateFullscreenChange = (isFullscreen: boolean): void => {
     act(() => {
         // Update the fullscreenElement property to simulate browser state
         Object.defineProperty(document, 'fullscreenElement', {
@@ -89,7 +81,7 @@ type Props = {
     documentReference: DocumentReference | null;
 };
 
-const TestApp = ({ documentReference }: Props) => {
+const TestApp = ({ documentReference }: Props): React.JSX.Element => {
     const history = createMemoryHistory();
     return (
         <ReactRouter.Router navigator={history} location={history.location}>
@@ -101,7 +93,9 @@ const TestApp = ({ documentReference }: Props) => {
     );
 };
 
-const renderComponent = (documentReference: DocumentReference | null = mockDocumentReference) => {
+const renderComponent = (
+    documentReference: DocumentReference | null = mockDocumentReference,
+): void => {
     render(
         <SessionProvider sessionOverride={{ isLoggedIn: true }}>
             <TestApp documentReference={documentReference} />

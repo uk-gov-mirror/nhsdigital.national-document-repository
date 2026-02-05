@@ -22,7 +22,7 @@ const searchResults = [
 ];
 
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockedUseNavigate,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
 
 describe('LloydGeorgeDownloadComplete', () => {

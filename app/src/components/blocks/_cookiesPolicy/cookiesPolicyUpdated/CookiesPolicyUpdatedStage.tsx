@@ -1,7 +1,7 @@
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { routes } from '../../../../types/generic/routes';
 
-const CookiesPolicyUpdatedStage = () => {
+const CookiesPolicyUpdatedStage = (): React.JSX.Element => {
     const pageTitle = 'Your cookie settings have been saved';
     useTitle({ pageTitle });
 
@@ -12,15 +12,9 @@ const CookiesPolicyUpdatedStage = () => {
             <p>We'll save your settings for a year.</p>
             <p>We'll ask you if you're still OK with us using cookies when either:</p>
             <ul>
-                <li>
-                    it's been a year since you last saved your settings 
-                </li>
-                <li>
-                    we add any new cookies
-                </li>
-                <li>
-                    we change the cookies we use
-                </li>
+                <li>it's been a year since you last saved your settings</li>
+                <li>we add any new cookies</li>
+                <li>we change the cookies we use</li>
             </ul>
             <p>
                 You can also change your settings at any time using our{' '}

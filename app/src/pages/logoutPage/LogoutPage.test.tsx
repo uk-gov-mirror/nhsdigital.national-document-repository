@@ -10,7 +10,7 @@ const mockSetSession = vi.fn();
 const mockedLogout = logout as Mock;
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockedUseNavigate,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
 
 describe('logoutPage', () => {
@@ -56,7 +56,7 @@ describe('logoutPage', () => {
     });
 });
 
-const renderLogoutPage = () => {
+const renderLogoutPage = (): void => {
     const auth: Session = {
         auth: buildUserAuth(),
         isLoggedIn: true,

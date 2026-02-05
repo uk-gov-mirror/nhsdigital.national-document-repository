@@ -6,7 +6,9 @@ import { LinkProps } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-router-dom', () => ({
-    Link: (props: LinkProps) => <a {...props} href={props.to as string} role="link" />,
+    Link: (props: LinkProps): React.JSX.Element => (
+        <a {...props} href={props.to as string} role="link" />
+    ),
 }));
 
 describe('PhaseBanner', () => {
@@ -46,7 +48,7 @@ describe('PhaseBanner', () => {
     });
 });
 
-const renderComponent = (sessionOverride: Partial<Session> = { isLoggedIn: true }) => {
+const renderComponent = (sessionOverride: Partial<Session> = { isLoggedIn: true }): void => {
     render(
         <SessionProvider sessionOverride={sessionOverride}>
             <PhaseBanner />

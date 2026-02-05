@@ -52,7 +52,7 @@ describe('NonAuthGuard', () => {
     });
 });
 
-const renderNonAuthGuard = (session: Session, history: History) => {
+const renderNonAuthGuard = (session: Session, history: History): void => {
     render(
         <SessionProvider sessionOverride={session}>
             <ReactRouter.Router navigator={history} location={history.location}>

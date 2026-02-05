@@ -4,17 +4,17 @@ import ServerErrorPage from './ServerErrorPage';
 import userEvent from '@testing-library/user-event';
 import { unixTimestamp } from '../../helpers/utils/createTimestamp';
 import { runAxeTest } from '../../helpers/test/axeTestHelper';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 const mockedUseNavigate = vi.fn();
 const mockSearchParamsGet = vi.fn();
 
-Date.now = () => new Date('2020-01-01T00:00:00.000Z').getTime();
+Date.now = (): number => new Date('2020-01-01T00:00:00.000Z').getTime();
 
 vi.mock('react-router-dom', () => ({
-    useSearchParams: () => [{ get: mockSearchParamsGet }],
-    useNavigate: () => mockedUseNavigate,
-    useLocation: () => vi.fn(),
+    useSearchParams: (): [{ get: Mock }] => [{ get: mockSearchParamsGet }],
+    useNavigate: (): Mock => mockedUseNavigate,
+    useLocation: (): Mock => vi.fn(),
 }));
 
 describe('ServerErrorPage', () => {

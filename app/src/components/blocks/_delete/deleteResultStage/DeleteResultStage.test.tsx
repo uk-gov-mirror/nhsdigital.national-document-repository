@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { buildLgSearchResult, buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import DeleteResultStage from './DeleteResultStage';
 import userEvent from '@testing-library/user-event';
 import { routes } from '../../../../types/generic/routes';

@@ -1,6 +1,6 @@
 import { render, RenderResult, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { describe, expect, it, vi, Mock } from 'vitest';
 import ReviewDetailsDocumentRemoveAllStage from './ReviewDetailsDocumentRemoveAllStage';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import { ReviewDetails } from '../../../../types/generic/reviews';

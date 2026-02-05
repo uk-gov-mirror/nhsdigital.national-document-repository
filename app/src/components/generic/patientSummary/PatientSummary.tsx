@@ -133,7 +133,7 @@ const PatientSummary = ({
     if (reviewPatientDetails) {
         patientDetails = reviewPatientDetails;
     }
-    
+
     const patientDetailsContextValue = useMemo(() => ({ patientDetails }), [patientDetails]);
 
     if (!patientDetails) {

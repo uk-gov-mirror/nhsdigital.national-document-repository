@@ -64,10 +64,10 @@ const DocumentSelectFileErrorsPage = ({ documents }: Props): JSX.Element => {
 
             <p>
                 <LinkButton
-                    data-testid="go-to-home-link" 
-                    href='#' 
+                    data-testid="go-to-home-link"
+                    href="#"
                     onClick={(): void => {
-                        navigate(routes.HOME)
+                        navigate(routes.HOME);
                     }}
                 >
                     Go to home

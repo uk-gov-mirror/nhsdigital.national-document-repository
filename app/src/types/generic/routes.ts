@@ -34,7 +34,7 @@ export enum routes {
     ADMIN_ROUTE_WILDCARD = '/admin/*',
 
     DOWNLOAD_COMPLETE = '/download-complete',
-    
+
     COOKIES_POLICY = '/cookies-policy',
     COOKIES_POLICY_WILDCARD = '/cookies-policy/*',
 }

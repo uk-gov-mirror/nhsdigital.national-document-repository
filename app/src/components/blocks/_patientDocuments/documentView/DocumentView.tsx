@@ -85,8 +85,9 @@ const DocumentView = ({
 
     const downloadClicked = (): void => {
         if (documentReference.url) {
-            const estimatedDownloadDuration = 
-                Math.floor(documentReference.fileSize / 5000000 * 1000); // Estimate 5MB/s download speed
+            const estimatedDownloadDuration = Math.floor(
+                (documentReference.fileSize / 5000000) * 1000,
+            ); // Estimate 5MB/s download speed
             const anchor = document.createElement('a');
             anchor.href = documentReference.url;
             anchor.download = documentReference.fileName;
@@ -223,7 +224,7 @@ const DocumentView = ({
                         <LinkButton
                             data-testid="sign-out-link"
                             className="sign-out-link"
-                            href='#'
+                            href="#"
                             onClick={(): void => {
                                 disableFullscreen();
                                 navigate(routes.LOGOUT);

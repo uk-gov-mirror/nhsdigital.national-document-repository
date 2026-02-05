@@ -10,13 +10,13 @@ import { routes } from '../../types/generic/routes';
 import ConfigProvider, { useConfigContext } from '../../providers/configProvider/ConfigProvider';
 import { endpoints } from '../../types/generic/endpoints';
 import { defaultFeatureFlags } from '../../types/generic/featureFlags';
-import { afterEach, beforeEach, describe, expect, it, vi, Mocked } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, Mocked, Mock } from 'vitest';
 
 vi.mock('../../helpers/hooks/useConfig');
 const mockedUseNavigate = vi.fn();
 vi.mock('axios');
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockedUseNavigate,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
 const mockedAxios = axios as Mocked<typeof axios>;
 const params = {
@@ -145,7 +145,7 @@ describe('AuthCallbackPage', () => {
     });
 });
 
-const TestApp = () => {
+const TestApp = (): React.JSX.Element => {
     const [config] = useConfigContext();
     const [session] = useSessionContext();
     return (
@@ -161,7 +161,7 @@ const TestApp = () => {
     );
 };
 
-const renderCallbackPage = () => {
+const renderCallbackPage = (): void => {
     render(
         <SessionProvider>
             <ConfigProvider>

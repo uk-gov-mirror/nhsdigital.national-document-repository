@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, RenderResult, screen } from '@testing-library/react';
 import { REPOSITORY_ROLE, authorisedRoles } from '../../types/generic/authRole';
 import useRole from './useRole';
 import SessionProvider, { Session } from '../../providers/sessionProvider/SessionProvider';
@@ -28,12 +28,12 @@ describe('useRole', () => {
     });
 });
 
-const TestApp = () => {
+const TestApp = (): React.JSX.Element => {
     const role = useRole();
     return <div>{`ROLE: ${role}`.normalize()}</div>;
 };
 
-const renderHook = (role?: REPOSITORY_ROLE) => {
+const renderHook = (role?: REPOSITORY_ROLE): RenderResult => {
     const session: Session = {
         auth: buildUserAuth({ role }),
         isLoggedIn: true,

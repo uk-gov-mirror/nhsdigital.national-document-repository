@@ -3,19 +3,23 @@ import {
     DOCUMENT_UPLOAD_STATE as documentUploadStates,
     UploadDocument,
 } from '../../types/pages/UploadDocumentsPage/types';
-import {PatientDetails} from '../../types/generic/patientDetails';
-import {SearchResult} from '../../types/generic/searchResult';
-import {UserAuth} from '../../types/blocks/userAuth';
-import {LloydGeorgeStitchResult} from '../requests/getLloydGeorgeRecord';
-import {REPOSITORY_ROLE} from '../../types/generic/authRole';
-import {v4 as uuidv4} from 'uuid';
+import { PatientDetails } from '../../types/generic/patientDetails';
+import { SearchResult } from '../../types/generic/searchResult';
+import { UserAuth } from '../../types/blocks/userAuth';
+import { LloydGeorgeStitchResult } from '../requests/getLloydGeorgeRecord';
+import { REPOSITORY_ROLE } from '../../types/generic/authRole';
+import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
-import {GlobalConfig, LocalFlags} from '../../providers/configProvider/ConfigProvider';
-import {FeatureFlags} from '../../types/generic/featureFlags';
-import {UploadSession} from '../../types/generic/uploadResult';
-import {AccessAuditType, DeceasedAccessAuditReasons, PatientAccessAudit,} from '../../types/generic/accessAudit';
-import {DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG} from '../utils/documentType';
-import {ReviewListItemDto, ReviewsResponse} from "../../types/generic/reviews";
+import { GlobalConfig, LocalFlags } from '../../providers/configProvider/ConfigProvider';
+import { FeatureFlags } from '../../types/generic/featureFlags';
+import { UploadSession } from '../../types/generic/uploadResult';
+import {
+    AccessAuditType,
+    DeceasedAccessAuditReasons,
+    PatientAccessAudit,
+} from '../../types/generic/accessAudit';
+import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../utils/documentType';
+import { ReviewsResponse } from '../../types/generic/reviews';
 
 const buildUserAuth = (userAuthOverride?: Partial<UserAuth>): UserAuth => {
     const auth: UserAuth = {

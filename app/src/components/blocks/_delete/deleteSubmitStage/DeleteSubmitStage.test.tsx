@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { buildLgSearchResult, buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import DeleteSubmitStage, { Props } from './DeleteSubmitStage';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import userEvent from '@testing-library/user-event';

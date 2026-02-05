@@ -95,7 +95,8 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                             buildSearchResult({
                                 documentSnomedCodeType: DOCUMENT_TYPE.LETTERS_AND_DOCS,
                                 fileName: 'Later letter 2.docx',
-                                contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                contentType:
+                                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                             }),
                         ]);
                         setSubmissionState(SUBMISSION_STATE.SUCCEEDED);

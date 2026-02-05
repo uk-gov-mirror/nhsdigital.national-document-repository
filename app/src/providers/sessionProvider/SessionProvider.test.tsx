@@ -49,15 +49,15 @@ describe('SessionProvider', () => {
     });
 });
 
-const TestApp = () => {
+const TestApp = (): React.JSX.Element => {
     const [session, setSession] = useSessionContext();
 
     return (
         <>
             <div>
                 <h1>Actions</h1>
-                <div onClick={() => setSession(loggedIn)}>Log in</div>
-                <div onClick={() => setSession(loggedOut)}>Log out</div>
+                <div onClick={(): void => setSession(loggedIn)}>Log in</div>
+                <div onClick={(): void => setSession(loggedOut)}>Log out</div>
             </div>
             <div>
                 <h1>Details</h1>
@@ -68,7 +68,7 @@ const TestApp = () => {
     );
 };
 
-const renderSessionProvider = () => {
+const renderSessionProvider = (): void => {
     render(
         <SessionProvider>
             <TestApp />

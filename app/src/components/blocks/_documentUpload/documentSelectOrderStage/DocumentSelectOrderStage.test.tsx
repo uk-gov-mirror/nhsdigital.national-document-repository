@@ -10,7 +10,6 @@ import { fileUploadErrorMessages } from '../../../../helpers/utils/fileUploadErr
 import { buildDocumentConfig, buildLgFile } from '../../../../helpers/test/testBuilders';
 import { Mock } from 'vitest';
 import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
-import { SetStateAction } from 'react';
 
 const mockNavigate = vi.fn();
 const mockSetDocuments = vi.fn();

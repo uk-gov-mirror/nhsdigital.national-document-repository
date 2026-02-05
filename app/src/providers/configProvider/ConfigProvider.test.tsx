@@ -29,7 +29,7 @@ describe('SessionProvider', () => {
     });
 });
 
-const TestApp = () => {
+const TestApp = (): React.JSX.Element => {
     const [config, setConfig] = useConfigContext();
     const flagOn: GlobalConfig = {
         ...config,
@@ -49,8 +49,8 @@ const TestApp = () => {
         <>
             <div>
                 <h1>Actions</h1>
-                <div onClick={() => setConfig(flagOn)}>Flag On</div>
-                <div onClick={() => setConfig(flagOff)}>Flag Off</div>
+                <div onClick={(): void => setConfig(flagOn)}>Flag On</div>
+                <div onClick={(): void => setConfig(flagOff)}>Flag Off</div>
             </div>
             <div>
                 <h1>Flags</h1>
@@ -62,7 +62,7 @@ const TestApp = () => {
     );
 };
 
-const renderFeatureFlagsProvider = () => {
+const renderFeatureFlagsProvider = (): void => {
     render(
         <ConfigProvider>
             <TestApp />

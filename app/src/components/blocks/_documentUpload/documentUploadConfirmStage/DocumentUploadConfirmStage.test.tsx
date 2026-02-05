@@ -2,7 +2,7 @@ import { render, waitFor, screen, RenderResult } from '@testing-library/react';
 import DocumentUploadConfirmStage from './DocumentUploadConfirmStage';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
-import { buildDocument, buildDocumentConfig, buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import { buildDocument, buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import {
     DOCUMENT_UPLOAD_STATE,
@@ -14,6 +14,7 @@ import userEvent from '@testing-library/user-event';
 import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPatientFullName';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 import { getJourney } from '../../../../helpers/utils/urlManipulations';
+import { Mock } from 'vitest';
 
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('../../../../helpers/utils/urlManipulations', async () => {
@@ -27,7 +28,7 @@ vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockedUseNavigate,
+        useNavigate: (): Mock => mockedUseNavigate,
     };
 });
 
@@ -104,11 +105,13 @@ describe('DocumentUploadConfirmStage', () => {
         'should render correct number files in the preview %s',
         async ({ fileCount, expectedPreviewCount, docType }) => {
             for (let i = 1; i <= fileCount; i++) {
-                mockDocuments.push(buildDocument(
-                    new File(['file'], `file 1.pdf`, { type: 'application/pdf' }),
-                    DOCUMENT_UPLOAD_STATE.SELECTED,
-                    docType,
-                ));
+                mockDocuments.push(
+                    buildDocument(
+                        new File(['file'], `file 1.pdf`, { type: 'application/pdf' }),
+                        DOCUMENT_UPLOAD_STATE.SELECTED,
+                        docType,
+                    ),
+                );
             }
             renderApp(history);
 
@@ -121,19 +124,25 @@ describe('DocumentUploadConfirmStage', () => {
     );
 
     it('should hide preview when the previewed document is removed', async () => {
-        mockDocuments.push(buildDocument(
-            new File(['file'], `file 1.pdf`, { type: 'application/pdf' }),
-            DOCUMENT_UPLOAD_STATE.SELECTED,
-            DOCUMENT_TYPE.EHR_ATTACHMENTS,
-        ));
-        mockDocuments.push(buildDocument(
-            new File(['file'], `file 2.pdf`, { type: 'application/pdf' }),
-            DOCUMENT_UPLOAD_STATE.SELECTED,
-            DOCUMENT_TYPE.EHR_ATTACHMENTS,
-        ));
+        mockDocuments.push(
+            buildDocument(
+                new File(['file'], `file 1.pdf`, { type: 'application/pdf' }),
+                DOCUMENT_UPLOAD_STATE.SELECTED,
+                DOCUMENT_TYPE.EHR_ATTACHMENTS,
+            ),
+        );
+        mockDocuments.push(
+            buildDocument(
+                new File(['file'], `file 2.pdf`, { type: 'application/pdf' }),
+                DOCUMENT_UPLOAD_STATE.SELECTED,
+                DOCUMENT_TYPE.EHR_ATTACHMENTS,
+            ),
+        );
         renderApp(history);
 
-        const firstDocumentViewButton = await screen.findByTestId(`preview-${mockDocuments[0].id}-button`);
+        const firstDocumentViewButton = await screen.findByTestId(
+            `preview-${mockDocuments[0].id}-button`,
+        );
         expect(firstDocumentViewButton).toBeInTheDocument();
 
         await userEvent.click(firstDocumentViewButton);
@@ -153,16 +162,20 @@ describe('DocumentUploadConfirmStage', () => {
     });
 
     it('should show preview when 1 pdf remains after removing a document', async () => {
-        mockDocuments.push(buildDocument(
-            new File(['file'], `file 1.pdf`, { type: 'application/pdf' }),
-            DOCUMENT_UPLOAD_STATE.SELECTED,
-            DOCUMENT_TYPE.EHR_ATTACHMENTS,
-        ));
-        mockDocuments.push(buildDocument(
-            new File(['file'], `file 2.txt`, { type: 'text/plain' }),
-            DOCUMENT_UPLOAD_STATE.SELECTED,
-            DOCUMENT_TYPE.EHR_ATTACHMENTS,
-        ));
+        mockDocuments.push(
+            buildDocument(
+                new File(['file'], `file 1.pdf`, { type: 'application/pdf' }),
+                DOCUMENT_UPLOAD_STATE.SELECTED,
+                DOCUMENT_TYPE.EHR_ATTACHMENTS,
+            ),
+        );
+        mockDocuments.push(
+            buildDocument(
+                new File(['file'], `file 2.txt`, { type: 'text/plain' }),
+                DOCUMENT_UPLOAD_STATE.SELECTED,
+                DOCUMENT_TYPE.EHR_ATTACHMENTS,
+            ),
+        );
         renderApp(history);
 
         await waitFor(() => {
@@ -239,11 +252,13 @@ describe('DocumentUploadConfirmStage', () => {
 
     const renderApp = (history: MemoryHistory): RenderResult => {
         if (mockDocuments.length === 0) {
-            mockDocuments.push(buildDocument(
-                new File(['file'], `file 1.pdf`, { type: 'application/pdf' }),
-                DOCUMENT_UPLOAD_STATE.SELECTED,
-                DOCUMENT_TYPE.LLOYD_GEORGE,
-            ));
+            mockDocuments.push(
+                buildDocument(
+                    new File(['file'], `file 1.pdf`, { type: 'application/pdf' }),
+                    DOCUMENT_UPLOAD_STATE.SELECTED,
+                    DOCUMENT_TYPE.LLOYD_GEORGE,
+                ),
+            );
         }
 
         return render(
@@ -251,7 +266,7 @@ describe('DocumentUploadConfirmStage', () => {
                 <DocumentUploadConfirmStage
                     documents={mockDocuments}
                     confirmFiles={mockConfirmFiles}
-                    setDocuments={() => {}}
+                    setDocuments={(): void => {}}
                 />
             </ReactRouter.Router>,
         );

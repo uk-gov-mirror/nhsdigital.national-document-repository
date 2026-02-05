@@ -51,8 +51,8 @@ const mockLinks: Array<LGRecordActionLink> = [
 ];
 
 vi.mock('react-router-dom', () => ({
-    Link: (props: LinkProps) => <a {...props} role="link" />,
-    useNavigate: () => mockedUseNavigate,
+    Link: (props: LinkProps): React.JSX.Element => <a {...props} role="link" />,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
 
 describe('RecordMenuCard', () => {

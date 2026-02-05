@@ -77,10 +77,10 @@ describe('PatientVerifyPage', () => {
         it('renders back button with custom backLinkOverride when clicked', async () => {
             mockNavigate.mockClear();
             render(
-                <PatientVerifyPage 
-                    onSubmit={mockOnSubmit} 
+                <PatientVerifyPage
+                    onSubmit={mockOnSubmit}
                     backLinkOverride="/admin/reviews/test-123/search-patient"
-                />
+                />,
             );
 
             const backLink = screen.getByRole('link', { name: /back/i });

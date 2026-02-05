@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, RenderResult, screen } from '@testing-library/react';
 import useConfig from './useConfig';
 import ConfigProvider, { GlobalConfig } from '../../providers/configProvider/ConfigProvider';
 import { defaultFeatureFlags } from '../../types/generic/featureFlags';
@@ -32,12 +32,12 @@ describe('useConfig', () => {
     });
 });
 
-const TestApp = () => {
+const TestApp = (): React.JSX.Element => {
     const config = useConfig();
     return <div>{`FLAG: ${config.featureFlags.uploadLloydGeorgeWorkflowEnabled}`.normalize()}</div>;
 };
 
-const renderHook = (config?: GlobalConfig) => {
+const renderHook = (config?: GlobalConfig): RenderResult => {
     return render(
         <ConfigProvider configOverride={config}>
             <TestApp />

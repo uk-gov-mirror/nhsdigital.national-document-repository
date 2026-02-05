@@ -602,7 +602,7 @@ const DocumentSelectStage = ({
                     Continue
                 </Button>
                 {showSkiplink && (
-                    <LinkButton data-testid="skip-link" onClick={() => skipClicked()}>
+                    <LinkButton data-testid="skip-link" onClick={(): void => skipClicked()}>
                         {documentConfig.content.skipDocumentLinkText}
                     </LinkButton>
                 )}

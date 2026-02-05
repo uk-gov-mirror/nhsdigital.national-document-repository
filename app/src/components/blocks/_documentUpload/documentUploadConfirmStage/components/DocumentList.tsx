@@ -41,8 +41,8 @@ const DocumentList = ({
             return '';
         }
 
-        return getJourney() === 'update' 
-            ? `Files will be added to the existing ${config.displayName} to create a single PDF document.` 
+        return getJourney() === 'update'
+            ? `Files will be added to the existing ${config.displayName} to create a single PDF document.`
             : `Files will be combined into a single PDF document to create a ${config.displayName} record for this patient.`;
     };
 

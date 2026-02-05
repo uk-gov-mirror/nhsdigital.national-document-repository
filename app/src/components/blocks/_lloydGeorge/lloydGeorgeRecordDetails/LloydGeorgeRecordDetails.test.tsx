@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, RenderResult, screen } from '@testing-library/react';
 import LgRecordDetails, { Props } from './LloydGeorgeRecordDetails';
 import { buildLgSearchResult } from '../../../../helpers/test/testBuilders';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -23,7 +23,7 @@ describe('LloydGeorgeRecordDetails', () => {
     });
 });
 
-const renderComponent = (propsOverride?: Partial<Props>) => {
+const renderComponent = (propsOverride?: Partial<Props>): RenderResult => {
     const props: Props = {
         lastUpdated: mockPdf.lastUpdated,
         ...propsOverride,

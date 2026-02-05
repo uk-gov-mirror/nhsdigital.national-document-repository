@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, RenderResult, waitFor } from '@testing-library/react';
 import { routes } from '../../../types/generic/routes';
 import PatientGuard from './PatientGuard';
 import { buildPatientDetails } from '../../../helpers/test/testBuilders';
@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockedUseNavigate,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
 vi.mock('../../../helpers/hooks/usePatient');
 const mockedUsePatient = usePatient as Mock;
@@ -41,7 +41,7 @@ describe('AuthGuard', () => {
     });
 });
 
-const renderGuard = () => {
+const renderGuard = (): RenderResult => {
     return render(
         <PatientGuard>
             <div>patient number: {patientDetails?.nhsNumber}</div>

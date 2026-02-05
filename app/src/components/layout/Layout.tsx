@@ -34,12 +34,11 @@ const Layout = ({ children }: Props): React.JSX.Element => {
             document.documentElement.scrollTo(0, 0);
         }, 5);
 
-        if (window && (!awsRum || sessionStorage.getItem('analytics-started') === "no")) {
+        if (window && (!awsRum || sessionStorage.getItem('analytics-started') === 'no')) {
             if (window.NHSCookieConsent.getStatistics()) {
                 startAnalytics();
             }
         }
-        
     }, [location.pathname, awsRum, startAnalytics]);
 
     const focusMainContent = (e: MouseEvent<HTMLAnchorElement>): void => {

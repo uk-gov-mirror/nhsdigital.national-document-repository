@@ -1,21 +1,19 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, RenderResult, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { MemoryRouter } from 'react-router';
 import CookiePolicy from './CookiesPolicy';
 import { routeChildren } from '../../../../types/generic/routes';
 import { useAnalyticsContext } from '../../../../providers/analyticsProvider/AnalyticsProvider';
-import { AwsRum } from 'aws-rum-web';
 
 const mockNavigate = vi.fn();
-const mockUseAnalyticsContext = useAnalyticsContext as Mock;
 
 vi.mock('../../../../providers/analyticsProvider/AnalyticsProvider');
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockNavigate,
+        useNavigate: (): Mock => mockNavigate,
     };
 });
 
@@ -33,13 +31,10 @@ describe('CookiePolicy', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         window.NHSCookieConsent = mockNHSCookieConsent;
-        vi.mocked(useAnalyticsContext).mockReturnValue([
-            mockedAwsRum as any,
-            vi.fn()
-        ]);
+        vi.mocked(useAnalyticsContext).mockReturnValue([mockedAwsRum as any, vi.fn()]);
     });
 
-    const renderComponent = () => {
+    const renderComponent = (): RenderResult => {
         return render(
             <MemoryRouter>
                 <CookiePolicy />
@@ -49,12 +44,18 @@ describe('CookiePolicy', () => {
 
     it('renders', () => {
         renderComponent();
-        
-        expect(screen.getByRole('heading', { name: 'Cookies policy', level: 1 })).toBeInTheDocument();
+
+        expect(
+            screen.getByRole('heading', { name: 'Cookies policy', level: 1 }),
+        ).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'What are cookies?' })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'How we use cookies' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Cookies that make our website work' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Cookies that measure website use' })).toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', { name: 'Cookies that make our website work' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', { name: 'Cookies that measure website use' }),
+        ).toBeInTheDocument();
 
         expect(screen.getByTestId('yes-radio-button')).toBeInTheDocument();
         expect(screen.getByTestId('no-radio-button')).toBeInTheDocument();

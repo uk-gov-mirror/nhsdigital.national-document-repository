@@ -1,19 +1,19 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
-import { LinkProps } from 'react-router-dom';
+import { LinkProps, Location } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { routes } from '../../types/generic/routes';
 import UnauthorisedLoginPage from './UnauthorisedLoginPage';
 import { runAxeTest } from '../../helpers/test/axeTestHelper';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, Mock, vi } from 'vitest';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockedUseNavigate,
-    useLocation: () => ({
+    useNavigate: (): Mock => mockedUseNavigate,
+    useLocation: (): Partial<Location<{ errorData: { roles: string[] } }>> => ({
         state: { errorData: { roles: ['R8010, R8013, R1790, R8008', 'R8000', 'R8015, R8008'] } },
     }),
-    Link: (props: LinkProps) => <a {...props} role="link" />,
+    Link: (props: LinkProps): React.JSX.Element => <a {...props} role="link" />,
 }));
 vi.mock('../../helpers/hooks/useBaseAPIUrl');
 

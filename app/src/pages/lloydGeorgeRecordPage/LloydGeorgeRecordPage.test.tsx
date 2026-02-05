@@ -34,10 +34,10 @@ const mockUseRole = useRole as Mock;
 
 vi.mock('react-router-dom', async () => ({
     ...(await vi.importActual('react-router-dom')),
-    Link: (props: ReactRouter.LinkProps) => <a {...props} role="link" />,
-    useNavigate: () => mockNavigate,
+    Link: (props: ReactRouter.LinkProps): React.JSX.Element => <a {...props} role="link" />,
+    useNavigate: (): Mock => mockNavigate,
 }));
-Date.now = () => new Date('2020-01-01T00:00:00.000Z').getTime();
+Date.now = (): number => new Date('2020-01-01T00:00:00.000Z').getTime();
 
 let history = createMemoryHistory({
     initialEntries: ['/'],
@@ -210,7 +210,7 @@ describe('LloydGeorgeRecordPage', () => {
         });
     });
 
-    const renderPage = async (history: History) => {
+    const renderPage = async (history: History): Promise<void> => {
         await act(async () => {
             return render(
                 <SessionProvider sessionOverride={{ isLoggedIn: true }}>

@@ -28,12 +28,14 @@ vi.mock('../../helpers/utils/jwtDecoder', () => ({
     }),
 }));
 
-const TestComponent = () => {
+const TestComponent = (): React.JSX.Element => {
     const [awsRum, startAnalytics] = useAnalyticsContext();
 
     return (
         <div>
-            <span data-testid="rum-status">{awsRum ? 'RUM initialized' : 'RUM not initialized'}</span>
+            <span data-testid="rum-status">
+                {awsRum ? 'RUM initialized' : 'RUM not initialized'}
+            </span>
             <button onClick={startAnalytics} data-testid="start-analytics">
                 Start Analytics
             </button>
@@ -116,7 +118,7 @@ describe('AnalyticsProvider', () => {
     });
 });
 
-const renderComponent = () => {
+const renderComponent = (): void => {
     render(
         <AnalyticsProvider>
             <TestComponent />

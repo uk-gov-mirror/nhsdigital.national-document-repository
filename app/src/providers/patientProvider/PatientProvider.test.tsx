@@ -31,14 +31,14 @@ type TestProps = {
     patientDetails: PatientDetails;
 };
 
-const TestComponent = (props: TestProps) => {
+const TestComponent = (props: TestProps): React.JSX.Element => {
     const [patientDetails, setPatientDetails] = usePatientDetailsContext();
 
     return (
         <>
             <p>NHS Number: {patientDetails?.nhsNumber ?? 'Null'}</p>
             <p>Family Name: {patientDetails?.familyName || 'Null'}</p>
-            <button onClick={() => setPatientDetails(props.patientDetails)}>
+            <button onClick={(): void => setPatientDetails(props.patientDetails)}>
                 Update NHS Number
             </button>
         </>

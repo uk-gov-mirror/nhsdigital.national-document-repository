@@ -4,14 +4,11 @@ import {
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import DocumentUploadingStage from './DocumentUploadingStage';
-import {
-    buildDocument,
-    buildDocumentConfig,
-    buildLgFile,
-} from '../../../../helpers/test/testBuilders';
+import { buildDocumentConfig, buildLgFile } from '../../../../helpers/test/testBuilders';
 import { MemoryRouter } from 'react-router-dom';
 import { routes } from '../../../../types/generic/routes';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { Mock } from 'vitest';
 
 const mockStartUpload = vi.fn();
 const mockedNavigate = vi.fn();
@@ -20,7 +17,7 @@ vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockedNavigate,
+        useNavigate: (): Mock => mockedNavigate,
     };
 });
 
@@ -78,7 +75,7 @@ describe('DocumentUploadCompleteStage', () => {
         });
     });
 
-    const renderApp = (documents: UploadDocument[]) => {
+    const renderApp = (documents: UploadDocument[]): void => {
         render(
             <MemoryRouter>
                 <DocumentUploadingStage

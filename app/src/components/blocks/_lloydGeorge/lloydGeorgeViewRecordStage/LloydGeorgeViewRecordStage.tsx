@@ -203,8 +203,8 @@ const LloydGeorgeViewRecordStage = ({
                         <LinkButton
                             data-testid="sign-out-link"
                             className="sign-out-link"
-                            href='#'
-                            onClick={() => {
+                            href="#"
+                            onClick={(): void => {
                                 disableFullscreen();
                                 navigate(routes.LOGOUT);
                             }}

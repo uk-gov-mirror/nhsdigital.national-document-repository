@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react';
+import { render, RenderResult, screen } from '@testing-library/react';
 import { act } from 'react';
 import {
     buildConfig,
@@ -22,11 +22,11 @@ vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        Link: (props: ReactRouter.LinkProps) => <a {...props} role="link" />,
-        useNavigate: () => mockedUseNavigate,
+        Link: (props: ReactRouter.LinkProps): React.JSX.Element => <a {...props} role="link" />,
+        useNavigate: (): Mock => mockedUseNavigate,
     };
 });
-Date.now = () => new Date('2020-01-01T00:00:00.000Z').getTime();
+Date.now = (): number => new Date('2020-01-01T00:00:00.000Z').getTime();
 vi.mock('axios');
 vi.mock('../../../../helpers/requests/getPresignedUrlForZip');
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
@@ -185,7 +185,7 @@ describe('LloydGeorgeDownloadStage', () => {
     });
 });
 
-const renderComponent = (history: MemoryHistory, propsOverride?: Partial<Props>) => {
+const renderComponent = (history: MemoryHistory, propsOverride?: Partial<Props>): RenderResult => {
     const props: Omit<Props, 'setStage' | 'setDownloadStage'> = {
         ...propsOverride,
         numberOfFiles: mockPdf.numberOfFiles,

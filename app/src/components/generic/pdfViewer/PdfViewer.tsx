@@ -18,11 +18,14 @@ const PdfViewer = ({ fileUrl, customClasses, customStyleSheet }: Props): React.J
 
         intervalRef.current = window.setInterval(() => {
             if (pdfViewerRef.current) {
-                const printButton = pdfViewerRef.current.iframe?.contentWindow?.document?.getElementById("printButton");
+                const printButton =
+                    pdfViewerRef.current.iframe?.contentWindow?.document?.getElementById(
+                        'printButton',
+                    );
                 if (printButton) {
                     window.clearInterval(intervalRef.current!);
-                
-                    printButton.addEventListener("click", sendPrintEvent.bind(this));
+
+                    printButton.addEventListener('click', sendPrintEvent.bind(this));
                 }
             }
         }, 200);

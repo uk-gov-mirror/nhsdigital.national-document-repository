@@ -39,10 +39,10 @@ const DownloadReportCompleteStage = (props: Props): JSX.Element => {
                 needed.
             </p>
 
-            <Button 
-                href='#'
+            <Button
+                href="#"
                 onClick={(): void => {
-                    navigate(routes.HOME)
+                    navigate(routes.HOME);
                 }}
                 className="mr-6"
                 data-testid="home-button"
@@ -51,9 +51,9 @@ const DownloadReportCompleteStage = (props: Props): JSX.Element => {
             </Button>
             <Button
                 secondary
-                href='#'
+                href="#"
                 onClick={(): void => {
-                    navigate(`${routes.REPORT_DOWNLOAD}?reportType=${props.report.reportType}`)
+                    navigate(`${routes.REPORT_DOWNLOAD}?reportType=${props.report.reportType}`);
                 }}
                 data-testid="back-to-download-page-button"
             >

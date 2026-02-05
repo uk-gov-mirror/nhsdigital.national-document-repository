@@ -32,7 +32,7 @@ const getDocumentSearchResults = async ({
             },
             params: {
                 patientId: nhsNumber?.replaceAll(/\s/g, ''), // replace whitespace
-                docType: docType == DOCUMENT_TYPE.ALL ? undefined : docType,
+                docType: docType === DOCUMENT_TYPE.ALL ? undefined : docType,
             },
         });
         return response?.data;

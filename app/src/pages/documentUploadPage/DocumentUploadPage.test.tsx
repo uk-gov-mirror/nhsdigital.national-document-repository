@@ -67,7 +67,7 @@ vi.mock('react-router-dom', async () => ({
     }),
 }));
 vi.mock('../../styles/right-chevron-circle.svg', () => ({
-    ReactComponent: () => 'svg',
+    ReactComponent: (): string => 'svg',
 }));
 
 const mockUseLocation = vi.fn();

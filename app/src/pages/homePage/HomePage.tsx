@@ -94,7 +94,7 @@ const HomePage = (): React.JSX.Element => {
                                         data-testid="download-report-btn"
                                         href="#"
                                         onClick={(e): void => {
-                                            e.preventDefault()
+                                            e.preventDefault();
                                             navigate(
                                                 `${routes.REPORT_DOWNLOAD}?reportType=${REPORT_TYPE.ODS_PATIENT_SUMMARY}`,
                                             );

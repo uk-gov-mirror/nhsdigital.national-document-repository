@@ -35,18 +35,15 @@ vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
 vi.mock('../../../../helpers/requests/getDocumentSearchResults');
 vi.mock('../../../../providers/analyticsProvider/AnalyticsProvider', () => ({
-    useAnalyticsContext: vi.fn(() => ([
-        null,
-        vi.fn(),
-    ])),
+    useAnalyticsContext: vi.fn(() => [null, vi.fn()]),
 }));
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        Link: (props: ReactRouter.LinkProps) => <a {...props} role="link" />,
-        useNavigate: () => mockNavigate,
+        Link: (props: ReactRouter.LinkProps): React.JSX.Element => <a {...props} role="link" />,
+        useNavigate: (): Mock => mockNavigate,
     };
 });
 
@@ -65,7 +62,7 @@ const mockPatientDetails = buildPatientDetails();
 const EMBEDDED_PDF_VIEWER_TITLE = 'Embedded PDF Viewer';
 
 // Test helpers
-const TestApp = (props: Omit<Props, 'setStage' | 'stage'>) => {
+const TestApp = (props: Omit<Props, 'setStage' | 'stage'>): React.JSX.Element => {
     const history = createMemoryHistory();
     return (
         <ReactRouter.Router navigator={history} location={history.location}>
@@ -78,7 +75,7 @@ const TestApp = (props: Omit<Props, 'setStage' | 'stage'>) => {
     );
 };
 
-const simulateFullscreenChange = (isFullscreen: boolean) => {
+const simulateFullscreenChange = (isFullscreen: boolean): void => {
     act(() => {
         // Update the fullscreenElement property to simulate browser state
         Object.defineProperty(document, 'fullscreenElement', {
@@ -92,7 +89,7 @@ const simulateFullscreenChange = (isFullscreen: boolean) => {
     });
 };
 
-const renderComponent = (propsOverride?: Partial<Props>) => {
+const renderComponent = (propsOverride?: Partial<Props>): void => {
     const props: Omit<Props, 'setStage' | 'stage'> = {
         downloadStage: DOWNLOAD_STAGE.SUCCEEDED,
         lastUpdated: mockPdf.lastUpdated,

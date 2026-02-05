@@ -5,7 +5,7 @@ import { runAxeTest } from '../../helpers/test/axeTestHelper';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-router-dom', () => ({
-    Link: (props: LinkProps) => <a {...props} role="link" />,
+    Link: (props: LinkProps): React.JSX.Element => <a {...props} role="link" />,
 }));
 describe('NotFoundPage', () => {
     it('renders unauthorised message', () => {

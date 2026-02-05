@@ -24,7 +24,7 @@ vi.mock('react-router-dom', async () => {
     return {
         ...actual,
         useNavigate: (): Mock => mockedUseNavigate,
-        Link: ({ children, to, ...props }: any) => (
+        Link: ({ children, to, ...props }: any): React.JSX.Element => (
             <a href={to} {...props}>
                 {children}
             </a>
@@ -650,7 +650,9 @@ describe('ReviewsPage', () => {
             renderComponent();
 
             await waitFor(() => {
-                expect(mockedUseNavigate).toBeCalledWith(expect.stringContaining(routes.SERVER_ERROR));
+                expect(mockedUseNavigate).toBeCalledWith(
+                    expect.stringContaining(routes.SERVER_ERROR),
+                );
             });
         });
     });

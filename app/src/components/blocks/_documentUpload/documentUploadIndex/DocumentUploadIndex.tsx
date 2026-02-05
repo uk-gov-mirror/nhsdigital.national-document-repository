@@ -1,7 +1,7 @@
 import documentTypesConfig from '../../../../config/documentTypesConfig.json';
 import { Card } from 'nhsuk-react-components';
 import { ReactComponent as RightCircleIcon } from '../../../../styles/right-chevron-circle.svg';
-import getDocument from '../../../../helpers/requests/getDocument';
+import getDocument, { GetDocumentResponse } from '../../../../helpers/requests/getDocument';
 import getDocumentSearchResults from '../../../../helpers/requests/getDocumentSearchResults';
 import { Dispatch, SetStateAction, useState } from 'react';
 import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
@@ -52,7 +52,7 @@ const DocumentUploadIndex = ({
         navigate(routeChildren.DOCUMENT_UPLOAD_SELECT_FILES);
     };
 
-    const loadDocument = async (documentId: string) => {
+    const loadDocument = async (documentId: string): Promise<GetDocumentResponse> => {
         const documentResponse = await getDocument({
             nhsNumber: patientDetails!.nhsNumber,
             baseUrl,

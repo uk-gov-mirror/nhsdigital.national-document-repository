@@ -2,14 +2,14 @@ import { render, screen } from '@testing-library/react';
 import DownloadReportCompleteStage from './DownloadReportCompleteStage';
 import { REPORT_TYPE, ReportData } from '../../../../types/generic/reports';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, Mock } from 'vitest';
 import { routes } from '../../../../types/generic/routes';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockNavigate,
+        useNavigate: (): Mock => mockNavigate,
     };
 });
 const mockNavigate = vi.fn();
@@ -62,7 +62,7 @@ describe('DownloadReportCompleteStage', () => {
         backButton.click();
 
         expect(mockNavigate).toHaveBeenCalledWith(
-            `${routes.REPORT_DOWNLOAD}?reportType=${report.reportType}`
+            `${routes.REPORT_DOWNLOAD}?reportType=${report.reportType}`,
         );
     });
 });

@@ -13,7 +13,7 @@ const mockedUseNavigate = vi.fn();
 const mockUsePatient = usePatient as Mock;
 
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockedUseNavigate,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
 
 describe('DownloadCompletePage', () => {
@@ -48,7 +48,7 @@ describe('DownloadCompletePage', () => {
     it('navigates to the home screen when go to home is clicked', async () => {
         render(<DownloadCompletePage />);
 
-        await userEvent.click(screen.getByRole('button', {name: 'Go to home'}));
+        await userEvent.click(screen.getByRole('button', { name: 'Go to home' }));
 
         expect(mockedUseNavigate).toHaveBeenCalledWith(routes.HOME);
     });

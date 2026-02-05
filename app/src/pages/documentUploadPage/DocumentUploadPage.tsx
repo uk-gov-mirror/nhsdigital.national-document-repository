@@ -261,7 +261,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
             }
 
             const updateStateInterval = startIntervalTimer(
-                uploadingDocuments.filter(d => d.state !== DOCUMENT_UPLOAD_STATE.ERROR),
+                uploadingDocuments.filter((d) => d.state !== DOCUMENT_UPLOAD_STATE.ERROR),
                 interval,
                 documents,
                 setDocuments,
@@ -336,7 +336,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
                             documentConfig={documentConfig}
                             goToNextDocType={
                                 hasNextDocType
-                                    ? () =>
+                                    ? (): void =>
                                           goToNextDocType(
                                               documentTypeList,
                                               documentType,
@@ -348,7 +348,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
                             }
                             goToPreviousDocType={
                                 hasPreviousDocType
-                                    ? () =>
+                                    ? (): void =>
                                           goToPreviousDocType(
                                               documentTypeList,
                                               documentType,

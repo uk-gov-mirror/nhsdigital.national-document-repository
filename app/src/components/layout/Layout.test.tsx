@@ -10,8 +10,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 vi.mock('../../providers/analyticsProvider/AnalyticsProvider', () => {
     return {
-        useAnalyticsContext: () => {
-            return [null, () => {}];
+        useAnalyticsContext: (): [null, () => void] => {
+            return [null, (): void => {}];
         },
     };
 });
@@ -105,7 +105,7 @@ describe('Layout', () => {
     });
 });
 
-const renderTestApp = (initialUrl: string = '/testPage1', isLoggedIn: boolean = false) => {
+const renderTestApp = (initialUrl: string = '/testPage1', isLoggedIn: boolean = false): void => {
     const auth: Session = {
         auth: buildUserAuth(),
         isLoggedIn: true,

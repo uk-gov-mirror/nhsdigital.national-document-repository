@@ -17,6 +17,7 @@ import {
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import { Mock } from 'vitest';
 
 const mockNavigate = vi.fn();
 vi.mock('../../../../helpers/hooks/usePatient');
@@ -24,8 +25,8 @@ vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockNavigate,
-        Link: (props: LinkProps) => <a {...props} role="link" />,
+        useNavigate: (): Mock => mockNavigate,
+        Link: (props: LinkProps): React.JSX.Element => <a {...props} role="link" />,
     };
 });
 

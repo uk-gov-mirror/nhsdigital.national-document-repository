@@ -9,15 +9,15 @@ import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import getPresignedUrlForZip from '../../../../helpers/requests/getPresignedUrlForZip';
 import waitForSeconds from '../../../../helpers/utils/waitForSeconds';
 import { DownloadManifestError } from '../../../../types/generic/errors';
-import { afterEach, beforeEach, describe, expect, it, vi, MockedFunction } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, MockedFunction, Mock } from 'vitest';
 
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
 vi.mock('../../../../helpers/requests/getPresignedUrlForZip');
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockedUseNavigate,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
-Date.now = () => new Date('2020-01-01T00:00:00.000Z').getTime();
+Date.now = (): number => new Date('2020-01-01T00:00:00.000Z').getTime();
 
 const mockedUseNavigate = vi.fn();
 const mockGetPresignedUrlForZip = getPresignedUrlForZip as MockedFunction<
@@ -210,7 +210,7 @@ describe('DocumentSearchResultsOptions', () => {
     });
 });
 
-const renderDocumentSearchResultsOptions = (downloadState: SUBMISSION_STATE) => {
+const renderDocumentSearchResultsOptions = (downloadState: SUBMISSION_STATE): void => {
     const patient = buildPatientDetails();
     render(
         <DocumentSearchResultsOptions

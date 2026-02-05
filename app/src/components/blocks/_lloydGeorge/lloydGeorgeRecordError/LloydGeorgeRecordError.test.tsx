@@ -17,8 +17,8 @@ vi.mock('../../../../helpers/hooks/useRole');
 vi.mock('../../../../helpers/hooks/useConfig');
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('react-router-dom', () => ({
-    Link: (props: LinkProps) => <a {...props} role="link" />,
-    useNavigate: () => mockNavigate,
+    Link: (props: LinkProps): React.JSX.Element => <a {...props} role="link" />,
+    useNavigate: (): Mock => mockNavigate,
 }));
 
 const mockUseRole = useRole as Mock;

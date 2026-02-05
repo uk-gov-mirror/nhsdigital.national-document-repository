@@ -75,7 +75,7 @@ export const DeleteSubmitStageIndexView = ({
 
     let documentConfig: DOCUMENT_TYPE_CONFIG | null = null;
     if (docType !== DOCUMENT_TYPE.ALL) {
-        documentConfig = getConfigForDocType(document?.documentSnomedCodeType ?? docType!)
+        documentConfig = getConfigForDocType(document?.documentSnomedCodeType ?? docType!);
         docType = documentConfig.snomedCode;
     }
 
@@ -180,10 +180,7 @@ export const DeleteSubmitStageIndexView = ({
 
                     {document && (
                         <>
-                            <p>
-                                Record type:{' '}
-                                {documentConfig?.displayName}
-                            </p>
+                            <p>Record type: {documentConfig?.displayName}</p>
                             <p>Filename: {document.fileName}</p>
                         </>
                     )}

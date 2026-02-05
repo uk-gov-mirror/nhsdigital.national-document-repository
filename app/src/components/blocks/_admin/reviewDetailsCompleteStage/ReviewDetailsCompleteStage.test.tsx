@@ -516,7 +516,9 @@ describe('ReviewDetailsCompletePage', () => {
                 />,
             );
 
-            const searchLink = screen.getByRole('link', { name: 'searching using their NHS number' });
+            const searchLink = screen.getByRole('link', {
+                name: 'searching using their NHS number',
+            });
             expect(searchLink).toBeInTheDocument();
             expect(searchLink).toHaveAttribute('href', '/patient/search');
         });
@@ -672,10 +674,26 @@ describe('ReviewDetailsCompletePage', () => {
 
     describe('patchReviewStatus', () => {
         it.each([
-            {completeState: CompleteState.PATIENT_MATCHED, expectedStatus: DocumentReviewStatus.REASSIGNED, expectedDocRef: undefined},
-            {completeState: CompleteState.PATIENT_UNKNOWN, expectedStatus: DocumentReviewStatus.REASSIGNED_PATIENT_UNKNOWN, expectedDocRef: undefined},
-            {completeState: CompleteState.NO_FILES_CHOICE, expectedStatus: DocumentReviewStatus.REJECTED, expectedDocRef: undefined},
-            {completeState: CompleteState.REVIEW_COMPLETE, expectedStatus: DocumentReviewStatus.APPROVED, expectedDocRef: 'doc-ref-id'},
+            {
+                completeState: CompleteState.PATIENT_MATCHED,
+                expectedStatus: DocumentReviewStatus.REASSIGNED,
+                expectedDocRef: undefined,
+            },
+            {
+                completeState: CompleteState.PATIENT_UNKNOWN,
+                expectedStatus: DocumentReviewStatus.REASSIGNED_PATIENT_UNKNOWN,
+                expectedDocRef: undefined,
+            },
+            {
+                completeState: CompleteState.NO_FILES_CHOICE,
+                expectedStatus: DocumentReviewStatus.REJECTED,
+                expectedDocRef: undefined,
+            },
+            {
+                completeState: CompleteState.REVIEW_COMPLETE,
+                expectedStatus: DocumentReviewStatus.APPROVED,
+                expectedDocRef: 'doc-ref-id',
+            },
         ])('should call patchReview with correct parameters %s', (theory) => {
             const reviewData = new ReviewDetails(
                 'test-review-id',

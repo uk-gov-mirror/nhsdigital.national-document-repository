@@ -8,7 +8,7 @@ import {
     UploadDocumentType,
     ReviewUploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
-import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import { routes, routeChildren } from '../../../../types/generic/routes';
 import { buildLgFile, buildPatientDetails } from '../../../../helpers/test/testBuilders';

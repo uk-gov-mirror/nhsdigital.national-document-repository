@@ -16,7 +16,7 @@ describe('waitForSeconds', () => {
     it('postpone code execution by given number of seconds', async () => {
         const mockFunction = vi.fn();
         const secondsToWait = 2;
-        const testCode = async () => {
+        const testCode = async (): Promise<void> => {
             await waitForSeconds(secondsToWait);
             mockFunction(Date.now());
         };

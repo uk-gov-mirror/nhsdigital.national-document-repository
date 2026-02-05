@@ -15,7 +15,7 @@ describe('useTitle', () => {
     });
 });
 
-const TestApp = () => {
+const TestApp = (): React.JSX.Element => {
     const newPageTitle: string = 'test title';
     useTitle({ pageTitle: newPageTitle });
 

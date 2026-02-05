@@ -41,7 +41,7 @@ const Footer = (): React.JSX.Element => {
                 >
                     Service updates
                 </NHSFooter.ListItem>
-                <NHSFooter.ListItem 
+                <NHSFooter.ListItem
                     href="#"
                     onClick={(): void => {
                         navigate(routes.COOKIES_POLICY);

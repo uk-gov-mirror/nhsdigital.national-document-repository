@@ -34,14 +34,14 @@ const CookiePolicy = (): React.JSX.Element => {
         // Disable RUM if user opts out of analytics cookies
         if (!isConsentGiven && awsRum) {
             awsRum.disable();
-            sessionStorage.setItem('analytics-started', "no");
+            sessionStorage.setItem('analytics-started', 'no');
         }
 
         // this hides the banner so it won't appear on next visit
         window.NHSCookieConsent.setConsented(true);
         navigate(routeChildren.COOKIES_POLICY_UPDATED);
     };
-    
+
     const pageTitle = 'Cookies policy';
     useTitle({ pageTitle });
 

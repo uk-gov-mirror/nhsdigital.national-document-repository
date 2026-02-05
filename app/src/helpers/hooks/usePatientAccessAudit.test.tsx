@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, RenderResult, screen } from '@testing-library/react';
 import PatientAccessAuditProvider from '../../providers/patientAccessAuditProvider/PatientAccessAuditProvider';
 import { PatientAccessAudit } from '../../types/generic/accessAudit';
 import usePatientAccessAudit from './usePatientAccessAudit';
@@ -27,7 +27,7 @@ describe('usePatient', () => {
     });
 });
 
-const TestApp = () => {
+const TestApp = (): React.JSX.Element => {
     const patientAccessAudit = usePatientAccessAudit();
     const AccessAudit = patientAccessAudit?.map((audit) => {
         return (
@@ -41,7 +41,7 @@ const TestApp = () => {
     return <>{AccessAudit}</>;
 };
 
-const renderHook = (patientAccessAudit?: PatientAccessAudit[]) => {
+const renderHook = (patientAccessAudit?: PatientAccessAudit[]): RenderResult => {
     return render(
         <PatientAccessAuditProvider patientAccessAudit={patientAccessAudit}>
             <TestApp />

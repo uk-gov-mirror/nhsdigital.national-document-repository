@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, RenderResult, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { buildPatientDetails, buildSearchResult } from '../../../../helpers/test/testBuilders';
 import usePatient from '../../../../helpers/hooks/usePatient';
@@ -11,8 +11,8 @@ import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('react-router-dom', () => ({
-    Link: (props: LinkProps) => <a {...props} role="link" />,
-    useNavigate: () => mockNavigate,
+    Link: (props: LinkProps): React.JSX.Element => <a {...props} role="link" />,
+    useNavigate: (): Mock => mockNavigate,
 }));
 
 window.scrollTo = vi.fn() as Mock;
@@ -315,7 +315,7 @@ describe('LloydGeorgeSelectSearchResults', () => {
     });
 });
 
-const renderComponent = (propsOverride: Partial<Props> = {}) => {
+const renderComponent = (propsOverride: Partial<Props> = {}): RenderResult => {
     const props: Props = {
         searchResults: searchResults,
         setSubmissionSearchState: mockSetSubmissionSearchState,

@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, RenderResult, waitFor } from '@testing-library/react';
 import ReportDownloadPage from './ReportDownloadPage';
 import { routes } from '../../types/generic/routes';
 import { createMemoryHistory, History } from 'history';
@@ -11,8 +11,8 @@ import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', async () => ({
     ...(await vi.importActual('react-router-dom')),
-    useNavigate: () => mockedUseNavigate,
-    useSearchParams: () => [
+    useNavigate: (): Mock => mockedUseNavigate,
+    useSearchParams: (): [{ get: Mock }] => [
         {
             get: vi.fn().mockReturnValue('0'),
         },
@@ -63,7 +63,7 @@ describe('ReportDownloadPage', () => {
         });
     });
 
-    const renderPage = (history: History) => {
+    const renderPage = (history: History): RenderResult => {
         return render(
             <ReactRouter.Router navigator={history} location={history.location}>
                 <ReportDownloadPage />

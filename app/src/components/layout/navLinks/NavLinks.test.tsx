@@ -4,11 +4,11 @@ import SessionProvider, { Session } from '../../../providers/sessionProvider/Ses
 import { buildUserAuth } from '../../../helpers/test/testBuilders';
 import userEvent from '@testing-library/user-event';
 import { routes } from '../../../types/generic/routes';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockedUseNavigate,
+    useNavigate: (): Mock => mockedUseNavigate,
 }));
 
 describe('NavLinks', () => {
@@ -113,7 +113,7 @@ describe('NavLinks', () => {
     });
 });
 
-const renderNav = (isLoggedIn: boolean) => {
+const renderNav = (isLoggedIn: boolean): void => {
     const auth: Session = {
         auth: buildUserAuth(),
         isLoggedIn: true,

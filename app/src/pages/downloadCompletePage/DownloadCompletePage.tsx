@@ -28,11 +28,17 @@ const DownloadCompletePage = (): React.JSX.Element => {
                 </h1>
                 <br />
                 <div className="nhsuk-panel__body">
-                    <strong data-testid="patient-name">Patient name: {getFormattedPatientFullName(patient)}</strong>
+                    <strong data-testid="patient-name">
+                        Patient name: {getFormattedPatientFullName(patient)}
+                    </strong>
                     <br />
-                    <span data-testid="nhs-number">NHS number: {formatNhsNumber(patient.nhsNumber)}</span>
+                    <span data-testid="nhs-number">
+                        NHS number: {formatNhsNumber(patient.nhsNumber)}
+                    </span>
                     <br />
-                    <span data-testid="dob">Date of birth: {getFormattedDateFromString(patient.birthDate)}</span>
+                    <span data-testid="dob">
+                        Date of birth: {getFormattedDateFromString(patient.birthDate)}
+                    </span>
                 </div>
             </div>
 
@@ -53,7 +59,7 @@ const DownloadCompletePage = (): React.JSX.Element => {
                 established standards.
             </p>
 
-            <Button 
+            <Button
                 data-testid="go-to-home-button"
                 onClick={(): void => {
                     navigate(routes.HOME);

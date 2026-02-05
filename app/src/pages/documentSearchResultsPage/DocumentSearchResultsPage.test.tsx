@@ -22,7 +22,6 @@ import getDocument from '../../helpers/requests/getDocument';
 import useConfig from '../../helpers/hooks/useConfig';
 import getReviews from '../../helpers/requests/getReviews';
 import { ReviewsResponse } from '../../types/generic/reviews';
-import {wait} from "cypress-real-events/utils";
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', async () => ({
@@ -46,7 +45,6 @@ const mockedGetSearchResults = getDocumentSearchResults as Mock;
 const mockedGetReviews = getReviews as Mock;
 const mockedGetDocument = getDocument as Mock;
 const mockedUseConfig = useConfig as Mock;
-const mockPatient = buildPatientDetails();
 
 let history = createMemoryHistory({
     initialEntries: ['/patient/documents'],
@@ -207,7 +205,6 @@ describe('<DocumentSearchResultsPage />', () => {
 
             await waitFor(() => {
                 expect(screen.getByTestId('review-notification')).toBeInTheDocument();
-
             });
         });
 

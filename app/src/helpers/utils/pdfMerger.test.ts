@@ -1,3 +1,4 @@
+import { Mock } from 'vitest';
 import getMergedPdfBlob from './pdfMerger';
 
 // Mock PDF merger
@@ -7,13 +8,13 @@ const mockSaveAsBlob = vi.fn();
 
 vi.mock('pdf-merger-js/browser', () => ({
     default: class PDFMerger {
-        add() {
+        add(): Mock {
             return mockAdd();
         }
-        setMetadata() {
+        setMetadata(): Mock {
             return mockSetMetadata();
         }
-        saveAsBlob() {
+        saveAsBlob(): Mock {
             return mockSaveAsBlob();
         }
     },

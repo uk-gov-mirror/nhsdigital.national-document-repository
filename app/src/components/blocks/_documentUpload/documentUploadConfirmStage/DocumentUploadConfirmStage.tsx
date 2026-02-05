@@ -67,7 +67,9 @@ const DocumentUploadConfirmStage = ({
         processingFiles.current = false;
     }, [documents]);
 
-    const groupDocumentsByType = (documents: UploadDocument[]) => {
+    const groupDocumentsByType = (
+        documents: UploadDocument[],
+    ): { [key in DOCUMENT_TYPE]: UploadDocument[] } => {
         const groupedDocs = documents.reduce(
             (groups, doc) => {
                 const type = doc.docType;
@@ -110,7 +112,7 @@ const DocumentUploadConfirmStage = ({
         confirmFiles();
     };
 
-    const setPreviewDocument = (document: UploadDocument) => {
+    const setPreviewDocument = (document: UploadDocument): void => {
         setCurrentPreviewDocument(document);
         // timeout to wait for first render before scrolling
         setTimeout(() => {
@@ -127,8 +129,7 @@ const DocumentUploadConfirmStage = ({
 
         if (currentPreviewDocument?.id === docToRemove.id) {
             setCurrentPreviewDocument(undefined);
-        }
-        else if (updatedDocs.length === 1 && updatedDocs[0].file.type === 'application/pdf') {
+        } else if (updatedDocs.length === 1 && updatedDocs[0].file.type === 'application/pdf') {
             setCurrentPreviewDocument(updatedDocs[0]);
         }
 
@@ -173,9 +174,7 @@ const DocumentUploadConfirmStage = ({
             : undefined;
 
         const showCurrentlyViewingText =
-            hasUnstitchedDocType &&
-            documents.length > 0 &&
-            !!groupedDocuments;
+            hasUnstitchedDocType && documents.length > 0 && !!groupedDocuments;
 
         return (
             <div ref={documentPreviewRef}>

@@ -7,22 +7,20 @@ import DocumentUploadLloydGeorgePreview from './DocumentUploadLloydGeorgePreview
 import getMergedPdfBlob from '../../../../helpers/utils/pdfMerger';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 import { buildDocumentConfig } from '../../../../helpers/test/testBuilders';
+import { Mock } from 'vitest';
 
 const mockNavigate = vi.fn();
 
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('../../../../helpers/utils/pdfMerger');
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockNavigate,
+    useNavigate: (): Mock => mockNavigate,
 }));
 vi.mock('../../../../providers/analyticsProvider/AnalyticsProvider', () => ({
-    useAnalyticsContext: vi.fn(() => ([
-        null,
-        vi.fn(),
-    ])),
+    useAnalyticsContext: vi.fn(() => [null, vi.fn()]),
 }));
 
-URL.createObjectURL = () => 'https://example.com';
+URL.createObjectURL = (): string => 'https://example.com';
 
 const createMockDocument = (id: string): UploadDocument => ({
     state: DOCUMENT_UPLOAD_STATE.SELECTED,

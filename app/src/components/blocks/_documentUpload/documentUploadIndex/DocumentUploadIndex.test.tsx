@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, RenderResult } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import DocumentUploadIndex from './DocumentUploadIndex';
@@ -14,7 +14,7 @@ import userEvent from '@testing-library/user-event';
 import { DOCUMENT_TYPE_CONFIG, getConfigForDocType } from '../../../../helpers/utils/documentType';
 
 vi.mock('../../../../styles/right-chevron-circle.svg', () => ({
-    ReactComponent: () => 'svg',
+    ReactComponent: (): string => 'svg',
 }));
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
@@ -34,11 +34,11 @@ vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockNavigate,
+        useNavigate: (): Mock => mockNavigate,
     };
 });
 vi.mock('../../../generic/patientSummary/PatientSummary', () => ({
-    default: () => <div>Patient Summary Component</div>,
+    default: (): React.JSX.Element => <div>Patient Summary Component</div>,
 }));
 
 const mockSetDocumentType = vi.fn();
@@ -61,7 +61,7 @@ const mockPatient = {
     canManageRecord: true,
 };
 
-const renderComponent = (props = defaultProps) => {
+const renderComponent = (props = defaultProps): RenderResult => {
     return render(
         <BrowserRouter>
             <DocumentUploadIndex {...props} />

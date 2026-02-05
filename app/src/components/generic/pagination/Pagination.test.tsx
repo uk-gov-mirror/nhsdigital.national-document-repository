@@ -1,6 +1,6 @@
 import { act, useState } from 'react';
 import Pagination, { Props } from './Pagination';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, RenderResult, screen, waitFor } from '@testing-library/react';
 import { it, describe } from 'vitest';
 import userEvent from '@testing-library/user-event';
 
@@ -56,7 +56,7 @@ describe('Pagination', () => {
         });
     });
 
-    const TestApp = (props: Partial<Props>) => {
+    const TestApp = (props: Partial<Props>): React.JSX.Element => {
         const [currentPage, setCurrentPage] = useState<number>(props.currentPage!);
 
         return (
@@ -68,7 +68,7 @@ describe('Pagination', () => {
         );
     };
 
-    const renderApp = (totalPages: number, initialPage: number = 0) => {
+    const renderApp = (totalPages: number, initialPage: number = 0): RenderResult => {
         return render(<TestApp currentPage={initialPage} totalPages={totalPages}></TestApp>);
     };
 });

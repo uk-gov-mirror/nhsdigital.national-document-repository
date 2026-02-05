@@ -1,18 +1,18 @@
 import { render, screen } from '@testing-library/react';
 import { AdminPage } from './AdminPage';
 import { runAxeTest } from '../../helpers/test/axeTestHelper';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, Mock } from 'vitest';
 import { routeChildren } from '../../types/generic/routes';
 
 vi.mock('../../../helpers/hooks/useTitle');
 vi.mock('../../styles/right-chevron-circle.svg', () => ({
-    ReactComponent: () => 'svg',
+    ReactComponent: (): string => 'svg',
 }));
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockNavigate,
+        useNavigate: (): Mock => mockNavigate,
     };
 });
 const mockNavigate = vi.fn();

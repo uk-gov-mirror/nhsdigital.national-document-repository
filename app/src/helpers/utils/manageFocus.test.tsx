@@ -43,7 +43,7 @@ describe('focusLayoutDiv', () => {
     });
 });
 
-const renderTestApp = () => {
+const renderTestApp = (): void => {
     render(
         <div id="layout" data-testid="layoutDiv">
             <h1>Test heading</h1>

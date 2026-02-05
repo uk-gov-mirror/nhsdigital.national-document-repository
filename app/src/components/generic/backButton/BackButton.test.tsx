@@ -9,8 +9,8 @@ const mockUseBaseAPIUrl = useBaseAPIUrl as Mock;
 const mockUseNavigate = vi.fn();
 let mockPathname = { pathname: '' };
 vi.mock('react-router-dom', () => ({
-    useNavigate: () => mockUseNavigate,
-    useLocation: () => mockPathname,
+    useNavigate: (): Mock => mockUseNavigate,
+    useLocation: (): { pathname: string } => mockPathname,
 }));
 const testUrl = '/test';
 
@@ -24,8 +24,6 @@ describe('BackButton', () => {
     });
 
     it('navigates to previous page when clicking the back button and not on the search pages', async () => {
-        mockPathname = { pathname: testUrl };
-
         render(<BackButton />);
         await userEvent.click(screen.getByText('Go back'));
 

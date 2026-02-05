@@ -376,7 +376,10 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('displays patient demographics', async () => {
-            mockUsePatientDetailsContext.mockReturnValue([buildPatientDetails(), mockSetPatientDetails]);
+            mockUsePatientDetailsContext.mockReturnValue([
+                buildPatientDetails(),
+                mockSetPatientDetails,
+            ]);
 
             render(
                 <ReviewDetailsAssessmentStage
