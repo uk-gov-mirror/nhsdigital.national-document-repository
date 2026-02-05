@@ -98,7 +98,6 @@ class DataHelper:
             "VirusScannerResult": "Clean",
         }
         dynamo_item.update(extra_attributes)
-
         self.dynamo_service.create_item(self.dynamo_table, dynamo_item)
 
     def create_resource(self, record):

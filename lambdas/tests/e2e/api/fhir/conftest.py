@@ -87,12 +87,17 @@ def temp_cert_and_key():
 
 
 def get_pdm_document_reference(
-    record_id,
+    record_id="",
     client_cert_path=None,
     client_key_path=None,
     resource_type="DocumentReference",
+    pdm_snomed=PDM_SNOMED,
+    endpoint_override=None,
 ):
-    url = f"https://{MTLS_ENDPOINT}/{resource_type}/{PDM_SNOMED}~{record_id}"
+    if not endpoint_override:
+        url = f"https://{MTLS_ENDPOINT}/{resource_type}/{pdm_snomed}~{record_id}"
+    else:
+        url = f"https://{MTLS_ENDPOINT}/{resource_type}/{endpoint_override}"
     headers = {
         "X-Correlation-Id": "1234",
     }

@@ -1,6 +1,5 @@
 import base64
 
-from lambdas.models.document_reference import DocumentReference
 import pytest
 from tests.e2e.api.fhir.conftest import (
     PDM_S3_BUCKET,
@@ -39,7 +38,7 @@ def test_successful_retrieval_of_document_reference(
 ):
     pdm_record = create_and_store_pdm_record(test_data, doc_status=doc_status)
 
-    response = get_pdm_document_reference(pdm_record["id"])
+    response = get_pdm_document_reference(record_id=pdm_record["id"])
     assert response.status_code == response_status
 
     response_json = response.json()

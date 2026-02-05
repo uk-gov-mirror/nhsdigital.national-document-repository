@@ -12,6 +12,11 @@ from tests.e2e.helpers.data_helper import PdmDataHelper
 pdm_data_helper = PdmDataHelper()
 
 
+def _assert_operation_outcome(body, code):
+    assert body["resourceType"] == "OperationOutcome"
+    assert body["issue"][0]["details"]["coding"][0]["code"] == code
+
+
 @pytest.mark.parametrize(
     "doc_status, response_status",
     [
@@ -32,7 +37,7 @@ def test_retrieval_of_deleted_document_reference(
         ttl=document_reference_ttl,
     )
 
-    response = get_pdm_document_reference(pdm_record["id"])
+    response = get_pdm_document_reference(record_id=pdm_record["id"])
     assert response.status_code == response_status
 
     response_json = response.json()
@@ -86,11 +91,66 @@ def test_retrieve_invalid_resource_type(test_data):
     assert response_json["message"] == "Missing Authentication Token"
 
 
-# TODO
-# test_retrieval_of_deleted_document_reference (should return 404)
-# test_incorrectly_formatted_path_param_id 400
-# test_no_snomed_code_in_path_param_id
-# test_no_document_id_in_path_param_id
-# test_no_snomed_or_document_id_in_path_param_id
-# test_extra_parameter_in_id_in_path_param_id
-# test_unknown_common_name
+# This is not a helpful error message. Update this in ticket NDR-394
+@pytest.mark.parametrize(
+    "param,expected_status,expected_code",
+    [
+        (f"{pdm_data_helper.snomed_code}-{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
+        (f"{pdm_data_helper.snomed_code}+{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
+        (f"{pdm_data_helper.snomed_code}&{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
+        (f"{pdm_data_helper.snomed_code}{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
+        (f"{str(uuid.uuid4())}~{pdm_data_helper.snomed_code}", 500, "exception"),
+    ],
+)
+def test_incorrectly_formatted_path_param_id(
+    test_data, param, expected_status, expected_code
+):
+    response = get_pdm_document_reference(
+        endpoint_override=param,
+    )
+
+    body = response.json()
+    assert response.status_code == expected_status
+    _assert_operation_outcome(body=body, code=expected_code)
+
+
+def test_no_snomed_code_in_path_param_id(test_data):
+    pdm_record = create_and_store_pdm_record(test_data)
+    response = get_pdm_document_reference(
+        record_id=pdm_record["id"],
+        pdm_snomed="",
+    )
+
+    body = response.json()
+    assert response.status_code == 400
+    _assert_operation_outcome(body=body, code="MISSING_VALUE")
+
+
+def test_no_document_id_in_path_param_id():
+    response = get_pdm_document_reference()
+
+    body = response.json()
+    assert response.status_code == 400
+    _assert_operation_outcome(body=body, code="MISSING_VALUE")
+
+
+def test_no_snomed_or_document_id_in_path_param_id():
+    response = get_pdm_document_reference(
+        pdm_snomed="",
+    )
+
+    body = response.json()
+    assert response.status_code == 400
+    _assert_operation_outcome(body=body, code="MISSING_VALUE")
+
+
+# This is not a helpful error message. Update this in ticket NDR-394
+def test_extra_parameter_in_id_in_path_param_id(test_data):
+    pdm_record = create_and_store_pdm_record(test_data)
+    response = get_pdm_document_reference(
+        endpoint_override=f"{pdm_data_helper.snomed_code}~{pdm_record['id']}~thisshouldnotbehere",
+    )
+
+    body = response.json()
+    assert response.status_code == 400
+    _assert_operation_outcome(body=body, code="MISSING_VALUE")
