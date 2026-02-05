@@ -47,30 +47,30 @@ describe('HomePage', () => {
         });
     });
 
-    describe('Admin Console button', () => {
-        it('renders admin console button when feature flag is enabled and user is GP_ADMIN', () => {
+    describe('Admin hub button', () => {
+        it('renders admin hub button when feature flag is enabled and user is GP_ADMIN', () => {
             mockUseConfig.mockReturnValue(
                 buildConfig(undefined, { uploadDocumentIteration3Enabled: true }),
             );
 
             render(<HomePage />);
 
-            const adminConsoleButton = screen.getByTestId('admin-console-btn') as HTMLAnchorElement;
-            expect(adminConsoleButton).toBeInTheDocument();
-            expect(adminConsoleButton).toHaveTextContent('Admin console');
+            const adminHubButton = screen.getByTestId('admin-hub-btn') as HTMLAnchorElement;
+            expect(adminHubButton).toBeInTheDocument();
+            expect(adminHubButton).toHaveTextContent('Admin hub');
         });
 
-        it('does not render admin console button when feature flag is disabled', () => {
+        it('does not render admin hub button when feature flag is disabled', () => {
             mockUseConfig.mockReturnValue(
                 buildConfig(undefined, { uploadDocumentIteration3Enabled: false }),
             );
 
             render(<HomePage />);
 
-            expect(screen.queryByTestId('admin-console-btn')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('admin-hub-btn')).not.toBeInTheDocument();
         });
 
-        it('should render home page with patient search and admin console when uploadDocumentIteration3Enabled is true', async () => {
+        it('should render home page with patient search and admin hub when uploadDocumentIteration3Enabled is true', async () => {
             mockUseConfig.mockReturnValue(
                 buildConfig(undefined, { uploadDocumentIteration3Enabled: true }),
             );
@@ -78,22 +78,22 @@ describe('HomePage', () => {
             const searchPatientButton = screen.getByTestId(
                 'search-patient-btn',
             ) as HTMLAnchorElement;
-            const adminConsoleButton = screen.getByTestId('admin-console-btn') as HTMLAnchorElement;
+            const adminHubButton = screen.getByTestId('admin-hub-btn') as HTMLAnchorElement;
             expect(searchPatientButton).toBeInTheDocument();
-            expect(adminConsoleButton).toBeInTheDocument();
-            expect(adminConsoleButton).toHaveTextContent('Admin console');
-            expect(adminConsoleButton).toHaveAttribute('href', '#');
+            expect(adminHubButton).toBeInTheDocument();
+            expect(adminHubButton).toHaveTextContent('Admin hub');
+            expect(adminHubButton).toHaveAttribute('href', '#');
             expect(screen.queryByTestId('download-report-btn')).not.toBeInTheDocument();
         });
 
-        it('does not render admin console button when feature flag is disabled', () => {
+        it('does not render admin hub button when feature flag is disabled', () => {
             mockUseConfig.mockReturnValue(
                 buildConfig(undefined, { uploadDocumentIteration3Enabled: false }),
             );
 
             render(<HomePage />);
 
-            expect(screen.queryByTestId('admin-console-btn')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('admin-hub-btn')).not.toBeInTheDocument();
         });
     });
 
@@ -118,15 +118,15 @@ describe('HomePage', () => {
             );
         });
 
-        it('navigates to admin console when admin console button is clicked', async () => {
+        it('navigates to admin hub when admin hub button is clicked', async () => {
             mockUseConfig.mockReturnValue(
                 buildConfig(undefined, { uploadDocumentIteration3Enabled: true }),
             );
 
             render(<HomePage />);
 
-            const adminConsoleButton = screen.getByTestId('admin-console-btn');
-            await userEvent.click(adminConsoleButton);
+            const adminHubButton = screen.getByTestId('admin-hub-btn');
+            await userEvent.click(adminHubButton);
 
             expect(mockNavigate).toHaveBeenCalledWith(routes.ADMIN_ROUTE);
         });

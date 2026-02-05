@@ -32,12 +32,12 @@ const HomePage = (): React.JSX.Element => {
                                                 navigate(routes.SEARCH_PATIENT);
                                             }}
                                         >
-                                            View or upload a patient record
+                                            Patient records stored in this service
                                         </Card.Link>
                                     </Card.Heading>
                                     <Card.Description>
-                                        View or upload a Lloyd George record for a patient using
-                                        their NHS number.
+                                        Upload, view, manage, and add files or documents to a Lloyd
+                                        George record
                                     </Card.Description>
                                 </>
                             ) : (
@@ -55,7 +55,7 @@ const HomePage = (): React.JSX.Element => {
                                     </Card.Heading>
                                     <Card.Description>
                                         Find a Lloyd George record for a patient using their NHS
-                                        number.
+                                        number
                                     </Card.Description>
                                 </>
                             )}
@@ -69,17 +69,23 @@ const HomePage = (): React.JSX.Element => {
                             <Card.Content>
                                 <Card.Heading className="nhsuk-heading-m">
                                     <Card.Link
-                                        data-testid="admin-console-btn"
+                                        data-testid="admin-hub-btn"
                                         href="#"
                                         onClick={(): void => {
                                             navigate(routes.ADMIN_ROUTE);
                                         }}
                                     >
-                                        Admin console
+                                        Admin hub
                                     </Card.Link>
                                 </Card.Heading>
                                 <Card.Description>
-                                    Review records and actions for incoming patients
+                                    Here you can:
+                                    <ul className="mt-4">
+                                        <li>review and action pending patient documents</li>
+                                        <li>
+                                            download a report on the records stored in this service
+                                        </li>
+                                    </ul>
                                 </Card.Description>
                                 <RightCircleIcon />
                             </Card.Content>
@@ -105,7 +111,7 @@ const HomePage = (): React.JSX.Element => {
                                 </Card.Heading>
                                 <Card.Description>
                                     This report shows the list of Lloyd George records stored for
-                                    your organisation.
+                                    your organisation
                                 </Card.Description>
                                 <RightCircleIcon />
                             </Card.Content>
