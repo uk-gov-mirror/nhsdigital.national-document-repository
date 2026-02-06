@@ -103,8 +103,7 @@ describe('mergePdfsFromUploadDocuments', () => {
                 mockSetDownloadStage,
             );
 
-            // Note: The implementation adds the file twice when there's no blob
-            expect(mockAdd).toHaveBeenCalledTimes(2);
+            expect(mockAdd).toHaveBeenCalledTimes(1);
             expect(mockAdd).toHaveBeenCalledWith(uploadDocument.file);
             expect(result).toBeInstanceOf(Blob);
         });
@@ -182,9 +181,7 @@ describe('mergePdfsFromUploadDocuments', () => {
                 mockSetDownloadStage,
             );
 
-            // Note: Each document without a blob gets added twice
-            expect(mockAdd).toHaveBeenCalledTimes(6);
-            // Verify the files are added (each twice due to implementation)
+            expect(mockAdd).toHaveBeenCalledTimes(3);
             expect(mockAdd).toHaveBeenCalledWith(uploadDocuments[0].file);
             expect(mockAdd).toHaveBeenCalledWith(uploadDocuments[1].file);
             expect(mockAdd).toHaveBeenCalledWith(uploadDocuments[2].file);
@@ -231,8 +228,7 @@ describe('mergePdfsFromUploadDocuments', () => {
                 mockSetDownloadStage,
             );
 
-            // Note: Documents without blobs get added twice (doc1 and doc3), doc2 with blob gets added once
-            expect(mockAdd).toHaveBeenCalledTimes(5);
+            expect(mockAdd).toHaveBeenCalledTimes(3);
             expect(mockAdd).toHaveBeenCalledWith(uploadDocuments[0].file);
             expect(mockAdd).toHaveBeenCalledWith(mockBlob);
             expect(mockAdd).toHaveBeenCalledWith(uploadDocuments[2].file);
@@ -299,9 +295,7 @@ describe('mergePdfsFromUploadDocuments', () => {
                 mockSetDownloadStage,
             );
 
-            // Verify that all documents were added (each twice due to implementation)
-            expect(mockAdd).toHaveBeenCalledTimes(6);
-            // Verify buffer was saved after all adds
+            expect(mockAdd).toHaveBeenCalledTimes(3);
             expect(mockSaveAsBuffer).toHaveBeenCalledTimes(1);
         });
     });

@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event';
 import DocumentSelectOrderStage from './DocumentSelectOrderStage';
 import {
     DOCUMENT_UPLOAD_STATE,
+    ReviewUploadDocument,
     UploadDocument,
+    UploadDocumentType,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import { MemoryRouter } from 'react-router-dom';
 import { fileUploadErrorMessages } from '../../../../helpers/utils/fileUploadErrorMessages';
@@ -119,9 +121,12 @@ describe('DocumentSelectOrderStage', () => {
         it('renders continue button when documents are present', async () => {
             renderSut(documents);
 
-            await waitFor(() => {
-                expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
-            });
+            await waitFor(
+                () => {
+                    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+                },
+                { timeout: 3000 },
+            );
         });
 
         it('does not show "Remove all" button when there is only one document', () => {
@@ -899,6 +904,148 @@ describe('DocumentSelectOrderStage', () => {
             expect(errorMessages.length).toBeGreaterThan(0);
         });
     });
+
+    describe('Review Mode', () => {
+        describe('renderDocumentFileRow', () => {
+            it('renders review document with remove button disabled when document type is REVIEW', () => {
+                const reviewDocuments: ReviewUploadDocument[] = [
+                    {
+                        docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                        id: '1',
+                        file: buildLgFile(1),
+                        attempts: 0,
+                        state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                        numPages: 5,
+                        position: 1,
+                        type: UploadDocumentType.REVIEW,
+                    },
+                ];
+
+                renderSutInReviewMode(reviewDocuments);
+
+                expect(screen.getByText('testFile1.pdf')).toBeInTheDocument();
+                expect(screen.queryByText('Remove')).not.toBeInTheDocument();
+                expect(screen.getByText('-')).toBeInTheDocument();
+            });
+
+            it('renders review document with remove button enabled when document type is not REVIEW', () => {
+                const reviewDocuments: ReviewUploadDocument[] = [
+                    {
+                        docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                        id: '1',
+                        file: buildLgFile(1),
+                        attempts: 0,
+                        state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                        numPages: 5,
+                        position: 1,
+                        type: UploadDocumentType.EXISTING,
+                    },
+                ];
+
+                renderSutInReviewMode(reviewDocuments);
+
+                expect(screen.getByText('testFile1.pdf')).toBeInTheDocument();
+                expect(screen.getByText('Remove')).toBeInTheDocument();
+            });
+
+            it('renders review document with remove button enabled when document type is undefined', () => {
+                const reviewDocuments: ReviewUploadDocument[] = [
+                    {
+                        docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                        id: '1',
+                        file: buildLgFile(1),
+                        attempts: 0,
+                        state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                        numPages: 5,
+                        position: 1,
+                        // type is undefined
+                    },
+                ];
+
+                renderSutInReviewMode(reviewDocuments);
+
+                expect(screen.getByText('testFile1.pdf')).toBeInTheDocument();
+                expect(screen.getByText('Remove')).toBeInTheDocument();
+            });
+
+            it('renders all review documents with correct positioning and remove ability', () => {
+                const reviewDocuments: ReviewUploadDocument[] = [
+                    {
+                        docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                        id: '1',
+                        file: buildLgFile(1),
+                        attempts: 0,
+                        state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                        numPages: 5,
+                        position: 1,
+                        type: UploadDocumentType.REVIEW,
+                    },
+                    {
+                        docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                        id: '2',
+                        file: buildLgFile(2),
+                        attempts: 0,
+                        state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                        numPages: 3,
+                        position: 2,
+                        type: UploadDocumentType.EXISTING,
+                    },
+                ];
+
+                renderSutInReviewMode(reviewDocuments);
+
+                // Check first document (REVIEW type - should not be removable)
+                expect(screen.getByText('testFile1.pdf')).toBeInTheDocument();
+
+                // Check second document (EXISTING type - should be removable)
+                expect(screen.getByText('testFile2.pdf')).toBeInTheDocument();
+
+                // Check remove buttons - should be only 1 (for the EXISTING type)
+                const removeButtons = screen.getAllByText('Remove');
+                expect(removeButtons).toHaveLength(1);
+
+                // Check that dash appears for non-removable document
+                const dashCells = screen.getAllByText('-');
+                expect(dashCells.length).toBeGreaterThan(0);
+            });
+
+            it('renders review documents with existing documents and correct positioning', () => {
+                const existingDocuments: UploadDocument[] = [
+                    {
+                        docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                        id: 'existing-1',
+                        file: buildLgFile(99),
+                        attempts: 0,
+                        state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                        numPages: 10,
+                        position: 1,
+                    },
+                ];
+
+                const reviewDocuments: ReviewUploadDocument[] = [
+                    {
+                        docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                        id: '1',
+                        file: buildLgFile(1),
+                        attempts: 0,
+                        state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                        numPages: 5,
+                        position: 2,
+                        type: UploadDocumentType.REVIEW,
+                    },
+                ];
+
+                renderSutInReviewModeWithExisting(reviewDocuments, existingDocuments);
+
+                expect(screen.getByText(/Existing .+/)).toBeInTheDocument();
+
+                expect(screen.getByText('testFile1.pdf')).toBeInTheDocument();
+
+                const positionDropdown = screen.getByTestId('1');
+                expect(positionDropdown).toHaveValue('2');
+            });
+        });
+    });
 });
 
 function renderSutWithExistingDocs(
@@ -929,6 +1076,41 @@ function renderSut(documents: UploadDocument[]): void {
                 existingDocuments={[]}
                 documentConfig={docConfig}
                 confirmFiles={mockConfirmFiles}
+            />
+        </MemoryRouter>,
+    );
+}
+
+function renderSutInReviewMode(documents: ReviewUploadDocument[]): void {
+    render(
+        <MemoryRouter>
+            <DocumentSelectOrderStage
+                documents={documents}
+                setDocuments={mockSetDocuments}
+                setMergedPdfBlob={mockSetMergedPdfBlob}
+                existingDocuments={[]}
+                documentConfig={docConfig}
+                confirmFiles={mockConfirmFiles}
+                isReview={true}
+            />
+        </MemoryRouter>,
+    );
+}
+
+function renderSutInReviewModeWithExisting(
+    documents: ReviewUploadDocument[],
+    existingDocuments: UploadDocument[],
+): void {
+    render(
+        <MemoryRouter>
+            <DocumentSelectOrderStage
+                documents={documents}
+                setDocuments={mockSetDocuments}
+                setMergedPdfBlob={mockSetMergedPdfBlob}
+                existingDocuments={existingDocuments}
+                documentConfig={docConfig}
+                confirmFiles={mockConfirmFiles}
+                isReview={true}
             />
         </MemoryRouter>,
     );

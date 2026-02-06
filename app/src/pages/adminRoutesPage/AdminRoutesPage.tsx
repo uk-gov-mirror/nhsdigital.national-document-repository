@@ -28,6 +28,7 @@ import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import useBaseAPIHeaders from '../../helpers/hooks/useBaseAPIHeaders';
 import { DOWNLOAD_STAGE } from '../../types/generic/downloadStage';
 import { PatientDetails } from '../../types/generic/patientDetails';
+import { sortDocumentsForReview } from '../../helpers/utils/sortReviewDocs';
 
 export enum CompleteState {
     PATIENT_UNKNOWN = 'PATIENT_UNKNOWN',
@@ -55,13 +56,7 @@ const AdminRoutesPage = (): JSX.Element => {
     const [newPatientDetails, setNewPatientDetails] = useState<PatientDetails | undefined>();
 
     useEffect(() => {
-        let addedFiles = additionalFiles.filter((f) => f.type === undefined);
-        for (const addedFile of addedFiles) {
-            if (uploadDocuments.some((d) => d.file.name === addedFile.file.name)) {
-                addedFiles = addedFiles.filter((f) => f.file.name !== addedFile.file.name);
-            }
-        }
-        const newUploadDocuments = [...uploadDocuments, ...addedFiles];
+        const newUploadDocuments = sortDocumentsForReview(uploadDocuments, additionalFiles);
         setUploadDocuments(newUploadDocuments);
     }, [additionalFiles]);
 
@@ -180,7 +175,7 @@ const AdminRoutesPage = (): JSX.Element => {
                         reviewData={reviewData}
                         documents={additionalFiles}
                         existingDocuments={existingUploadDocuments}
-                        setDocuments={setUploadDocuments}
+                        setDocuments={setAdditionalFiles}
                     />
                 }
             />

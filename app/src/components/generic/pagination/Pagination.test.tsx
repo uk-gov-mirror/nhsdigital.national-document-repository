@@ -1,4 +1,4 @@
-import { act, useState } from 'react';
+import { useState } from 'react';
 import Pagination, { Props } from './Pagination';
 import { render, RenderResult, screen, waitFor } from '@testing-library/react';
 import { it, describe } from 'vitest';
@@ -25,11 +25,10 @@ describe('Pagination', () => {
     });
 
     it('should change current page when clicking next page button', async () => {
+        const user = userEvent.setup();
         renderApp(2);
 
-        act(() => {
-            userEvent.click(screen.getByTestId('next-page-button'));
-        });
+        await user.click(screen.getByTestId('next-page-button'));
 
         await waitFor(async () => {
             expect(await screen.findByTestId('previous-page-button')).toBeInTheDocument();
@@ -41,11 +40,10 @@ describe('Pagination', () => {
     });
 
     it('should change current page when clicking previous page button', async () => {
+        const user = userEvent.setup();
         renderApp(2, 1);
 
-        act(() => {
-            userEvent.click(screen.getByTestId('previous-page-button'));
-        });
+        await user.click(screen.getByTestId('previous-page-button'));
 
         await waitFor(async () => {
             expect(await screen.findByTestId('next-page-button')).toBeInTheDocument();

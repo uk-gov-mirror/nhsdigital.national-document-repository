@@ -13,8 +13,10 @@ import { routeChildren, routes } from '../../../../types/generic/routes';
 import { SelectRef } from '../../../../types/generic/selectRef';
 import { ErrorMessageListItem } from '../../../../types/pages/genericPageErrors';
 import {
+    ReviewUploadDocument,
     SetUploadDocuments,
     UploadDocument,
+    UploadDocumentType,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import BackButton from '../../../generic/backButton/BackButton';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
@@ -24,7 +26,7 @@ import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import { DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 
 type Props = {
-    documents: UploadDocument[];
+    documents: UploadDocument[] | ReviewUploadDocument[];
     setDocuments: SetUploadDocuments;
     setMergedPdfBlob: Dispatch<SetStateAction<Blob | undefined>>;
     existingDocuments: UploadDocument[] | undefined;
@@ -296,8 +298,23 @@ const DocumentSelectOrderStage = ({
         );
     };
 
-    const renderDocumentFileRow = (document: UploadDocument, index: number): JSX.Element => {
+    const renderDocumentFileRow = (
+        document: UploadDocument | ReviewUploadDocument,
+        index: number,
+    ): JSX.Element => {
         const positionOffset = existingDocuments && existingDocuments.length > 0 ? 1 : 0;
+        if (isReview) {
+            const reviewDocument = document as ReviewUploadDocument;
+            return renderFileRow({
+                id: document.id,
+                index: index,
+                filename: document.file.name,
+                position: document.position || index + 1 + positionOffset,
+                ableToReposition: true,
+                ableToRemove: reviewDocument.type !== UploadDocumentType.REVIEW,
+                document,
+            });
+        }
         return renderFileRow({
             id: document.id,
             index: index,
