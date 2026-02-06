@@ -41,12 +41,10 @@ def test_check_manual_error_conditions_500(mocker):
 
 def test_trigger_400():
     expected_status_code = 400
-    expected_body = ""
 
     response = trigger_400("GET")
 
     actual_status_code = response["statusCode"]
-    actual_body = response["body"]
+    assert "body" not in response
 
     assert actual_status_code == expected_status_code
-    assert actual_body == expected_body

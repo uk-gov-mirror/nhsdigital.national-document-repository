@@ -43,7 +43,7 @@ def test_login_redirect_lambda_handler_valid(
     response = lambda_handler(event, context)
     mock_login_service_object.prepare_redirect_response.assert_called_once()
     assert response["statusCode"] == 303
-    assert response["body"] == ""
+    assert "body" not in response
 
 
 def test_login_redirect_lambda_handler_exception(

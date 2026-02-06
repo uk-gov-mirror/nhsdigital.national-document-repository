@@ -116,6 +116,7 @@ build-and-deploy-sandbox: ## Build a sandbox and deploy code. If no SANDBOX_NAME
 		$(if $(SANDBOX_NAME),--sandbox_name=$(SANDBOX_NAME)) \
 		$(if $(BUILD_INFRA),--build_infra=$(BUILD_INFRA)) \
 		$(if $(FULL_DEPLOY),--full_deploy=$(FULL_DEPLOY)) \
+		$(if $(SKIP_MAIN),--skip_main=$(SKIP_MAIN)) \
 		$(if $(NDRI_DIR_LOC_OVERRIDE),--ndri_dir_loc_override=$(NDRI_DIR_LOC_OVERRIDE))
 
 download-api-certs: ## Downloads mTLS certificates (use with dev envs only). Usage: make download-api-certs WORKSPACE=<workspace>

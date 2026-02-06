@@ -462,6 +462,22 @@ def test_handle_reference_delete_single_document_not_found_raises_exception(
     assert excinfo.value.status_code == 404
 
 
+def test_handle_reference_delete_single_document_not_found_returns_empty_list_for_fhir(
+    mock_deletion_service, mocker
+):
+    mocker.patch.object(
+        mock_deletion_service.document_service,
+        "fetch_document_from_table",
+        return_value=[],
+    )
+
+    result = mock_deletion_service.handle_reference_delete(
+        "mock_nhs_number", [], "mock_document_id", fhir=True
+    )
+
+    assert result == []
+
+
 def test_delete_specific_doc_type_client_error_raises_exception(
     mock_deletion_service, mocker
 ):

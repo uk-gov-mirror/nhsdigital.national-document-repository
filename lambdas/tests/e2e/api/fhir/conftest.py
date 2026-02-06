@@ -113,6 +113,22 @@ def get_pdm_document_reference(
     return response
 
 
+def delete_document_reference(endpoint, client_cert_path=None, client_key_path=None):
+    """Helper to perform a DELETE by NHS number."""
+    url = f"https://{MTLS_ENDPOINT}/DocumentReference{endpoint}"
+    headers = {
+        "X-Correlation-Id": "1234",
+    }
+
+    # Use provided certs if available, else defaults
+    if client_cert_path and client_key_path:
+        session = create_mtls_session(client_cert_path, client_key_path)
+    else:
+        session = create_mtls_session()
+
+    return session.delete(url=url, headers=headers)
+
+
 def create_and_store_pdm_record(
     test_data,
     nhs_number: str = "9912003071",

@@ -9,6 +9,7 @@ class LoggingAppInteraction(Enum):
     VIEW_LG_RECORD = "View LG record"
     DOWNLOAD_RECORD = "Download a record"
     DELETE_RECORD = "Delete a record"
+    FHIR_DELETE_RECORD = "Delete a FHIR record"
     UPLOAD_RECORD = "Upload a record"
     UPDATE_RECORD = "Update a record"
     STITCH_RECORD = "Stitch a record"

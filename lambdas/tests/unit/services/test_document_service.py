@@ -204,6 +204,36 @@ def test_delete_documents_soft_delete(mock_service, mock_dynamo_service):
 
 
 @freeze_time("2023-10-1 13:00:00")
+def test_delete_documents_soft_delete_core(mock_service, mock_dynamo_service):
+    test_doc_ref = DocumentReference.model_validate(MOCK_DOCUMENT)
+
+    test_date = datetime.now()
+    ttl_date = test_date + timedelta(days=float(DocumentRetentionDays.SOFT_DELETE))
+
+    test_update_fields = {
+        "Deleted": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        "TTL": int(ttl_date.timestamp()),
+        "DocStatus": "deprecated",
+    }
+
+    mock_service.delete_document_reference(
+        "dev_COREDocumentMetadata",
+        test_doc_ref,
+        DocumentRetentionDays.SOFT_DELETE,
+        {
+            DocumentReferenceMetadataFields.ID.value: test_doc_ref.id,
+            DocumentReferenceMetadataFields.NHS_NUMBER.value: test_doc_ref.nhs_number,
+        },
+    )
+
+    mock_dynamo_service.update_item.assert_called_once_with(
+        table_name="dev_COREDocumentMetadata",
+        key_pair={"ID": test_doc_ref.id, "NhsNumber": test_doc_ref.nhs_number},
+        updated_fields=test_update_fields,
+    )
+
+
+@freeze_time("2023-10-1 13:00:00")
 def test_delete_documents_death_delete(mock_service, mock_dynamo_service):
     test_doc_ref = DocumentReference.model_validate(MOCK_DOCUMENT)
 

@@ -31,16 +31,21 @@ class DocumentDeletionService:
         self.document_service = DocumentService()
         self.stitch_service = LloydGeorgeStitchJobService()
         self.sqs_service = SQSService()
+        self.fhir = False
 
     def handle_reference_delete(
         self,
         nhs_number: str,
         doc_types: list[SupportedDocumentTypes],
         document_id: str | None = None,
+        fhir: bool = False,
     ) -> list[DocumentReference]:
         if document_id:
-            self.delete_document_by_id(nhs_number, document_id)
-            return [document_id]
+            self.fhir = fhir
+            result = self.delete_document_by_id(nhs_number, document_id)
+            if result != []:
+                return [document_id]
+            return result
         else:
             return self.delete_documents_by_types(nhs_number, doc_types)
 
@@ -54,6 +59,8 @@ class DocumentDeletionService:
         )
 
         if len(doc_ref_list) == 0:
+            if self.fhir:
+                return []
             raise DocumentDeletionServiceException(404, LambdaError.DocDelNull)
 
         document_ref: DocumentReference = doc_ref_list[0]

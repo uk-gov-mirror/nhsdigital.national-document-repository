@@ -16,6 +16,7 @@ NDR_WORKFLOW_FILE_FULL="full-deploy-to-sandbox.yml"
 FULL_DEPLOY=false
 SANDBOX_NAME=""
 START_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+SKIP_MAIN=false
 
 spinner=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
 spin_i=0
@@ -50,6 +51,9 @@ for arg in "$@"; do
   --ndri_dir_loc_override=*)
     NDRI_DIRECTORY="${arg#*=}"
     ;;
+  --skip_main=*)
+    SKIP_MAIN="${arg#*=}"
+    ;;
   *)
     echo "Unknown argument: $arg"
     echo "Usage: $0 [--ndri_workflow_branch=<branch>] [--ndri_branch=<branch>] [--ndr_branch=<branch>] [--ndr_workflow_branch=<branch>] [--sandbox_name=<sandbox_name>] [--build_infra=<true|false>]  [--ndri_dir_loc_override=<absolute_path>]"
@@ -78,16 +82,16 @@ if [[ "$BUILD_INFRA" == "true" ]]; then
   cd "$NDRI_DIRECTORY"
   echo "🔁 Triggering infrastructure workflow '$NDRI_WORKFLOW_FILE' from '$NDRI_WORKFLOW_BRANCH' with branch '$NDRI_BRANCH' to '$SANDBOX_NAME'..."
   # Trigger the workflow and capture the run ID
-  gh workflow run "$NDRI_WORKFLOW_FILE" --ref "$NDRI_WORKFLOW_BRANCH" --field git_ref="$NDRI_BRANCH" --field sandbox_name="$SANDBOX_NAME" >/dev/null
+  gh workflow run "$NDRI_WORKFLOW_FILE" --ref "$NDRI_WORKFLOW_BRANCH" --field git_ref="$NDRI_BRANCH" --field sandbox_name="$SANDBOX_NAME" --field skip_main_deployment="$SKIP_MAIN" >/dev/null
 
-  for i in {1..10}; do
+  for i in {1..20}; do
     run_id=$(
       gh run list \
         --workflow "$NDRI_WORKFLOW_FILE" \
         --event workflow_dispatch \
         --json status,databaseId,createdAt,displayTitle \
         --jq ".[]
-            | select(.displayTitle == \"$NDRI_WORKFLOW_BRANCH | $SANDBOX_NAME\")
+            | select(.displayTitle | contains(\"$NDRI_BRANCH | $SANDBOX_NAME\"))
             | select(.createdAt >= \"$START_TIME\")
             | select(.status == \"queued\" or .status == \"in_progress\")
             | .databaseId" |
@@ -95,7 +99,7 @@ if [[ "$BUILD_INFRA" == "true" ]]; then
     )
 
     [[ -n "$run_id" ]] && break
-    sleep 1
+    sleep 2
   done
 
   if [[ -z "$run_id" ]]; then
@@ -164,7 +168,7 @@ else
   WORKFLOW_FILE="$NDR_WORKFLOW_FILE"
 fi
 
-for i in {1..10}; do
+for i in {1..20}; do
   lambda_run_id=$(
     gh run list \
       --workflow "$WORKFLOW_FILE" \
@@ -179,7 +183,7 @@ for i in {1..10}; do
   )
 
   [[ -n "$lambda_run_id" ]] && break
-  sleep 1
+  sleep 2
 done
 
 if [[ -z "$lambda_run_id" ]]; then

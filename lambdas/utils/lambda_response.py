@@ -1,5 +1,5 @@
 class ApiGatewayResponse:
-    def __init__(self, status_code: int, body: str, methods: str) -> None:
+    def __init__(self, status_code: int, body: str | None = None, methods: str = "POST") -> None:
         self.status_code = status_code
         self.body = body
         self.methods = methods
@@ -7,7 +7,7 @@ class ApiGatewayResponse:
     def create_api_gateway_response(self, headers=None) -> dict:
         if headers is None:
             headers = {}
-        return {
+        response = {
             "isBase64Encoded": False,
             "statusCode": self.status_code,
             "headers": {
@@ -17,12 +17,10 @@ class ApiGatewayResponse:
                 "Strict-Transport-Security": "max-age=63072000",
                 **headers,
             },
-            "body": self.body,
         }
+        if self.body:
+            response["body"] = self.body
+        return response
 
     def __eq__(self, other):
-        return (
-            self.status_code == other.status_code
-            and self.body == other.body
-            and self.methods == other.methods
-        )
+        return self.status_code == other.status_code and self.body == other.body and self.methods == other.methods

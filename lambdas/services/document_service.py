@@ -106,6 +106,37 @@ class DocumentService:
                 continue
         return documents
 
+    def _get_item(self, table_name, key, model_class):
+        try:
+            response = self.dynamo_service.get_item(table_name=table_name, key=key)
+            if "Item" not in response:
+                logger.info("No document found")
+                return None
+
+            document = model_class.model_validate(response["Item"])
+            return document
+
+        except ValidationError as e:
+            logger.error(f"Validation error on document: {response.get('Item')}")
+            logger.error(f"{e}")
+            return None
+
+    def get_item_agnostic(
+        self,
+        partion_key: dict,
+        sort_key: dict | None = None,
+        table_name: str | None = None,
+        model_class: type[BaseModel] | None = None,
+    ) -> Optional[BaseModel]:
+        table_name = table_name or self.table_name
+        model_class = model_class or self.model_class
+
+        return self._get_item(
+            table_name=table_name,
+            key=(partion_key or {}) | (sort_key or {}),
+            model_class=model_class,
+        )
+
     def get_item(
         self,
         document_id: str,
@@ -129,22 +160,9 @@ class DocumentService:
         document_key = {"ID": document_id}
         if sort_key:
             document_key.update(sort_key)
-        try:
-            response = self.dynamo_service.get_item(
-                table_name=table_to_use, key=document_key
-            )
-
-            if "Item" not in response:
-                logger.info(f"No document found for document_id: {document_id}")
-                return None
-
-            document = model_to_use.model_validate(response["Item"])
-            return document
-
-        except ValidationError as e:
-            logger.error(f"Validation error on document: {response.get('Item')}")
-            logger.error(f"{e}")
-            return None
+        return self._get_item(
+            table_name=table_to_use, key=document_key, model_class=model_to_use
+        )
 
     def get_nhs_numbers_based_on_ods_code(
         self, ods_code: str, table_name: str | None = None
@@ -162,6 +180,37 @@ class DocumentService:
         nhs_numbers = list({document.nhs_number for document in documents})
         return nhs_numbers
 
+    def delete_document_reference(
+        self,
+        table_name: str,
+        document_reference: DocumentReference,
+        document_ttl_days: int,
+        key_pair: dict,
+        deletion_date: datetime | None = None,
+    ):
+        if not deletion_date:
+            deletion_date = datetime.now(timezone.utc)
+
+        ttl_seconds = document_ttl_days * 24 * 60 * 60
+        document_reference_ttl = int(deletion_date.timestamp() + ttl_seconds)
+
+        logger.info(f"Deleting document reference in table: {table_name}")
+
+        document_reference.doc_status = "deprecated"
+        document_reference.deleted = deletion_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        document_reference.ttl = document_reference_ttl
+
+        update_fields = document_reference.model_dump(
+            by_alias=True,
+            exclude_none=True,
+            include={"doc_status", "deleted", "ttl"},
+        )
+        self.dynamo_service.update_item(
+            table_name=table_name,
+            key_pair=key_pair,
+            updated_fields=update_fields,
+        )
+
     def delete_document_references(
         self,
         table_name: str,
@@ -170,25 +219,15 @@ class DocumentService:
     ):
         deletion_date = datetime.now(timezone.utc)
 
-        ttl_seconds = document_ttl_days * 24 * 60 * 60
-        document_reference_ttl = int(deletion_date.timestamp() + ttl_seconds)
-
         logger.info(f"Deleting items in table: {table_name}")
 
         for reference in document_references:
-            reference.doc_status = "deprecated"
-            reference.deleted = deletion_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-            reference.ttl = document_reference_ttl
-
-            update_fields = reference.model_dump(
-                by_alias=True,
-                exclude_none=True,
-                include={"doc_status", "deleted", "ttl"},
-            )
-            self.dynamo_service.update_item(
+            self.delete_document_reference(
                 table_name=table_name,
+                document_reference=reference,
+                document_ttl_days=document_ttl_days,
                 key_pair={DocumentReferenceMetadataFields.ID.value: reference.id},
-                updated_fields=update_fields,
+                deletion_date=deletion_date,
             )
 
     def delete_document_object(self, bucket: str, key: str):

@@ -98,6 +98,10 @@ class GetFhirDocumentReferenceException(LambdaException):
     pass
 
 
+class DeleteFhirDocumentReferenceException(LambdaException):
+    pass
+
+
 class OdsReportException(LambdaException):
     pass
 
