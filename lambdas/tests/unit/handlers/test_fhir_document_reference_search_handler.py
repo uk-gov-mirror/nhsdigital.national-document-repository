@@ -208,7 +208,7 @@ def test_lambda_handler_returns_a_200_with_an_empty_bundle_when_no_documents(
     mock_document_reference_search_service.get_document_references.return_value = {
         "resourceType": "Bundle",
         "type": "searchset",
-        "timestamp": 1763647621,
+        "timestamp": "2025-11-19T12:13:41Z",
         "total": 0,
         "entry": [],
     }

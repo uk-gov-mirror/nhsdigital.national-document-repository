@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional
 
 from models.fhir.R4.base_models import Identifier, Link
@@ -58,8 +58,8 @@ class Bundle(BaseModel):
         "searchset",
         "collection",
     ] = Field(...)
-    timestamp: int = Field(
-        default_factory=lambda: int(datetime.now().timestamp()),
+    timestamp: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
     )
     total: Optional[int] = None
     link: Optional[List[Link]] = None
