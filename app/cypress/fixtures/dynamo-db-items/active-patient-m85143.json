@@ -1,0 +1,22 @@
+{
+    "ContentType": "application/pdf",
+    "Created": "2023-12-05T16:06:48.300566Z",
+    "CurrentGpOds": "M85143",
+    "Custodian": "M85143",
+    "Deleted": "",
+    "DocStatus": "final",
+    "DocumentScanCreation": "2023-01-01",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileLocation": "s3://{env}-lloyd-george-store/9730786933/e4a6d7f7-01f3-44be-8964-515b2c0ec180",
+    "FileName": "1of1_Lloyd_George_Record_[Haley Glenda RUDKIN]_[9730786933]_[07-08-2023].pdf",
+    "FileSize": "192910",
+    "ID": "c165a49e-71b3-4662-8494-49c6b08070ba",
+    "LastUpdated": "1713800398",
+    "NhsNumber": "9730786933",
+    "S3FileKey": "9730786933/e4a6d7f7-01f3-44be-8964-515b2c0ec180",
+    "Status": "current",
+    "Uploaded": true,
+    "Uploading": false,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+}

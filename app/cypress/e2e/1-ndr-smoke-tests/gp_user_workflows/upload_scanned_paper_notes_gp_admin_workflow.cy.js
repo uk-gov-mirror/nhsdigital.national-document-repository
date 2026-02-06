@@ -19,7 +19,7 @@ const referenceTableName = `${workspace}_LloydGeorgeReferenceMetadata`;
 const stitchTableName = `${workspace}_LloydGeorgeStitchJobMetadata`;
 
 const patientVerifyUrl = '/patient/verify';
-const lloydGeorgeRecordUrl = '/patient/lloyd-george-record';
+const lloydGeorgeRecordUrl = '/patient/documents';
 const selectOrderUrl = '/patient/document-upload/select-order';
 const confirmationUrl = '/patient/document-upload/confirmation';
 
@@ -85,12 +85,15 @@ describe('GP Workflow: Upload Lloyd George record', () => {
                 cy.get('#verify-submit').click();
 
                 cy.url().should('contain', lloydGeorgeRecordUrl);
-                cy.getByTestId('no-records-title').should(
+                cy.get('#no-files-message').should(
                     'include.text',
-                    'This patient does not have a Lloyd George record',
+                    'There are no documents available for this patient.',
                 );
-                cy.getByTestId('upload-patient-record-button').should('exist');
-                cy.getByTestId('upload-patient-record-button').click();
+                cy.getByTestId('upload-button').should('exist');
+                cy.getByTestId('upload-button').click();
+
+                cy.getByTestId('upload-16521000000101-link').should('exist');
+                cy.getByTestId('upload-16521000000101-link').click();
                 uploadedFilePathNames.forEach((file) => {
                     cy.getByTestId('button-input').selectFile(file, { force: true });
                     var index = uploadedFilePathNames.indexOf(file);
@@ -121,9 +124,12 @@ describe('GP Workflow: Upload Lloyd George record', () => {
 
                 cy.get('#nhs-number-input').type(activePatient);
                 cy.get('#search-submit').click();
-                cy.wait(5000);
+                cy.get('.patient-results-form').should('exist');
 
                 cy.get('.patient-results-form').submit();
+
+                cy.getByTestId('view-0-link').should('exist');
+                cy.getByTestId('view-0-link').click();
 
                 cy.get('#pdf-viewer', { timeout: 20000 }).should('exist');
             },

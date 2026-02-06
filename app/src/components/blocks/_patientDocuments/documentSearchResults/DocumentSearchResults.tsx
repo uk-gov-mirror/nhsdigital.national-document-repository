@@ -29,7 +29,11 @@ const DocumentSearchResults = ({
                 Records and documents stored for this patient
             </h3>
             <Table.Panel id="table-panel">
-                <Table id="available-files-table-title" responsive={true}>
+                <Table
+                    id="available-files-table-title"
+                    data-testid="available-files-table-title"
+                    responsive={true}
+                >
                     <Table.Head>
                         <Table.Row>
                             <Table.Cell className="table-column-header">Document type</Table.Cell>

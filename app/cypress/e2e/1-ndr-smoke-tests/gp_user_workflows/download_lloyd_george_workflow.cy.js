@@ -1,12 +1,10 @@
-import { pdsPatients, stubPatients } from '../../../support/patients';
 import { Roles } from '../../../support/roles';
-import dbItem from '../../../fixtures/dynamo-db-items/active-patient.json';
+import dbItem from '../../../fixtures/dynamo-db-items/active-patient-m85143.json';
 import { formatNhsNumber } from '../../../../src/helpers/utils/formatNhsNumber';
 
 const workspace = Cypress.env('WORKSPACE');
 dbItem.FileLocation = dbItem.FileLocation.replace('{env}', workspace);
-const activePatient =
-    workspace === 'ndr-dev' ? pdsPatients.activeUpload : stubPatients.activeUpload;
+const activePatient = 9730786933;
 const bucketName = `${workspace}-lloyd-george-store`;
 const tableName = `${workspace}_LloydGeorgeReferenceMetadata`;
 const fileName = `${activePatient}/e4a6d7f7-01f3-44be-8964-515b2c0ec180`;
@@ -32,7 +30,7 @@ describe('GP Workflow: View Lloyd George record', () => {
             '[Smoke] GP ADMIN user can download the Lloyd George document of an active patient',
             { tags: 'smoke', defaultCommandTimeout: 20000 },
             () => {
-                cy.smokeLogin(Roles.SMOKE_GP_ADMIN);
+                cy.smokeLogin(Roles.SMOKE_GP_ADMIN, 'M85143');
                 cy.get('.nhsuk-navigation-container').should('exist');
                 cy.navigateToPatientSearchPage();
                 cy.get('#nhs-number-input').click();

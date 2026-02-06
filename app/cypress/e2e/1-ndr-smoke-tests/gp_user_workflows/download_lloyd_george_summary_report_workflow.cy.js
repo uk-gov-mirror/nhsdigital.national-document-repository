@@ -1,5 +1,5 @@
 import { Roles } from '../../../support/roles';
-import dbItem from '../../../fixtures/dynamo-db-items/active-patient.json';
+import dbItem from '../../../fixtures/dynamo-db-items/active-patient-m85143.json';
 import { routes } from '../../../support/routes';
 
 const workspace = Cypress.env('WORKSPACE');
@@ -9,7 +9,6 @@ const tableName = `${workspace}_LloydGeorgeReferenceMetadata`;
 describe('GP Workflow: Download Lloyd George summary report', () => {
     context('Download Lloyd George summary report', () => {
         beforeEach(() => {
-            cy.deleteItemFromDynamoDb(tableName, dbItem.ID);
             cy.addItemToDynamoDb(tableName, dbItem);
         });
 
@@ -21,7 +20,7 @@ describe('GP Workflow: Download Lloyd George summary report', () => {
             '[Smoke] Authenticated user can download the Lloyd George summary',
             { tags: 'smoke', defaultCommandTimeout: 20000 },
             () => {
-                cy.smokeLogin(Roles.SMOKE_GP_ADMIN);
+                cy.smokeLogin(Roles.SMOKE_GP_ADMIN, 'M85143');
 
                 cy.navigateToDownloadReportPage();
 

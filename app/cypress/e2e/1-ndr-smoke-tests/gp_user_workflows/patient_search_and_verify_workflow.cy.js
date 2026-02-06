@@ -1,14 +1,10 @@
-import { pdsPatients, stubPatients } from '../../../support/patients';
 import { Roles, roleName } from '../../../support/roles';
 
 describe('GP Workflow: Patient search and verify', () => {
     // env vars
     const baseUrl = Cypress.config('baseUrl');
     const gpRoles = [Roles.SMOKE_GP_ADMIN, Roles.SMOKE_GP_CLINICAL];
-
-    const workspace = Cypress.env('WORKSPACE');
-    const activePatient =
-        workspace === 'ndr-dev' ? pdsPatients.activeUpload : stubPatients.activeUpload;
+    const activePatient = 9730786933;
     const patientVerifyUrl = '/patient/verify';
     const lloydGeorgeRecordUrl = '/patient/lloyd-george-record';
 
@@ -19,7 +15,7 @@ describe('GP Workflow: Patient search and verify', () => {
             )} `,
             { tags: 'smoke' },
             () => {
-                cy.smokeLogin(role);
+                cy.smokeLogin(role, 'M85143');
 
                 cy.navigateToPatientSearchPage();
 

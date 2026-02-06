@@ -1,5 +1,5 @@
 import { Roles } from '../../support/roles';
-import dbItem from '../../fixtures/dynamo-db-items/active-patient.json';
+import dbItem from '../../fixtures/dynamo-db-items/active-patient-h81109.json';
 import { routes } from '../../support/routes';
 
 const workspace = Cypress.env('WORKSPACE');

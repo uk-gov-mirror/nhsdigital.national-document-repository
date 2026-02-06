@@ -14,7 +14,7 @@ describe('GP Workflow: GP Role rejected from accessing a non mating ODS patient 
             )} `,
             { tags: 'smoke' },
             () => {
-                cy.smokeLogin(role);
+                cy.smokeLogin(role, 'M85143');
 
                 cy.navigateToPatientSearchPage();
 
