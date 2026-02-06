@@ -25,7 +25,6 @@ syrupy = "4.9.1"
 
 [tool.poetry.group.edge_lambda.dependencies]
 boto3 = "^1.42.1"
-botocore = "^1.42.1"
 pydantic = "^2.8.2"
 pyjwt = "^2.9.0"
 inflection = "0.5.1"
@@ -33,29 +32,19 @@ inflection = "0.5.1"
 [tool.poetry.group.alerting_lambda.dependencies]
 PyJWT = "^2.8.0"
 boto3 = "^1.42.1"
-botocore = "^1.42.1"
 inflection = "0.5.1"
 jinja2 = "3.1.6"
 pydantic = "^2.11"
 requests = "2.32.4"
 
 [tool.poetry.group.core_lambda.dependencies]
-PyJWT = "^2.8.0"
-PyYAML = "6.0.1"
+PyJWT = { version = "^2.8", extras = ["crypto"] }
 boto3 = "^1.42.1"
-botocore = "^1.42.1"
-charset-normalizer = "3.2.0"
-cryptography = "44.0.1"
-idna = "3.7"
 inflection = "0.5.1"
-jmespath = "1.0.1"
 oauthlib = "3.2.2"
-packaging = "23.1.0"
 pydantic = { version = "^2.11", extras = ["email"] }
 pypdf = "6.6.2"
 requests = "2.32.4"
-responses = "0.23.1"
-types-PyYAML = "6.0.12.11"
 regex = "2023.12.25"
 pikepdf = "8.4.0"
 
