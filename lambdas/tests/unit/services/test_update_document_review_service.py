@@ -375,7 +375,7 @@ def test_validate_user_match_custodian_raises_exception_when_ods_codes_dont_matc
         )
 
     assert exc_info.value.status_code == 403
-    assert exc_info.value.error == LambdaError.DocumentReferenceUnauthorised
+    assert exc_info.value.error == LambdaError.DocumentReviewUploadForbidden
 
 
 def test_validate_document_for_update_calls_all_validation_methods(

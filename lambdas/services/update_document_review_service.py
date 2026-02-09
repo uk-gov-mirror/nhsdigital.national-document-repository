@@ -96,9 +96,9 @@ class UpdateDocumentReviewService:
         reviewer_ods_code: str,
     ):
         logger.info(f"Validating document for update: {document.id}")
+        self._validate_user_match_custodian(document, reviewer_ods_code)
         self._validate_patient_id_match(document, patient_id)
         self._validate_review_status(document)
-        self._validate_user_match_custodian(document, reviewer_ods_code)
 
     def _validate_patient_id_match(self, document, patient_id: str):
         if document.nhs_number != patient_id:
@@ -131,7 +131,7 @@ class UpdateDocumentReviewService:
                 {"Result": self.FAILED_LOG_MESSAGE},
             )
             raise UpdateDocumentReviewException(
-                403, LambdaError.DocumentReferenceUnauthorised
+                403, LambdaError.DocumentReviewUploadForbidden
             )
 
     def _process_review_status_update(
