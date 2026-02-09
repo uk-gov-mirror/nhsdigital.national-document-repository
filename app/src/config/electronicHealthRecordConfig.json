@@ -18,6 +18,7 @@
         "uploadFilesSelectTitle": "Choose an electronic health record (EHR) notes to upload",
         "uploadFilesBulletPoints": [
             "You can only upload 1 file",
+            "There is no file size limit",
             "You can only upload a PDF file",
             "If your file is not a PDF, you'll need to convert it to one before uploading",
             "If there's a problem with your files during upload, you'll need to resolve these before continuing"
