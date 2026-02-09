@@ -22,6 +22,7 @@ import SpinnerV2 from '../../../generic/spinnerV2/SpinnerV2';
 import { REPORT_TYPE } from '../../../../types/generic/reports';
 import { AxiosError } from 'axios';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
+import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
 
 export type ReviewsPageProps = {
     setReviewData: Dispatch<SetStateAction<ReviewDetails | null>>;
@@ -64,7 +65,7 @@ const ReviewTableRows = ({
                     return (
                         <Table.Row key={review.id}>
                             <Table.Cell>
-                                {review.nhsNumber === '0000000000'
+                                {review.nhsNumber === NHS_NUMBER_UNKNOWN
                                     ? 'N/A'
                                     : formatNhsNumber(review.nhsNumber)}
                             </Table.Cell>

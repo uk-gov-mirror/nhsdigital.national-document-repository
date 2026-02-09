@@ -1,0 +1,1 @@
+export const NHS_NUMBER_UNKNOWN = '0000000000';

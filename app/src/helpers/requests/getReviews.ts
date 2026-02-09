@@ -14,6 +14,7 @@ import getDocumentSearchResults, { DocumentSearchResultsArgs } from './getDocume
 import getDocument from './getDocument';
 import { fileExtensionToContentType } from '../utils/fileExtensionToContentType';
 import { AuthHeaders } from '../../types/blocks/authHeaders';
+import { NHS_NUMBER_UNKNOWN } from '../constants/numbers';
 
 const getReviews = async (
     baseUrl: string,
@@ -135,7 +136,7 @@ export const getReviewData = async ({
 
     let hasExistingRecordInStorage = false;
 
-    if (docTypeConfig.singleDocumentOnly) {
+    if (docTypeConfig.singleDocumentOnly && reviewData.nhsNumber !== NHS_NUMBER_UNKNOWN) {
         const params: DocumentSearchResultsArgs = {
             nhsNumber: reviewData.nhsNumber,
             baseUrl,

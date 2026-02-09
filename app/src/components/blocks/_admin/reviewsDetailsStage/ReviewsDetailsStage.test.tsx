@@ -15,6 +15,7 @@ import {
     UploadDocumentType,
     DOCUMENT_UPLOAD_STATE,
 } from '../../../../types/pages/UploadDocumentsPage/types';
+import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
 
 const mockNavigate = vi.fn();
 const mockSetPatientDetails = vi.fn();
@@ -25,7 +26,7 @@ vi.mock('react-router-dom', async (): Promise<unknown> => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: (): Mock => mockNavigate,
+        useNavigate: () => mockNavigate,
         useParams: (): { reviewId: string } => ({ reviewId: 'test-review-123' }),
     };
 });
@@ -105,8 +106,8 @@ const renderComponent = (reviewData?: ReviewDetails, reviewSnoMed?: DOCUMENT_TYP
     );
 };
 
-describe('ReviewDetailsPage', () => {
-    const testReviewSnoMed: DOCUMENT_TYPE = '16521000000101' as DOCUMENT_TYPE;
+describe('ReviewDetailsStage', () => {
+    const testReviewSnomed: DOCUMENT_TYPE = '16521000000101' as DOCUMENT_TYPE;
     const mockPatientDetails = buildPatientDetails({
         givenName: ['Lillie'],
         familyName: 'Dae',
@@ -117,9 +118,9 @@ describe('ReviewDetailsPage', () => {
 
     const mockReviewData = new ReviewDetails(
         'test-review-123',
-        testReviewSnoMed,
+        testReviewSnomed,
         '2023-01-01T00:00:00Z',
-        'test.uploader@example.com',
+        'M85143',
         '2023-01-01T00:00:00Z',
         'Test review reason',
         '1',
@@ -652,6 +653,43 @@ describe('ReviewDetailsPage', () => {
         });
     });
 
+    describe('Navigation - Unknown NHS Number', () => {
+        it('navigates to patient search page when NHS number is unknown', async () => {
+            const mockLoadReviewData = vi.fn().mockResolvedValue(undefined);
+
+            const unknownNhsNumberReviewData = new ReviewDetails(
+                'test-review-123',
+                testReviewSnomed,
+                '2023-01-01T00:00:00Z',
+                'M85143',
+                '2023-01-01T00:00:00Z',
+                'Test review reason',
+                '1',
+                NHS_NUMBER_UNKNOWN,
+            );
+
+            render(
+                <ReviewsDetailsPageComponent
+                    reviewData={unknownNhsNumberReviewData}
+                    loadReviewData={mockLoadReviewData}
+                    setDownloadStage={vi.fn()}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    uploadDocuments={[]}
+                />,
+            );
+
+            await waitFor(
+                () => {
+                    expect(mockNavigate).toHaveBeenCalledWith(
+                        '/admin/reviews/test-review-123/search-patient',
+                        undefined,
+                    );
+                },
+                { timeout: 2000 },
+            );
+        });
+    });
+
     describe('Form submission with react-hook-form', () => {
         beforeEach(() => {
             vi.spyOn(isLocalModule, 'isLocal', 'get').mockReturnValue(true);
@@ -1118,7 +1156,7 @@ describe('ReviewDetailsPage', () => {
             vi.spyOn(isLocalModule, 'isLocal', 'get').mockReturnValue(true);
             const reviewWithReason = new ReviewDetails(
                 'test-review-123',
-                testReviewSnoMed,
+                testReviewSnomed,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
                 '2023-01-01T00:00:00Z',
@@ -1140,7 +1178,7 @@ describe('ReviewDetailsPage', () => {
             vi.spyOn(isLocalModule, 'isLocal', 'get').mockReturnValue(true);
             const reviewWithNullFiles = new ReviewDetails(
                 'test-review-123',
-                testReviewSnoMed,
+                testReviewSnomed,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
                 '2023-01-01T00:00:00Z',

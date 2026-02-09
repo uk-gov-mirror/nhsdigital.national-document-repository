@@ -34,6 +34,7 @@ import { AxiosError } from 'axios';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
 import waitForSeconds from '../../../../helpers/utils/waitForSeconds';
 import DocumentUploadLloydGeorgePreview from '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
+import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
 
 export type ReviewsDetailsStageProps = {
     reviewData: ReviewDetails;
@@ -146,10 +147,13 @@ const ReviewsDetailsStage = ({
             setisLoadingPatientDetails(false);
             return;
         }
+        if (reviewData.nhsNumber === NHS_NUMBER_UNKNOWN) {
+            setisLoadingPatientDetails(false);
+            return;
+        }
         const getPatientDetails = async (): Promise<void> => {
             if (!isFetchingReviewDetailsRef.current) {
                 isFetchingReviewDetailsRef.current = true;
-
                 await handlePatientSearch({
                     nhsNumber: reviewData.nhsNumber,
                     setSearchingState: () => {},
@@ -178,6 +182,14 @@ const ReviewsDetailsStage = ({
             while (retryCount < maxRetries) {
                 try {
                     await loadReviewData();
+                    if (reviewData.nhsNumber === NHS_NUMBER_UNKNOWN) {
+                        navigateUrlParam(
+                            routeChildren.ADMIN_REVIEW_SEARCH_PATIENT,
+                            { reviewId: reviewId! },
+                            navigate,
+                        );
+                        return;
+                    }
                     break;
                 } catch (e) {
                     retryCount += 1;

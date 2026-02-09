@@ -16,7 +16,6 @@ import ReviewDetailsPatientSearchStage from '../../components/blocks/_admin/revi
 import { ReviewsPage } from '../../components/blocks/_admin/reviewsPage/ReviewsPage';
 import PatientVerifyPage from '../../components/blocks/generic/patientVerifyPage/PatientVerifyPage';
 import useConfig from '../../helpers/hooks/useConfig';
-import usePatient from '../../helpers/hooks/usePatient';
 import { getLastURLPath } from '../../helpers/utils/urlManipulations';
 import { routeChildren, routes } from '../../types/generic/routes';
 import { AdminPage } from '../adminPage/AdminPage';
@@ -40,7 +39,6 @@ export enum CompleteState {
 const AdminRoutesPage = (): JSX.Element => {
     const config = useConfig();
     const navigate = useNavigate();
-    const patientDetails = usePatient();
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
     const [hasExistingRecordInStorage, setHasExistingRecordInStorage] = useState(false);
@@ -66,17 +64,7 @@ const AdminRoutesPage = (): JSX.Element => {
     }
 
     const patientVerifyOnSubmit = (setInputError: Dispatch<SetStateAction<string>>): void => {
-        if (patientDetails?.deceased) {
-            navigate(routeChildren.PATIENT_ACCESS_AUDIT_DECEASED);
-            return;
-        }
-
-        if (patientDetails?.active) {
-            navigate(routeChildren.ADMIN_REVIEW_COMPLETE_PATIENT_MATCH);
-            return;
-        }
-
-        navigate(routeChildren.ADMIN_REVIEW_SEARCH_PATIENT);
+        navigate(routeChildren.ADMIN_REVIEW_COMPLETE_PATIENT_MATCH);
     };
 
     const loadData = async (): Promise<void> => {

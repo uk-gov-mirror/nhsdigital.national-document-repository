@@ -1534,7 +1534,7 @@ describe('getReviews.ts', () => {
             vi.clearAllMocks();
         });
 
-        test('does not fetch existing document when doc type is not singleDocumentOnly', async () => {
+        test('does not fetch existing document when doc type is not singleDocumentOnly and NHS number is unknown', async () => {
             const reviewData = new ReviewDetails(
                 'review-2',
                 DOCUMENT_TYPE.EHR,
@@ -1543,7 +1543,7 @@ describe('getReviews.ts', () => {
                 '2024-01-01',
                 'reason',
                 '7',
-                '9000000001',
+                '0000000000', // NHS_NUMBER_UNKNOWN
             );
 
             const reviewDto: GetDocumentReviewDto = {
@@ -1559,10 +1559,56 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-2/7`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-2/7`)) {
+                    return Promise.resolve({ status: 200, data: reviewDto });
+                }
+                if (url === 'https://example.com/ehr.pdf') {
+                    return Promise.resolve({ status: 200, data: new Blob(['file']) });
+                }
+                return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
+            });
+
+            const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
+
+            expect(result.aborted).toBe(false);
+            expect(result.hasExistingRecordInStorage).toBe(false);
+            expect(mockedGetDocumentSearchResults).not.toHaveBeenCalled();
+            expect(mockedGetDocument).not.toHaveBeenCalled();
+
+            expect(result.existingUploadDocuments).toHaveLength(0);
+            expect(result.additionalFiles).toHaveLength(1);
+            expect(result.uploadDocuments).toHaveLength(1);
+            expect(result.uploadDocuments[0].type).toBe('REVIEW');
+            expect(result.uploadDocuments[0].file.name).toBe('ehr.pdf');
+            expect(result.uploadDocuments[0].file.type).toBe('application/pdf');
+        });
+
+        test('does not fetch existing document when doc type is singleDocumentOnly and NHS number is unknown', async () => {
+            const reviewData = new ReviewDetails(
+                'review-2',
+                DOCUMENT_TYPE.LLOYD_GEORGE,
+                '2024-01-01',
+                'uploader',
+                '2024-01-01',
+                'reason',
+                '7',
+                '0000000000', // NHS_NUMBER_UNKNOWN
+            );
+
+            const reviewDto: GetDocumentReviewDto = {
+                id: 'review-2',
+                uploadDate: '2024-01-01T10:00:00Z',
+                documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                files: [
+                    {
+                        fileName: 'ehr.pdf',
+                        presignedUrl: 'https://example.com/ehr.pdf',
+                    },
+                ],
+            };
+
+            mockedAxios.get.mockImplementation((url) => {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-2/7`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
                 if (url === 'https://example.com/ehr.pdf') {
@@ -1629,10 +1675,7 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-3/2`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-3/2`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
                 if (url === 'https://example.com/existing.pdf') {
@@ -1684,7 +1727,13 @@ describe('getReviews.ts', () => {
                 ],
             } as GetDocumentReviewDto;
 
-            mockedAxios.get.mockResolvedValueOnce({ status: 200, data: reviewDto });
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
+            mockedAxios.get.mockImplementation((url) => {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-4/1`)) {
+                    return Promise.resolve({ status: 200, data: reviewDto });
+                }
+                return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
+            });
 
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
 
@@ -1726,18 +1775,16 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-5/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-5/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
             });
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
 
             expect(result.aborted).toBe(false);
@@ -1781,14 +1828,12 @@ describe('getReviews.ts', () => {
                 ],
             };
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-6/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-6/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
@@ -1797,12 +1842,9 @@ describe('getReviews.ts', () => {
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
 
             expect(result.uploadDocuments).toHaveLength(3);
-            // Verify files are created with correct names and extensions
             expect(result.uploadDocuments[0].file.name).toBe('document.pdf');
             expect(result.uploadDocuments[1].file.name).toBe('image.jpg');
             expect(result.uploadDocuments[2].file.name).toBe('archive.zip');
-            // Note: File types are set by fileExtensionToContentType helper
-            // The blob type doesn't affect the File type since it's explicitly set in the File constructor
         });
 
         test('handles files without extension', async () => {
@@ -1830,18 +1872,16 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-7/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-7/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
             });
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
 
             expect(result.uploadDocuments).toHaveLength(1);
@@ -1875,18 +1915,16 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-8/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-8/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
             });
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             await getReviewData({ baseUrl, baseHeaders, reviewData });
 
             expect(addReviewFilesSpy).toHaveBeenCalledWith(reviewDto);
@@ -1905,6 +1943,7 @@ describe('getReviews.ts', () => {
                 '9000000001',
             );
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             mockedAxios.get.mockRejectedValue(new Error('Network error'));
 
             await expect(getReviewData({ baseUrl, baseHeaders, reviewData })).rejects.toThrow(
@@ -1936,6 +1975,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             mockedAxios.get.mockImplementation((url) => {
                 if (url.includes('/document-review/')) {
                     return Promise.resolve({ status: 200, data: reviewDto });
@@ -2024,18 +2064,16 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-13/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-13/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
             });
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
 
             const doc = result.uploadDocuments[0];
@@ -2095,13 +2133,10 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-14/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-14/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
@@ -2164,13 +2199,10 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-15/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-15/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
@@ -2213,13 +2245,10 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-16/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-16/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
@@ -2278,13 +2307,10 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-17/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-17/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
@@ -2345,13 +2371,10 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-18/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-18/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
@@ -2395,18 +2418,16 @@ describe('getReviews.ts', () => {
             };
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-19/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-19/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
             });
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
 
             const ids = result.uploadDocuments.map((doc) => doc.id);
@@ -2435,6 +2456,7 @@ describe('getReviews.ts', () => {
                 files: [],
             };
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             mockedAxios.get.mockResolvedValue({ status: 200, data: reviewDto });
 
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
@@ -2469,6 +2491,7 @@ describe('getReviews.ts', () => {
                 ],
             } as unknown as GetDocumentReviewDto;
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             mockedAxios.get.mockResolvedValue({ status: 200, data: reviewDto });
 
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
@@ -2514,25 +2537,21 @@ describe('getReviews.ts', () => {
 
             let blobFetchCount = 0;
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-22/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-22/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                // Only count blob fetches (presigned URLs)
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+
+                if (url.startsWith('https://example.com/')) {
                     blobFetchCount += 1;
                     return Promise.resolve({ status: 200, data: new Blob(['file']) });
                 }
                 return Promise.reject(new Error(`Unexpected url: ${String(url)}`));
             });
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
 
             expect(result.aborted).toBe(true);
-            // The first file (file1.pdf) has a valid URL and gets fetched before
-            // the second file's empty URL is encountered, causing the abort
             expect(blobFetchCount).toBe(1);
         });
 
@@ -2563,23 +2582,20 @@ describe('getReviews.ts', () => {
             const mockBlob = new Blob(['test content'], { type: 'application/pdf' });
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-23/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-23/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: mockBlob });
                 }
                 return Promise.reject(new Error('Unexpected URL'));
             });
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
 
             expect(result.aborted).toBe(false);
             expect(result.uploadDocuments).toHaveLength(1);
-            // Verify getReviewById was called with empty string fallback
             expect(mockedAxios.get).toHaveBeenCalledWith(
                 expect.stringContaining('patientId='),
                 expect.anything(),
@@ -2604,7 +2620,7 @@ describe('getReviews.ts', () => {
                 documentSnomedCodeType: DOCUMENT_TYPE.EHR,
                 files: [
                     {
-                        fileName: '', // empty filename - split('.').pop() returns undefined
+                        fileName: '',
                         presignedUrl: 'https://example.com/emptyname',
                     },
                 ],
@@ -2613,23 +2629,20 @@ describe('getReviews.ts', () => {
             const mockBlob = new Blob(['test content'], { type: 'application/octet-stream' });
 
             mockedAxios.get.mockImplementation((url) => {
-                if (
-                    typeof url === 'string' &&
-                    url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-24/1`)
-                ) {
+                if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-24/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
-                if (typeof url === 'string' && url.startsWith('https://example.com/')) {
+                if (url.startsWith('https://example.com/')) {
                     return Promise.resolve({ status: 200, data: mockBlob });
                 }
                 return Promise.reject(new Error('Unexpected URL'));
             });
 
+            mockedGetDocumentSearchResults.mockResolvedValue([]);
             const result = await getReviewData({ baseUrl, baseHeaders, reviewData });
 
             expect(result.aborted).toBe(false);
             expect(result.uploadDocuments).toHaveLength(1);
-            // File should be created with empty string as fallback for extension
             expect(result.uploadDocuments[0].file.name).toBe('');
         });
     });
