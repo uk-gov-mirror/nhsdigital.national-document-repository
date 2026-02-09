@@ -330,6 +330,8 @@ const ReviewDetailsAssessmentStage = ({
 
             <h1>{pageTitle}</h1>
 
+            <p>You are reviewing the {reviewTypeLabel} for:</p>
+
             <div className="nhsuk-inset-text">
                 <PatientSummary>
                     <PatientSummary.Child item={PatientInfo.FULL_NAME} />
