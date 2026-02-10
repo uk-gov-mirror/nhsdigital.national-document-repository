@@ -41,7 +41,6 @@ def mock_extract_ods(mocker):
 
 @pytest.fixture
 def mock_service(set_env, mocker):
-    """Fixture to create a GetDocumentReviewService with mocked dependencies."""
     mocker.patch("services.get_document_review_service.S3Service")
     mocker.patch("services.get_document_review_service.DocumentUploadReviewService")
 
@@ -58,7 +57,6 @@ def mock_service(set_env, mocker):
 
 @pytest.fixture
 def mock_document_review():
-    """Create a mock document review reference."""
     files = [
         DocumentReviewFileDetails(
             file_name="file1.pdf",
@@ -88,7 +86,6 @@ def mock_document_review():
 def test_get_document_review_success(
     mock_service, mock_document_review, mocker, mock_extract_ods
 ):
-    """Test successful retrieval of a document review with pre-signed URLs."""
     mock_extract_ods.return_value = TEST_ODS_CODE
 
     mock_service.document_review_service.get_document_review_by_id.return_value = (
@@ -147,7 +144,6 @@ def test_get_document_review_success(
 
 
 def test_get_document_review_not_found(mock_service, mock_extract_ods):
-    """Test when a document review is not found in DynamoDB."""
     mock_extract_ods.return_value = TEST_ODS_CODE
     mock_service.document_review_service.get_document_review_by_id.return_value = None
 
@@ -166,7 +162,6 @@ def test_get_document_review_not_found(mock_service, mock_extract_ods):
 def test_get_document_review_nhs_number_mismatch(
     mock_service, mock_document_review, mock_extract_ods
 ):
-    """Test when document review exists but the NHS number doesn't match."""
     mock_extract_ods.return_value = TEST_ODS_CODE
 
     mock_service.document_review_service.get_document_review_by_id.return_value = (
@@ -244,9 +239,31 @@ def test_get_document_review_unexpected_exception(mock_service, mock_extract_ods
     assert e.value.error == LambdaError.DocRefClient
 
 
-def test_get_document_review_throws_error_user_not_custodian(
-    mock_service, mock_extract_ods
+def test_get_document_review_throws_error_not_pending_review(
+    mock_service, mock_extract_ods, mock_document_review
 ):
+    mock_document_review.review_status = DocumentReviewStatus.REASSIGNED
+    mock_service.document_review_service.get_document_review_by_id.return_value = (
+        mock_document_review
+    )
+
+    with pytest.raises(DocumentReviewLambdaException) as e:
+        mock_service.get_document_review(
+            patient_id=TEST_NHS_NUMBER,
+            document_id=TEST_DOCUMENT_ID,
+            document_version=TEST_DOCUMENT_VERSION,
+        )
+
+    assert e.value.status_code == 400
+    assert e.value.error == LambdaError.DocumentReviewNotPendingReview
+
+
+def test_get_document_review_throws_error_user_not_custodian(
+    mock_service, mock_extract_ods, mock_document_review
+):
+    mock_service.document_review_service.get_document_review_by_id.return_value = (
+        mock_document_review
+    )
     mock_extract_ods.return_value = "Z67890"
 
     with pytest.raises(DocumentReviewLambdaException) as e:
@@ -276,7 +293,6 @@ def test_error_thrown_no_ods_in_request_context(mock_service, mock_extract_ods):
 
 @freeze_time("2023-11-03T12:00:00Z")
 def test_create_cloudfront_presigned_url(mock_service, mock_uuid, mocker):
-    """Test creating a CloudFront presigned URL."""
     mock_service.s3_service.create_download_presigned_url.return_value = (
         TEST_PRESIGNED_URL_1
     )
@@ -311,7 +327,6 @@ def test_create_cloudfront_presigned_url(mock_service, mock_uuid, mocker):
 def test_create_cloudfront_presigned_url_with_nested_path(
     mock_service, mock_uuid, mocker
 ):
-    """Test creating a CloudFront presigned URL with a nested S3 path."""
     file_location = f"s3://{MOCK_DOCUMENT_REVIEW_BUCKET}/nested/path/to/file.pdf"
     mock_service.s3_service.create_download_presigned_url.return_value = (
         TEST_PRESIGNED_URL_1
@@ -336,7 +351,6 @@ def test_create_cloudfront_presigned_url_with_nested_path(
 def test_create_cloudfront_presigned_url_calculates_correct_ttl(
     mock_service, mock_uuid, mocker
 ):
-    """Test that TTL is calculated correctly based on presigned URL expiry."""
     mock_service.s3_service.create_download_presigned_url.return_value = (
         TEST_PRESIGNED_URL_1
     )

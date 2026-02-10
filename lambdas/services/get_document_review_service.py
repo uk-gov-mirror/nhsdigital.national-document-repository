@@ -2,11 +2,13 @@ import os
 import uuid
 from datetime import datetime, timezone
 
+from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
 from services.base.s3_service import S3Service
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import (
+    DocumentNotPendingReviewException,
     DynamoServiceException,
     OdsErrorException,
     UserNotAuthorisedException,
@@ -19,10 +21,6 @@ logger = LoggingService(__name__)
 
 
 class GetDocumentReviewService:
-    """
-    Service for retrieving document reviews.
-    """
-
     def __init__(self):
         presigned_assume_role = os.getenv("PRESIGNED_ASSUME_ROLE")
         self.s3_service = S3Service(custom_aws_role=presigned_assume_role)
@@ -33,16 +31,6 @@ class GetDocumentReviewService:
     def get_document_review(
         self, patient_id: str, document_id: str, document_version: int
     ) -> dict | None:
-        """Retrieve a document review for a given patient and document.
-
-        Args:
-            patient_id: The patient ID (NHS number).
-            document_id: The document ID to retrieve.
-            document_version: The document version to retrieve.
-
-        Returns:
-            Dictionary containing the document review details, or None if not found.
-        """
         try:
 
             reviewer_ods_code = extract_ods_code_from_request_context()
@@ -60,6 +48,14 @@ class GetDocumentReviewService:
             if not document_review_item:
                 logger.info(f"No document review found for document_id: {document_id}")
                 return None
+
+            if (
+                document_review_item.review_status
+                != DocumentReviewStatus.PENDING_REVIEW
+            ):
+                raise DocumentNotPendingReviewException(
+                    "Document is not available for review"
+                )
 
             if reviewer_ods_code != document_review_item.custodian:
                 raise UserNotAuthorisedException(
@@ -111,6 +107,12 @@ class GetDocumentReviewService:
             raise DocumentReviewLambdaException(
                 403, LambdaError.DocumentReviewUploadForbidden
             )
+        except DocumentNotPendingReviewException as e:
+            logger.error(e)
+            raise DocumentReviewLambdaException(
+                400, LambdaError.DocumentReviewNotPendingReview
+            )
+
         except Exception as e:
             logger.error(
                 f"Unexpected error retrieving document review: {str(e)}",
@@ -119,14 +121,6 @@ class GetDocumentReviewService:
             raise DocumentReviewLambdaException(500, LambdaError.DocRefClient)
 
     def create_cloudfront_presigned_url(self, file_location: str) -> str:
-        """Create a CloudFront obfuscated pre-signed URL for a file.
-
-        Args:
-            file_location: The S3 file key/location.
-
-        Returns:
-            CloudFront URL that obfuscates the actual pre-signed URL.
-        """
         s3_bucket_name, file_key = file_location.removeprefix("s3://").split("/", 1)
         presign_url_response = self.s3_service.create_download_presigned_url(
             s3_bucket_name=s3_bucket_name,

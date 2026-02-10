@@ -559,6 +559,11 @@ class LambdaError(Enum):
         "message": "The file type provided is not supported",
     }
 
+    DocumentReviewNotPendingReview = {
+        "err_code": "DRV_4007",
+        "message": "Document is not available for review",
+    }
+
     DocumentReviewDB = {
         "err_code": "DRV_5001",
         "message": ErrorMessage.RETRIEVE_DOCUMENTS,
