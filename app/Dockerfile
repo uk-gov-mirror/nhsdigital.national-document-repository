@@ -22,7 +22,6 @@ RUN npm run build -- --mode $BUILD_ENV
 FROM nginx:latest
 RUN apt update && apt list --upgradable && apt upgrade -y && rm -rf /var/lib/apt/lists/*
 ARG CONTAINER_PORT
-ARG CLOUDFRONT_DOMAIN_NAME
 WORKDIR /usr/share/nginx/html
 RUN rm -rf ./*
 COPY --from=builder /app/dist .
@@ -31,7 +30,7 @@ WORKDIR /etc/nginx
 COPY --from=builder ./app/docker/nginx.conf ./nginx.conf.template
 
 RUN sed -i "s/\$CONTAINER_PORT/${CONTAINER_PORT}/g" ./nginx.conf.template
-RUN sed "s/\$CLOUDFRONT_DOMAIN_NAME/${CLOUDFRONT_DOMAIN_NAME}/g" ./nginx.conf.template > ./nginx.conf
+RUN cp ./nginx.conf.template ./nginx.conf
 
 EXPOSE ${CONTAINER_PORT}
 ENTRYPOINT ["nginx", "-g", "daemon off;"]
