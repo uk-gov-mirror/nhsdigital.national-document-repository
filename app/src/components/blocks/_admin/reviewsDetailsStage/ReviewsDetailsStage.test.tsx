@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ReviewsDetailsPageComponent from './ReviewsDetailsStage';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';

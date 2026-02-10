@@ -151,14 +151,7 @@ export const DeleteSubmitStageIndexView = ({
 
     return (
         <>
-            <BackButton
-                toLocation={
-                    config.featureFlags.uploadDocumentIteration3Enabled
-                        ? routes.PATIENT_DOCUMENTS
-                        : routes.LLOYD_GEORGE
-                }
-                backLinkText="Go back"
-            />
+            <BackButton />
             {deletionStage === SUBMISSION_STATE.FAILED && <ServiceError />}
             {showNoOptionSelectedMessage && (
                 <ErrorBox

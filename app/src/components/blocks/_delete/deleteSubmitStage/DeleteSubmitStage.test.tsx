@@ -388,6 +388,19 @@ describe('DeleteSubmitStage', () => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
             });
         });
+
+        it('navigates to previous route when back link is clicked', async () => {
+            renderComponent(DOCUMENT_TYPE.LLOYD_GEORGE, history);
+
+            const backLink = screen.getByRole('link', { name: 'Go back' });
+            expect(backLink).toBeInTheDocument();
+
+            userEvent.click(backLink);
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(-1);
+            });
+        });
     });
 });
 
