@@ -42,7 +42,7 @@ export type Props = {
     filesErrorRef: RefObject<boolean>;
     documentConfig: DOCUMENT_TYPE_CONFIG;
     onSuccessOverride?: () => void;
-    backLinkOverride?: string;
+    backLinkOverride?: () => void;
     removeAllFilesLinkOverride?: string;
     goToNextDocType?: () => void;
     goToPreviousDocType?: () => void;
@@ -406,7 +406,7 @@ const DocumentSelectStage = ({
 
     const backClicked = (): void => {
         if (backLinkOverride) {
-            navigate(backLinkOverride);
+            backLinkOverride();
         } else if (goToPreviousDocType) {
             goToPreviousDocType();
             resetErrors();

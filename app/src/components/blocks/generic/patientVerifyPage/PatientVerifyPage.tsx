@@ -3,7 +3,6 @@ import { Button, WarningCallout } from 'nhsuk-react-components';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import BackButton from '../../../generic/backButton/BackButton';
 import PatientSummary from '../../../generic/patientSummary/PatientSummary';
-import { routes } from '../../../../types/generic/routes';
 import { useForm } from 'react-hook-form';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import useRole from '../../../../helpers/hooks/useRole';
@@ -14,13 +13,11 @@ import { PatientDetails } from '../../../../types/generic/patientDetails';
 type PatientVerifyPageProps = {
     onSubmit: (setInputError: Dispatch<SetStateAction<string>>) => void;
     reviewPatientDetails?: PatientDetails;
-    backLinkOverride?: string;
 };
 
 const PatientVerifyPage = ({
     onSubmit,
     reviewPatientDetails,
-    backLinkOverride,
 }: PatientVerifyPageProps): JSX.Element => {
     const role = useRole();
     let patientDetails = usePatient();
@@ -39,7 +36,7 @@ const PatientVerifyPage = ({
 
     return (
         <div className="patient-results-paragraph">
-            <BackButton toLocation={backLinkOverride ?? routes.SEARCH_PATIENT} />
+            <BackButton />
             {inputError && (
                 <ErrorBox
                     messageTitle={'There is a problem'}

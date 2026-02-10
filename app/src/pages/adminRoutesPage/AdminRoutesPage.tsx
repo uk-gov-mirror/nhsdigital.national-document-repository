@@ -210,10 +210,6 @@ const AdminRoutesPage = (): JSX.Element => {
                     <PatientVerifyPage
                         onSubmit={patientVerifyOnSubmit}
                         reviewPatientDetails={newPatientDetails}
-                        backLinkOverride={routeChildren.ADMIN_REVIEW_SEARCH_PATIENT.replaceAll(
-                            ':reviewId',
-                            reviewData ? `${reviewData.id}.${reviewData.version}` : '',
-                        )}
                     />
                 }
             />

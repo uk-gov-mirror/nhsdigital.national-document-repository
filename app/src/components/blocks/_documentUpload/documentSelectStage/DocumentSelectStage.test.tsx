@@ -230,19 +230,6 @@ describe('DocumentSelectStage', () => {
             });
         });
 
-        it('should call backLinkOverride when go back is clicked and function is provided', async () => {
-            const backLinkOverride = 'test';
-            renderApp(history, {
-                backLinkOverride,
-            });
-
-            await userEvent.click(await screen.findByTestId('back-button'));
-
-            await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(backLinkOverride);
-            });
-        });
-
         it('should call goToNextDocType when skip clicked and function is provided', async () => {
             const goToNextDocType = vi.fn();
             renderApp(history, {
@@ -749,7 +736,6 @@ describe('DocumentSelectStage', () => {
     type TestAppProps = {
         goToPreviousDocType?: () => void;
         goToNextDocType?: () => void;
-        backLinkOverride?: string;
         removeAllFilesLinkOverride?: string;
         showSkipLink?: boolean;
         documentConfig?: DOCUMENT_TYPE_CONFIG;
@@ -760,7 +746,6 @@ describe('DocumentSelectStage', () => {
     const TestApp = ({
         goToPreviousDocType,
         goToNextDocType,
-        backLinkOverride,
         removeAllFilesLinkOverride,
         showSkipLink,
         documentConfig,
@@ -782,7 +767,6 @@ describe('DocumentSelectStage', () => {
                 goToPreviousDocType={goToPreviousDocType}
                 goToNextDocType={goToNextDocType}
                 showSkiplink={showSkipLink}
-                backLinkOverride={backLinkOverride}
                 removeAllFilesLinkOverride={removeAllFilesLinkOverride}
                 isReview={isReview}
             />

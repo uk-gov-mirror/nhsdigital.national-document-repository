@@ -67,10 +67,9 @@ const ReviewDetailsDocumentSelectStage = ({
             filesErrorRef={filesErrorRef}
             documentConfig={getConfigForDocType(reviewData.snomedCode)}
             onSuccessOverride={onSuccess}
-            backLinkOverride={routeChildren.ADMIN_REVIEW_ADD_MORE_CHOICE.replaceAll(
-                ':reviewId',
-                `${reviewData?.id}.${reviewData?.version}`,
-            )}
+            backLinkOverride={(): void => {
+                navigate(-1);
+            }}
             removeAllFilesLinkOverride={routeChildren.ADMIN_REVIEW_REMOVE_ALL.replaceAll(
                 ':reviewId',
                 `${reviewData?.id}.${reviewData?.version}`,

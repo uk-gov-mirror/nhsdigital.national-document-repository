@@ -71,22 +71,7 @@ describe('PatientVerifyPage', () => {
             const backLink = screen.getByRole('link', { name: /back/i });
             await userEvent.click(backLink);
 
-            expect(mockNavigate).toHaveBeenCalledWith('/patient/search');
-        });
-
-        it('renders back button with custom backLinkOverride when clicked', async () => {
-            mockNavigate.mockClear();
-            render(
-                <PatientVerifyPage
-                    onSubmit={mockOnSubmit}
-                    backLinkOverride="/admin/reviews/test-123/search-patient"
-                />,
-            );
-
-            const backLink = screen.getByRole('link', { name: /back/i });
-            await userEvent.click(backLink);
-
-            expect(mockNavigate).toHaveBeenCalledWith('/admin/reviews/test-123/search-patient');
+            expect(mockNavigate).toHaveBeenCalledWith(-1);
         });
 
         it('renders patient summary', () => {

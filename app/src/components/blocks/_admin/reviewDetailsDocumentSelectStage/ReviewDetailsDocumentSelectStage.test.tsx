@@ -194,7 +194,7 @@ describe('ReviewDetailsDocumentSelectStage', () => {
             expect(screen.getByText('test-document.pdf')).toBeInTheDocument();
         });
 
-        it('provides correct back link based on review ID', async () => {
+        it('navigates to previous page on back clicked', async () => {
             const user = userEvent.setup();
             const testDocuments: UploadDocument[] = [
                 {
@@ -229,15 +229,10 @@ describe('ReviewDetailsDocumentSelectStage', () => {
                 expect(screen.queryByTestId('mock-spinner')).not.toBeInTheDocument();
             });
 
-            const expectedBackLink = routeChildren.ADMIN_REVIEW_ADD_MORE_CHOICE.replaceAll(
-                ':reviewId',
-                'test-review-id.1',
-            );
-
             const backButton = screen.getByTestId('back-button');
             await user.click(backButton);
 
-            expect(mockNavigate).toHaveBeenCalledWith(expectedBackLink);
+            expect(mockNavigate).toHaveBeenCalledWith(-1);
         });
     });
 
