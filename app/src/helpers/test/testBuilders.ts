@@ -193,8 +193,8 @@ const buildDocumentConfig = (
         acceptedFileTypes: ['PDF'],
         content: {
             viewDocumentTitle: 'Scanned paper notes',
-            addFilesSelectTitle: 'Add scanned paper notes files to this record',
-            uploadFilesSelectTitle: 'Choose scanned paper notes files to upload',
+            addFilesSelectTitle: 'Add scanned paper notes to this record',
+            uploadFilesSelectTitle: 'Choose scanned paper notes to upload',
             uploadFilesBulletPoints: [
                 'You can only upload PDF files',
                 'Check your files open correctly',

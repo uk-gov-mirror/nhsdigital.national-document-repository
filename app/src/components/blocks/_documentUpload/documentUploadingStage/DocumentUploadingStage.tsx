@@ -59,7 +59,7 @@ const DocumentUploadingStage = ({
                     {documentConfig.stitched && (
                         <span>
                             {journey === 'update'
-                                ? 'Your files will be added to the existing record when the upload is complete.'
+                                ? `Your files will be added to the existing ${documentConfig.displayName} when the upload is complete.`
                                 : 'Your files will be combined into one document when the upload is complete.'}
                         </span>
                     )}

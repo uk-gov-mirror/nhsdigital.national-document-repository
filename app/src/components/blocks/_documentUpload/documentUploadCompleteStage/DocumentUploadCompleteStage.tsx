@@ -11,7 +11,6 @@ import {
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import { useEffect, useState } from 'react';
 import { allDocsHaveState } from '../../../../helpers/utils/uploadDocumentHelpers';
-import { getJourney } from '../../../../helpers/utils/urlManipulations';
 import { DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 import { Button, ChevronLeftIcon, ChevronRightIcon } from 'nhsuk-react-components';
 
@@ -27,7 +26,6 @@ const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): Reac
     const formattedNhsNumber = formatNhsNumber(nhsNumber);
     const dob: string = getFormattedDateFromString(patientDetails?.birthDate);
     const patientName = getFormattedPatientFullName(patientDetails);
-    const journey = getJourney();
     const [showFiles, setShowFiles] = useState(false);
 
     const failedDocuments = documents.filter((doc) => doc.state === DOCUMENT_UPLOAD_STATE.ERROR);
@@ -119,7 +117,7 @@ const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): Reac
                 <>
                     <h3>What happens next</h3>
 
-                    {journey === 'update' && patientDetails.canManageRecord && (
+                    {patientDetails.canManageRecord && (
                         <p>
                             You can now view the updated {documentConfig.displayName} for this
                             patient in this service by{' '}

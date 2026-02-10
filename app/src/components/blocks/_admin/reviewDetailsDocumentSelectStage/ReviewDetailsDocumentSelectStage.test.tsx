@@ -149,9 +149,7 @@ describe('ReviewDetailsDocumentSelectStage', () => {
 
             // Check that the actual DocumentSelectStage component is rendered
             // by looking for the page title
-            expect(
-                screen.getByText('Choose scanned paper notes files to upload'),
-            ).toBeInTheDocument();
+            expect(screen.getByText('Choose scanned paper notes to upload')).toBeInTheDocument();
         });
 
         it('displays document information correctly', async () => {
