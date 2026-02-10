@@ -53,10 +53,6 @@ jobs:
           source ./lambdas/venv/bin/activate
           echo PATH=$PATH >> $GITHUB_ENV
 
-      - name: Format Code and ruff check
-        run: |
-          make format
-
       - name: Test with pytest
         run: |
           make test-unit

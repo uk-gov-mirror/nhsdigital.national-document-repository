@@ -17,6 +17,8 @@ LAMBDA_LAYER_PYTHON_PATH=python/lib/python$(PYTHON_VERSION)/site-packages
 ZIP_BASE_PATH = ./$(LAMBDAS_BUILD_PATH)/$(lambda_name)/tmp
 ZIP_COMMON_FILES = lambdas/utils lambdas/models lambdas/services lambdas/repositories lambdas/enums lambdas/scripts
 CONTAINER ?= false
+VENV_PATH_PREFIX := $(if $(filter true,$(CONTAINER)),./.venv,./lambdas/venv)
+FORMAT_ALL ?= false
 
 .PHONY: \
 	install clean help format list requirements ruff build-and-deploy-sandbox \
@@ -81,16 +83,16 @@ clean-test:
 	find . -name '.cache' -exec rm -fr {} +
 
 format:
-ifeq ($(CONTAINER), true)
-	./.venv/bin/python3 -m isort --profile black lambdas/
-	./.venv/bin/python3 -m black lambdas/
-	./.venv/bin/ruff check lambdas/ --fix
-else
-	./lambdas/venv/bin/python3 -m isort --profile black lambdas/
-	./lambdas/venv/bin/python3 -m black lambdas/
-	./lambdas/venv/bin/ruff check lambdas/ --fix
-endif
-
+	@if [ $(FORMAT_ALL) = true ]; then \
+		CHANGED_FILES=''; \
+	else \
+		CHANGED_FILES=$$(git diff main --name-only | grep '.py$$' | xargs); \
+		echo $$CHANGED_FILES; \
+		if [ -z "$$CHANGED_FILES" ]; then echo "No changed files to format"; exit 0; fi; \
+	fi; \
+	$(VENV_PATH_PREFIX)/bin/python3 -m black $$CHANGED_FILES; \
+	$(VENV_PATH_PREFIX)/bin/ruff check $$CHANGED_FILES --fix; \
+	$(VENV_PATH_PREFIX)/bin/python3 -m isort --profile black $$CHANGED_FILES
 
 sort-requirements:
 	sort -o $(TEST_REQUIREMENTS) $(TEST_REQUIREMENTS)

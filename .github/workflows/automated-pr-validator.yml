@@ -7,6 +7,25 @@ on:
     types: [opened, edited, synchronize]
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+    - uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          frontend:
+            - 'app/src/**'
+          backend:
+            - '*.py'
+            - 'lambdas/*.py'
+            - 'lambdas/**/*.py'
+
   checklist_validator:
     runs-on: ubuntu-latest
     permissions:
@@ -141,3 +160,82 @@ jobs:
           BRANCH_NAME=${{ github.event.repository.default_branch }}
           chmod +x scripts/markdown-validator.sh
           scripts/markdown-validator.sh
+
+  react_lint_and_build:
+    name: React Lint and Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install packages
+        id: install
+        run: |
+          make install
+
+      - name: Run Lint
+        id: lint
+        working-directory: app
+        run: |
+          npm run lint
+
+      - name: Run Build
+        id: build
+        working-directory: app
+        if: always()
+        run: |
+          npm run build
+
+  python_lint:
+    name: Python Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.11
+
+      - name: Setup env
+        run: |
+          make env
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          git remote set-branches origin main && git fetch --depth 1 origin main && git branch main origin/main
+          echo "CHANGED_FILES=$(git diff main --name-only | grep '.py$' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+
+      - name: Run black
+        id: black
+        run: |
+          if [ -z "${{ steps.changed-files.outputs.CHANGED_FILES }}" ]; then echo "No changed Python files to format"; exit 0; fi; \
+          ./lambdas/venv/bin/python3 -m black --check --diff --color ${{ steps.changed-files.outputs.CHANGED_FILES }}
+
+      - name: Run ruff
+        id: ruff
+        if: always()
+        run: |
+          if [ -z "${{ steps.changed-files.outputs.CHANGED_FILES }}" ]; then echo "No changed Python files to lint"; exit 0; fi; \
+          ./lambdas/venv/bin/ruff check ${{ steps.changed-files.outputs.CHANGED_FILES }}
+
+      - name: Run isort with black
+        id: isort
+        if: always()
+        run: |
+          if [ -z "${{ steps.changed-files.outputs.CHANGED_FILES }}" ]; then echo "No changed Python files to sort imports"; exit 0; fi; \
+          ./lambdas/venv/bin/python3 -m isort --profile black --check-only ${{ steps.changed-files.outputs.CHANGED_FILES }}
