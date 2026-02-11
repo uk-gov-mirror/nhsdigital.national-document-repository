@@ -214,7 +214,7 @@ describe('ReviewDetailsStage', () => {
             await waitFor(() => {
                 expect(
                     screen.getByText(
-                        'Check the patient details in this document match these patient demographics:',
+                        'Check the patient details in the document shown matches these patient demographics:',
                     ),
                 ).toBeInTheDocument();
             });

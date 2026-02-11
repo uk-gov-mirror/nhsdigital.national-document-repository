@@ -295,7 +295,9 @@ const ReviewsDetailsStage = ({
 
             <h1>Check this document is for the correct patient</h1>
 
-            <p>Check the patient details in this document match these patient demographics:</p>
+            <p>
+                Check the patient details in the document shown matches these patient demographics:
+            </p>
 
             <div className="nhsuk-inset-text">
                 <PatientSummary>
