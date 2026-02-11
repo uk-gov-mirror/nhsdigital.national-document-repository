@@ -48,14 +48,14 @@ export type DOCUMENT_TYPE_CONFIG = {
     content: IndividualDocumentTypeContent;
 };
 
-export type DocumentTypeContentKey = 'upload_title' | 'upload_description';
+export type DocumentTypeContentKey = 'uploadTitle' | 'uploadDescription';
 export interface DocumentTypeContent extends Record<DocumentTypeContentKey, string> {}
 
 // The document type as defined in the documentTypesConfig.json
 export interface DocumentType {
     name: string;
-    snomed_code: string;
-    config_name: string;
+    snomedCode: string;
+    configName: string;
     content: DocumentTypeContent;
 }
 

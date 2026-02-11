@@ -1,42 +1,42 @@
 [
     {
         "name": "Scanned Paper Notes",
-        "snomed_code": "16521000000101",
-        "config_name": "scannedPaperNotesConfig",
+        "snomedCode": "16521000000101",
+        "configName": "scannedPaperNotesConfig",
         "canUploadIndependently": true,
         "content": {
-            "upload_title": "Scanned Lloyd George notes",
-            "upload_description": "Upload and add files to a scanned paper Lloyd George record."
+            "uploadTitle": "Lloyd George scanned paper notes",
+            "uploadDescription": ["Upload and add files to this patient's scanned paper notes."]
         }
     },
     {
         "name": "Electronic Health Record",
-        "snomed_code": "717301000000104",
-        "config_name": "electronicHealthRecordConfig",
+        "snomedCode": "717301000000104",
+        "configName": "electronicHealthRecordConfig",
         "canUploadIndependently": true,
         "content": {
-                "upload_title": "Electronic health record (EHR)",
-                "upload_description": "Upload the full summary file and attachments of an electronic health record. You might also call these a 'journal' or 'practice notes'. Upload this summary if, for example, GP2GP fails."
+                "uploadTitle": "Electronic health record (EHR)",
+                "uploadDescription": ["Upload electronic health record (EHR) notes and attachments.",  "Do this if, for example, GP2GP fails."]
             }
     },
     {
         "name": "Electronic Health Record Attachments",
-        "snomed_code": "24511000000107",
-        "config_name": "electronicHealthRecordAttachmentsConfig",
+        "snomedCode": "24511000000107",
+        "configName": "electronicHealthRecordAttachmentsConfig",
         "canUploadIndependently": false,
         "content": {
-            "upload_title": "",
-            "upload_description": ""
+            "uploadTitle": "",
+            "uploadDescription": ""
         }
     },
     {
         "name": "Letters and Documents",
-        "snomed_code": "162931000000103",
-        "config_name": "lettersAndDocumentsConfig",
+        "snomedCode": "162931000000103",
+        "configName": "lettersAndDocumentsConfig",
         "canUploadIndependently": true,
         "content": {
-            "upload_title": "Other documents",
-            "upload_description": "Upload other letters and documents that have arrived for this patient after they have left your practice. For example, letters, test results and referrals."
+            "uploadTitle": "Other documents",
+            "uploadDescription": ["Upload other letters and documents that have arrived for this patient after they have left your practice. For example, letters, test results and referrals."]
         }
     }
 ]
