@@ -18,6 +18,7 @@ from utils.audit_logging_setup import LoggingService
 
 REGION_NAME = "eu-west-2"
 
+S3_PREFIX = "s3://"
 MOCK_TABLE_NAME = "test-table"
 MOCK_BUCKET = "test-s3-bucket"
 MOCK_CLOUDFRONT_URL = "test-cloudfront-url.com"
@@ -154,7 +155,8 @@ def set_env(monkeypatch):
     monkeypatch.setenv(MOCK_PDM_TABLE_NAME_ENV_NAME, MOCK_PDM_TABLE_NAME)
     monkeypatch.setenv(MOCK_PDM_BUCKET_ENV_NAME, MOCK_PDM_BUCKET)
     monkeypatch.setenv(
-        "DYNAMODB_TABLE_LIST", json.dumps([MOCK_PDM_TABLE_NAME, MOCK_LG_TABLE_NAME])
+        "DYNAMODB_TABLE_LIST",
+        json.dumps([MOCK_PDM_TABLE_NAME, MOCK_LG_TABLE_NAME]),
     )
     monkeypatch.setenv(MOCK_ZIP_OUTPUT_BUCKET_ENV_NAME, MOCK_ZIP_OUTPUT_BUCKET)
     monkeypatch.setenv(MOCK_ZIP_TRACE_TABLE_ENV_NAME, MOCK_ZIP_TRACE_TABLE)
@@ -176,34 +178,43 @@ def set_env(monkeypatch):
     monkeypatch.setenv(MOCK_OIDC_CLIENT_SECRET_ENV_NAME, OIDC_CLIENT_SECRET)
     monkeypatch.setenv(MOCK_JWT_PUBLIC_KEY_NAME, JWT_PUBLIC_KEY)
     monkeypatch.setenv(
-        SSM_PARAM_JWT_TOKEN_PUBLIC_KEY_ENV_NAME, SSM_PARAM_JWT_TOKEN_PUBLIC_KEY
+        SSM_PARAM_JWT_TOKEN_PUBLIC_KEY_ENV_NAME,
+        SSM_PARAM_JWT_TOKEN_PUBLIC_KEY,
     )
     monkeypatch.setenv(MOCK_AUTH_DYNAMODB_NAME, "test_dynamo")
     monkeypatch.setenv(MOCK_FEEDBACK_SENDER_EMAIL_ENV_NAME, MOCK_FEEDBACK_SENDER_EMAIL)
     monkeypatch.setenv(
-        MOCK_FEEDBACK_EMAIL_SUBJECT_ENV_NAME, MOCK_FEEDBACK_EMAIL_SUBJECT
+        MOCK_FEEDBACK_EMAIL_SUBJECT_ENV_NAME,
+        MOCK_FEEDBACK_EMAIL_SUBJECT,
     )
     monkeypatch.setenv(
-        MOCK_EMAIL_RECIPIENT_SSM_PARAM_KEY_ENV_NAME, MOCK_EMAIL_RECIPIENT_SSM_PARAM_KEY
+        MOCK_EMAIL_RECIPIENT_SSM_PARAM_KEY_ENV_NAME,
+        MOCK_EMAIL_RECIPIENT_SSM_PARAM_KEY,
     )
     monkeypatch.setenv(
-        MOCK_APPCONFIG_APPLICATION_ENV_NAME, MOCK_APPCONFIG_APPLICATION_ID
+        MOCK_APPCONFIG_APPLICATION_ENV_NAME,
+        MOCK_APPCONFIG_APPLICATION_ID,
     )
     monkeypatch.setenv(
-        MOCK_APPCONFIG_ENVIRONMENT_ENV_NAME, MOCK_APPCONFIG_ENVIRONMENT_ID
+        MOCK_APPCONFIG_ENVIRONMENT_ENV_NAME,
+        MOCK_APPCONFIG_ENVIRONMENT_ID,
     )
     monkeypatch.setenv(
-        MOCK_APPCONFIG_CONFIGURATION_ENV_NAME, MOCK_APPCONFIG_CONFIGURATION_ID
+        MOCK_APPCONFIG_CONFIGURATION_ENV_NAME,
+        MOCK_APPCONFIG_CONFIGURATION_ID,
     )
     monkeypatch.setenv(
-        MOCK_PRESIGNED_URL_ROLE_ARN_KEY, MOCK_PRESIGNED_URL_ROLE_ARN_VALUE
+        MOCK_PRESIGNED_URL_ROLE_ARN_KEY,
+        MOCK_PRESIGNED_URL_ROLE_ARN_VALUE,
     )
     monkeypatch.setenv(MOCK_STATISTICS_TABLE_NAME, MOCK_STATISTICS_TABLE)
     monkeypatch.setenv(
-        MOCK_STATISTICAL_REPORTS_BUCKET_ENV_NAME, MOCK_STATISTICS_REPORT_BUCKET_NAME
+        MOCK_STATISTICAL_REPORTS_BUCKET_ENV_NAME,
+        MOCK_STATISTICS_REPORT_BUCKET_NAME,
     )
     monkeypatch.setenv(
-        "STITCH_METADATA_DYNAMODB_NAME", STITCH_METADATA_DYNAMODB_NAME_VALUE
+        "STITCH_METADATA_DYNAMODB_NAME",
+        STITCH_METADATA_DYNAMODB_NAME_VALUE,
     )
     monkeypatch.setenv("NRL_API_ENDPOINT", FAKE_URL)
     monkeypatch.setenv("ACCESS_AUDIT_TABLE_NAME", AUTH_STATE_TABLE_NAME)
@@ -214,10 +225,12 @@ def set_env(monkeypatch):
     monkeypatch.setenv("APIM_API_URL", APIM_API_URL)
     monkeypatch.setenv("CLOUDFRONT_URL", "mock-cloudfront-url.com")
     monkeypatch.setenv(
-        "UNSTITCHED_LLOYD_GEORGE_DYNAMODB_NAME", MOCK_UNSTITCHED_LG_TABLE_NAME
+        "UNSTITCHED_LLOYD_GEORGE_DYNAMODB_NAME",
+        MOCK_UNSTITCHED_LG_TABLE_NAME,
     )
     monkeypatch.setenv(
-        "DOCUMENT_RETRIEVE_ENDPOINT_APIM", f"{APIM_API_URL}/DocumentReference"
+        "DOCUMENT_RETRIEVE_ENDPOINT_APIM",
+        f"{APIM_API_URL}/DocumentReference",
     )
     monkeypatch.setenv("VIRUS_SCAN_STUB", "True")
     monkeypatch.setenv("ITOC_TESTING_SLACK_BOT_TOKEN", MOCK_SLACK_BOT_TOKEN)
@@ -349,7 +362,8 @@ class MockError(Enum):
 
 
 MOCK_CLIENT_ERROR = ClientError(
-    {"Error": {"Code": 500, "Message": "Test error message"}}, "TEST"
+    {"Error": {"Code": 500, "Message": "Test error message"}},
+    "TEST",
 )
 
 

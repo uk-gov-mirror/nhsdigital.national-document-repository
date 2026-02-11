@@ -78,20 +78,20 @@ class BulkUploadService:
                 logger.error(error)
 
                 logger.info(
-                    "Cannot validate patient due to PDS responded with Too Many Requests"
+                    "Cannot validate patient due to PDS responded with Too Many Requests",
                 )
                 logger.info("Cannot process for now due to PDS rate limit reached.")
                 logger.info(
-                    "All remaining messages in this batch will be returned to sqs queue to retry later."
+                    "All remaining messages in this batch will be returned to sqs queue to retry later.",
                 )
 
                 all_unprocessed_message = records[index - 1 :]
                 for unprocessed_message in all_unprocessed_message:
                     self.sqs_repository.put_sqs_message_back_to_queue(
-                        unprocessed_message
+                        unprocessed_message,
                     )
                 raise BulkUploadException(
-                    "Bulk upload process paused due to PDS rate limit reached"
+                    "Bulk upload process paused due to PDS rate limit reached",
                 )
             except (
                 ClientError,
@@ -104,14 +104,15 @@ class BulkUploadService:
                 logger.info("Continue on next message")
 
         logger.info(
-            f"Finish Processing successfully {len(records) - len(self.unhandled_messages)} of {len(records)} messages"
+            f"Finish Processing successfully {len(records) - len(self.unhandled_messages)} of {len(records)} messages",
         )
         if self.unhandled_messages:
             logger.info("Unable to process the following messages:")
             for message in self.unhandled_messages:
                 message_body = json.loads(message.get("body", "{}"))
                 request_context.patient_nhs_no = message_body.get(
-                    "NHS-NO", "no number found"
+                    "NHS-NO",
+                    "no number found",
                 )
                 logger.info(message_body)
 
@@ -122,7 +123,12 @@ class BulkUploadService:
         try:
             staging_metadata_json = message["body"]
             staging_metadata = StagingSqsMetadata.model_validate_json(
-                staging_metadata_json
+                staging_metadata_json,
+            )
+            uploader_ods = (
+                staging_metadata.files[0].gp_practice_code
+                if staging_metadata.files
+                else ""
             )
         except (pydantic.ValidationError, KeyError) as e:
             logger.error(f"Got incomprehensible message: {message}")
@@ -137,16 +143,18 @@ class BulkUploadService:
                 file_names.append(os.path.basename(file_metadata.stored_file_name))
                 file_metadata.scan_date = validate_scan_date(file_metadata.scan_date)
                 file_metadata.file_path = self.strip_leading_slash(
-                    file_metadata.file_path
+                    file_metadata.file_path,
                 )
             request_context.patient_nhs_no = staging_metadata.nhs_number
             validate_nhs_number(staging_metadata.nhs_number)
             pds_patient_details = getting_patient_info_from_pds(
-                staging_metadata.nhs_number
+                staging_metadata.nhs_number,
             )
+
             patient_ods_code = (
                 pds_patient_details.get_ods_code_or_inactive_status_for_gp()
             )
+
             validate_lg_file_names(file_names, staging_metadata.nhs_number)
 
             if not self.bypass_pds:
@@ -155,25 +163,29 @@ class BulkUploadService:
                         name_validation_accepted_reason,
                         is_name_validation_based_on_historic_name,
                     ) = validate_filename_with_patient_details_lenient(
-                        file_names, pds_patient_details
+                        file_names,
+                        pds_patient_details,
                     )
                     accepted_reason = self.concatenate_acceptance_reason(
-                        accepted_reason, name_validation_accepted_reason
+                        accepted_reason,
+                        name_validation_accepted_reason,
                     )
                 else:
                     is_name_validation_based_on_historic_name = (
                         validate_filename_with_patient_details_strict(
-                            file_names, pds_patient_details
+                            file_names,
+                            pds_patient_details,
                         )
                     )
                 if is_name_validation_based_on_historic_name:
                     accepted_reason = self.concatenate_acceptance_reason(
-                        accepted_reason, "Patient matched on historical name"
+                        accepted_reason,
+                        "Patient matched on historical name",
                     )
 
                 if not allowed_to_ingest_ods_code(patient_ods_code):
                     raise LGInvalidFilesException(
-                        "Patient not registered at your practice"
+                        "Patient not registered at your practice",
                     )
                 patient_death_notification_status = (
                     pds_patient_details.get_death_notification_status()
@@ -181,11 +193,13 @@ class BulkUploadService:
                 if patient_death_notification_status:
                     deceased_accepted_reason = f"Patient is deceased - {patient_death_notification_status.name}"
                     accepted_reason = self.concatenate_acceptance_reason(
-                        accepted_reason, deceased_accepted_reason
+                        accepted_reason,
+                        deceased_accepted_reason,
                     )
                 if patient_ods_code is PatientOdsInactiveStatus.RESTRICTED:
                     accepted_reason = self.concatenate_acceptance_reason(
-                        accepted_reason, "PDS record is restricted"
+                        accepted_reason,
+                        "PDS record is restricted",
                     )
 
         except (
@@ -195,20 +209,18 @@ class BulkUploadService:
             PatientRecordAlreadyExistException,
         ) as error:
             logger.info(
-                f"Detected issue related to patient number: {staging_metadata.nhs_number}"
+                f"Detected issue related to patient number: {staging_metadata.nhs_number}",
             )
             logger.error(error)
             logger.info("Will stop processing Lloyd George record for this patient.")
 
             reason = str(error)
-            uploader_ods = (
-                staging_metadata.files[0].gp_practice_code
-                if staging_metadata.files
-                else ""
-            )
 
             self.dynamo_repository.write_report_upload_to_dynamo(
-                staging_metadata, UploadStatus.FAILED, reason, patient_ods_code
+                staging_metadata,
+                UploadStatus.FAILED,
+                reason,
+                patient_ods_code,
             )
             if isinstance(error, (InvalidNhsNumberException, PatientNotFoundException)):
                 logger.info("Invalid NHS number detected. Will set as placeholder")
@@ -217,29 +229,34 @@ class BulkUploadService:
             return
 
         logger.info(
-            "NHS Number and filename validation complete. Checking virus scan has marked files as Clean"
+            "NHS Number and filename validation complete. Checking virus scan has marked files as Clean",
         )
 
         try:
             self.resolve_source_file_path(staging_metadata)
             self.bulk_upload_s3_repository.check_virus_result(
-                staging_metadata, self.file_path_cache
+                staging_metadata,
+                self.file_path_cache,
             )
             logger.info("Virus scan validation complete. Checking PDF file integrity")
             self.bulk_upload_s3_repository.check_pdf_integrity(
-                staging_metadata, self.file_path_cache
+                staging_metadata,
+                self.file_path_cache,
             )
         except VirusScanNoResultException as e:
             logger.info(e)
             logger.info(
-                f"Waiting on virus scan results for: {staging_metadata.nhs_number}, adding message back to queue"
+                f"Waiting on virus scan results for: {staging_metadata.nhs_number}, adding message back to queue",
             )
             if staging_metadata.retries > 14:
                 err = (
                     "File was not scanned for viruses before maximum retries attempted"
                 )
                 self.dynamo_repository.write_report_upload_to_dynamo(
-                    staging_metadata, UploadStatus.FAILED, err, patient_ods_code
+                    staging_metadata,
+                    UploadStatus.FAILED,
+                    err,
+                    patient_ods_code,
                 )
             else:
                 self.sqs_repository.put_staging_metadata_back_to_queue(staging_metadata)
@@ -247,7 +264,7 @@ class BulkUploadService:
         except (VirusScanFailedException, DocumentInfectedException) as e:
             logger.info(e)
             logger.info(
-                f"Virus scan results check failed for: {staging_metadata.nhs_number}, removing from queue"
+                f"Virus scan results check failed for: {staging_metadata.nhs_number}, removing from queue",
             )
             logger.info("Will stop processing Lloyd George record for this patient")
 
@@ -261,7 +278,7 @@ class BulkUploadService:
         except CorruptedFileException as e:
             logger.info(e)
             logger.info(
-                f"PDF integrity check failed for: {staging_metadata.nhs_number}, removing from queue"
+                f"PDF integrity check failed for: {staging_metadata.nhs_number}, removing from queue",
             )
             logger.info("Will stop processing Lloyd George record for this patient")
 
@@ -275,7 +292,7 @@ class BulkUploadService:
         except S3FileNotFoundException as e:
             logger.info(e)
             logger.info(
-                f"One or more of the files is not accessible from S3 bucket for patient {staging_metadata.nhs_number}"
+                f"One or more of the files is not accessible from S3 bucket for patient {staging_metadata.nhs_number}",
             )
             logger.info("Will stop processing Lloyd George record for this patient")
 
@@ -293,7 +310,7 @@ class BulkUploadService:
         self.dynamo_repository.init_transaction()
 
         logger.info(
-            "Transaction initialised. Transferring files to main S3 bucket and creating metadata"
+            "Transaction initialised. Transferring files to main S3 bucket and creating metadata",
         )
 
         try:
@@ -319,9 +336,12 @@ class BulkUploadService:
             return
 
         logger.info(
-            "File transfer complete. Removing uploaded files from staging bucket"
+            "File transfer complete. Removing uploaded files from staging bucket",
         )
         self.bulk_upload_s3_repository.remove_ingested_file_from_source_bucket()
+
+        if uploader_ods != patient_ods_code:
+            logger.info("Ingested files for a different practice.")
 
         logger.info(
             f"Completed file ingestion for patient {staging_metadata.nhs_number}",
@@ -344,7 +364,7 @@ class BulkUploadService:
             message=pdf_stitching_sqs_message,
         )
         logger.info(
-            f"Message sent to stitching queue for patient {staging_metadata.nhs_number}"
+            f"Message sent to stitching queue for patient {staging_metadata.nhs_number}",
         )
 
     def resolve_source_file_path(self, staging_metadata: StagingSqsMetadata):
@@ -367,38 +387,43 @@ class BulkUploadService:
             file_path_in_nfd_form = convert_to_nfd_form(file_path_in_metadata)
 
             if self.bulk_upload_s3_repository.file_exists_on_staging_bucket(
-                file_path_in_nfc_form
+                file_path_in_nfc_form,
             ):
                 resolved_file_paths[file_path_in_metadata] = file_path_in_nfc_form
             elif self.bulk_upload_s3_repository.file_exists_on_staging_bucket(
-                file_path_in_nfd_form
+                file_path_in_nfd_form,
             ):
                 resolved_file_paths[file_path_in_metadata] = file_path_in_nfd_form
             else:
                 logger.info(
-                    "No file matching the provided file path was found on S3 bucket"
+                    "No file matching the provided file path was found on S3 bucket",
                 )
                 logger.info("Please check whether files are named correctly")
                 raise S3FileNotFoundException(
-                    f"Failed to access file {sample_file_path}"
+                    f"Failed to access file {sample_file_path}",
                 )
 
         self.file_path_cache = resolved_file_paths
 
     def create_lg_records_and_copy_files(
-        self, staging_metadata: StagingSqsMetadata, current_gp_ods: str
+        self,
+        staging_metadata: StagingSqsMetadata,
+        current_gp_ods: str,
     ):
         nhs_number = staging_metadata.nhs_number
         for file_metadata in staging_metadata.files:
             document_reference = self.convert_to_document_reference(
-                file_metadata, nhs_number, current_gp_ods
+                file_metadata,
+                nhs_number,
+                current_gp_ods,
             )
 
             source_file_key = self.file_path_cache[file_metadata.file_path]
             dest_file_key = document_reference.s3_file_key
 
             copy_result = self.bulk_upload_s3_repository.copy_to_lg_bucket(
-                source_file_key=source_file_key, dest_file_key=dest_file_key
+                source_file_key=source_file_key,
+                dest_file_key=dest_file_key,
             )
             s3_bucket_name = self.bulk_upload_s3_repository.lg_bucket_name
 
@@ -406,7 +431,8 @@ class BulkUploadService:
 
             document_reference.file_size = (
                 self.bulk_upload_s3_repository.s3_repository.get_file_size(
-                    s3_bucket_name=s3_bucket_name, object_key=dest_file_key
+                    s3_bucket_name=s3_bucket_name,
+                    object_key=dest_file_key,
                 )
             )
             document_reference.set_uploaded_to_true()
@@ -420,7 +446,7 @@ class BulkUploadService:
             logger.info("Rolled back an incomplete transaction")
         except ClientError as e:
             logger.error(
-                f"Failed to rollback the incomplete transaction due to error: {e}"
+                f"Failed to rollback the incomplete transaction due to error: {e}",
             )
 
     def convert_to_document_reference(
@@ -471,7 +497,7 @@ class BulkUploadService:
                 uploader_ods=uploader_ods,
             )
             logger.info(
-                f"Sent failed record to review queue with reason: {review_reason}"
+                f"Sent failed record to review queue with reason: {review_reason}",
             )
         except Exception as e:
             logger.error(

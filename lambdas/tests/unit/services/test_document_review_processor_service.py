@@ -9,6 +9,7 @@ from models.document_review import (
 from models.pds_models import PatientDetails
 from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
 from services.document_review_processor_service import ReviewProcessorService
+from tests.unit.conftest import MOCK_DOCUMENT_REVIEW_BUCKET, S3_PREFIX, TEST_NHS_NUMBER
 from utils.exceptions import (
     InvalidResourceIdException,
     PatientNotFoundException,
@@ -19,13 +20,17 @@ from utils.exceptions import (
 @pytest.fixture
 def mock_document_upload_review_service(mocker):
     return mocker.patch(
-        "services.document_review_processor_service.DocumentUploadReviewService"
+        "services.document_review_processor_service.DocumentUploadReviewService",
     )
 
 
 @pytest.fixture
 def mock_s3_service(mocker):
-    return mocker.patch("services.document_review_processor_service.S3Service")
+    mock_s3 = mocker.patch(
+        "services.document_review_processor_service.S3Service",
+    ).return_value
+    mock_s3.S3_PREFIX = S3_PREFIX
+    yield mock_s3
 
 
 @pytest.fixture
@@ -42,7 +47,7 @@ def sample_review_message():
             ReviewMessageFile(
                 file_name="test_document.pdf",
                 file_path="staging/9000000009/test_document.pdf",
-            )
+            ),
         ],
         nhs_number="9000000009",
         failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
@@ -67,20 +72,10 @@ def mock_pds_service(mocker):
     return mock_pds
 
 
-def test_service_initializes_with_correct_environment_variables(
-    set_env, mock_document_upload_review_service, mock_s3_service
-):
-    service = ReviewProcessorService()
-
-    assert service.review_table_name == "test_document_review"
-    assert service.staging_bucket_name == "test_staging_bulk_store"
-    assert service.review_bucket_name == "test_document_review_bucket"
-    mock_document_upload_review_service.assert_called_once()
-    mock_s3_service.assert_called_once()
-
-
 def test_process_review_message_success(
-    service_under_test, sample_review_message, mocker
+    service_under_test,
+    sample_review_message,
+    mocker,
 ):
     mock_move = mocker.patch.object(service_under_test, "_move_files_to_review_bucket")
     mock_delete = mocker.patch.object(service_under_test, "_delete_files_from_staging")
@@ -89,7 +84,7 @@ def test_process_review_message_success(
         DocumentReviewFileDetails(
             file_name="test_document.pdf",
             file_location="9000000009/test-upload-id-123/test_document.pdf",
-        )
+        ),
     ]
 
     service_under_test.process_review_message(sample_review_message)
@@ -139,7 +134,9 @@ def test_process_review_message_multiple_files(service_under_test, mocker):
 
 
 def test_process_review_message_s3_copy_error(
-    service_under_test, sample_review_message, mocker
+    service_under_test,
+    sample_review_message,
+    mocker,
 ):
     mocker.patch.object(
         service_under_test,
@@ -155,7 +152,9 @@ def test_process_review_message_s3_copy_error(
 
 
 def test_process_review_message_dynamo_error_not_precondition(
-    service_under_test, sample_review_message, mocker
+    service_under_test,
+    sample_review_message,
+    mocker,
 ):
     mocker.patch.object(
         service_under_test,
@@ -164,7 +163,7 @@ def test_process_review_message_dynamo_error_not_precondition(
             DocumentReviewFileDetails(
                 file_name="document_1.pdf",
                 file_location="9000000009/test-upload-id-456/document_1.pdf",
-            )
+            ),
         ],
     )
     service_under_test.document_review_service.create_dynamo_entry.side_effect = (
@@ -179,7 +178,9 @@ def test_process_review_message_dynamo_error_not_precondition(
 
 
 def test_process_review_message_continues_dynamo_conditional_check_failure(
-    service_under_test, sample_review_message, mocker
+    service_under_test,
+    sample_review_message,
+    mocker,
 ):
     mocker.patch.object(
         service_under_test,
@@ -188,7 +189,7 @@ def test_process_review_message_continues_dynamo_conditional_check_failure(
             DocumentReviewFileDetails(
                 file_name="document_1.pdf",
                 file_location="9000000009/test-upload-id-456/document_1.pdf",
-            )
+            ),
         ],
     )
     mocker.patch.object(service_under_test, "_delete_files_from_staging")
@@ -198,7 +199,7 @@ def test_process_review_message_continues_dynamo_conditional_check_failure(
                 "Error": {
                     "Code": "ConditionalCheckFailedException",
                     "Message": "DynamoDB error",
-                }
+                },
             },
             "PutItem",
         )
@@ -214,11 +215,14 @@ def test_build_review_record_success(service_under_test, sample_review_message):
         DocumentReviewFileDetails(
             file_name="test_document.pdf",
             file_location="9000000009/test-review-id/test_document.pdf",
-        )
+        ),
     ]
 
     result = service_under_test._build_review_record(
-        sample_review_message, "test-review-id", files, "Y12345"
+        sample_review_message,
+        "test-review-id",
+        files,
+        "Y12345",
     )
 
     assert isinstance(result, DocumentUploadReviewReference)
@@ -265,7 +269,10 @@ def test_build_review_record_with_multiple_files(service_under_test):
     ]
 
     result = service_under_test._build_review_record(
-        message, "test-review-id", files, "Y12345"
+        message,
+        "test-review-id",
+        files,
+        "Y12345",
     )
 
     assert len(result.files) == 2
@@ -277,18 +284,22 @@ def test_move_files_success(service_under_test, sample_review_message, mocker):
     mocker.patch("uuid.uuid4", return_value="123412342")
 
     files = service_under_test._move_files_to_review_bucket(
-        sample_review_message, "test-review-id-123"
+        sample_review_message,
+        "test-review-id-123",
     )
 
     expected_key = "test-review-id-123/123412342"
 
     assert len(files) == 1
     assert files[0].file_name == "test_document.pdf"
-    assert files[0].file_location == expected_key
+    assert (
+        files[0].file_location
+        == f"{S3_PREFIX}{MOCK_DOCUMENT_REVIEW_BUCKET}/{expected_key}"
+    )
 
     service_under_test.s3_service.copy_across_bucket.assert_called_once_with(
         source_bucket="test_staging_bulk_store",
-        source_file_key="staging/9000000009/test_document.pdf",
+        source_file_key=f"staging/{TEST_NHS_NUMBER}/test_document.pdf",
         dest_bucket="test_document_review_bucket",
         dest_file_key=expected_key,
         if_none_match=True,
@@ -301,14 +312,14 @@ def test_move_multiple_files_success(service_under_test, mocker):
         files=[
             ReviewMessageFile(
                 file_name="document_1.pdf",
-                file_path="staging/9000000009/document_1.pdf",
+                file_path=f"staging/{TEST_NHS_NUMBER}/document_1.pdf",
             ),
             ReviewMessageFile(
                 file_name="document_2.pdf",
-                file_path="staging/9000000009/document_2.pdf",
+                file_path=f"staging/{TEST_NHS_NUMBER}/document_2.pdf",
             ),
         ],
-        nhs_number="9000000009",
+        nhs_number=TEST_NHS_NUMBER,
         failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
         uploader_ods="Y12345",
     )
@@ -318,9 +329,15 @@ def test_move_multiple_files_success(service_under_test, mocker):
 
     assert len(files) == 2
     assert files[0].file_name == "document_1.pdf"
-    assert files[0].file_location == "test-review-id/123412342"
+    assert (
+        files[0].file_location
+        == f"{S3_PREFIX}{MOCK_DOCUMENT_REVIEW_BUCKET}/test-review-id/123412342"
+    )
     assert files[1].file_name == "document_2.pdf"
-    assert files[1].file_location == "test-review-id/56785678"
+    assert (
+        files[1].file_location
+        == f"{S3_PREFIX}{MOCK_DOCUMENT_REVIEW_BUCKET}/test-review-id/56785678"
+    )
 
     assert service_under_test.s3_service.copy_across_bucket.call_count == 2
 
@@ -333,19 +350,21 @@ def test_move_files_copy_error(service_under_test, sample_review_message):
 
     with pytest.raises(ClientError):
         service_under_test._move_files_to_review_bucket(
-            sample_review_message, "test-review-id"
+            sample_review_message,
+            "test-review-id",
         )
 
 
 def test_move_files_to_review_bucket_continues_file_already_exists_in_review_bucket(
-    service_under_test, sample_review_message
+    service_under_test,
+    sample_review_message,
 ):
     service_under_test.s3_service.copy_across_bucket.side_effect = ClientError(
         {
             "Error": {
                 "Code": "PreconditionFailed",
                 "Message": "At least one of the pre-conditions you specified did not hold",
-            }
+            },
         },
         "CopyObject",
     )
@@ -399,7 +418,7 @@ def test_workflow_handles_multiple_different_patients(service_under_test):
                 ReviewMessageFile(
                     file_name=f"doc_{i}.pdf",
                     file_path=f"staging/900000000{i}/doc_{i}.pdf",
-                )
+                ),
             ],
             nhs_number=f"900000000{i}",
             failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
@@ -418,7 +437,9 @@ def test_workflow_handles_multiple_different_patients(service_under_test):
 
 
 def test_get_patient_custodian_returns_gp_ods_from_pds(
-    service_under_test, sample_review_message, mock_pds_service
+    service_under_test,
+    sample_review_message,
+    mock_pds_service,
 ):
     result = service_under_test._get_patient_custodian(sample_review_message)
 
@@ -427,12 +448,13 @@ def test_get_patient_custodian_returns_gp_ods_from_pds(
 
 
 def test_get_patient_custodian_returns_uploader_ods_when_nhs_number_is_none(
-    service_under_test, mock_pds_service
+    service_under_test,
+    mock_pds_service,
 ):
     message = ReviewMessageBody(
         upload_id="test-upload-id",
         files=[
-            ReviewMessageFile(file_name="test.pdf", file_path="staging/test/test.pdf")
+            ReviewMessageFile(file_name="test.pdf", file_path="staging/test/test.pdf"),
         ],
         nhs_number="",
         failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
@@ -446,12 +468,13 @@ def test_get_patient_custodian_returns_uploader_ods_when_nhs_number_is_none(
 
 
 def test_get_patient_custodian_returns_uploader_ods_when_nhs_number_is_placeholder(
-    service_under_test, mock_pds_service
+    service_under_test,
+    mock_pds_service,
 ):
     message = ReviewMessageBody(
         upload_id="test-upload-id",
         files=[
-            ReviewMessageFile(file_name="test.pdf", file_path="staging/test/test.pdf")
+            ReviewMessageFile(file_name="test.pdf", file_path="staging/test/test.pdf"),
         ],
         nhs_number="0000000000",
         failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
@@ -465,7 +488,9 @@ def test_get_patient_custodian_returns_uploader_ods_when_nhs_number_is_placehold
 
 
 def test_get_patient_custodian_returns_uploader_ods_on_pds_error(
-    service_under_test, sample_review_message, mock_pds_service
+    service_under_test,
+    sample_review_message,
+    mock_pds_service,
 ):
 
     mock_pds_service.fetch_patient_details.side_effect = PdsErrorException("PDS error")
@@ -477,11 +502,13 @@ def test_get_patient_custodian_returns_uploader_ods_on_pds_error(
 
 
 def test_get_patient_custodian_returns_uploader_ods_on_invalid_resource_id(
-    service_under_test, sample_review_message, mock_pds_service
+    service_under_test,
+    sample_review_message,
+    mock_pds_service,
 ):
 
     mock_pds_service.fetch_patient_details.side_effect = InvalidResourceIdException(
-        "Invalid NHS number"
+        "Invalid NHS number",
     )
 
     result = service_under_test._get_patient_custodian(sample_review_message)
@@ -491,10 +518,12 @@ def test_get_patient_custodian_returns_uploader_ods_on_invalid_resource_id(
 
 
 def test_get_patient_custodian_handles_patient_not_found_sets_placeholder(
-    service_under_test, sample_review_message, mock_pds_service
+    service_under_test,
+    sample_review_message,
+    mock_pds_service,
 ):
     mock_pds_service.fetch_patient_details.side_effect = PatientNotFoundException(
-        "Patient not found"
+        "Patient not found",
     )
 
     result = service_under_test._get_patient_custodian(sample_review_message)

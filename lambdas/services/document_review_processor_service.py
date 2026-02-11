@@ -43,7 +43,10 @@ class ReviewProcessorService:
         review_files = self._move_files_to_review_bucket(review_message, review_id)
         custodian = self._get_patient_custodian(review_message)
         document_upload_review = self._build_review_record(
-            review_message, review_id, review_files, custodian
+            review_message,
+            review_id,
+            review_files,
+            custodian,
         )
         try:
             self.document_review_service.create_dynamo_entry(document_upload_review)
@@ -64,13 +67,13 @@ class ReviewProcessorService:
                 or review_message.nhs_number == NHS_NUMBER_PLACEHOLDER
             ):
                 logger.info(
-                    "No valid NHS number found in message. Using uploader ODS as custodian"
+                    "No valid NHS number found in message. Using uploader ODS as custodian",
                 )
                 return review_message.uploader_ods
             validate_nhs_number(review_message.nhs_number)
             pds_service = get_pds_service()
             patient_details = pds_service.fetch_patient_details(
-                review_message.nhs_number
+                review_message.nhs_number,
             )
             return patient_details.general_practice_ods
         except PdsErrorException:
@@ -82,7 +85,7 @@ class ReviewProcessorService:
             InvalidNhsNumberException,
         ):
             logger.info(
-                "Patient not found in PDS. Using uploader ODS as custodian, and nhs number placeholder"
+                "Patient not found in PDS. Using uploader ODS as custodian, and nhs number placeholder",
             )
             review_message.nhs_number = NHS_NUMBER_PLACEHOLDER
             return review_message.uploader_ods
@@ -106,7 +109,9 @@ class ReviewProcessorService:
         )
 
     def _move_files_to_review_bucket(
-        self, message_data: ReviewMessageBody, review_record_id: str
+        self,
+        message_data: ReviewMessageBody,
+        review_record_id: str,
     ) -> list[DocumentReviewFileDetails]:
         new_file_keys: list[DocumentReviewFileDetails] = []
 
@@ -115,7 +120,7 @@ class ReviewProcessorService:
             new_file_key = f"{review_record_id}/{object_key}"
 
             logger.info(
-                f"Copying file from ({file.file_path}) in staging to review bucket: {new_file_key}"
+                f"Copying file from ({file.file_path}) in staging to review bucket: {new_file_key}",
             )
             try:
 
@@ -138,8 +143,8 @@ class ReviewProcessorService:
             new_file_keys.append(
                 DocumentReviewFileDetails(
                     file_name=file.file_name,
-                    file_location=new_file_key,
-                )
+                    file_location=f"{self.s3_service.S3_PREFIX}{self.review_bucket_name}/{new_file_key}",
+                ),
             )
         return new_file_keys
 
@@ -148,7 +153,8 @@ class ReviewProcessorService:
             try:
                 logger.info(f"Deleting file from staging bucket: {file.file_path}")
                 self.s3_service.delete_object(
-                    s3_bucket_name=self.staging_bucket_name, file_key=file.file_path
+                    s3_bucket_name=self.staging_bucket_name,
+                    file_key=file.file_path,
                 )
             except Exception as e:
                 logger.error(f"Error deleting files from staging: {str(e)}")
