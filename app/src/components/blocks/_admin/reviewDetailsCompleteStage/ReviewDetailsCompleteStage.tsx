@@ -109,10 +109,17 @@ const ReviewDetailsCompleteStage = ({
 
     const getDefaultPrmEmailSupportMessage = (): JSX.Element => {
         return (
-            <p>
-                If you think you've made a mistake, contact the Patient Record Management team at{' '}
-                <a href="mailto:england.prmteam@nhs.net">england.prmteam@nhs.net</a>.
-            </p>
+            <>
+                <p>
+                    This document has been matched to the patient whose NHS number you entered. If
+                    this patient is registered at your practice, you will see this document on the
+                    list of documents to review again.
+                </p>
+                <p>
+                    If you think you've made a mistake, contact the Patient Record Management team
+                    at <a href="mailto:england.prmteam@nhs.net">england.prmteam@nhs.net</a>.
+                </p>
+            </>
         );
     };
 
@@ -133,16 +140,6 @@ const ReviewDetailsCompleteStage = ({
     };
 
     const getPanelBody = (): JSX.Element => {
-        if (completeState === CompleteState.PATIENT_MATCHED) {
-            return (
-                <p>
-                    This document has been matched to the patient whose NHS number you entered. If
-                    this patient is registered at your practice, you will see this document on the
-                    list of documents to review again.
-                </p>
-            );
-        }
-
         if (completeState === CompleteState.PATIENT_UNKNOWN) {
             return (
                 <p>
@@ -272,7 +269,7 @@ const ReviewDetailsCompleteStage = ({
             {getBody()}
 
             <Button data-testid="review-another-btn" type="button" onClick={OnComplete}>
-                Go to Documents to Review
+                Go to documents to review
             </Button>
         </div>
     );

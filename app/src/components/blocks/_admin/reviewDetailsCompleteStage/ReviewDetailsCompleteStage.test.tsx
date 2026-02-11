@@ -105,7 +105,7 @@ describe('ReviewDetailsCompletePage', () => {
             );
 
             expect(
-                screen.getByRole('button', { name: 'Go to Documents to Review' }),
+                screen.getByRole('button', { name: 'Go to documents to review' }),
             ).toBeInTheDocument();
         });
     });
@@ -579,7 +579,7 @@ describe('ReviewDetailsCompletePage', () => {
                 />,
             );
 
-            const button = screen.getByRole('button', { name: 'Go to Documents to Review' });
+            const button = screen.getByRole('button', { name: 'Go to documents to review' });
             await user.click(button);
 
             expect(mockSetPatientDetails).toHaveBeenCalledWith(null);
@@ -596,7 +596,7 @@ describe('ReviewDetailsCompletePage', () => {
                 />,
             );
 
-            const button = screen.getByRole('button', { name: 'Go to Documents to Review' });
+            const button = screen.getByRole('button', { name: 'Go to documents to review' });
             await user.click(button);
 
             expect(mockNavigate).toHaveBeenCalledWith(routeChildren.ADMIN_REVIEW, {
@@ -615,7 +615,7 @@ describe('ReviewDetailsCompletePage', () => {
                 />,
             );
 
-            const button = screen.getByRole('button', { name: 'Go to Documents to Review' });
+            const button = screen.getByRole('button', { name: 'Go to documents to review' });
             await user.click(button);
 
             expect(mockSetPatientDetails).toHaveBeenCalledBefore(mockNavigate as Mock);
