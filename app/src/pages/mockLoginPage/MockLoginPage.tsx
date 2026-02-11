@@ -59,7 +59,7 @@ const MockLoginPage = (): React.JSX.Element => {
                             <div className="form-label-group">
                                 <div className="nhsuk-form-group position-relative">
                                     <label className="nhsuk-label" htmlFor="odsCode">
-                                        Ods Code
+                                        ODS Code
                                     </label>
                                     <input
                                         className="nhsuk-input"

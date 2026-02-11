@@ -23,8 +23,8 @@
         "chooseFilesMessage": "Choose files to upload",
         "chooseFilesButtonLabel": "Choose files",
         "chooseFilesWarningText": [
-          "Electronic health record attachments are all the documents stored in the patient's EHR with the EHR notes. For example, letters, laboratory results, scans and x rays.",
-          "EHR attachments must be uploaded as individual files. See [help and guidance](https://digital.nhs.uk/services/access-and-store-digital-patient-documents/help-and-guidance) for instructions on how best to do this."
+          "Electronic health record attachments are all the documents stored in the patient's EHR with the EHR notes. For example, letters, laboratory results, scans and X-rays.",
+          "EHR attachments must be uploaded as individual files. See [help and guidance](https://digital.nhs.uk/services/access-and-store-digital-patient-documents/help-and-guidance) for instructions on how to do this."
         ],
         "confirmFilesTitle": "Check files are for the correct patient",
         "confirmFilesTableTitle": "Attachments to this EHR to upload",
