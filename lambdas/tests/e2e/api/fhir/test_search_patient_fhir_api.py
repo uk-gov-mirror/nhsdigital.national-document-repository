@@ -1,4 +1,7 @@
+from datetime import datetime, timezone
+
 import pytest
+from enums.document_retention import DocumentRetentionDays
 from tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
     PDM_SNOMED,
@@ -108,7 +111,10 @@ def test_multiple_cancelled_search_patient_details(test_data):
     ],
 )
 def test_search_edge_cases(
-    nhs_number, expected_status, expected_code, expected_diagnostics
+    nhs_number,
+    expected_status,
+    expected_code,
+    expected_diagnostics,
 ):
     response = search_document_reference(nhs_number)
     assert response.status_code == expected_status
@@ -129,7 +135,9 @@ def test_search_patient_unauthorized_mtls(test_data, temp_cert_and_key):
     cert_path, key_path = temp_cert_and_key
 
     response = search_document_reference(
-        "9912003071", client_cert_path=cert_path, client_key_path=key_path
+        "9912003071",
+        client_cert_path=cert_path,
+        client_key_path=key_path,
     )
 
     body = response.json()
@@ -142,3 +150,49 @@ def test_search_invalid_resource_type(test_data):
 
     response = search_document_reference("9912003071", resource_type="FooBar")
     assert response.status_code == 400
+
+
+def test_search_patient_details_deleted_are_not_returned(test_data):
+    created_record_1 = create_and_store_pdm_record(test_data)
+    expected_record_id_1 = created_record_1["id"]
+
+    deletion_date = datetime.now(timezone.utc)
+    document_ttl_days = DocumentRetentionDays.SOFT_DELETE
+    ttl_seconds = document_ttl_days * 24 * 60 * 60
+    document_reference_ttl = int(deletion_date.timestamp() + ttl_seconds)
+    created_record_2 = create_and_store_pdm_record(
+        test_data,
+        doc_status="deprecated",
+        Deleted=deletion_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        ttl=document_reference_ttl,
+    )
+    expected_record_id_2 = created_record_2["id"]
+
+    response = search_document_reference("9912003071")
+    assert response.status_code == 200
+
+    bundle = response.json()
+    assert bundle["total"] < 2
+    entries = bundle.get("entry", [])
+    assert entries
+
+    # Find the entry with the matching record_id
+    matching_entry = next(
+        (
+            e
+            for e in entries
+            if e["resource"].get("id") == f"{PDM_SNOMED}~{expected_record_id_1}"
+        ),
+        None,
+    )
+    assert matching_entry
+    # Assert deleted item doesn't exist
+    non_matching_entry = next(
+        (
+            e
+            for e in entries
+            if e["resource"].get("id") == f"{PDM_SNOMED}~{expected_record_id_2}"
+        ),
+        None,
+    )
+    assert non_matching_entry is None

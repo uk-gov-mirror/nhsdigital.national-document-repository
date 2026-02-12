@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 from enums.document_retention import DocumentRetentionDays
@@ -20,11 +20,13 @@ def _assert_operation_outcome(body, code):
 @pytest.mark.parametrize(
     "doc_status, response_status",
     [
-        ("deprecated", 200),  # TODO Fix in NDR-363, this should return a 404
+        ("deprecated", 404),
     ],
 )
 def test_retrieval_of_deleted_document_reference(
-    test_data, doc_status, response_status
+    test_data,
+    doc_status,
+    response_status,
 ):
     deletion_date = datetime.now(timezone.utc)
     document_ttl_days = DocumentRetentionDays.SOFT_DELETE
@@ -33,7 +35,7 @@ def test_retrieval_of_deleted_document_reference(
     pdm_record = create_and_store_pdm_record(
         test_data,
         doc_status=doc_status,
-        deleted=deletion_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        Deleted=deletion_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         ttl=document_reference_ttl,
     )
 
@@ -41,7 +43,7 @@ def test_retrieval_of_deleted_document_reference(
     assert response.status_code == response_status
 
     response_json = response.json()
-    assert response_json.get("docStatus") == doc_status
+    _assert_operation_outcome(body=response_json, code="RESOURCE_NOT_FOUND")
 
 
 @pytest.mark.parametrize(
@@ -51,7 +53,10 @@ def test_retrieval_of_deleted_document_reference(
     ],
 )
 def test_retrieve_non_existant_document_reference(
-    record_id, expected_status, expected_code, expected_diagnostics
+    record_id,
+    expected_status,
+    expected_code,
+    expected_diagnostics,
 ):
     response = get_pdm_document_reference(record_id)
     assert response.status_code == expected_status
@@ -73,7 +78,9 @@ def test_forbidden_with_invalid_cert(test_data, temp_cert_and_key):
     cert_path, key_path = temp_cert_and_key
 
     response = get_pdm_document_reference(
-        pdm_record["id"], client_cert_path=cert_path, client_key_path=key_path
+        pdm_record["id"],
+        client_cert_path=cert_path,
+        client_key_path=key_path,
     )
 
     body = response.json()
@@ -103,7 +110,10 @@ def test_retrieve_invalid_resource_type(test_data):
     ],
 )
 def test_incorrectly_formatted_path_param_id(
-    test_data, param, expected_status, expected_code
+    test_data,
+    param,
+    expected_status,
+    expected_code,
 ):
     response = get_pdm_document_reference(
         endpoint_override=param,

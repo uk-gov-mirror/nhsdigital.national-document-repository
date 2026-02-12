@@ -43,7 +43,7 @@ class DocumentReferenceSearchService(DocumentService):
         :return: List of document references or FHIR DocumentReferences.
         """
         common_name = validate_common_name_in_mtls(
-            api_request_context=api_request_context
+            api_request_context=api_request_context,
         )
         try:
             list_of_table_names = self._get_table_names(common_name)
@@ -92,13 +92,16 @@ class DocumentReferenceSearchService(DocumentService):
 
         for table_name in table_names:
             logger.info(f"Searching for results in {table_name}")
-            filter_expression = self._get_filter_expression(
-                filters, upload_completed=check_upload_completed
+            filter_expression = self._build_filter_expression(
+                filters,
+                check_upload_completed,
             )
 
             if "coredocumentmetadata" not in table_name.lower():
                 documents = self.fetch_documents_from_table_with_nhs_number(
-                    nhs_number, table_name, query_filter=filter_expression
+                    nhs_number,
+                    table_name,
+                    query_filter=filter_expression,
                 )
             else:
                 documents = self.fetch_documents_from_table(
@@ -112,7 +115,8 @@ class DocumentReferenceSearchService(DocumentService):
                 self._validate_upload_status(documents)
 
             processed_documents = self._process_documents(
-                documents, return_fhir=return_fhir
+                documents,
+                return_fhir=return_fhir,
             )
             document_resources.extend(processed_documents)
 
@@ -122,16 +126,6 @@ class DocumentReferenceSearchService(DocumentService):
             return self._create_fhir_bundle(document_resources)
 
         return document_resources or None
-
-    def _get_filter_expression(
-        self, filters: dict[str, str | None] = None, upload_completed=False
-    ):
-        if filters:
-            return self._build_filter_expression(filters)
-        elif upload_completed:
-            return UploadCompleted
-        else:
-            return None
 
     def _create_fhir_bundle(self, document_resources: list[dict]) -> dict:
         entries = [
@@ -155,7 +149,9 @@ class DocumentReferenceSearchService(DocumentService):
             raise DocumentRefSearchException(423, LambdaError.UploadInProgressError)
 
     def _process_documents(
-        self, documents: list[DocumentReference], return_fhir: bool
+        self,
+        documents: list[DocumentReference],
+        return_fhir: bool,
     ) -> list[dict]:
         results = []
         for document in documents:
@@ -189,7 +185,16 @@ class DocumentReferenceSearchService(DocumentService):
         )
         return document_formatted
 
-    def _build_filter_expression(self, filter_values: dict[str, str]):
+    def _build_filter_expression(
+        self,
+        filter_values: dict[str, str] | None,
+        upload_completed=False,
+    ):
+        if not filter_values:
+            if not upload_completed:
+                return NotDeleted
+            return UploadCompleted
+
         filter_builder = DynamoQueryFilterBuilder()
         for filter_key, filter_value in filter_values.items():
             if filter_key == "custodian":
@@ -210,16 +215,13 @@ class DocumentReferenceSearchService(DocumentService):
             elif filter_key == "document_snomed_code":
                 filter_builder.add_condition(
                     attribute=str(
-                        DocumentReferenceMetadataFields.DOCUMENT_SNOMED_CODE_TYPE.value
+                        DocumentReferenceMetadataFields.DOCUMENT_SNOMED_CODE_TYPE.value,
                     ),
                     attr_operator=AttributeOperator.EQUAL,
                     filter_value=filter_value,
                 )
-        if filter_values:
-            filter_expression = filter_builder.build() & NotDeleted
-        else:
-            filter_expression = NotDeleted
-        return filter_expression
+
+        return filter_builder.build() & NotDeleted
 
     def create_document_reference_fhir_response(
         self,
@@ -242,7 +244,7 @@ class DocumentReferenceSearchService(DocumentService):
                 attachment=document_details,
                 custodian=document_reference.current_gp_ods,
                 snomed_code_doc_type=SnomedCodes.find_by_code(
-                    document_reference.document_snomed_code_type
+                    document_reference.document_snomed_code_type,
                 ),
             )
             .create_fhir_document_reference_object(document_reference)
