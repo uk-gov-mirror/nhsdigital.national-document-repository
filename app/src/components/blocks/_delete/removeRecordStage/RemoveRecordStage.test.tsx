@@ -38,10 +38,12 @@ const mockUseConfig = useConfig as Mock;
 
 const testFileName1 = 'John_1';
 const testFileName2 = 'John_2';
-const searchResults = [
-    buildSearchResult({ fileName: testFileName1 }),
-    buildSearchResult({ fileName: testFileName2 }),
-];
+const searchResults = {
+    references: [
+        buildSearchResult({ fileName: testFileName1 }),
+        buildSearchResult({ fileName: testFileName2 }),
+    ],
+};
 
 let history = createMemoryHistory({
     initialEntries: ['/'],
@@ -124,8 +126,8 @@ describe('RemoveRecordStage', () => {
                 ).toBeInTheDocument();
             });
 
-            expect(screen.getByText(searchResults[0].fileName)).toBeInTheDocument();
-            expect(screen.getByText(searchResults[1].fileName)).toBeInTheDocument();
+            expect(screen.getByText(searchResults.references[0].fileName)).toBeInTheDocument();
+            expect(screen.getByText(searchResults.references[1].fileName)).toBeInTheDocument();
         });
     });
 

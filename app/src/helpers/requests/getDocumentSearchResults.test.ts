@@ -21,7 +21,7 @@ describe('[GET] getDocumentSearchResults', () => {
 
     test('Document search results handles a 2XX response', async () => {
         const searchResult = buildSearchResult();
-        const mockResults = [searchResult];
+        const mockResults = { references: [searchResult] };
         mockedAxios.get.mockImplementation(() =>
             Promise.resolve({ status: 200, data: mockResults }),
         );

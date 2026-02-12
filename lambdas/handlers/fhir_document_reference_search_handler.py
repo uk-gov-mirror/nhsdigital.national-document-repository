@@ -31,7 +31,7 @@ PARAM_NEXT_PAGE_TOKEN = "next-page-token"
 
 
 @ensure_environment_variables(
-    names=["DYNAMODB_TABLE_LIST", "DOCUMENT_RETRIEVE_ENDPOINT_APIM"]
+    names=["LLOYD_GEORGE_DYNAMODB_NAME", "DOCUMENT_RETRIEVE_ENDPOINT_APIM"],
 )
 @set_request_context_for_logging
 @validate_patient_id_fhir
@@ -51,7 +51,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     selected_role_id = event.get("headers", {}).get(HEADER_CIS2_USER_ID, "")
 
     nhs_number, search_filters = parse_query_parameters(
-        event.get("queryStringParameters", {})
+        event.get("queryStringParameters", {}),
     )
     request_context.patient_nhs_no = nhs_number
 
@@ -70,12 +70,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if document_references["total"] < 1:
         logger.info(f"No document references found for NHS number: {nhs_number}")
     return ApiGatewayResponse(
-        200, json.dumps(document_references), "GET"
+        200,
+        json.dumps(document_references),
+        "GET",
     ).create_api_gateway_response()
 
 
 def parse_query_parameters(
-    query_string: Dict[str, str]
+    query_string: Dict[str, str],
 ) -> Tuple[Optional[str], Dict[str, str]]:
     """
     Parse and extract NHS number and search filters from query parameters.
@@ -105,7 +107,9 @@ def parse_query_parameters(
 
 
 def validate_user_access(
-    bearer_token: str, selected_role_id: str, nhs_number: str
+    bearer_token: str,
+    selected_role_id: str,
+    nhs_number: str,
 ) -> None:
     """
     Validate that the user has permission to access the requested patient data.
@@ -131,7 +135,9 @@ def validate_user_access(
         userinfo = oidc_service.fetch_userinfo(bearer_token)
         org_ods_code = oidc_service.fetch_user_org_code(userinfo, selected_role_id)
         smartcard_role_code, _ = oidc_service.fetch_user_role_code(
-            userinfo, selected_role_id, "R"
+            userinfo,
+            selected_role_id,
+            "R",
         )
     except (OidcApiException, AuthorisationException) as e:
         logger.error(f"Authorization failed: {e}")
@@ -140,7 +146,8 @@ def validate_user_access(
     try:
         # Validate patient access
         search_patient_service = SearchPatientDetailsService(
-            smartcard_role_code, org_ods_code
+            smartcard_role_code,
+            org_ods_code,
         )
         search_patient_service.handle_search_patient_request(nhs_number, False)
     except SearchPatientException as e:

@@ -1,3 +1,5 @@
+from tests.unit.conftest import TEST_FILE_SIZE, TEST_NHS_NUMBER
+
 MOCK_SEARCH_RESPONSE = {
     "Items": [
         {
@@ -7,7 +9,8 @@ MOCK_SEARCH_RESPONSE = {
             "DocStatus": "final",
             "FileLocation": "s3://test-s3-bucket/9000000009/test-key-123",
             "FileName": "document.csv",
-            "NhsNumber": "9000000009",
+            "FileSize": TEST_FILE_SIZE,
+            "NhsNumber": TEST_NHS_NUMBER,
             "VirusScannerResult": "Clean",
             "CurrentGpOds": "Y12345",
             "Uploaded": "True",
@@ -22,7 +25,8 @@ MOCK_SEARCH_RESPONSE = {
             "DocStatus": "final",
             "FileLocation": "s3://test-s3-bucket/9000000009/test-key-223",
             "FileName": "results.pdf",
-            "NhsNumber": "9000000009",
+            "FileSize": TEST_FILE_SIZE,
+            "NhsNumber": TEST_NHS_NUMBER,
             "VirusScannerResult": "Clean",
             "CurrentGpOds": "Y12345",
             "Uploaded": "True",
@@ -37,7 +41,8 @@ MOCK_SEARCH_RESPONSE = {
             "DocStatus": "final",
             "FileLocation": "s3://test-s3-bucket/9000000009/test-key-323",
             "FileName": "output.csv",
-            "NhsNumber": "9000000009",
+            "FileSize": TEST_FILE_SIZE,
+            "NhsNumber": TEST_NHS_NUMBER,
             "VirusScannerResult": "Clean",
             "CurrentGpOds": "Y12345",
             "Uploaded": "True",
