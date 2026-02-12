@@ -32,13 +32,13 @@ def sample_staging_metadata():
         files=[
             BulkUploadQueueMetadata(
                 file_path="staging/9000000009/test1.pdf",
-                stored_file_name="test1.pdf",
+                stored_file_name="lg_test1.pdf",
                 gp_practice_code="Y12345",
                 scan_date="2024-01-01",
             ),
             BulkUploadQueueMetadata(
                 file_path="staging/9000000009/test2.pdf",
-                stored_file_name="test2.pdf",
+                stored_file_name="lg_test2.pdf",
                 gp_practice_code="Y12345",
                 scan_date="2024-01-01",
             ),
@@ -48,7 +48,9 @@ def sample_staging_metadata():
 
 
 def test_put_staging_metadata_back_to_queue_and_increases_retries(
-    set_env, mock_uuid, repo_under_test
+    set_env,
+    mock_uuid,
+    repo_under_test,
 ):
     TEST_STAGING_METADATA.retries = 2
     metadata_copy = copy.deepcopy(TEST_STAGING_METADATA)
@@ -88,7 +90,9 @@ def test_send_message_to_pdf_stitching_queue(set_env, repo_under_test):
 
 
 def test_sends_message_to_review_queue_with_correct_structure_and_fields(
-    set_env, repo_under_test, mock_uuid
+    set_env,
+    repo_under_test,
+    mock_uuid,
 ):
     repo_under_test.send_message_to_review_queue(
         staging_metadata=TEST_STAGING_METADATA,

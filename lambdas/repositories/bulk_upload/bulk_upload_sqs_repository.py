@@ -38,7 +38,7 @@ class BulkUploadSqsRepository:
         request_context.patient_nhs_no = staging_metadata.nhs_number
         review_files = [
             ReviewMessageFile(
-                file_name=file.stored_file_name.split("/")[-1],
+                file_name=file.file_path.split("/")[-1],
                 file_path=file.file_path.lstrip("/"),
             )
             for file in staging_metadata.files
@@ -56,7 +56,7 @@ class BulkUploadSqsRepository:
 
         logger.info(
             f"Sending message to review queue for NHS number {staging_metadata.nhs_number} "
-            f"with failure reason: {failure_reason}"
+            f"with failure reason: {failure_reason}",
         )
 
         self.sqs_repository.send_message_standard(
@@ -80,7 +80,9 @@ class BulkUploadSqsRepository:
         )
 
     def send_message_to_pdf_stitching_queue(
-        self, queue_url: str, message: PdfStitchingSqsMessage
+        self,
+        queue_url: str,
+        message: PdfStitchingSqsMessage,
     ):
         self.sqs_repository.send_message_standard(
             queue_url=queue_url,
