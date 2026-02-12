@@ -71,6 +71,7 @@ class DocumentReferenceSearchService(DocumentService):
             raise DocumentRefSearchException(500, LambdaError.DocRefClient)
 
     def _get_table_name(self, common_name: MtlsCommonNames | None) -> str:
+        logger.info("Getting table name for document search")
         if not common_name or common_name not in MtlsCommonNames:
             return os.environ["LLOYD_GEORGE_DYNAMODB_NAME"]
 
@@ -277,6 +278,7 @@ class DocumentReferenceSearchService(DocumentService):
             expression_attribute_values=condition_attribute_values,
         )
 
+        logger.info("Validating upload status")
         self._validate_upload_status(references)
 
         document_references = self._process_documents(
@@ -293,10 +295,11 @@ class DocumentReferenceSearchService(DocumentService):
         self,
         filter_values: dict[str, str] | None,
     ) -> tuple[str, dict, dict]:
+        logger.info("Creating filter for pagination")
         conditions = [
             {
                 "field": DocumentReferenceMetadataFields.DELETED.value,
-                "operator": ConditionOperator.NOT_EQUAL.value,
+                "operator": ConditionOperator.EQUAL.value,
                 "value": "",
             },
             {
@@ -310,6 +313,7 @@ class DocumentReferenceSearchService(DocumentService):
         )
 
         if filter_values:
+            logger.info("Adding additional filters for pagination")
             additional_conditions = []
             for filter_key, filter_value in filter_values.items():
                 if filter_key == "custodian":

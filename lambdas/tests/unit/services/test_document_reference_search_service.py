@@ -520,7 +520,7 @@ def test_get_paginated_references_by_nhs_number_returns_references_and_token(
         search_condition=TEST_NHS_NUMBER,
         limit=None,
         start_key=None,
-        filter_expression="#Deleted_attr <> :Deleted_condition_val OR attribute_not_exists(#Deleted_attr)",
+        filter_expression="#Deleted_attr = :Deleted_condition_val OR attribute_not_exists(#Deleted_attr)",
         expression_attribute_names={"#Deleted_attr": "Deleted"},
         expression_attribute_values={":Deleted_condition_val": ""},
     )
@@ -547,7 +547,7 @@ def test_get_paginated_references_by_nhs_number_handles_filters(mock_document_se
         limit=None,
         start_key=None,
         filter_expression=(
-            "(#Deleted_attr <> :Deleted_condition_val OR attribute_not_exists(#Deleted_attr)) "
+            "(#Deleted_attr = :Deleted_condition_val OR attribute_not_exists(#Deleted_attr)) "
             "AND #DocStatus_attr = :DocStatus_condition_val"
         ),
         expression_attribute_names={
@@ -565,7 +565,7 @@ def test_build_pagination_filter_no_addition_filter_passed_returns_not_deleted_f
     mock_document_service,
 ):
     expected_filter_expression = (
-        "#Deleted_attr <> :Deleted_condition_val OR attribute_not_exists(#Deleted_attr)"
+        "#Deleted_attr = :Deleted_condition_val OR attribute_not_exists(#Deleted_attr)"
     )
     expected_condition_attribute_names = {"#Deleted_attr": "Deleted"}
     expected_condition_attribute_values = {":Deleted_condition_val": ""}
@@ -583,7 +583,7 @@ def test_build_pagination_filter_no_addition_filter_passed_returns_not_deleted_f
 
 def test_build_pagination_filter_handles_additional_filters(mock_document_service):
     expected_filter_expression = (
-        "(#Deleted_attr <> :Deleted_condition_val OR attribute_not_exists(#Deleted_attr)) "
+        "(#Deleted_attr = :Deleted_condition_val OR attribute_not_exists(#Deleted_attr)) "
         "AND #DocStatus_attr = :DocStatus_condition_val"
     )
     expected_condition_attribute_names = {
