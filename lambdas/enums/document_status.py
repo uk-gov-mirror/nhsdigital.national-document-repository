@@ -6,6 +6,7 @@ class DocumentStatus(Enum):
     FORBIDDEN = ("forbidden", "UC_4003")
     NOT_FOUND = ("not-found", "UC_4004")
     INFECTED = ("infected", "UC_4005")
+    INVALID = ("invalid", "UC_4006")
 
     @property
     def code(self):

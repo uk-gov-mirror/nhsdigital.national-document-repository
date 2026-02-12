@@ -7,8 +7,8 @@
     "./app/node_modules/prettier/bin/prettier.cjs --write"
     ],
   "*.py": [
+    "./lambdas/venv/bin/ruff check --fix",
     "./lambdas/venv/bin/python3 -m black",
-    "./lambdas/venv/bin/ruff check ./lambdas",
     "./lambdas/venv/bin/python3 -m isort --profile black",
   ]
 }

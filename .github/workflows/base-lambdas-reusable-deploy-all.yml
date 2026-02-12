@@ -695,7 +695,7 @@ jobs:
       sandbox: ${{ inputs.sandbox }}
       lambda_handler_name: document_reference_virus_scan_handler
       lambda_aws_name: DocumentReferenceVirusScanCheck
-      lambda_layer_names: "core_lambda_layer"
+      lambda_layer_names: "core_lambda_layer,files_lambda_layer"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 

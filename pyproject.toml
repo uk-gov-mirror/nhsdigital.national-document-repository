@@ -51,6 +51,9 @@ pikepdf = "8.4.0"
 [tool.poetry.group.data_lambda.dependencies]
 polars = "1.31.0"
 
+[tool.poetry.group.files_lambda.dependencies]
+msoffcrypto-tool = "6.0.0"
+
 [tool.poetry.group.reports_lambda.dependencies]
 openpyxl = "^3.1.5"
 reportlab = "^4.3.1"
