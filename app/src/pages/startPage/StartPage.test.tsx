@@ -24,11 +24,9 @@ describe('StartPage', () => {
 
     it('renders start page content', () => {
         const contentStrings = [
-            'This service gives you access to Lloyd George digital health records. ' +
-                'You may have received a note within a patient record, stating that the paper record has been digitised.',
-            'If you are part of a GP practice, you can use this service to:',
-            'view a patient record',
-            'remove a patient record',
+            'view, upload, download or remove a document',
+            "add files to a patient's scanned paper notes",
+            'review and action pending patient documents',
             'If you are managing records on behalf of NHS England, you can:',
             'Not every patient will have a digital record available.',
             'Before you start',
@@ -39,17 +37,17 @@ describe('StartPage', () => {
 
         render(<StartPage />);
 
+        screen.getByText(
+            'This service gives you access to digital Lloyd George records. Within a record we store the following documents:',
+        );
+
+        expect(
+            screen.getAllByText('download a report on the records stored in this service'),
+        ).toHaveLength(2);
+
         contentStrings.forEach((s) => {
             expect(screen.getByText(s)).toBeInTheDocument();
         });
-
-        const downloadPatientRecord = screen.getAllByText('download a patient record');
-        expect(downloadPatientRecord).toHaveLength(2);
-
-        const downloadOdsReport = screen.getAllByText(
-            'download a report on the records held within this service',
-        );
-        expect(downloadOdsReport).toHaveLength(2);
 
         expect(screen.getByText(/Contact the/i)).toBeInTheDocument();
         expect(
