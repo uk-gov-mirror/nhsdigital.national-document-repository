@@ -5,6 +5,7 @@ import { ReviewDetails } from '../../../../types/generic/reviews';
 import { navigateUrlParam, routeChildren } from '../../../../types/generic/routes';
 import { ReviewUploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
 import Spinner from '../../../generic/spinner/Spinner';
+import BackButton from '../../../generic/backButton/BackButton';
 
 type ReviewDetailsDontKnowNHSNumberStageProps = {
     reviewData: ReviewDetails | null;
@@ -38,6 +39,7 @@ const ReviewDetailsDontKnowNHSNumberStage = ({
         <div className="nhsuk-width-container">
             <div className="nhsuk-grid-row">
                 <div className="nhsuk-grid-column-two-thirds">
+                    <BackButton dataTestid="back-button" />
                     <h1 className="nhsuk-heading-l">Download this document</h1>
 
                     <p>
