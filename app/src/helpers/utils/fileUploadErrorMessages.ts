@@ -74,7 +74,7 @@ export const fileUploadErrorMessages: ErrorMessageType = {
     invalidFileType: {
         inline: 'This file is not in the correct file format',
         errorBox: 'This file is not in the correct file format',
-        selectFileError: 'This file is not a PDF. Convert to PDF and try again.',
+        selectFileError: 'You cannot upload this file type.',
     },
     removeFilesToSkip: {
         inline: 'Remove files before you skip to the next step',
