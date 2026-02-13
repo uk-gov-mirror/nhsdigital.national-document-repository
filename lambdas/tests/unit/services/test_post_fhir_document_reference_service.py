@@ -6,22 +6,32 @@ from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference
 from models.fhir.R4.base_models import CodeableConcept, Identifier, Reference
-from models.fhir.R4.fhir_document_reference import SNOMED_URL, Attachment
+from models.fhir.R4.fhir_document_reference import (
+    SNOMED_URL,
+    Attachment,
+)
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
-from models.fhir.R4.fhir_document_reference import DocumentReferenceContent
+from models.fhir.R4.fhir_document_reference import (
+    DocumentReferenceContent,
+)
 from services.fhir_document_reference_service_base import (
     FhirDocumentReferenceServiceBase,
 )
 from services.post_fhir_document_reference_service import (
     PostFhirDocumentReferenceService,
 )
-from tests.unit.conftest import APIM_API_URL
+from tests.unit.conftest import (
+    APIM_API_URL,
+)
 from tests.unit.conftest import (
     EXPECTED_PARSED_PATIENT_BASE_CASE as mock_pds_patient_details,
 )
-from tests.unit.conftest import MOCK_LG_TABLE_NAME, TEST_UUID
+from tests.unit.conftest import (
+    MOCK_LG_TABLE_NAME,
+    TEST_UUID,
+)
 from utils.exceptions import FhirDocumentReferenceException
 from utils.lambda_exceptions import DocumentRefException
 from utils.request_context import request_context
@@ -36,16 +46,16 @@ def mock_post_fhir_doc_ref_service(set_env):
 @pytest.fixture
 def mock_fhir_doc_ref_base_service(mocker, setup_request_context):
     mock_document_service = mocker.patch(
-        "services.fhir_document_reference_service_base.DocumentService"
+        "services.fhir_document_reference_service_base.DocumentService",
     )
     mock_s3_service = mocker.patch(
-        "services.fhir_document_reference_service_base.S3Service"
+        "services.fhir_document_reference_service_base.S3Service",
     )
     mock_dynamo_service = mocker.patch(
-        "services.fhir_document_reference_service_base.DynamoDBService"
+        "services.fhir_document_reference_service_base.DynamoDBService",
     )
     mock_doc_type_table_router = mocker.patch(
-        "services.fhir_document_reference_service_base.DocTypeTableRouter"
+        "services.fhir_document_reference_service_base.DocTypeTableRouter",
     )
     service = FhirDocumentReferenceServiceBase()
     service.document_service = mock_document_service.return_value
@@ -100,7 +110,7 @@ def valid_fhir_doc_json():
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/nhs-number",
                     "value": "9000000009",
-                }
+                },
             },
             "type": {
                 "coding": [
@@ -108,22 +118,22 @@ def valid_fhir_doc_json():
                         "system": "http://snomed.info/sct",
                         "code": SnomedCodes.LLOYD_GEORGE.value.code,
                         "display": SnomedCodes.LLOYD_GEORGE.value.display_name,
-                    }
-                ]
+                    },
+                ],
             },
             "custodian": {
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                     "value": "A12345",
-                }
+                },
             },
             "author": [
                 {
                     "identifier": {
                         "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                         "value": "A12345",
-                    }
-                }
+                    },
+                },
             ],
             "content": [
                 {
@@ -132,10 +142,10 @@ def valid_fhir_doc_json():
                         "language": "en-GB",
                         "title": "test-file.pdf",
                         "creation": "2023-01-01T12:00:00Z",
-                    }
-                }
+                    },
+                },
             ],
-        }
+        },
     )
 
 
@@ -165,7 +175,7 @@ def test_process_fhir_document_reference_with_presigned_url(
     mock_handle_document_save.return_value = mock_presigned_url_response
 
     result = mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-        valid_fhir_doc_json
+        valid_fhir_doc_json,
     )
     expected_pre_sign_url = mock_presigned_url_response
 
@@ -187,7 +197,7 @@ def test_process_fhir_document_reference_with_binary(
     custom_endpoint = f"{APIM_API_URL}/DocumentReference"
     mock_handle_document_save.return_value = None
     result = mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-        valid_fhir_doc_with_binary
+        valid_fhir_doc_with_binary,
     )
 
     assert isinstance(result, str)
@@ -198,7 +208,8 @@ def test_process_fhir_document_reference_with_binary(
 
 
 def test_validation_error(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
 ):
     """Test handling of an invalid FHIR document."""
     with pytest.raises(DocumentRefException) as excinfo:
@@ -222,6 +233,7 @@ def test_validation_error(
     ],
 )
 def test_doc_ref_no_parse_message_includes_details_format(
+    mock_fhir_doc_ref_base_service,
     mock_post_fhir_doc_ref_service,
     valid_fhir_doc_json,
     nhs_number,
@@ -234,7 +246,7 @@ def test_doc_ref_no_parse_message_includes_details_format(
 
     with pytest.raises(DocumentRefException) as error:
         mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-            invalid_nhs_doc_json
+            invalid_nhs_doc_json,
         )
 
     assert error.value.status_code == 400
@@ -268,8 +280,8 @@ def test_doc_ref_no_parse_message_includes_details_format(
                             "system": "http://snomed.info/sct",
                             "code": "invalid-code",
                             "display": "Invalid",
-                        }
-                    ]
+                        },
+                    ],
                 },
             },
             LambdaError.DocRefInvalidType,
@@ -297,7 +309,9 @@ def test_document_validation_errors(
 
 
 def test_raise_dynamo_error(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, valid_fhir_doc_json
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    valid_fhir_doc_json,
 ):
     """Test handling of DynamoDB error."""
     mock_fhir_doc_ref_base_service.dynamo_service.create_item.side_effect = ClientError(
@@ -307,7 +321,7 @@ def test_raise_dynamo_error(
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-            valid_fhir_doc_json
+            valid_fhir_doc_json,
         )
 
     assert excinfo.value.status_code == 500
@@ -341,7 +355,9 @@ def test_save_document_reference_to_dynamo_error(
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_post_fhir_doc_ref_service._handle_document_save(
-            document_ref, valid_fhir_doc_object, "test_table"
+            document_ref,
+            valid_fhir_doc_object,
+            "test_table",
         )
 
     assert excinfo.value.status_code == 500
@@ -359,12 +375,12 @@ def test_process_fhir_document_reference_with_pds_error(
     """Test process_fhir_document_reference with a real PDS error (PatientNotFoundException)."""
 
     mock_check_nhs_number_with_pds.side_effect = FhirDocumentReferenceException(
-        "Patient not found"
+        "Patient not found",
     )
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-            valid_fhir_doc_json
+            valid_fhir_doc_json,
         )
 
     assert excinfo.value.status_code == 400
@@ -372,7 +388,9 @@ def test_process_fhir_document_reference_with_pds_error(
 
 
 def test_s3_presigned_url_error(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, valid_fhir_doc_json
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    valid_fhir_doc_json,
 ):
     """Test handling of S3 presigned URL error."""
     mock_fhir_doc_ref_base_service.s3_service.create_put_presigned_url.side_effect = (
@@ -384,7 +402,7 @@ def test_s3_presigned_url_error(
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-            valid_fhir_doc_json
+            valid_fhir_doc_json,
         )
 
     assert excinfo.value.status_code == 500
@@ -398,12 +416,13 @@ def test_s3_upload_error(
 ):
     """Test handling of S3 upload error."""
     mock_fhir_doc_ref_base_service.s3_service.upload_file_obj.side_effect = ClientError(
-        {"Error": {"Code": "InternalServerError", "Message": "Test error"}}, "PutObject"
+        {"Error": {"Code": "InternalServerError", "Message": "Test error"}},
+        "PutObject",
     )
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-            valid_fhir_doc_with_binary
+            valid_fhir_doc_with_binary,
         )
 
     assert excinfo.value.status_code == 500
@@ -419,12 +438,12 @@ def test_extract_nhs_number_from_fhir_with_invalid_system(
     """Test _extract_nhs_number_from_fhir method with an invalid NHS number system."""
 
     valid_fhir_doc_object.subject = Reference(
-        identifier=Identifier(system="invalid-system", value="9000000009")
+        identifier=Identifier(system="invalid-system", value="9000000009"),
     )
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-            valid_fhir_doc_object.model_dump_json()
+            valid_fhir_doc_object.model_dump_json(),
         )
 
     assert excinfo.value.status_code == 400
@@ -442,7 +461,7 @@ def test_extract_nhs_number_from_fhir_with_missing_identifier(
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-            valid_fhir_doc_object.model_dump_json()
+            valid_fhir_doc_object.model_dump_json(),
         )
 
     assert excinfo.value.status_code == 400
@@ -450,7 +469,9 @@ def test_extract_nhs_number_from_fhir_with_missing_identifier(
 
 
 def test_create_document_reference_with_author(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
     """Test _create_document_reference method with author information included."""
 
@@ -461,20 +482,22 @@ def test_create_document_reference_with_author(
                 contentType="application/pdf",
                 title="test-file.pdf",
                 creation="2023-01-01T12:00:00Z",
-            )
-        )
+            ),
+        ),
     ]
     fhir_doc.custodian = Reference(
         identifier=Identifier(
-            system="https://fhir.nhs.uk/Id/ods-organization-code", value="A12345"
-        )
+            system="https://fhir.nhs.uk/Id/ods-organization-code",
+            value="A12345",
+        ),
     )
     fhir_doc.author = [
         Reference(
             identifier=Identifier(
-                system="https://fhir.nhs.uk/Id/ods-organization-code", value="B67890"
-            )
-        )
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
     ]
 
     doc_type = SnomedCode(code="test-code", display_name="Test Type")
@@ -496,7 +519,9 @@ def test_create_document_reference_with_author(
 
 
 def test_create_document_reference_without_custodian(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
     """Test _create_document_reference method without custodian information."""
 
@@ -507,15 +532,16 @@ def test_create_document_reference_without_custodian(
                 contentType="application/pdf",
                 title="test-file.pdf",
                 creation="2023-01-01T12:00:00Z",
-            )
-        )
+            ),
+        ),
     ]
     fhir_doc.author = [
         Reference(
             identifier=Identifier(
-                system="https://fhir.nhs.uk/Id/ods-organization-code", value="B67890"
-            )
-        )
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
     ]
     fhir_doc.custodian = None
 
@@ -543,8 +569,8 @@ def test_create_document_reference_without_custodian(
                     identifier=Identifier(
                         system="https://fhir.nhs.uk/Id/ods-organization-code",
                         value="A12345",
-                    )
-                )
+                    ),
+                ),
             ],
             "A12345",
         ),
@@ -579,16 +605,19 @@ def test_extract_author_from_fhir(
             [
                 Reference(
                     identifier=Identifier(
-                        system="https://fhir.nhs.uk/Id/ods-organization-code"
-                    )
-                )
+                        system="https://fhir.nhs.uk/Id/ods-organization-code",
+                    ),
+                ),
             ]
         ),
         ([Reference(identifier=None)]),
     ],
 )
 def test_extract_author_from_fhir_raises_error(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker, fhir_author
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
+    fhir_author,
 ):
     """Test _extract_author_from_fhir method with malformed json returns Validation errors."""
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
@@ -601,7 +630,9 @@ def test_extract_author_from_fhir_raises_error(
 
 
 def test_determine_document_type_with_missing_type(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
     """Test _determine_document_type method when type is missing entirely."""
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
@@ -615,7 +646,9 @@ def test_determine_document_type_with_missing_type(
 
 
 def test_determine_document_type_with_unknown_config(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
     """Test _determine_document_type method when type is missing entirely."""
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
@@ -624,7 +657,7 @@ def test_determine_document_type_with_unknown_config(
             "system": SNOMED_URL,
             "code": "1234567890",
             "display": "unknown code",
-        }
+        },
     ]
     fhir_doc.type = CodeableConcept(coding=mock_coding)
 
@@ -636,7 +669,9 @@ def test_determine_document_type_with_unknown_config(
 
 
 def test_determine_document_type_with_missing_coding(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
     """Test _determine_document_type method when coding is missing."""
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
@@ -651,7 +686,8 @@ def test_determine_document_type_with_missing_coding(
 
 
 def test_process_fhir_document_reference_with_malformed_json(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
 ):
     """Test process_fhir_document_reference with malformed JSON."""
     malformed_json = '{"resourceType": "DocumentReference", "invalid": }'
@@ -664,7 +700,8 @@ def test_process_fhir_document_reference_with_malformed_json(
 
 
 def test_process_fhir_document_reference_with_empty_string(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
 ):
     """Test process_fhir_document_reference with an empty string."""
     with pytest.raises(DocumentRefException) as excinfo:
@@ -675,7 +712,8 @@ def test_process_fhir_document_reference_with_empty_string(
 
 
 def test_process_fhir_document_reference_with_none(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
 ):
     """Test process_fhir_document_reference with None input."""
     with pytest.raises(DocumentRefException) as excinfo:
@@ -685,8 +723,28 @@ def test_process_fhir_document_reference_with_none(
     assert excinfo.value.error == LambdaError.DocRefNoParse
 
 
+def test_create_lg_document_reference_without_content_raises_error(
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
+):
+    """Test _create_document_reference method without content attachment raises error."""
+
+    fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
+    fhir_doc.content = None
+
+    with pytest.raises(DocumentRefException) as excinfo:
+        mock_post_fhir_doc_ref_service.process_fhir_document_reference(fhir_doc)
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.error == LambdaError.DocRefNoParse
+    assert excinfo.value.message == "Failed to parse document upload request data"
+
+
 def test_s3_file_key_for_lg(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
     """Test _create_document_reference method without custodian information."""
 
@@ -697,15 +755,16 @@ def test_s3_file_key_for_lg(
                 contentType="application/pdf",
                 title="test-file.pdf",
                 creation="2023-01-01T12:00:00Z",
-            )
-        )
+            ),
+        ),
     ]
     fhir_doc.author = [
         Reference(
             identifier=Identifier(
-                system="https://fhir.nhs.uk/Id/ods-organization-code", value="B67890"
-            )
-        )
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
     ]
     fhir_doc.custodian = None
 
@@ -724,3 +783,47 @@ def test_s3_file_key_for_lg(
     assert "user_upload/9000000009" in result.s3_upload_key
     assert f"9000000009/{result.id}" in result.s3_file_key
     assert result.sub_folder == "user_upload"
+
+
+def test_create_lg_document_reference_without_title_raises_error(
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
+):
+    """Test _create_document_reference method without title information raises error."""
+
+    fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
+    fhir_doc.content = [
+        DocumentReferenceContent(
+            attachment=Attachment(
+                contentType="application/pdf",
+                creation="2023-01-01T12:00:00Z",
+            ),
+        ),
+    ]
+    fhir_doc.author = [
+        Reference(
+            identifier=Identifier(
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
+    ]
+    fhir_doc.custodian = None
+
+    doc_type = SnomedCodes.LLOYD_GEORGE.value
+    current_gp_ods = "C13579"
+
+    with pytest.raises(DocumentRefException) as excinfo:
+        mock_post_fhir_doc_ref_service._create_document_reference(
+            nhs_number="9000000009",
+            author="B67890",
+            doc_type=doc_type,
+            fhir_doc=fhir_doc,
+            current_gp_ods=current_gp_ods,
+            raw_fhir_doc=json.dumps({"foo": "bar"}),
+        )
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.error == LambdaError.DocRefNoParse
+    assert excinfo.value.message == "Failed to parse document upload request data"

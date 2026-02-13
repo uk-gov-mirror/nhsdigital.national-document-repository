@@ -18,7 +18,7 @@ from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 data_helper = LloydGeorgeDataHelper()
 
 
-def create_upload_payload(lloyd_george_record):
+def create_upload_payload(lloyd_george_record, exclude: list[str] | None = None):
     sample_payload = {
         "resourceType": "DocumentReference",
         "type": {
@@ -27,28 +27,28 @@ def create_upload_payload(lloyd_george_record):
                     "system": "http://snomed.info/sct",
                     "code": f"{LLOYD_GEORGE_SNOMED}",
                     "display": "Lloyd George record folder",
-                }
-            ]
+                },
+            ],
         },
         "subject": {
             "identifier": {
                 "system": "https://fhir.nhs.uk/Id/nhs-number",
                 "value": lloyd_george_record["nhs_number"],
-            }
+            },
         },
         "author": [
             {
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                     "value": lloyd_george_record["ods"],
-                }
-            }
+                },
+            },
         ],
         "custodian": {
             "identifier": {
                 "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                 "value": lloyd_george_record["ods"],
-            }
+            },
         },
         "content": [
             {
@@ -57,10 +57,17 @@ def create_upload_payload(lloyd_george_record):
                     "contentType": "application/pdf",
                     "language": "en-GB",
                     "title": "1of1_Lloyd_George_Record_[Paula Esme VESEY]_[9730153973]_[22-01-1960].pdf",
-                }
-            }
+                },
+            },
         ],
     }
+
+    if exclude:
+        for field in exclude:
+            if field == "title":
+                sample_payload["content"][0]["attachment"].pop(field, None)
+            else:
+                sample_payload.pop(field, None)
 
     if "data" in lloyd_george_record:
         sample_payload["content"][0]["attachment"]["data"] = lloyd_george_record["data"]
@@ -105,10 +112,10 @@ def test_create_document_base64(test_data, snapshot_json):
     assert base64.b64decode(base64_data, validate=True)
 
     assert upload_response == snapshot_json(
-        exclude=paths("id", "date", "content.0.attachment.url")
+        exclude=paths("id", "date", "content.0.attachment.url"),
     )
     assert retrieve_response == snapshot_json(
-        exclude=paths("id", "date", "content.0.attachment.data")
+        exclude=paths("id", "date", "content.0.attachment.data"),
     )
 
 
@@ -153,8 +160,11 @@ def test_create_document_presign(test_data, snapshot_json):
     assert upload_response == snapshot_json(exclude=paths("id", "date"))
     assert retrieve_response == snapshot_json(
         exclude=paths(
-            "id", "date", "content.0.attachment.url", "content.0.attachment.size"
-        )
+            "id",
+            "date",
+            "content.0.attachment.url",
+            "content.0.attachment.size",
+        ),
     )
 
 
@@ -195,7 +205,7 @@ def test_create_document_virus(test_data, snapshot_json):
     retrieve_response = raw_retrieve_response.json()
 
     assert upload_response == snapshot_json(
-        exclude=paths("id", "date", "content.0.attachment.url")
+        exclude=paths("id", "date", "content.0.attachment.url"),
     )
     assert retrieve_response == snapshot_json(exclude=paths("id", "date"))
 
@@ -221,3 +231,29 @@ def test_create_document_does_not_save_raw(test_data):
     doc_ref = data_helper.retrieve_document_reference(record=lloyd_george_record)
     assert "Item" in doc_ref
     assert "RawRequest" not in doc_ref["Item"]
+
+
+def test_create_document_without_title_raises_error(test_data):
+    lloyd_george_record = {}
+    lloyd_george_record["ods"] = "H81109"
+    lloyd_george_record["nhs_number"] = "9449303304"
+
+    sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
+    with open(sample_pdf_path, "rb") as f:
+        lloyd_george_record["data"] = base64.b64encode(f.read()).decode("utf-8")
+    payload = create_upload_payload(lloyd_george_record, exclude=["title"])
+
+    url = f"https://{API_ENDPOINT}/FhirDocumentReference"
+    headers = {"Authorization": "Bearer 123", "X-Api-Key": API_KEY}
+
+    retrieve_response = requests.post(url, headers=headers, data=payload)
+    assert retrieve_response.status_code == 400
+
+    json_response = retrieve_response.json()
+    assert (
+        json_response["issue"][0]["details"]["coding"][0]["code"] == "VALIDATION_ERROR"
+    )
+    assert (
+        json_response["issue"][0]["diagnostics"]
+        == "Failed to parse document upload request data"
+    )

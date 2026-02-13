@@ -43,7 +43,8 @@ class DataHelper:
             "ndr-dev": "internal-dev.api.service.nhs.uk",
         }
         self.apim_url = apim_map.get(
-            str(self.workspace), "internal-dev.api.service.nhs.uk"
+            str(self.workspace),
+            "internal-dev.api.service.nhs.uk",
         )
 
         domain = (
@@ -61,7 +62,11 @@ class DataHelper:
         self.mtls_endpoint = f"mtls.{self.workspace}.{domain}"
 
     def build_record(
-        self, nhs_number="9912003071", data=None, doc_status=None, size=None
+        self,
+        nhs_number="9912003071",
+        data=None,
+        doc_status=None,
+        size=None,
     ):
         record = {
             "id": str(uuid.uuid4()),
@@ -109,7 +114,8 @@ class DataHelper:
 
     def retrieve_document_reference(self, record):
         return self.dynamo_service.get_item(
-            table_name=self.dynamo_table, key={"ID": record["id"]}
+            table_name=self.dynamo_table,
+            key={"ID": record["id"]},
         )
 
     def create_upload_payload(self, record, exclude=[], return_json=False):
@@ -122,28 +128,28 @@ class DataHelper:
                         "system": "https://snomed.info/sct",
                         "code": f"{self.snomed_code}",
                         "display": "Confidential patient data",
-                    }
-                ]
+                    },
+                ],
             },
             "subject": {
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/nhs-number",
                     "value": record["nhs_number"],
-                }
+                },
             },
             "author": [
                 {
                     "identifier": {
                         "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                         "value": record["ods"],
-                    }
-                }
+                    },
+                },
             ],
             "custodian": {
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                     "value": record["ods"],
-                }
+                },
             },
             "content": [
                 {
@@ -152,13 +158,16 @@ class DataHelper:
                         "contentType": "application/pdf",
                         "language": "en-GB",
                         "title": "1of1_pdm_record_[Paula Esme VESEY]_[9730153973]_[22-01-1960].pdf",
-                    }
-                }
+                    },
+                },
             ],
         }
 
         for field in exclude:
-            payload.pop(field, None)
+            if field == "title":
+                payload["content"][0]["attachment"].pop(field, None)
+            else:
+                payload.pop(field, None)
 
         if "data" in record:
             payload["content"][0]["attachment"]["data"] = record["data"]
@@ -260,7 +269,7 @@ class LloydGeorgeDataHelper(DataHelper):
                 "TagSet": [
                     {"Key": "scan-result", "Value": result},
                     {"Key": "scan-date", "Value": date},
-                ]
+                ],
             },
         )
 
@@ -275,7 +284,9 @@ class LloydGeorgeDataHelper(DataHelper):
         try:
             if version_id:
                 _ = s3_client.head_object(
-                    Bucket=self.s3_bucket, Key=key, VersionId=version_id
+                    Bucket=self.s3_bucket,
+                    Key=key,
+                    VersionId=version_id,
                 )
             else:
                 _ = s3_client.head_object(Bucket=self.s3_bucket, Key=key)
@@ -283,5 +294,4 @@ class LloydGeorgeDataHelper(DataHelper):
         except s3_client.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "404":
                 return False
-            else:
-                raise
+            raise

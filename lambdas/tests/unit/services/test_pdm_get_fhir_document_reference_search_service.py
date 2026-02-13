@@ -256,3 +256,77 @@ def test_create_document_reference_fhir_response_integration(
 
     assert isinstance(result, dict)
     assert result == expected_fhir_response
+
+
+@freeze_time("2023-05-01T12:00:00Z")
+def test_create_document_reference_fhir_response_no_title(
+    mock_document_service,
+    mocker,
+):
+    mock_document_reference = mocker.MagicMock()
+    mock_document_reference.nhs_number = "9000000009"
+    mock_document_reference.file_name = None
+    mock_document_reference.created = "2023-05-01T12:00:00"
+    mock_document_reference.document_scan_creation = "2023-05-01"
+    mock_document_reference.id = "Y05868-1634567890"
+    mock_document_reference.current_gp_ods = "Y12345"
+    mock_document_reference.author = "Y12345"
+    mock_document_reference.doc_status = "final"
+    mock_document_reference.custodian = "Y12345"
+    mock_document_reference.document_snomed_code_type = "717391000000106"
+    mock_document_reference.version = "1"
+
+    expected_fhir_response = {
+        "id": "717391000000106~Y05868-1634567890",
+        "resourceType": "DocumentReference",
+        "status": "current",
+        "docStatus": "final",
+        "subject": {
+            "identifier": {
+                "system": "https://fhir.nhs.uk/Id/nhs-number",
+                "value": "9000000009",
+            },
+        },
+        "date": "2023-05-01T12:00:00",
+        "content": [
+            {
+                "attachment": {
+                    "contentType": "application/pdf",
+                    "language": "en-GB",
+                    "creation": "2023-05-01",
+                    "url": f"{APIM_API_URL}/DocumentReference/717391000000106~Y05868-1634567890",
+                },
+            },
+        ],
+        "author": [
+            {
+                "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": "Y12345",
+                },
+            },
+        ],
+        "custodian": {
+            "identifier": {
+                "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                "value": "Y12345",
+            },
+        },
+        "type": {
+            "coding": [
+                {
+                    "system": "http://snomed.info/sct",
+                    "code": "717391000000106",
+                    "display": "Confidential patient data",
+                },
+            ],
+        },
+        "meta": {"versionId": "1"},
+    }
+
+    result = mock_document_service.create_document_reference_fhir_response(
+        mock_document_reference,
+    )
+
+    assert isinstance(result, dict)
+    assert result == expected_fhir_response

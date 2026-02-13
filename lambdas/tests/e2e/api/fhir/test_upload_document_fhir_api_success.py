@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 import os
 
@@ -42,7 +43,8 @@ def test_create_document_base64(test_data):
         return response_json["content"][0]["attachment"].get("data", False)
 
     raw_retrieve_response = retrieve_document_with_retry(
-        upload_response["id"], condition
+        upload_response["id"],
+        condition,
     )
     retrieve_response = raw_retrieve_response.json()
 
@@ -85,7 +87,8 @@ def test_create_document_without_author_or_type(test_data):
     with open(sample_pdf_path, "rb") as f:
         record["data"] = base64.b64encode(f.read()).decode("utf-8")
     payload = pdm_data_helper.create_upload_payload(
-        record=record, exclude=["type", "author"]
+        record=record,
+        exclude=["type", "author"],
     )
 
     for field in ["type", "author"]:
@@ -103,3 +106,32 @@ def test_create_document_without_author_or_type(test_data):
     assert doc_ref["Item"]["RawRequest"] == payload
     for field in ["type", "author"]:
         assert field not in doc_ref["Item"]["RawRequest"]
+
+
+def test_create_document_without_title(test_data):
+    record = {
+        "ods": "H81109",
+        "nhs_number": "9912003071",
+    }
+
+    sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
+    with open(sample_pdf_path, "rb") as f:
+        record["data"] = base64.b64encode(f.read()).decode("utf-8")
+    payload = pdm_data_helper.create_upload_payload(record=record, exclude=["title"])
+    assert "title" not in payload
+
+    raw_upload_response = upload_document(payload)
+    assert raw_upload_response.status_code == 201
+    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    test_data.append(record)
+
+    doc_ref = pdm_data_helper.retrieve_document_reference(record=record)
+    assert "Item" in doc_ref
+    assert "RawRequest" in doc_ref["Item"]
+    assert doc_ref["Item"]["RawRequest"] == payload
+    raw_request = json.loads(doc_ref["Item"]["RawRequest"])
+    assert "content" in raw_request
+    content = raw_request["content"]
+    assert "attachment" in content[0]
+    attachment = raw_request["content"][0]["attachment"]
+    assert "title" not in attachment
