@@ -8,10 +8,10 @@ from models.fhir.R4.fhir_document_reference import Attachment, DocumentReference
 from pydantic import ValidationError
 from services.base.ssm_service import SSMService
 from services.document_service import DocumentService
+from services.feature_flags_service import FeatureFlagService
 from services.put_fhir_document_reference_service import PutFhirDocumentReferenceService
 from utils.audit_logging_setup import LoggingService
 from utils.common_query_filters import CurrentStatusFile, NotDeleted
-from utils.constants.ssm import UPLOAD_PILOT_ODS_ALLOWED_LIST
 from utils.dynamo_utils import DocTypeTableRouter
 from utils.exceptions import (
     InvalidNhsNumberException,
@@ -38,10 +38,14 @@ class UpdateDocumentReferenceService:
         self.fhir_doc_ref_service = PutFhirDocumentReferenceService()
         self.document_service = DocumentService()
         self.ssm_service = SSMService()
+        self.feature_flag_service = FeatureFlagService()
         self.doctype_table_router = DocTypeTableRouter()
 
     def update_document_reference_request(
-        self, nhs_number: str, document: dict, doc_ref_id: str
+        self,
+        nhs_number: str,
+        document: dict,
+        doc_ref_id: str,
     ):
         self.validate_doc_ref_exists(doc_ref_id)
 
@@ -64,12 +68,16 @@ class UpdateDocumentReferenceService:
             self.validate_user_patient_ods_match(patient_ods_code, user_ods_code)
 
             validate_files_for_access_and_store(
-                [update_request_document], pds_patient_details
+                [update_request_document],
+                pds_patient_details,
             )
             self.stop_if_upload_is_in_progress(nhs_number)
 
             fhir_response = self.build_and_process_fhir_doc_ref(
-                nhs_number, doc_ref_id, update_request_document, user_ods_code
+                nhs_number,
+                doc_ref_id,
+                update_request_document,
+                user_ods_code,
             )
 
             fhir_response_data = json.loads(fhir_response)
@@ -97,12 +105,19 @@ class UpdateDocumentReferenceService:
             raise DocumentRefException(400, LambdaError.DocRefInvalidFiles)
 
     def build_and_process_fhir_doc_ref(
-        self, nhs_number, doc_ref_id, update_request_document, user_ods_code
+        self,
+        nhs_number,
+        doc_ref_id,
+        update_request_document,
+        user_ods_code,
     ):
         snomed_code_type = self.get_snomed_code_from_doc(update_request_document)
 
         doc_ref_info = self.build_doc_ref_info(
-            nhs_number, update_request_document, snomed_code_type, user_ods_code
+            nhs_number,
+            update_request_document,
+            snomed_code_type,
+            user_ods_code,
         )
 
         logger.info(f"Updating document reference for client id: {doc_ref_id}")
@@ -110,11 +125,12 @@ class UpdateDocumentReferenceService:
         validate_doc_version = update_request_document.version_id
 
         fhir_doc_ref = doc_ref_info.create_fhir_document_reference_object_basic(
-            doc_ref_id, validate_doc_version
+            doc_ref_id,
+            validate_doc_version,
         )
 
         fhir_response = self.fhir_doc_ref_service.process_fhir_document_reference(
-            fhir_doc_ref.model_dump_json()
+            fhir_doc_ref.model_dump_json(),
         )
 
         return fhir_response
@@ -153,7 +169,11 @@ class UpdateDocumentReferenceService:
         return snomed_code_type
 
     def build_doc_ref_info(
-        self, nhs_number, update_request_document, snomed_code_type, user_ods_code
+        self,
+        nhs_number,
+        update_request_document,
+        snomed_code_type,
+        user_ods_code,
     ):
         attachment_details = Attachment(
             title=update_request_document.file_name,
@@ -169,16 +189,17 @@ class UpdateDocumentReferenceService:
         return doc_ref_info
 
     def check_if_ods_code_is_in_pilot(self, ods_code) -> bool:
-        pilot_ods_codes = self.get_allowed_list_of_ods_codes_for_upload_pilot()
-        if ods_code in pilot_ods_codes:
+        pilot_ods_codes = (
+            self.feature_flag_service.get_allowed_list_of_ods_codes_for_upload_pilot()
+        )
+        if ods_code in pilot_ods_codes or pilot_ods_codes == []:
             return True
-        else:
-            raise OdsErrorException()
+        raise OdsErrorException()
 
     def parse_document(self, document: dict) -> UploadRequestDocument:
         try:
             validated_doc: UploadRequestDocument = UploadRequestDocument.model_validate(
-                document
+                document,
             )
         except ValidationError as e:
             logger.error(
@@ -207,12 +228,3 @@ class UpdateDocumentReferenceService:
                 {"Result": UPDATE_REFERENCE_FAILED_MESSAGE},
             )
             raise DocumentRefException(423, LambdaError.UploadInProgressError)
-
-    def get_allowed_list_of_ods_codes_for_upload_pilot(self) -> list[str]:
-        logger.info(
-            "Starting ssm request to retrieve allowed list of ODS codes for Upload Pilot"
-        )
-        response = self.ssm_service.get_ssm_parameter(UPLOAD_PILOT_ODS_ALLOWED_LIST)
-        if not response:
-            logger.warning("No ODS codes found in allowed list for Upload Pilot")
-        return response

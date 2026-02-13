@@ -53,7 +53,8 @@ def mock_feature_flag_service(set_env, mocker, setup_request_context):
 
 
 def test_request_app_config_data_valid_response_returns_data(
-    mock_requests, mock_feature_flag_service
+    mock_requests,
+    mock_feature_flag_service,
 ):
     mock_requests.get(test_url, json=success_200_all_response, status_code=200)
 
@@ -64,7 +65,8 @@ def test_request_app_config_data_valid_response_returns_data(
 
 
 def test_request_app_config_data_invalid_json_raises_exception(
-    mock_requests, mock_feature_flag_service
+    mock_requests,
+    mock_feature_flag_service,
 ):
     invalid_json = "invalid:"
     mock_requests.get(test_url, text=invalid_json, status_code=500)
@@ -78,7 +80,8 @@ def test_request_app_config_data_invalid_json_raises_exception(
 
 
 def test_request_app_config_data_400_raises_not_found_exception(
-    mock_requests, mock_feature_flag_service
+    mock_requests,
+    mock_feature_flag_service,
 ):
     mock_requests.get(test_url, json=err_response, status_code=400)
 
@@ -91,7 +94,8 @@ def test_request_app_config_data_400_raises_not_found_exception(
 
 
 def test_request_app_config_data_catch_all_raises_failure_exception(
-    mock_requests, mock_feature_flag_service
+    mock_requests,
+    mock_feature_flag_service,
 ):
     mock_requests.get(test_url, json=err_response, status_code=500)
 
@@ -117,7 +121,8 @@ def test_get_feature_flags_returns_all_flags(mock_requests, mock_feature_flag_se
 
 
 def test_get_feature_flags_no_flags_returns_empty(
-    mock_requests, mock_feature_flag_service
+    mock_requests,
+    mock_feature_flag_service,
 ):
     mock_requests.get(test_url, json=empty_response, status_code=200)
     mock_feature_flag_service.request_app_config_data.return_value = empty_response
@@ -130,7 +135,8 @@ def test_get_feature_flags_no_flags_returns_empty(
 
 
 def test_get_feature_flags_invalid_raises_exception(
-    mock_requests, mock_feature_flag_service
+    mock_requests,
+    mock_feature_flag_service,
 ):
     mock_requests.get(test_url, json=err_response, status_code=200)
     mock_feature_flag_service.request_app_config_data.return_value = err_response
@@ -143,7 +149,8 @@ def test_get_feature_flags_invalid_raises_exception(
 
 
 def test_get_feature_flags_by_flag_returns_single_flag(
-    mock_requests, mock_feature_flag_service
+    mock_requests,
+    mock_feature_flag_service,
 ):
     mock_requests.get(test_url, json=success_200_with_filter_reponse, status_code=200)
     mock_feature_flag_service.request_app_config_data.return_value = (
@@ -158,7 +165,8 @@ def test_get_feature_flags_by_flag_returns_single_flag(
 
 
 def test_get_feature_flags_by_flag_no_flag_raises_exception(
-    mock_requests, mock_feature_flag_service
+    mock_requests,
+    mock_feature_flag_service,
 ):
     mock_requests.get(test_url, json=empty_response, status_code=200)
     mock_feature_flag_service.request_app_config_data.return_value = empty_response
@@ -172,7 +180,8 @@ def test_get_feature_flags_by_flag_no_flag_raises_exception(
 
 
 def test_get_feature_flags_by_flag_invalid_raises_exception(
-    mock_requests, mock_feature_flag_service
+    mock_requests,
+    mock_feature_flag_service,
 ):
     mock_requests.get(test_url, json=err_response, status_code=200)
     mock_feature_flag_service.request_app_config_data.return_value = err_response
@@ -195,14 +204,15 @@ def test_get_allowed_list_of_ods_codes_for_upload_pilot(mock_feature_flag_servic
 
     assert actual_codes == expected_codes
     mock_feature_flag_service.ssm_service.get_ssm_parameter.assert_called_with(
-        UPLOAD_PILOT_ODS_ALLOWED_LIST
+        UPLOAD_PILOT_ODS_ALLOWED_LIST,
     )
 
 
 def test_get_allowed_list_of_ods_codes_for_upload_pilot_no_codes_found(
-    mock_feature_flag_service, caplog
+    mock_feature_flag_service,
+    caplog,
 ):
-    mock_feature_flag_service.ssm_service.get_ssm_parameter.return_value = []
+    mock_feature_flag_service.ssm_service.get_ssm_parameter.return_value = "*"
 
     result = mock_feature_flag_service.get_allowed_list_of_ods_codes_for_upload_pilot()
 
@@ -221,7 +231,10 @@ def test_get_allowed_list_of_ods_codes_for_upload_pilot_no_codes_found(
     ],
 )
 def test_check_if_ods_code_is_in_pilot(
-    mocker, mock_feature_flag_service, auth_context, expected_result
+    mocker,
+    mock_feature_flag_service,
+    auth_context,
+    expected_result,
 ):
     mock_context = mocker.MagicMock()
     mock_context.authorization = auth_context
@@ -309,7 +322,8 @@ def test_get_feature_flags_by_flag_overwrites_upload_flag(
 
 
 def test_get_feature_flags_by_flag_for_non_upload_flag(
-    mocker, mock_feature_flag_service
+    mocker,
+    mock_feature_flag_service,
 ):
     flag_name = "some_other_flag"
     mocker.patch.object(mock_feature_flag_service, "check_if_ods_code_is_in_pilot")
