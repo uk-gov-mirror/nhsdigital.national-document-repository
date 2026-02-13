@@ -1,7 +1,7 @@
 import os
-import requests
 import uuid
 
+import requests
 from tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()

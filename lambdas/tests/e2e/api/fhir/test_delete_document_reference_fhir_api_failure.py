@@ -2,12 +2,13 @@ import uuid
 
 from tests.e2e.helpers.data_helper import PdmDataHelper
 from tests.e2e.helpers.rest_helper import delete_document_reference
+
 pdm_data_helper = PdmDataHelper()
 
 
 def test_no_documents_found(test_data):
     response = delete_document_reference(
-        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id={uuid.uuid4()}"
+        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id={uuid.uuid4()}",
     )
     assert response.status_code == 404
     response_json = response.json()
@@ -17,7 +18,7 @@ def test_no_documents_found(test_data):
 
 def test_malformatted_nhs_id(test_data):
     response = delete_document_reference(
-        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|991200&_id={uuid.uuid4()}"
+        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|991200&_id={uuid.uuid4()}",
     )
     assert response.status_code == 400
     response_json = response.json()
@@ -29,7 +30,7 @@ def test_malformatted_nhs_id(test_data):
 
 def test_malformatted_document_id(test_data):
     response = delete_document_reference(
-        "?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id=1234"
+        "?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id=1234",
     )
     assert response.status_code == 400
     response_json = response.json()
@@ -49,7 +50,7 @@ def test_no_query_params(test_data):
 
 def test_incorrect_query_params(test_data):
     response = delete_document_reference(
-        "?foo=https://fhir.nhs.uk/Id/nhs-number|9912003071"
+        "?foo=https://fhir.nhs.uk/Id/nhs-number|9912003071",
     )
     assert response.status_code == 400
     response_json = response.json()
@@ -61,7 +62,7 @@ def test_incorrect_query_params(test_data):
 
 def test_correct_query_params_with_incorrect_params(test_data):
     response = delete_document_reference(
-        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id={uuid.uuid4()}&foo=1234"
+        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id={uuid.uuid4()}&foo=1234",
     )
     assert response.status_code == 404
     response_json = response.json()

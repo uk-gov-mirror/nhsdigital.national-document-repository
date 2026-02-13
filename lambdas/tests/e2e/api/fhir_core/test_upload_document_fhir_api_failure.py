@@ -59,7 +59,7 @@ def test_create_document_virus(test_data):
         )
 
     raw_retrieve_response = retrieve_document_with_retry(
-        upload_response["id"], condition
+        upload_response["id"], condition,
     )
     retrieve_response = raw_retrieve_response.json()
 
@@ -84,7 +84,7 @@ def test_create_document_virus(test_data):
     ],
 )
 def test_search_edge_cases(
-    nhs_number, expected_status, expected_code, expected_diagnostics
+    nhs_number, expected_status, expected_code, expected_diagnostics,
 ):
     record = {
         "ods": "H81109",
@@ -123,7 +123,7 @@ def test_forbidden_with_invalid_cert(temp_cert_and_key):
     headers = {"Authorization": "Bearer 123", "X-Correlation-Id": "1234"}
 
     response = requests.post(
-        url, headers=headers, cert=(cert_path, key_path), data=payload
+        url, headers=headers, cert=(cert_path, key_path), data=payload,
     )
     body = response.json()
     assert response.status_code == 403

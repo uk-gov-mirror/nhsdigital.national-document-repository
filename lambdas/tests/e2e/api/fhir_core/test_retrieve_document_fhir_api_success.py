@@ -3,8 +3,8 @@ import base64
 import pytest
 from tests.e2e.api.fhir.conftest import (
     PDM_S3_BUCKET,
-    create_and_store_pdm_record,
     PDM_SNOMED,
+    create_and_store_pdm_record,
 )
 from tests.e2e.helpers.data_helper import PdmDataHelper
 from tests.e2e.helpers.rest_helper import get_pdm_document_reference
@@ -34,7 +34,7 @@ def assert_returned_document_reference(pdm_record, response):
     ],
 )
 def test_successful_retrieval_of_document_reference(
-    test_data, doc_status, response_status
+    test_data, doc_status, response_status,
 ):
     pdm_record = create_and_store_pdm_record(test_data, doc_status=doc_status)
 
@@ -50,7 +50,7 @@ def test_successful_retrieval_of_document_reference(
 def test_file_retrieval(test_data, file_size):
     """Test retrieval for small and large files."""
     pdm_record = create_and_store_pdm_record(
-        test_data, size=file_size if file_size else None
+        test_data, size=file_size if file_size else None,
     )
     response = get_pdm_document_reference(pdm_record["id"])
     assert response.status_code == 200

@@ -42,7 +42,7 @@ def test_create_document_base64(test_data):
         return response_json["content"][0]["attachment"].get("data", False)
 
     raw_retrieve_response = retrieve_document_with_retry(
-        upload_response["id"], condition
+        upload_response["id"], condition,
     )
     retrieve_response = raw_retrieve_response.json()
 
@@ -85,7 +85,7 @@ def test_create_document_without_author_or_type(test_data):
     with open(sample_pdf_path, "rb") as f:
         record["data"] = base64.b64encode(f.read()).decode("utf-8")
     payload = pdm_data_helper.create_upload_payload(
-        record=record, exclude=["type", "author"]
+        record=record, exclude=["type", "author"],
     )
 
     for field in ["type", "author"]:

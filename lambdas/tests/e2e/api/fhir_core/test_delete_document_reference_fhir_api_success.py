@@ -2,7 +2,10 @@ from tests.e2e.api.fhir.conftest import (
     create_and_store_pdm_record,
 )
 from tests.e2e.helpers.data_helper import PdmDataHelper
-from tests.e2e.helpers.rest_helper import delete_document_reference, get_pdm_document_reference
+from tests.e2e.helpers.rest_helper import (
+    delete_document_reference,
+    get_pdm_document_reference,
+)
 
 pdm_data_helper = PdmDataHelper()
 
@@ -15,7 +18,7 @@ def test_delete_record_by_patient_details_and_doc_id(test_data):
     assert get_response_1.status_code == 200
 
     response = delete_document_reference(
-        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id={expected_record_id}"
+        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id={expected_record_id}",
     )
     assert response.status_code == 204
 
@@ -37,7 +40,7 @@ def test_delete_only_one_record_by_patient_details_and_doc_id(test_data):
     assert get_response_2.status_code == 200
 
     response = delete_document_reference(
-        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id={expected_record_id_1}"
+        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id={expected_record_id_1}",
     )
     assert response.status_code == 204
 

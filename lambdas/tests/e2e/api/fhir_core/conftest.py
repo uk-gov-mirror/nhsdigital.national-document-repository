@@ -27,7 +27,7 @@ def test_data():
 
 
 def fetch_with_retry_mtls(
-    session, url, headers, condition_func=None, max_retries=5, delay=10
+    session, url, headers, condition_func=None, max_retries=5, delay=10,
 ):
     retries = 0
     while retries < max_retries:
@@ -47,7 +47,7 @@ def fetch_with_retry_mtls(
 
 
 def create_mtls_session(
-    client_cert_path=CLIENT_CERT_PATH, client_key_path=CLIENT_KEY_PATH
+    client_cert_path=CLIENT_CERT_PATH, client_key_path=CLIENT_KEY_PATH,
 ):
     session = requests.Session()
     session.cert = (client_cert_path, client_key_path)
@@ -95,7 +95,7 @@ def create_and_store_pdm_record(
 ):
     """Helper to create metadata and resource for a record."""
     record = pdm_data_helper.build_record(
-        nhs_number=nhs_number, doc_status=doc_status, size=size
+        nhs_number=nhs_number, doc_status=doc_status, size=size,
     )
     test_data.append(record)
     pdm_data_helper.create_metadata(record, **dynamo_kwargs)
