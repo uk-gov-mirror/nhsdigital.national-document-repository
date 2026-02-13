@@ -1,9 +1,8 @@
 from tests.e2e.api.fhir.conftest import (
     create_and_store_pdm_record,
-    get_pdm_document_reference,
-    delete_document_reference,
 )
 from tests.e2e.helpers.data_helper import PdmDataHelper
+from tests.e2e.helpers.rest_helper import delete_document_reference, get_pdm_document_reference
 
 pdm_data_helper = PdmDataHelper()
 

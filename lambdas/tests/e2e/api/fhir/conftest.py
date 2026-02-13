@@ -86,49 +86,6 @@ def temp_cert_and_key():
         shutil.rmtree(temp_dir)
 
 
-def get_pdm_document_reference(
-    record_id="",
-    client_cert_path=None,
-    client_key_path=None,
-    resource_type="DocumentReference",
-    pdm_snomed=PDM_SNOMED,
-    endpoint_override=None,
-):
-    if not endpoint_override:
-        url = f"https://{MTLS_ENDPOINT}/{resource_type}/{pdm_snomed}~{record_id}"
-    else:
-        url = f"https://{MTLS_ENDPOINT}/{resource_type}/{endpoint_override}"
-    headers = {
-        "X-Correlation-Id": "1234",
-    }
-
-    # Call with invalid or unauthorised certs
-    if client_cert_path and client_key_path:
-        session = create_mtls_session(client_cert_path, client_key_path)
-    else:
-        # Call with default valid certs
-        session = create_mtls_session()
-
-    response = session.get(url, headers=headers)
-    return response
-
-
-def delete_document_reference(endpoint, client_cert_path=None, client_key_path=None):
-    """Helper to perform a DELETE by NHS number."""
-    url = f"https://{MTLS_ENDPOINT}/DocumentReference{endpoint}"
-    headers = {
-        "X-Correlation-Id": "1234",
-    }
-
-    # Use provided certs if available, else defaults
-    if client_cert_path and client_key_path:
-        session = create_mtls_session(client_cert_path, client_key_path)
-    else:
-        session = create_mtls_session()
-
-    return session.delete(url=url, headers=headers)
-
-
 def create_and_store_pdm_record(
     test_data,
     nhs_number: str = "9912003071",
@@ -145,15 +102,6 @@ def create_and_store_pdm_record(
     pdm_data_helper.create_resource(record)
     return record
 
-
-def upload_document(payload, resource_type="DocumentReference"):
-    """Helper to upload DocumentReference."""
-    url = f"https://{MTLS_ENDPOINT}/{resource_type}"
-    headers = {
-        "X-Correlation-Id": "1234",
-    }
-    session = create_mtls_session()
-    return session.post(url, headers=headers, data=payload)
 
 
 def retrieve_document_with_retry(doc_id, condition):

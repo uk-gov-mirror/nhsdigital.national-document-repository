@@ -8,9 +8,9 @@ import requests
 from tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
     retrieve_document_with_retry,
-    upload_document,
 )
 from tests.e2e.helpers.data_helper import PdmDataHelper
+from tests.e2e.helpers.rest_helper import upload_document_reference
 
 pdm_data_helper = PdmDataHelper()
 
@@ -26,7 +26,7 @@ def test_create_document_presign_fails():
         record["data"] = base64.b64encode(f.read()).decode("utf-8")
     payload = pdm_data_helper.create_upload_payload(record)
 
-    upload_response = upload_document(payload)
+    upload_response = upload_document_reference(payload)
     assert upload_response.status_code == 413
     assert upload_response.text == "HTTP content length exceeded 10485760 bytes."
 
@@ -44,7 +44,7 @@ def test_create_document_virus(test_data):
     record["data"] = base64.b64encode(eicar_string.encode()).decode()
     payload = pdm_data_helper.create_upload_payload(record)
 
-    raw_upload_response = upload_document(payload)
+    raw_upload_response = upload_document_reference(payload)
     assert raw_upload_response.status_code == 201
     upload_response = raw_upload_response.json()
     record["id"] = upload_response["id"].split("~")[1]
@@ -95,7 +95,7 @@ def test_search_edge_cases(
     record["data"] = base64.b64encode(sample_pdf_bytes).decode("utf-8")
 
     payload = pdm_data_helper.create_upload_payload(record)
-    response = upload_document(payload)
+    response = upload_document_reference(payload)
     assert response.status_code == expected_status
 
     body = response.json()
@@ -147,7 +147,7 @@ def test_create_document_with_invalid_author_returns_error(test_data, author_pay
     payload["author"][0] = author_payload
     payload = json.dumps(payload)
 
-    raw_upload_response = upload_document(payload)
+    raw_upload_response = upload_document_reference(payload)
     response_json = raw_upload_response.json()
     assert raw_upload_response.status_code == 400
     assert response_json["resourceType"] == "OperationOutcome"
@@ -168,7 +168,7 @@ def test_upload_invalid_resource_type(test_data):
     payload = pdm_data_helper.create_upload_payload(record=record, return_json=True)
     payload = json.dumps(payload)
 
-    raw_upload_response = upload_document(payload, resource_type="FooBar")
+    raw_upload_response = upload_document_reference(payload, resource_type="FooBar")
     assert raw_upload_response.status_code == 403
 
     response_json = raw_upload_response.json()
