@@ -5,9 +5,9 @@ import pytest
 from enums.document_retention import DocumentRetentionDays
 from tests.e2e.api.fhir.conftest import (
     create_and_store_pdm_record,
-    get_pdm_document_reference,
 )
 from tests.e2e.helpers.data_helper import PdmDataHelper
+from tests.e2e.helpers.rest_helper import get_pdm_document_reference
 
 pdm_data_helper = PdmDataHelper()
 

@@ -5,10 +5,10 @@ import os
 from tests.e2e.api.fhir.conftest import (
     PDM_SNOMED,
     retrieve_document_with_retry,
-    upload_document,
 )
 from tests.e2e.conftest import APIM_ENDPOINT
 from tests.e2e.helpers.data_helper import PdmDataHelper
+from tests.e2e.helpers.rest_helper import upload_document_reference
 
 pdm_data_helper = PdmDataHelper()
 
@@ -24,7 +24,7 @@ def test_create_document_base64(test_data):
         record["data"] = base64.b64encode(f.read()).decode("utf-8")
     payload = pdm_data_helper.create_upload_payload(record)
 
-    raw_upload_response = upload_document(payload)
+    raw_upload_response = upload_document_reference(payload)
     assert raw_upload_response.status_code == 201
     record["id"] = raw_upload_response.json()["id"].split("~")[1]
     test_data.append(record)
@@ -62,7 +62,7 @@ def test_create_document_saves_raw(test_data):
         record["data"] = base64.b64encode(f.read()).decode("utf-8")
     payload = pdm_data_helper.create_upload_payload(record)
 
-    raw_upload_response = upload_document(payload)
+    raw_upload_response = upload_document_reference(payload)
     assert raw_upload_response.status_code == 201
     record["id"] = raw_upload_response.json()["id"].split("~")[1]
     test_data.append(record)
@@ -90,7 +90,7 @@ def test_create_document_without_author_or_type(test_data):
 
     for field in ["type", "author"]:
         assert field not in payload
-    raw_upload_response = upload_document(payload)
+    raw_upload_response = upload_document_reference(payload)
     assert raw_upload_response.status_code == 201
     record["id"] = raw_upload_response.json()["id"].split("~")[1]
     test_data.append(record)

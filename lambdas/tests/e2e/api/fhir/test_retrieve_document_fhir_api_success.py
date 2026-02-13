@@ -4,10 +4,10 @@ import pytest
 from tests.e2e.api.fhir.conftest import (
     PDM_S3_BUCKET,
     create_and_store_pdm_record,
-    get_pdm_document_reference,
     PDM_SNOMED,
 )
 from tests.e2e.helpers.data_helper import PdmDataHelper
+from tests.e2e.helpers.rest_helper import get_pdm_document_reference
 
 pdm_data_helper = PdmDataHelper()
 

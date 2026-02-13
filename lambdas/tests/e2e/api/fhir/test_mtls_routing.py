@@ -1,7 +1,7 @@
 import os
 import uuid
 
-from tests.e2e.api.fhir.conftest import get_pdm_document_reference
+from tests.e2e.helpers.rest_helper import get_pdm_document_reference
 
 UNAUTHORISED_CLIENT_CERT_PATH = os.environ.get("UNAUTHORISED_CLIENT_CERT_PATH")
 UNAUTHORISED_CLIENT_KEY_PATH = os.environ.get("UNAUTHORISED_CLIENT_KEY_PATH")

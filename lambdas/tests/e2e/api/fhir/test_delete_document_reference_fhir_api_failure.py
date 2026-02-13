@@ -1,9 +1,7 @@
 import uuid
-from tests.e2e.api.fhir.conftest import (
-    delete_document_reference,
-)
-from tests.e2e.helpers.data_helper import PdmDataHelper
 
+from tests.e2e.helpers.data_helper import PdmDataHelper
+from tests.e2e.helpers.rest_helper import delete_document_reference
 pdm_data_helper = PdmDataHelper()
 
 

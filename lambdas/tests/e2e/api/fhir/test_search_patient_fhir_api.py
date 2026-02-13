@@ -3,37 +3,14 @@ from datetime import datetime, timezone
 import pytest
 from enums.document_retention import DocumentRetentionDays
 from tests.e2e.api.fhir.conftest import (
-    MTLS_ENDPOINT,
     PDM_SNOMED,
     create_and_store_pdm_record,
-    create_mtls_session,
 )
 from tests.e2e.conftest import APIM_ENDPOINT
 from tests.e2e.helpers.data_helper import PdmDataHelper
+from tests.e2e.helpers.rest_helper import search_document_reference
 
 pdm_data_helper = PdmDataHelper()
-
-
-def search_document_reference(
-    nhs_number,
-    client_cert_path=None,
-    client_key_path=None,
-    resource_type="DocumentReference",
-):
-    """Helper to perform search by NHS number with optional mTLS certs."""
-    url = f"https://{MTLS_ENDPOINT}/{resource_type}?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|{nhs_number}"
-    headers = {
-        "X-Correlation-Id": "1234",
-    }
-
-    # Use provided certs if available, else defaults
-    if client_cert_path and client_key_path:
-        session = create_mtls_session(client_cert_path, client_key_path)
-    else:
-        session = create_mtls_session()
-
-    return session.get(url, headers=headers)
-
 
 def test_search_nonexistent_document_references_for_patient_details():
     response = search_document_reference("9449305943")
