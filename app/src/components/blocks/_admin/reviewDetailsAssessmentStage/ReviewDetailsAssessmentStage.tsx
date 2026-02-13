@@ -12,7 +12,10 @@ import Spinner from '../../../generic/spinner/Spinner';
 import ExistingRecordTable from './ExistingRecordTable';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
-import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
+import {
+    getFormattedDateFromString,
+    getFormattedDateTimeFromString,
+} from '../../../../helpers/utils/formatDate';
 import {
     GetDocumentReviewDto,
     ReviewDetails,
@@ -28,6 +31,7 @@ import DocumentUploadLloydGeorgePreview from '../../_documentUpload/documentUplo
 import { AxiosError } from 'axios';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
+import { CreatedByText } from '../../../generic/createdBy/createdBy';
 
 type FileAction = 'add-all' | 'choose-files' | 'duplicate' | 'accept' | 'reject' | '';
 
@@ -402,13 +406,19 @@ const ReviewDetailsAssessmentStage = ({
                     <p>
                         <strong>You are currently viewing: all files</strong>
                     </p>
-
                     <DocumentUploadLloydGeorgePreview
                         documents={uploadDocuments.filter((f) => f.file.name.endsWith('.pdf'))}
                         setMergedPdfBlob={(): void => {}}
                         stitchedBlobLoaded={(): void => {}}
+                        isReview={true}
                         documentConfig={reviewConfig}
-                    />
+                    >
+                        <CreatedByText
+                            odsCode={reviewData.uploader}
+                            dateUploaded={getFormattedDateTimeFromString(reviewData.dateUploaded)}
+                            cssClass="pt-1"
+                        />
+                    </DocumentUploadLloydGeorgePreview>
                 </>
             )}
 
@@ -438,8 +448,17 @@ const ReviewDetailsAssessmentStage = ({
                             )}
                             setMergedPdfBlob={(): void => {}}
                             stitchedBlobLoaded={(): void => {}}
+                            isReview={true}
                             documentConfig={reviewConfig}
-                        />
+                        >
+                            <CreatedByText
+                                odsCode={reviewData.uploader}
+                                dateUploaded={getFormattedDateTimeFromString(
+                                    reviewData.dateUploaded,
+                                )}
+                                cssClass="pt-1"
+                            />
+                        </DocumentUploadLloydGeorgePreview>
                     )}
                 </section>
             )}

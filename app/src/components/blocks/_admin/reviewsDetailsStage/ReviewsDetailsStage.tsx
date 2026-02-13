@@ -7,7 +7,7 @@ import useConfig from '../../../../helpers/hooks/useConfig';
 import useRole from '../../../../helpers/hooks/useRole';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
-import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
+import { getFormattedDateTimeFromString } from '../../../../helpers/utils/formatDate';
 import { setFullScreen } from '../../../../helpers/utils/fullscreen';
 import { handleSearch as handlePatientSearch } from '../../../../helpers/utils/handlePatientSearch';
 import { usePatientDetailsContext } from '../../../../providers/patientProvider/PatientProvider';
@@ -35,6 +35,7 @@ import { errorToParams } from '../../../../helpers/utils/errorToParams';
 import waitForSeconds from '../../../../helpers/utils/waitForSeconds';
 import DocumentUploadLloydGeorgePreview from '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
+import { CreatedByCard } from '../../../generic/createdBy/createdBy';
 
 export type ReviewsDetailsStageProps = {
     reviewData: ReviewDetails;
@@ -106,9 +107,9 @@ const ReviewsDetailsStage = ({
             anchor.remove();
         }
     };
+
     const recordDetailsProps: RecordLoaderProps = {
         downloadStage,
-        lastUpdated: getFormattedDateFromString(reviewData.lastUpdated),
         childrenIfFailiure: <p>Failure: failed to load documents</p>,
         fileName:
             !reviewConfig.multifileReview && reviewData.files && reviewData.files.length === 1
@@ -334,7 +335,15 @@ const ReviewsDetailsStage = ({
                             setMergedPdfBlob={(): void => {}}
                             documentConfig={reviewConfig}
                             isReview={true}
-                        />
+                        >
+                            <CreatedByCard
+                                odsCode={reviewData.uploader}
+                                dateUploaded={getFormattedDateTimeFromString(
+                                    reviewData.dateUploaded,
+                                )}
+                                cssClass="pt-1"
+                            />
+                        </DocumentUploadLloydGeorgePreview>
                     </RecordLayout>
                 </div>
             </div>

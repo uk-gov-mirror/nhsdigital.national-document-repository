@@ -12,6 +12,7 @@ type Props = {
     documentConfig: DOCUMENT_TYPE_CONFIG;
     isReview?: boolean;
     showCurrentlyViewingText?: boolean;
+    children?: React.ReactNode;
 };
 
 const DocumentUploadLloydGeorgePreview = ({
@@ -21,6 +22,7 @@ const DocumentUploadLloydGeorgePreview = ({
     documentConfig,
     isReview = false,
     showCurrentlyViewingText,
+    children,
 }: Props): JSX.Element => {
     const [mergedPdfUrl, setMergedPdfUrl] = useState('');
     const journey = getJourney();
@@ -106,6 +108,7 @@ const DocumentUploadLloydGeorgePreview = ({
                     )}
                 </>
             )}
+            {isReview && <>{children}</>}
             {documents && mergedPdfUrl && (
                 <PdfViewer customClasses={['upload-preview']} fileUrl={mergedPdfUrl} />
             )}

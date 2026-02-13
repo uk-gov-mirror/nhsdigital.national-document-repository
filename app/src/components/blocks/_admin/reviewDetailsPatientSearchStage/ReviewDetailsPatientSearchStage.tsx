@@ -29,8 +29,9 @@ import { RecordLayout } from '../../../generic/recordCard/RecordCard';
 import { RecordLoader, RecordLoaderProps } from '../../../generic/recordLoader/RecordLoader';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
-import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
 import { ReviewUploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
+import { getFormattedDateTimeFromString } from '../../../../helpers/utils/formatDate';
+import { CreatedByCard } from '../../../generic/createdBy/createdBy';
 
 export const incorrectFormatMessage = "Enter patient's 10 digit NHS number";
 
@@ -137,7 +138,6 @@ const ReviewDetailsPatientSearchStage = ({
 
     const recordDetailsProps: RecordLoaderProps = {
         downloadStage: DOWNLOAD_STAGE.SUCCEEDED,
-        lastUpdated: getFormattedDateFromString(reviewData.lastUpdated),
         childrenIfFailiure: <p>Failure: failed to load documents</p>,
         fileName:
             !reviewConfig.multifileReview && reviewData.files?.length === 1
@@ -236,7 +236,13 @@ const ReviewDetailsPatientSearchStage = ({
                     setMergedPdfBlob={(): void => {}}
                     documentConfig={reviewConfig}
                     isReview={true}
-                />
+                >
+                    <CreatedByCard
+                        odsCode={reviewData.uploader}
+                        dateUploaded={getFormattedDateTimeFromString(reviewData.dateUploaded)}
+                        cssClass="pt-1"
+                    />
+                </DocumentUploadLloydGeorgePreview>
             </RecordLayout>
         </>
     );

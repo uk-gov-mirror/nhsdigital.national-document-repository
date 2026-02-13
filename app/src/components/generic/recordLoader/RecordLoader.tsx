@@ -4,7 +4,7 @@ import ProgressBar from '../progressBar/ProgressBar';
 
 export type RecordLoaderProps = {
     downloadStage: DOWNLOAD_STAGE;
-    lastUpdated: string;
+    lastUpdated?: string;
     childrenIfFailiure: React.JSX.Element;
     fileName: string;
     downloadAction?: (e: React.MouseEvent<HTMLElement>) => void;
@@ -22,6 +22,10 @@ export const RecordLoader = ({
         lastUpdated,
         fileName,
     };
+
+    if (!lastUpdated && !fileName) {
+        return <></>;
+    }
 
     switch (downloadStage) {
         case DOWNLOAD_STAGE.INITIAL:
@@ -48,7 +52,7 @@ export const RecordLoader = ({
 };
 
 export type RecordDetailsProps = {
-    lastUpdated: string;
+    lastUpdated?: string;
     fileName: string;
     downloadAction?: (e: React.MouseEvent<HTMLElement>) => void;
 };
@@ -61,9 +65,11 @@ export const RecordDetails = ({
     return (
         <div className="lloydgeorge_record-details">
             <div className="lloydgeorge_record-details_details">
-                <div className="lloydgeorge_record-details_details--last-updated">
-                    <p>Last updated: {lastUpdated}</p>
-                </div>
+                {lastUpdated && (
+                    <div className="lloydgeorge_record-details_details--last-updated">
+                        <p>Last updated: {lastUpdated}</p>
+                    </div>
+                )}
                 {fileName && (
                     <div className="lloydgeorge_record-details_details--last-updated mt-3">
                         <p>
