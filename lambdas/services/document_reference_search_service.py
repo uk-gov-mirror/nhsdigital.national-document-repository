@@ -177,6 +177,7 @@ class DocumentReferenceSearchService(DocumentService):
                 "version",
                 "content_type",
                 "document_snomed_code_type",
+                "author",
             },
         )
         return document_formatted

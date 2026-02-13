@@ -1,9 +1,10 @@
-from tests.unit.conftest import TEST_FILE_SIZE, TEST_NHS_NUMBER
+from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_FILE_SIZE, TEST_NHS_NUMBER
 
 MOCK_SEARCH_RESPONSE = {
     "Items": [
         {
             "ID": "3d8683b9-1665-40d2-8499-6e8302d507ff",
+            "Author": TEST_CURRENT_GP_ODS,
             "ContentType": "application/pdf",
             "Created": "2024-01-01T12:00:00.000Z",
             "DocStatus": "final",
@@ -12,7 +13,7 @@ MOCK_SEARCH_RESPONSE = {
             "FileSize": TEST_FILE_SIZE,
             "NhsNumber": TEST_NHS_NUMBER,
             "VirusScannerResult": "Clean",
-            "CurrentGpOds": "Y12345",
+            "CurrentGpOds": TEST_CURRENT_GP_ODS,
             "Uploaded": "True",
             "Uploading": "False",
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
@@ -20,6 +21,7 @@ MOCK_SEARCH_RESPONSE = {
         },
         {
             "ID": "4d8683b9-1665-40d2-8499-6e8302d507ff",
+            "Author": TEST_CURRENT_GP_ODS,
             "ContentType": "application/pdf",
             "Created": "2024-01-01T12:00:00.000Z",
             "DocStatus": "final",
@@ -28,7 +30,7 @@ MOCK_SEARCH_RESPONSE = {
             "FileSize": TEST_FILE_SIZE,
             "NhsNumber": TEST_NHS_NUMBER,
             "VirusScannerResult": "Clean",
-            "CurrentGpOds": "Y12345",
+            "CurrentGpOds": TEST_CURRENT_GP_ODS,
             "Uploaded": "True",
             "Uploading": "False",
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
@@ -36,6 +38,7 @@ MOCK_SEARCH_RESPONSE = {
         },
         {
             "ID": "5d8683b9-1665-40d2-8499-6e8302d507ff",
+            "Author": TEST_CURRENT_GP_ODS,
             "ContentType": "application/pdf",
             "Created": "2024-01-01T12:00:00.000Z",
             "DocStatus": "final",
@@ -44,7 +47,7 @@ MOCK_SEARCH_RESPONSE = {
             "FileSize": TEST_FILE_SIZE,
             "NhsNumber": TEST_NHS_NUMBER,
             "VirusScannerResult": "Clean",
-            "CurrentGpOds": "Y12345",
+            "CurrentGpOds": TEST_CURRENT_GP_ODS,
             "Uploaded": "True",
             "Uploading": "False",
             "LastUpdated": 1704110400,  # Timestamp: 2024-01-01T12:00:00
