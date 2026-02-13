@@ -40,7 +40,9 @@ class S3Service:
             if custom_aws_role:
                 self.iam_service = IAMService()
                 self.custom_client, self.expiration_time = self.iam_service.assume_role(
-                    self.custom_aws_role, "s3", config=self.config
+                    self.custom_aws_role,
+                    "s3",
+                    config=self.config,
                 )
 
     # S3 Location should be a minimum of a s3_object_key but can also be a directory location in the form of
@@ -48,11 +50,13 @@ class S3Service:
     def create_upload_presigned_url(self, s3_bucket_name: str, s3_object_location: str):
         if self.custom_client:
             if datetime.now(timezone.utc) > self.expiration_time - timedelta(
-                minutes=10
+                minutes=10,
             ):
                 logger.info(S3Service.EXPIRED_SESSION_WARNING)
                 self.custom_client, self.expiration_time = self.iam_service.assume_role(
-                    self.custom_aws_role, "s3", config=self.config
+                    self.custom_aws_role,
+                    "s3",
+                    config=self.config,
                 )
             return self.custom_client.generate_presigned_post(
                 s3_bucket_name,
@@ -65,11 +69,13 @@ class S3Service:
     def create_put_presigned_url(self, s3_bucket_name: str, file_key: str):
         if self.custom_client:
             if datetime.now(timezone.utc) > self.expiration_time - timedelta(
-                minutes=10
+                minutes=10,
             ):
                 logger.info(S3Service.EXPIRED_SESSION_WARNING)
                 self.custom_client, self.expiration_time = self.iam_service.assume_role(
-                    self.custom_aws_role, "s3", config=self.config
+                    self.custom_aws_role,
+                    "s3",
+                    config=self.config,
                 )
             logger.info("Generating presigned URL")
             return self.custom_client.generate_presigned_url(
@@ -82,11 +88,13 @@ class S3Service:
     def create_download_presigned_url(self, s3_bucket_name: str, file_key: str):
         if self.custom_client:
             if datetime.now(timezone.utc) > self.expiration_time - timedelta(
-                minutes=10
+                minutes=10,
             ):
                 logger.info(S3Service.EXPIRED_SESSION_WARNING)
                 self.custom_client, self.expiration_time = self.iam_service.assume_role(
-                    self.custom_aws_role, "s3", config=self.config
+                    self.custom_aws_role,
+                    "s3",
+                    config=self.config,
                 )
             logger.info("Generating presigned URL")
             return self.custom_client.generate_presigned_url(
@@ -143,24 +151,32 @@ class S3Service:
                         if_none_match,
                         False,
                     )
-                else:
-                    raise e
+                raise e
             else:
                 logger.error(f"Copy failed: {e}")
                 raise e
 
     def delete_object(
-        self, s3_bucket_name: str, file_key: str, version_id: str | None = None
+        self,
+        s3_bucket_name: str,
+        file_key: str,
+        version_id: str | None = None,
     ):
         if version_id is None:
             return self.client.delete_object(Bucket=s3_bucket_name, Key=file_key)
 
         return self.client.delete_object(
-            Bucket=s3_bucket_name, Key=file_key, VersionId=version_id
+            Bucket=s3_bucket_name,
+            Key=file_key,
+            VersionId=version_id,
         )
 
     def create_object_tag(
-        self, s3_bucket_name: str, file_key: str, tag_key: str, tag_value: str
+        self,
+        s3_bucket_name: str,
+        file_key: str,
+        tag_key: str,
+        tag_value: str,
     ):
         return self.client.put_object_tagging(
             Bucket=s3_bucket_name,
@@ -168,7 +184,7 @@ class S3Service:
             Tagging={
                 "TagSet": [
                     {"Key": tag_key, "Value": tag_value},
-                ]
+                ],
             },
         )
 
@@ -182,7 +198,7 @@ class S3Service:
                 return key_value_pair["Value"]
 
         raise TagNotFoundException(
-            f"Object {file_key} doesn't have a tag of key {tag_key}"
+            f"Object {file_key} doesn't have a tag of key {tag_key}",
         )
 
     def file_exist_on_s3(self, s3_bucket_name: str, file_key: str) -> bool:
@@ -218,8 +234,11 @@ class S3Service:
     def get_head_object(self, bucket: str, key: str):
         return self.client.head_object(Bucket=bucket, Key=key)
 
-    def get_object_stream(self, bucket: str, key: str):
-        response = self.client.get_object(Bucket=bucket, Key=key)
+    def get_object_stream(self, bucket: str, key: str, byte_range: str | None = None):
+        params = {"Bucket": bucket, "Key": key}
+        if byte_range:
+            params["Range"] = byte_range
+        response = self.client.get_object(**params)
         return response.get("Body")
 
     def stream_s3_object_to_memory(self, bucket: str, key: str) -> BytesIO:
@@ -247,11 +266,13 @@ class S3Service:
             logger.info(f"Uploaded file object to s3://{s3_bucket_name}/{file_key}")
         except ClientError as e:
             logger.error(
-                f"Failed to upload file object to s3://{s3_bucket_name}/{file_key} - {e}"
+                f"Failed to upload file object to s3://{s3_bucket_name}/{file_key} - {e}",
             )
             raise e
 
     def save_or_create_file(self, source_bucket: str, file_key: str, body: bytes):
         return self.client.put_object(
-            Bucket=source_bucket, Key=file_key, Body=BytesIO(body)
+            Bucket=source_bucket,
+            Key=file_key,
+            Body=BytesIO(body),
         )

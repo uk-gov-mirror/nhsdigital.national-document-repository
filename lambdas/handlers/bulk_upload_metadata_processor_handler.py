@@ -18,13 +18,13 @@ logger = LoggingService(__name__)
 @set_request_context_for_logging
 @override_error_check
 @ensure_environment_variables(
-    names=["STAGING_STORE_BUCKET_NAME", "METADATA_SQS_QUEUE_URL"]
+    names=["STAGING_STORE_BUCKET_NAME", "METADATA_SQS_QUEUE_URL"],
 )
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
     feature_flag_service = FeatureFlagService()
     send_to_review_flag_object = feature_flag_service.get_feature_flags_by_flag(
-        FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value
+        FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value,
     )
     send_to_review_enabled = send_to_review_flag_object[
         FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value
@@ -32,11 +32,12 @@ def lambda_handler(event, _context):
 
     if send_to_review_enabled:
         logger.info(
-            "Bulk upload send to review queue is enabled for metadata processor"
+            "Bulk upload send to review queue is enabled for metadata processor",
         )
 
     raw_pre_format_type = event.get(
-        "preFormatType", LloydGeorgePreProcessFormat.GENERAL
+        "preFormatType",
+        LloydGeorgePreProcessFormat.GENERAL,
     )
     formatter_service_class = get_formatter_service(raw_pre_format_type)
     input_file_location = event.get("inputFileLocation", "")
@@ -58,12 +59,12 @@ def lambda_handler(event, _context):
 
     if not input_file_location:
         logger.error(
-            "Failed to start metadata processing due to missing field: inputFileLocation"
+            "Failed to start metadata processing due to missing field: inputFileLocation",
         )
         return
 
     logger.info(
-        f"Starting metadata processing for file location: {input_file_location}"
+        f"Starting metadata processing for file location: {input_file_location}",
     )
 
     fixed_values = event.get("fixedValues", {})

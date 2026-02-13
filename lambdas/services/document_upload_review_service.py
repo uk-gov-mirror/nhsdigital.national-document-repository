@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from boto3.dynamodb.conditions import Attr, ConditionBase
 from botocore.exceptions import ClientError
 from enums.document_review_status import DocumentReviewStatus
-from enums.dynamo_filter import AttributeOperator
+from enums.dynamo_filter import AttributeOperator, ConditionOperator
 from enums.lambda_error import ErrorMessage
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from models.document_review import DocumentUploadReviewReference
@@ -55,7 +55,8 @@ class DocumentUploadReviewService(DocumentService):
 
             filter_expression, condition_attribute_names, condition_attribute_values = (
                 self.build_paginator_query_filter(
-                    nhs_number=nhs_number, uploader=uploader
+                    nhs_number=nhs_number,
+                    uploader=uploader,
                 )
             )
             references, last_evaluated_key = self.query_table_with_paginator(
@@ -76,7 +77,8 @@ class DocumentUploadReviewService(DocumentService):
             raise DocumentReviewException(ErrorMessage.FAILED_TO_QUERY_DYNAMO)
 
     def _validate_review_references(
-        self, items: list[dict]
+        self,
+        items: list[dict],
     ) -> list[DocumentUploadReviewReference]:
         try:
             logger.info("Validating document review search response")
@@ -89,42 +91,48 @@ class DocumentUploadReviewService(DocumentService):
             raise DocumentReviewException(ErrorMessage.FAILED_TO_VALIDATE.value)
 
     def build_paginator_query_filter(
-        self, nhs_number: str | None = None, uploader: str | None = None
+        self,
+        nhs_number: str | None = None,
+        uploader: str | None = None,
     ):
         conditions = [
             {
                 "field": "ReviewStatus",
-                "operator": "=",
+                "operator": ConditionOperator.EQUAL.value,
                 "value": DocumentReviewStatus.PENDING_REVIEW.value,
-            }
+            },
         ]
         if nhs_number:
             conditions.append(
                 {
                     "field": "NhsNumber",
-                    "operator": "=",
+                    "operator": ConditionOperator.EQUAL.value,
                     "value": nhs_number,
-                }
+                },
             )
 
         if uploader:
             conditions.append(
                 {
                     "field": "Author",
-                    "operator": "=",
+                    "operator": ConditionOperator.EQUAL.value,
                     "value": uploader,
-                }
+                },
             )
 
         return build_mixed_condition_expression(conditions)
 
     def get_document(
-        self, document_id: str, version: int | None
+        self,
+        document_id: str,
+        version: int | None,
     ) -> DocumentUploadReviewReference | None:
         try:
             sort_key = {"Version": version}
             response = self.get_item(
-                table_name=self.table_name, document_id=document_id, sort_key=sort_key
+                table_name=self.table_name,
+                document_id=document_id,
+                sort_key=sort_key,
             )
 
             return response
@@ -145,7 +153,7 @@ class DocumentUploadReviewService(DocumentService):
         for review in patient_documents:
             if review.custodian == updated_ods_code:
                 logger.info(
-                    f"Custodian {updated_ods_code} already assigned to review ID: {review.id}"
+                    f"Custodian {updated_ods_code} already assigned to review ID: {review.id}",
                 )
                 continue
 
@@ -160,11 +168,15 @@ class DocumentUploadReviewService(DocumentService):
 
                 if review.review_status == DocumentReviewStatus.PENDING_REVIEW:
                     self._handle_pending_review_custodian_update(
-                        review, updated_ods_code, review_update_field
+                        review,
+                        updated_ods_code,
+                        review_update_field,
                     )
                 else:
                     self._handle_standard_custodian_update(
-                        review, updated_ods_code, review_update_field
+                        review,
+                        updated_ods_code,
+                        review_update_field,
                     )
 
             except (ClientError, DocumentReviewException) as e:
@@ -233,7 +245,9 @@ class DocumentUploadReviewService(DocumentService):
         return self.get_item(document_id, {"Version": document_version})
 
     def update_pending_review_status(
-        self, review_update: DocumentUploadReviewReference, field_names: set[str]
+        self,
+        review_update: DocumentUploadReviewReference,
+        field_names: set[str],
     ) -> None:
         self.update_review_document_with_status_filter(
             review_update,
@@ -253,7 +267,9 @@ class DocumentUploadReviewService(DocumentService):
             & Attr("ReviewStatus").eq(status)
         )
         self.update_document_review_for_patient(
-            review_update, field_names, condition_expression
+            review_update,
+            field_names,
+            condition_expression,
         )
 
     def update_document_review_for_patient(
@@ -286,7 +302,10 @@ class DocumentUploadReviewService(DocumentService):
             raise DocumentReviewException(ErrorMessage.FAILED_TO_UPDATE_DYNAMO)
 
     def update_document_review_with_transaction(
-        self, new_review_item, existing_review_item, additional_update_fields=None
+        self,
+        new_review_item,
+        existing_review_item,
+        additional_update_fields=None,
     ):
         transact_items = []
         try:
@@ -295,7 +314,9 @@ class DocumentUploadReviewService(DocumentService):
                 action="Update",
                 key={"ID": new_review_item.id, "Version": new_review_item.version},
                 update_fields=new_review_item.model_dump(
-                    exclude_none=True, by_alias=True, exclude={"version", "id"}
+                    exclude_none=True,
+                    by_alias=True,
+                    exclude={"version", "id"},
                 ),
                 conditions=[{"field": "ID", "operator": "attribute_not_exists"}],
             )
@@ -316,7 +337,9 @@ class DocumentUploadReviewService(DocumentService):
                     "Version": existing_review_item.version,
                 },
                 update_fields=existing_review_item.model_dump(
-                    exclude_none=True, by_alias=True, include=existing_update_fields
+                    exclude_none=True,
+                    by_alias=True,
+                    include=existing_update_fields,
                 ),
                 conditions=[
                     {
@@ -356,18 +379,20 @@ class DocumentUploadReviewService(DocumentService):
         return response
 
     def delete_document_review_files(
-        self, document_review: DocumentUploadReviewReference
+        self,
+        document_review: DocumentUploadReviewReference,
     ):
         for file in document_review.files:
             location_without_prefix = file.file_location.replace(
-                self.s3_service.S3_PREFIX, ""
+                self.s3_service.S3_PREFIX,
+                "",
             )
             bucket, file_key = location_without_prefix.split("/", 1)
             try:
                 self.s3_service.delete_object(bucket, file_key)
             except ClientError as e:
                 logger.warning(
-                    f"Unable to delete file {file.file_name} from S3 due to error: {e}"
+                    f"Unable to delete file {file.file_name} from S3 due to error: {e}",
                 )
                 logger.warning(f"Skipping file deletion for {file.file_name}")
                 continue
@@ -381,12 +406,16 @@ class DocumentUploadReviewService(DocumentService):
         filter_builder = DynamoQueryFilterBuilder()
         if status:
             filter_builder.add_condition(
-                "ReviewStatus", AttributeOperator.EQUAL, status
+                "ReviewStatus",
+                AttributeOperator.EQUAL,
+                status,
             )
 
         if nhs_number:
             filter_builder.add_condition(
-                "NhsNumber", AttributeOperator.EQUAL, nhs_number
+                "NhsNumber",
+                AttributeOperator.EQUAL,
+                nhs_number,
             )
 
         if uploader:

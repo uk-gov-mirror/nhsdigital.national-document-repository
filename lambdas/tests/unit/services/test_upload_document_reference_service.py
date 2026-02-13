@@ -11,7 +11,7 @@ from utils.common_query_filters import (
     FinalOrPreliminaryAndNotSuperseded,
     PreliminaryStatus,
 )
-from utils.exceptions import DocumentServiceException, FileProcessingException, TransactionConflictException
+from utils.exceptions import DocumentServiceException, FileProcessingException
 from utils.lambda_exceptions import InvalidDocTypeException
 
 from lambdas.enums.snomed_codes import SnomedCodes
@@ -23,6 +23,7 @@ def mock_document_reference():
     doc_ref = DocumentReference.model_construct()
     doc_ref.id = "test-doc-id"
     doc_ref.nhs_number = "9000000001"
+    doc_ref.file_name = "test-file.txt"
     doc_ref.s3_file_key = "original/test-key"
     doc_ref.s3_bucket_name = "original-bucket"
     doc_ref.file_location = "original-location"
@@ -31,7 +32,7 @@ def mock_document_reference():
     doc_ref.doc_status = "preliminary"
     doc_ref.version = "1"
     doc_ref._build_s3_location = Mock(
-        return_value="s3://test-lg-bucket/9000000001/test-doc-id"
+        return_value="s3://test-lg-bucket/9000000001/test-doc-id",
     )
     return doc_ref
 
@@ -41,13 +42,13 @@ def mock_virus_scan_service(
     mocker,
 ):
     mock = mocker.patch(
-        "services.upload_document_reference_service.get_virus_scan_service"
+        "services.upload_document_reference_service.get_virus_scan_service",
     )
     yield mock
 
 
 @pytest.fixture
-def service(set_env, mock_virus_scan_service):
+def service(set_env, mock_virus_scan_service, mocker):
     with patch.multiple(
         "services.upload_document_reference_service",
         DocumentService=Mock(),
@@ -59,6 +60,11 @@ def service(set_env, mock_virus_scan_service):
         service.dynamo_service = Mock()
         service.virus_scan_service = MockVirusScanService()
         service.s3_service = Mock()
+        mocker.patch("io.BytesIO", return_value=None)
+        mocker.patch(
+            "services.upload_document_reference_service.check_file_locked_or_corrupt",
+            return_value=False,
+        )
         return service
 
 
@@ -71,33 +77,39 @@ def test_handle_upload_document_reference_request_with_empty_object_key(service)
 
 def test_handle_upload_document_reference_request_with_none_object_key(service):
     """Test handling of a None object key"""
-    service.handle_upload_document_reference_request(None, 122)
+    service.handle_upload_document_reference_request("", 122)
 
     service.document_service.fetch_documents_from_table.assert_not_called()
 
 
 def test_handle_upload_document_reference_request_success(
-    service, mock_document_reference, mocker
+    service,
+    mock_document_reference,
+    mocker,
 ):
-    """Test successful handling of the upload document reference request"""
     object_key = "staging/test-doc-id"
     object_size = 1111
     mock_document_reference2 = Mock(spec=DocumentReference)
+    mock_document_reference2.file_name = "filename2.txt"
     mock_document_reference2.id = "another-doc-id"
     mock_document_reference2.doc_status = "final"
     mock_document_reference2.version = "1"
 
     service.s3_service.copy_across_bucket.return_value = {
-        "VersionId": "test-version-id"
+        "VersionId": "test-version-id",
     }
-
+    mocker.patch("io.BytesIO", return_value=None)
+    mocker.patch(
+        "services.upload_document_reference_service.check_file_locked_or_corrupt",
+        return_value=False,
+    )
     # First call fetches preliminary doc, second call fetches existing final docs to supersede
     service.document_service.fetch_documents_from_table.side_effect = [
         [mock_document_reference],
         [mock_document_reference2],
     ]
     service.virus_scan_service.scan_file = mocker.MagicMock(
-        return_value=VirusScanResult.CLEAN
+        return_value=VirusScanResult.CLEAN,
     )
 
     service.handle_upload_document_reference_request(object_key, object_size)
@@ -114,7 +126,7 @@ def test_handle_upload_document_reference_request_with_exception(service):
     object_key = "staging/test-doc-id"
 
     service.document_service.fetch_documents_from_table.side_effect = Exception(
-        "Test error"
+        "Test error",
     )
 
     service.handle_upload_document_reference_request(object_key)
@@ -125,7 +137,7 @@ def test_fetch_preliminary_document_reference_success(service, mock_document_ref
     document_key = "test-doc-id"
     service.table_name = "dev_LloydGeorgeReferenceMetadata"
     service.document_service.fetch_documents_from_table.return_value = [
-        mock_document_reference
+        mock_document_reference,
     ]
 
     result = service._fetch_preliminary_document_reference(document_key)
@@ -150,7 +162,8 @@ def test_fetch_preliminary_document_reference_no_documents_found(service):
 
 
 def test_fetch_preliminary_document_reference_multiple_documents_warning(
-    service, mock_document_reference
+    service,
+    mock_document_reference,
 ):
     """Test handling when multiple documents are found"""
     document_key = "test-doc-id"
@@ -177,23 +190,30 @@ def test_fetch_preliminary_document_reference_exception(service):
 
 
 def test__process_preliminary_document_reference_clean_virus_scan(
-    service, mock_document_reference, mocker
+    service,
+    mock_document_reference,
+    mocker,
 ):
     """Test processing document reference with a clean virus scan"""
     object_key = "staging/test-doc-id"
 
     mocker.patch.object(
-        service, "_perform_virus_scan", return_value=VirusScanResult.CLEAN
+        service,
+        "_perform_virus_scan",
+        return_value=VirusScanResult.CLEAN,
     )
     mock_delete = mocker.patch.object(service, "delete_file_from_staging_bucket")
 
     mock_process_clean = mocker.patch.object(service, "_process_clean_document")
     mock_finalize_transaction = mocker.patch.object(
-        service, "_finalize_and_supersede_with_transaction"
+        service,
+        "_finalize_and_supersede_with_transaction",
     )
 
     service._process_preliminary_document_reference(
-        mock_document_reference, object_key, 1222
+        mock_document_reference,
+        object_key,
+        1222,
     )
 
     mock_process_clean.assert_called_once()
@@ -205,25 +225,32 @@ def test__process_preliminary_document_reference_clean_virus_scan(
 
 
 def test__process_preliminary_document_reference_infected_virus_scan(
-    service, mock_document_reference, mocker
+    service,
+    mock_document_reference,
+    mocker,
 ):
     """Test processing document reference with an infected virus scan"""
     object_key = "staging/test-doc-id"
 
     mocker.patch.object(
-        service, "_perform_virus_scan", return_value=VirusScanResult.INFECTED
+        service,
+        "_perform_virus_scan",
+        return_value=VirusScanResult.INFECTED,
     )
     mock_delete = mocker.patch.object(service, "delete_file_from_staging_bucket")
 
     mock_process_clean = mocker.patch.object(service, "_process_clean_document")
     mock_update_dynamo = mocker.patch.object(service, "_update_dynamo_table")
     service._process_preliminary_document_reference(
-        mock_document_reference, object_key, 1222
+        mock_document_reference,
+        object_key,
+        1222,
     )
 
     mock_process_clean.assert_not_called()
     mock_update_dynamo.assert_called_once()
     mock_delete.assert_called_once_with(object_key)
+
 
 def test_perform_virus_scan_returns_clean_hardcoded(service, mock_document_reference):
     """Test virus scan returns hardcoded CLEAN result"""
@@ -233,7 +260,9 @@ def test_perform_virus_scan_returns_clean_hardcoded(service, mock_document_refer
 
 
 def test_perform_virus_scan_exception_returns_infected(
-    service, mock_document_reference, mocker
+    service,
+    mock_document_reference,
+    mocker,
 ):
     """Test virus scan exception handling returns INFECTED for safety"""
     mock_virus_service = mocker.patch.object(service, "virus_scan_service")
@@ -260,7 +289,9 @@ def test_process_clean_document_success(service, mock_document_reference, mocker
 
 
 def test_process_clean_document_exception_restores_original_values(
-    service, mock_document_reference, mocker
+    service,
+    mock_document_reference,
+    mocker,
 ):
     """Test that original values are restored when processing fails"""
     object_key = "staging/test-doc-id"
@@ -269,7 +300,9 @@ def test_process_clean_document_exception_restores_original_values(
     original_location = "original-location"
 
     mocker.patch.object(
-        service, "copy_files_from_staging_bucket", side_effect=Exception("Copy failed")
+        service,
+        "copy_files_from_staging_bucket",
+        side_effect=Exception("Copy failed"),
     )
     with pytest.raises(FileProcessingException):
         service._process_clean_document(
@@ -306,7 +339,7 @@ def test_copy_files_from_staging_bucket_client_error(service, mock_document_refe
     source_file_key = "staging/test-doc-id"
     client_error = ClientError(
         error_response={
-            "Error": {"Code": "NoSuchBucket", "Message": "Bucket does not exist"}
+            "Error": {"Code": "NoSuchBucket", "Message": "Bucket does not exist"},
         },
         operation_name="CopyObject",
     )
@@ -323,7 +356,8 @@ def test_delete_file_from_staging_bucket_success(service):
     service.delete_file_from_staging_bucket(source_file_key)
 
     service.s3_service.delete_object.assert_called_once_with(
-        MOCK_STAGING_STORE_BUCKET, source_file_key
+        MOCK_STAGING_STORE_BUCKET,
+        source_file_key,
     )
 
 
@@ -336,7 +370,8 @@ def test_delete_pdm_file_from_staging_bucket_success(service):
     service.delete_file_from_staging_bucket(source_file_key)
 
     service.s3_service.delete_object.assert_called_once_with(
-        MOCK_STAGING_STORE_BUCKET, source_file_key
+        MOCK_STAGING_STORE_BUCKET,
+        source_file_key,
     )
 
 
@@ -345,7 +380,7 @@ def test_delete_file_from_staging_bucket_client_error(service):
     source_file_key = "staging/test-doc-id"
     client_error = ClientError(
         error_response={
-            "Error": {"Code": "NoSuchKey", "Message": "Key does not exist"}
+            "Error": {"Code": "NoSuchKey", "Message": "Key does not exist"},
         },
         operation_name="DeleteObject",
     )
@@ -389,7 +424,10 @@ def test_update_dynamo_table_client_error(service, mock_document_reference):
     """Test handling of ClientError during DynamoDB update"""
     client_error = ClientError(
         error_response={
-            "Error": {"Code": "ResourceNotFoundException", "Message": "Table not found"}
+            "Error": {
+                "Code": "ResourceNotFoundException",
+                "Message": "Table not found",
+            },
         },
         operation_name="UpdateItem",
     )
@@ -418,7 +456,7 @@ def test_document_key_extraction_from_object_key_for_lg(
     # First call returns preliminary doc, second call returns empty list (no existing finals)
 
     service.s3_service.copy_across_bucket.return_value = {
-        "VersionId": "test-version-id"
+        "VersionId": "test-version-id",
     }
 
     service.document_service.fetch_documents_from_table.side_effect = [
@@ -446,7 +484,8 @@ def test_document_key_extraction_from_object_key_for_lg(
 
 
 def test_finalize_and_supersede_with_transaction_with_existing_finals(
-    service, mock_document_reference, mocker
+    service,
+    mock_document_reference,
 ):
     """Test transaction-based finalisation with existing final documents to supersede"""
     new_doc = mock_document_reference
@@ -463,7 +502,7 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
 
     service.table_name = "dev_LloydGeorgeReferenceMetadata"
     service.document_service.fetch_documents_from_table.return_value = [
-        existing_final_doc
+        existing_final_doc,
     ]
 
     mock_build_update = Mock(return_value={"Update": "transaction1"})
@@ -511,7 +550,8 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
 
 
 def test_finalize_and_supersede_with_transaction_no_existing_docs(
-    service, mock_document_reference, mocker
+    service,
+    mock_document_reference,
 ):
     """Test transaction-based finalization when no existing final documents found"""
     new_doc = mock_document_reference
@@ -535,7 +575,8 @@ def test_finalize_and_supersede_with_transaction_no_existing_docs(
 
 
 def test_finalize_and_supersede_with_transaction_multiple_existing(
-    service, mock_document_reference, mocker
+    service,
+    mock_document_reference,
 ):
     """Test transaction-based finalization superseding multiple existing final documents"""
     new_doc = mock_document_reference
@@ -571,7 +612,8 @@ def test_finalize_and_supersede_with_transaction_multiple_existing(
 
 
 def test_finalize_and_supersede_with_transaction_skips_same_id(
-    service, mock_document_reference, mocker
+    service,
+    mock_document_reference,
 ):
     """Test that transaction skips documents with the same ID"""
     new_doc = mock_document_reference
@@ -599,7 +641,8 @@ def test_finalize_and_supersede_with_transaction_skips_same_id(
 
 
 def test_finalize_and_supersede_with_transaction_handles_transaction_cancelled(
-    service, mock_document_reference
+    service,
+    mock_document_reference,
 ):
 
     new_doc = mock_document_reference
@@ -639,24 +682,33 @@ def test_handle_upload_document_reference_request_no_document_found(service):
 
 
 def test_process_preliminary_document_reference_exception_during_processing(
-    service, mock_document_reference, mocker
+    service,
+    mock_document_reference,
+    mocker,
 ):
     """Test that exceptions during processing are properly raised"""
     object_key = "staging/test-doc-id"
 
     mocker.patch.object(
-        service, "_perform_virus_scan", return_value=VirusScanResult.CLEAN
+        service,
+        "_perform_virus_scan",
+        return_value=VirusScanResult.CLEAN,
     )
     mocker.patch.object(
-        service, "_process_clean_document", side_effect=Exception("Processing failed")
+        service,
+        "_process_clean_document",
+        side_effect=Exception("Processing failed"),
     )
 
     with pytest.raises(Exception) as exc_info:
         service._process_preliminary_document_reference(
-            mock_document_reference, object_key, 1222
+            mock_document_reference,
+            object_key,
+            1222,
         )
 
     assert "Processing failed" in str(exc_info.value)
+
 
 def test_get_infrastructure_for_document_key_non_pdm(service):
     assert service.table_name == ""
@@ -690,3 +742,32 @@ def test_get_infra_invalid_doc_type(monkeypatch, service):
     # Call function and assert the exception is raised
     with pytest.raises(InvalidDocTypeException):
         service._get_infrastructure_for_document_key(["fhir_upload", "999999"])
+
+
+def test_is_file_invalid_calls_correct_functions(service, mocker):
+    """Test that is_file_invalid calls the right functions in the correct order"""
+    object_key = "test-folder/test-file.docx"
+    file_extension = "docx"
+    file_content = b"fake docx file content"
+
+    mock_stream = Mock()
+    mock_stream.read.return_value = file_content
+    service.s3_service.get_object_stream.return_value = mock_stream
+    mock_bytesio = mocker.patch("services.upload_document_reference_service.io.BytesIO")
+    mock_file_stream = Mock()
+    mock_bytesio.return_value = mock_file_stream
+    mock_check = mocker.patch(
+        "services.upload_document_reference_service.check_file_locked_or_corrupt",
+        return_value=True,
+    )
+
+    result = service.is_file_invalid(object_key, file_extension)
+
+    assert result is True
+    service.s3_service.get_object_stream.assert_called_once_with(
+        service.staging_s3_bucket_name,
+        object_key,
+    )
+    mock_stream.read.assert_called_once_with()
+    mock_bytesio.assert_called_once_with(file_content)
+    mock_check.assert_called_once_with(mock_file_stream, file_extension)

@@ -72,11 +72,17 @@ const DocumentView = ({
         return (
             <div className="document_record-details">
                 <div className="document_record-details_details">
+                    {!documentReference.isPdf && (
+                        <div
+                            className="document_record-details_details--last-updated mt-3"
+                            data-testid="document-file-name"
+                        >
+                            File name: {documentReference.fileName}
+                        </div>
+                    )}
                     <div className="document_record-details_details--last-updated mt-3">
-                        Filename: {documentReference.fileName}
-                    </div>
-                    <div className="document_record-details_details--last-updated mt-3">
-                        Last updated: {getFormattedDate(new Date(documentReference.created))}
+                        Created by practice: {documentReference.author} on{' '}
+                        {getFormattedDate(new Date(documentReference.created))}
                     </div>
                 </div>
             </div>

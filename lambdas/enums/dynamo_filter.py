@@ -15,3 +15,5 @@ class AttributeOperator(Enum):
 class ConditionOperator(Enum):
     OR = "|"
     AND = "&"
+    EQUAL = "="
+    NOT_EQUAL = "<>"

@@ -15,9 +15,12 @@ def mock_document_service():
 
 
 @pytest.fixture
-def get_document_upload_status_service(mock_document_service):
+def get_document_upload_status_service(mock_document_service, mocker):
+    mocker.patch(
+        "services.get_document_upload_status.DocumentService",
+        return_value=mock_document_service,
+    )
     service = GetDocumentUploadStatusService()
-    service.document_service = mock_document_service
     return service
 
 
@@ -80,11 +83,13 @@ def test_get_document_references_by_id_found_documents(
     )
 
     result = get_document_upload_status_service.get_document_references_by_id(
-        nhs_number, document_ids
+        nhs_number,
+        document_ids,
     )
 
     mock_document_service.get_batch_document_references_by_id.assert_called_once_with(
-        document_ids, SupportedDocumentTypes.LG
+        document_ids,
+        SupportedDocumentTypes.LG,
     )
     assert len(result) == 2
     assert result["doc-id-1"]["status"] == "final"
@@ -101,11 +106,12 @@ def test_get_document_references_by_id_not_found_documents(
     nhs_number = "1234567890"
     document_ids = ["doc-id-1", "non-existent-id"]
     mock_document_service.get_batch_document_references_by_id.return_value = [
-        sample_document_references[0]
+        sample_document_references[0],
     ]
 
     result = get_document_upload_status_service.get_document_references_by_id(
-        nhs_number, document_ids
+        nhs_number,
+        document_ids,
     )
 
     assert len(result) == 2
@@ -123,11 +129,12 @@ def test_get_document_references_by_id_access_denied(
     nhs_number = "1234567890"
     document_ids = ["doc-id-3"]
     mock_document_service.get_batch_document_references_by_id.return_value = [
-        sample_document_references[2]
+        sample_document_references[2],
     ]
 
     result = get_document_upload_status_service.get_document_references_by_id(
-        nhs_number, document_ids
+        nhs_number,
+        document_ids,
     )
 
     assert len(result) == 1
@@ -143,11 +150,12 @@ def test_get_document_references_by_id_infected_document(
     nhs_number = "1234567890"
     document_ids = ["doc-id-4"]
     mock_document_service.get_batch_document_references_by_id.return_value = [
-        sample_document_references[3]
+        sample_document_references[3],
     ]
 
     result = get_document_upload_status_service.get_document_references_by_id(
-        nhs_number, document_ids
+        nhs_number,
+        document_ids,
     )
 
     assert len(result) == 1
@@ -155,8 +163,38 @@ def test_get_document_references_by_id_infected_document(
     assert result["doc-id-4"]["error_code"] == DocumentStatus.INFECTED.code
 
 
+def test_get_document_references_by_id_invalid_document(
+    get_document_upload_status_service,
+    mock_document_service,
+):
+    nhs_number = "1234567890"
+    document_ids = ["doc-id-invalid"]
+
+    cancelled_doc = DocumentReference(
+        id="doc-id-invalid",
+        nhs_number="1234567890",
+        file_name="invalid_file.pdf",
+        doc_status=DocumentStatus.CANCELLED.display,
+        virus_scanner_result=VirusScanResult.INVALID,
+    )
+
+    mock_document_service.get_batch_document_references_by_id.return_value = [
+        cancelled_doc,
+    ]
+
+    result = get_document_upload_status_service.get_document_references_by_id(
+        nhs_number,
+        document_ids,
+    )
+
+    assert len(result) == 1
+    assert result["doc-id-invalid"]["status"] == DocumentStatus.INVALID.display
+    assert result["doc-id-invalid"]["error_code"] == DocumentStatus.INVALID.code
+
+
 def test_get_document_references_by_id_cancelled_document(
-    get_document_upload_status_service, mock_document_service
+    get_document_upload_status_service,
+    mock_document_service,
 ):
     nhs_number = "1234567890"
     document_ids = ["doc-id-cancelled"]
@@ -171,11 +209,12 @@ def test_get_document_references_by_id_cancelled_document(
     )
 
     mock_document_service.get_batch_document_references_by_id.return_value = [
-        cancelled_doc
+        cancelled_doc,
     ]
 
     result = get_document_upload_status_service.get_document_references_by_id(
-        nhs_number, document_ids
+        nhs_number,
+        document_ids,
     )
 
     assert len(result) == 1
@@ -191,11 +230,12 @@ def test_get_document_references_by_id_deleted_document(
     nhs_number = "1234567890"
     document_ids = ["doc-id-5"]
     mock_document_service.get_batch_document_references_by_id.return_value = [
-        sample_document_references[4]
+        sample_document_references[4],
     ]
 
     result = get_document_upload_status_service.get_document_references_by_id(
-        nhs_number, document_ids
+        nhs_number,
+        document_ids,
     )
 
     assert len(result) == 0
@@ -216,7 +256,8 @@ def test_get_document_references_by_id_multiple_mixed_statuses(
     ]
 
     result = get_document_upload_status_service.get_document_references_by_id(
-        nhs_number, document_ids
+        nhs_number,
+        document_ids,
     )
 
     assert len(result) == 4
@@ -236,18 +277,21 @@ def test_get_document_references_by_id_multiple_mixed_statuses(
 
 
 def test_get_document_references_by_id_no_results(
-    get_document_upload_status_service, mock_document_service
+    get_document_upload_status_service,
+    mock_document_service,
 ):
     nhs_number = "1234567890"
     document_ids = ["doc-id-6"]
     mock_document_service.get_batch_document_references_by_id.return_value = []
 
     result = get_document_upload_status_service.get_document_references_by_id(
-        nhs_number, document_ids
+        nhs_number,
+        document_ids,
     )
 
     mock_document_service.get_batch_document_references_by_id.assert_called_once_with(
-        document_ids, SupportedDocumentTypes.LG
+        document_ids,
+        SupportedDocumentTypes.LG,
     )
     assert result["doc-id-6"]["status"] == DocumentStatus.NOT_FOUND.display
     assert result["doc-id-6"]["error_code"] == DocumentStatus.NOT_FOUND.code

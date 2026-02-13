@@ -9,6 +9,7 @@ from tests.unit.conftest import (
     MOCK_ARF_BUCKET,
     MOCK_LG_BUCKET,
     MOCK_LG_STAGING_STORE_BUCKET_ENV_NAME,
+    TEST_FILE_SIZE,
     TEST_NHS_NUMBER,
     TEST_UUID,
 )
@@ -55,19 +56,22 @@ def create_test_lloyd_george_doc_store_refs(
     refs[0].file_name = filename_1
     refs[0].s3_file_key = f"{TEST_NHS_NUMBER}/test-key-1"
     refs[0].file_location = f"s3://{MOCK_LG_BUCKET}/{TEST_NHS_NUMBER}/test-key-1"
+    refs[0].file_size = TEST_FILE_SIZE
     refs[0].s3_bucket_name = MOCK_LG_BUCKET
     refs[0].document_snomed_code_type = SnomedCodes.LLOYD_GEORGE.value.code
     refs[1].file_name = filename_2
     refs[1].s3_file_key = f"{TEST_NHS_NUMBER}/test-key-2"
     refs[1].file_location = f"s3://{MOCK_LG_BUCKET}/{TEST_NHS_NUMBER}/test-key-2"
+    refs[1].file_size = TEST_FILE_SIZE
     refs[1].s3_bucket_name = MOCK_LG_BUCKET
     refs[1].document_snomed_code_type = SnomedCodes.LLOYD_GEORGE.value.code
     refs[2].file_name = filename_3
     refs[2].s3_file_key = f"{TEST_NHS_NUMBER}/test-key-3"
     refs[2].file_location = f"s3://{MOCK_LG_BUCKET}/{TEST_NHS_NUMBER}/test-key-3"
+    refs[2].file_size = TEST_FILE_SIZE
     refs[2].s3_bucket_name = MOCK_LG_BUCKET
     refs[2].document_snomed_code_type = SnomedCodes.LLOYD_GEORGE.value.code
-    
+
     if override:
         refs = [doc_ref.model_copy(update=override) for doc_ref in refs]
     return refs
@@ -90,7 +94,8 @@ def create_test_arf_doc_store_refs(
 
 
 def create_test_doc_refs(
-    override: Optional[Dict] = None, file_names: Optional[List[str]] = None
+    override: Optional[Dict] = None,
+    file_names: Optional[List[str]] = None,
 ) -> List[DocumentReference]:
     if not file_names:
         file_names = [
@@ -118,7 +123,8 @@ def create_test_doc_refs(
 
 
 def create_test_doc_refs_as_dict(
-    override: Optional[Dict] = None, file_names: Optional[List[str]] = None
+    override: Optional[Dict] = None,
+    file_names: Optional[List[str]] = None,
 ) -> List[Dict]:
     test_doc_refs = create_test_doc_refs(override, file_names)
     return [
@@ -137,7 +143,7 @@ def create_valid_fhir_doc_json(nhs_number: str = "9000000009"):
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/nhs-number",
                     "value": nhs_number,
-                }
+                },
             },
             "type": {
                 "coding": [
@@ -145,22 +151,22 @@ def create_valid_fhir_doc_json(nhs_number: str = "9000000009"):
                         "system": "http://snomed.info/sct",
                         "code": SnomedCodes.LLOYD_GEORGE.value.code,
                         "display": SnomedCodes.LLOYD_GEORGE.value.display_name,
-                    }
-                ]
+                    },
+                ],
             },
             "custodian": {
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                     "value": "A12345",
-                }
+                },
             },
             "author": [
                 {
                     "identifier": {
                         "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                         "value": "A12345",
-                    }
-                }
+                    },
+                },
             ],
             "content": [
                 {
@@ -169,9 +175,9 @@ def create_valid_fhir_doc_json(nhs_number: str = "9000000009"):
                         "language": "en-GB",
                         "title": "test-file.pdf",
                         "creation": "2023-01-01T12:00:00Z",
-                    }
-                }
+                    },
+                },
             ],
             "meta": {"versionId": "1"},
-        }
+        },
     )

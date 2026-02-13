@@ -27,7 +27,7 @@ describe('PrivacyPage', () => {
     });
 
     describe('Rendering', () => {
-        it('renders page headers', () => {
+        it('renders page headers', async () => {
             render(<PrivacyPage />);
 
             const contentHeaders = [
@@ -38,8 +38,11 @@ describe('PrivacyPage', () => {
                 'Feedback form privacy notice',
                 'Contact us',
             ];
-            contentHeaders.forEach((str) => {
-                expect(screen.getByRole('heading', { name: str })).toBeInTheDocument();
+
+            await waitFor(async () => {
+                contentHeaders.forEach((str) => {
+                    expect(screen.getByRole('heading', { name: str })).toBeInTheDocument();
+                });
             });
         });
 

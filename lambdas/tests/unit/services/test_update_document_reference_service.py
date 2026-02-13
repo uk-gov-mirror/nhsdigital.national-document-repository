@@ -28,15 +28,15 @@ def mock_update_doc_ref_service(mocker):
 
 
 @pytest.fixture
-def mock_fhir_doc_ref_base_service(mocker, setup_request_context):
+def mock_fhir_doc_ref_base_service(mocker, setup_request_context, set_env):
     mock_document_service = mocker.patch(
-        "services.fhir_document_reference_service_base.DocumentService"
+        "services.fhir_document_reference_service_base.DocumentService",
     )
     mock_s3_service = mocker.patch(
-        "services.fhir_document_reference_service_base.S3Service"
+        "services.fhir_document_reference_service_base.S3Service",
     )
     mock_dynamo_service = mocker.patch(
-        "services.fhir_document_reference_service_base.DynamoDBService"
+        "services.fhir_document_reference_service_base.DynamoDBService",
     )
     service = FhirDocumentReferenceServiceBase()
     service.document_service = mock_document_service.return_value
@@ -66,10 +66,11 @@ def mock_stop_if_upload_is_in_progress(mock_update_doc_ref_service, mocker):
 
 @pytest.fixture()
 def mock_validate_files_for_access_and_store(
-    mocker, mock_getting_patient_info_from_pds
+    mocker,
+    mock_getting_patient_info_from_pds,
 ):
     yield mocker.patch(
-        "services.update_document_reference_service.validate_files_for_access_and_store"
+        "services.update_document_reference_service.validate_files_for_access_and_store",
     )
 
 
@@ -92,26 +93,29 @@ def mock_process_fhir_document_reference(mocker):
         return_value=json.dumps(
             {
                 "content": [
-                    {"attachment": {"url": "https://test-bucket.s3.amazonaws.com/"}}
-                ]
-            }
+                    {"attachment": {"url": "https://test-bucket.s3.amazonaws.com/"}},
+                ],
+            },
         ),
     )
 
 
 @pytest.fixture
 def mock_get_allowed_list_of_ods_codes_for_upload_pilot(
-    mock_update_doc_ref_service, mocker
+    mock_update_doc_ref_service,
+    mocker,
 ):
     return mocker.patch.object(
-        mock_update_doc_ref_service, "get_allowed_list_of_ods_codes_for_upload_pilot"
+        mock_update_doc_ref_service.feature_flag_service,
+        "get_allowed_list_of_ods_codes_for_upload_pilot",
     )
 
 
 @pytest.fixture
 def mock_check_if_ods_code_is_in_pilot(mock_update_doc_ref_service, mocker):
     return mocker.patch.object(
-        mock_update_doc_ref_service, "check_if_ods_code_is_in_pilot"
+        mock_update_doc_ref_service,
+        "check_if_ods_code_is_in_pilot",
     )
 
 
@@ -134,8 +138,8 @@ def mock_fetch_documents_from_table(mocker, mock_update_doc_ref_service):
 
 
 def test_update_document_reference_request_with_lg_list_happy_path(
-    mock_update_doc_ref_service,
     mock_fhir_doc_ref_base_service,
+    mock_update_doc_ref_service,
     mock_getting_patient_info_from_pds,
     mock_stop_if_upload_is_in_progress,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
@@ -145,7 +149,7 @@ def test_update_document_reference_request_with_lg_list_happy_path(
     mock_fetch_documents_from_table,
 ):
     mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
-        TEST_CURRENT_GP_ODS
+        TEST_CURRENT_GP_ODS,
     ]
     mock_getting_patient_info_from_pds.return_value = mock_pds_patient
     mock_fetch_documents_from_table.return_value = create_test_doc_store_refs()
@@ -157,7 +161,9 @@ def test_update_document_reference_request_with_lg_list_happy_path(
     )
 
     url_references = mock_update_doc_ref_service.update_document_reference_request(
-        TEST_NHS_NUMBER, LG_FILE, TEST_UUID
+        TEST_NHS_NUMBER,
+        LG_FILE,
+        TEST_UUID,
     )
 
     expected_response = {"uuid1": mock_presigned_url_response}
@@ -183,7 +189,9 @@ def test_ods_code_not_in_pilot_raises_exception(
 
     with pytest.raises(DocumentRefException) as exc_info:
         mock_update_doc_ref_service.update_document_reference_request(
-            TEST_NHS_NUMBER, LG_FILE, TEST_UUID
+            TEST_NHS_NUMBER,
+            LG_FILE,
+            TEST_UUID,
         )
 
     mock_process_fhir_document_reference.assert_not_called()
@@ -209,7 +217,9 @@ def test_nhs_number_not_found_raises_exception(
 
     with pytest.raises(DocumentRefException) as exc_info:
         mock_update_doc_ref_service.update_document_reference_request(
-            TEST_NHS_NUMBER, LG_FILE, TEST_UUID
+            TEST_NHS_NUMBER,
+            LG_FILE,
+            TEST_UUID,
         )
 
     exception = exc_info.value
@@ -223,26 +233,28 @@ def test_nhs_number_not_found_raises_exception(
 
 # covers for number of files expected, non-pdf files, incorrect file name format, duplicate files
 def test_invalid_files_raises_exception(
+    mock_fhir_doc_ref_base_service,
     mock_update_doc_ref_service,
     mock_validate_files_for_access_and_store,
     mock_getting_patient_info_from_pds,
     mock_pds_patient,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
-    mock_fhir_doc_ref_base_service,
     mock_process_fhir_document_reference,
     mock_stop_if_upload_is_in_progress,
     mock_fetch_documents_from_table,
 ):
     mock_getting_patient_info_from_pds.return_value = mock_pds_patient
     mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
-        TEST_CURRENT_GP_ODS
+        TEST_CURRENT_GP_ODS,
     ]
     mock_validate_files_for_access_and_store.side_effect = LGInvalidFilesException
     mock_fetch_documents_from_table.return_value = create_test_doc_store_refs()
 
     with pytest.raises(DocumentRefException) as exc_info:
         mock_update_doc_ref_service.update_document_reference_request(
-            TEST_NHS_NUMBER, LG_FILE, TEST_UUID
+            TEST_NHS_NUMBER,
+            LG_FILE,
+            TEST_UUID,
         )
 
     exception = exc_info.value
@@ -255,29 +267,35 @@ def test_invalid_files_raises_exception(
 
 @freeze_time("2023-10-30T10:25:00")
 def test_upload_already_in_progress_raises_exception(
+    mock_fhir_doc_ref_base_service,
     mock_update_doc_ref_service,
     mock_fetch_document_by_type,
     mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_getting_patient_info_from_pds,
     mock_pds_patient,
-    mock_fhir_doc_ref_base_service,
     mock_process_fhir_document_reference,
     mock_validate_files_for_access_and_store,
     mock_fetch_documents_from_table,
 ):
     mock_getting_patient_info_from_pds.return_value = mock_pds_patient
     mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
-        TEST_CURRENT_GP_ODS
+        TEST_CURRENT_GP_ODS,
     ]
     mock_fetch_documents_from_table.return_value = create_test_doc_store_refs()
     two_minutes_ago = 1698661380  # 2023-10-30T10:23:00
     mock_records_upload_in_process = create_test_lloyd_george_doc_store_refs(
-        override={"uploaded": False, "uploading": True, "last_updated": two_minutes_ago}
+        override={
+            "uploaded": False,
+            "uploading": True,
+            "last_updated": two_minutes_ago,
+        },
     )
     mock_fetch_document_by_type.return_value = mock_records_upload_in_process
     with pytest.raises(DocumentRefException) as exc_info:
         mock_update_doc_ref_service.update_document_reference_request(
-            TEST_NHS_NUMBER, LG_FILE, TEST_UUID
+            TEST_NHS_NUMBER,
+            LG_FILE,
+            TEST_UUID,
         )
 
     exception = exc_info.value
@@ -287,6 +305,7 @@ def test_upload_already_in_progress_raises_exception(
 
 
 def test_fail_early_if_there_is_no_document_reference_to_update(
+    mock_fhir_doc_ref_base_service,
     mock_update_doc_ref_service,
     mock_fetch_documents_from_table,
     mock_process_fhir_document_reference,
@@ -295,7 +314,9 @@ def test_fail_early_if_there_is_no_document_reference_to_update(
     mock_fetch_documents_from_table.return_value = []
     with pytest.raises(DocumentRefException) as exc_info:
         mock_update_doc_ref_service.update_document_reference_request(
-            TEST_NHS_NUMBER, LG_FILE, TEST_UUID
+            TEST_NHS_NUMBER,
+            LG_FILE,
+            TEST_UUID,
         )
 
     exception = exc_info.value

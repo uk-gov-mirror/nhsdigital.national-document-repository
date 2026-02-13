@@ -42,6 +42,7 @@ export type Props = {
     filesErrorRef: RefObject<boolean>;
     documentConfig: DOCUMENT_TYPE_CONFIG;
     onSuccessOverride?: () => void;
+    onErrorOverride?: () => void;
     backLinkOverride?: () => void;
     removeAllFilesLinkOverride?: string;
     goToNextDocType?: () => void;
@@ -59,6 +60,7 @@ const DocumentSelectStage = ({
     filesErrorRef,
     documentConfig,
     onSuccessOverride,
+    onErrorOverride,
     backLinkOverride,
     removeAllFilesLinkOverride,
     goToNextDocType,
@@ -197,6 +199,10 @@ const DocumentSelectStage = ({
         if (failedDocs.length > 0) {
             filesErrorRef.current = true;
             setDocuments(failedDocs);
+            if (onErrorOverride) {
+                onErrorOverride();
+                return;
+            }
             navigate(routeChildren.DOCUMENT_UPLOAD_FILE_ERRORS);
             return;
         }

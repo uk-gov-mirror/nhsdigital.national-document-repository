@@ -130,33 +130,36 @@ class FeatureFlagService:
 
     def get_allowed_list_of_ods_codes_for_upload_pilot(self) -> list[str]:
         logger.info(
-            "Starting ssm request to retrieve allowed list of ODS codes for Upload Pilot"
+            "Starting ssm request to retrieve allowed list of ODS codes for Upload Pilot",
         )
-        response = self.ssm_service.get_ssm_parameter(UPLOAD_PILOT_ODS_ALLOWED_LIST)
-        if not response:
+        response = self.ssm_service.get_ssm_parameter(
+            UPLOAD_PILOT_ODS_ALLOWED_LIST,
+        ).split(",")
+        if not response or response == ["*"]:
             logger.warning("No ODS codes found in allowed list for Upload Pilot")
             return []
-        return response.split(",")
+        return response
 
     def check_if_ods_code_is_in_pilot(self) -> bool:
         ods_code = ""
 
         if isinstance(request_context.authorization, dict):
             ods_code = request_context.authorization.get(
-                "selected_organisation", {}
+                "selected_organisation",
+                {},
             ).get("org_ods_code", "")
 
         if not ods_code:
             return False
         pilot_ods_codes = self.get_allowed_list_of_ods_codes_for_upload_pilot()
 
-        return ods_code in pilot_ods_codes
+        return ods_code in pilot_ods_codes or pilot_ods_codes == []
 
     def validate_feature_flag(self, flag_name: str):
         flag_object = self.get_feature_flags_by_flag(flag_name)
 
         if not flag_object.get(flag_name, False):
             logger.info(
-                f"Feature flag '{flag_name}' not enabled, event will not be processed"
+                f"Feature flag '{flag_name}' not enabled, event will not be processed",
             )
             raise FeatureFlagsException(404, LambdaError.FeatureFlagDisabled)

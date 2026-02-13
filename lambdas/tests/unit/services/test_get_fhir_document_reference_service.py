@@ -33,7 +33,8 @@ def test_get_document_reference_service(patched_service):
     patched_service.document_service.fetch_documents_from_table.return_value = documents
 
     actual = patched_service.get_document_references(
-        "3d8683b9-1665-40d2-8499-6e8302d507ff", MOCK_LG_TABLE_NAME
+        "3d8683b9-1665-40d2-8499-6e8302d507ff",
+        MOCK_LG_TABLE_NAME,
     )
     assert actual == documents[0]
 
@@ -44,11 +45,14 @@ def test_handle_get_document_reference_request(patched_service, mocker, set_env)
     expected = documents[0]
     mock_document_ref = documents[0]
     mocker.patch.object(
-        patched_service, "get_document_references", return_value=mock_document_ref
+        patched_service,
+        "get_document_references",
+        return_value=mock_document_ref,
     )
 
     actual = patched_service.handle_get_document_reference_request(
-        SnomedCodes.LLOYD_GEORGE.value.code, "test-id"
+        SnomedCodes.LLOYD_GEORGE.value.code,
+        "test-id",
     )
 
     assert expected == actual
@@ -82,7 +86,8 @@ def test_get_presigned_url(patched_service, mocker):
     )
 
     result = patched_service.get_presigned_url(
-        "test-s3-bucket", "9000000009/test-key-123"
+        "test-s3-bucket",
+        "9000000009/test-key-123",
     )
     assert result == "https://example.com/path/to/resource"
 
@@ -106,7 +111,7 @@ def test_get_document_references_empty_result(patched_service):
 def test_get_presigned_url_failure(patched_service, mocker):
     # Test when S3 service raises an exception
     patched_service.s3_service.create_download_presigned_url.side_effect = Exception(
-        "S3 error"
+        "S3 error",
     )
 
     with pytest.raises(Exception) as exc_info:
@@ -117,7 +122,8 @@ def test_get_presigned_url_failure(patched_service, mocker):
 
 
 def test_create_document_reference_fhir_response_with_presign_url_document_data(
-    patched_service, mocker
+    patched_service,
+    mocker,
 ):
     # Test creating FHIR response with different document data
     test_doc = create_test_doc_store_refs()[0]
@@ -125,12 +131,12 @@ def test_create_document_reference_fhir_response_with_presign_url_document_data(
     # Modify the document reference to test different values
     modified_doc = copy.deepcopy(test_doc)
     modified_doc.file_name = "different_file.pdf"
+    modified_doc.file_size = 8000000
     modified_doc.created = "2023-05-15T10:30:00.000Z"
     modified_doc.document_scan_creation = "2023-05-15"
 
-    patched_service.s3_service.get_file_size.return_value = 8000000
     patched_service.get_presigned_url = mocker.MagicMock(
-        return_value="https://new-test-url.com"
+        return_value="https://new-test-url.com",
     )
     result = patched_service.create_document_reference_fhir_response(modified_doc)
 
@@ -165,7 +171,8 @@ def test_create_document_reference_fhir_response_with_binary_document_data(
 
 
 def test_create_document_reference_fhir_response_non_final_status(
-    patched_service, mocker
+    patched_service,
+    mocker,
 ):
     """Test FHIR response creation for documents with non-final status."""
     test_doc = create_test_doc_store_refs()[0]
@@ -187,7 +194,8 @@ def test_create_document_reference_fhir_response_non_final_status(
 
 
 def test_create_document_reference_fhir_response_when_patient_is_deceased(
-    patched_service, mocker
+    patched_service,
+    mocker,
 ):
     """Test FHIR response creation for documents with non-final status."""
     test_doc = create_test_doc_store_refs()[0]

@@ -43,7 +43,9 @@ class LambdaError(Enum):
         return error_response
 
     def to_str(
-        self, params: Optional[dict] = None, details: Optional[str] = None
+        self,
+        params: Optional[dict] = None,
+        details: Optional[str] = None,
     ) -> str:
         message = self.value["message"]
         if "%" in message and params:
@@ -59,7 +61,9 @@ class LambdaError(Enum):
         **kwargs,
     ) -> str:
         return self.create_error_response(
-            params=params, details=details, **kwargs
+            params=params,
+            details=details,
+            **kwargs,
         ).create()
 
     """
@@ -439,6 +443,10 @@ class LambdaError(Enum):
     UploadConfirmResultFilesNotClean = {
         "err_code": "UC_4005",
         "message": "Some of the given document references are not referring to clean files",
+    }
+    UploadConfirmResultFilesInvalid = {
+        "err_code": "UC_4006",
+        "message": "Some of the given document references are password protected or corrupted",
     }
     UploadConfirmResultAWSFailure = {
         "err_code": "UC_5004",

@@ -24,12 +24,16 @@ class GetDocumentUploadStatusService:
         if doc_ref.doc_status == "cancelled":
             if doc_ref.virus_scanner_result == VirusScanResult.INFECTED:
                 return DocumentStatus.INFECTED.display, DocumentStatus.INFECTED.code
+            if doc_ref.virus_scanner_result == VirusScanResult.INVALID:
+                return DocumentStatus.INVALID.display, DocumentStatus.INVALID.code
             return DocumentStatus.CANCELLED.display, DocumentStatus.CANCELLED.code
 
         return doc_ref.doc_status, None
 
     def get_document_references_by_id(
-        self, nhs_number: str, document_ids: list[str]
+        self,
+        nhs_number: str,
+        document_ids: list[str],
     ) -> dict:
         """
         Checks the status of a list of documents for a given patient.
@@ -42,7 +46,8 @@ class GetDocumentUploadStatusService:
             A dictionary with a list of document IDs and their corresponding statuses.
         """
         found_docs = self.document_service.get_batch_document_references_by_id(
-            document_ids, SupportedDocumentTypes.LG
+            document_ids,
+            SupportedDocumentTypes.LG,
         )
         found_docs_by_id = {doc.id: doc for doc in found_docs}
         results = {}

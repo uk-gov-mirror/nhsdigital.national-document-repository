@@ -40,7 +40,10 @@ describe('PCSE Workflow: Access and download found files', () => {
 
             cy.intercept('GET', '/SearchDocumentReferences*', {
                 statusCode: 200,
-                body: searchDocumentReferencesResponse,
+                body: {
+                    references: searchDocumentReferencesResponse,
+                    nextPageToken: 'abc',
+                },
             }).as('documentSearch');
 
             cy.get('#verify-submit').click();

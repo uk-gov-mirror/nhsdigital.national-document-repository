@@ -51,6 +51,7 @@ const EMBEDDED_PDF_VIEWER_TITLE = 'Embedded PDF Viewer';
 const mockDocumentReference: DocumentReference = {
     id: 'test-id',
     fileName: 'test-document.pdf',
+    author: 'Y12345',
     created: '2023-01-01T10:00:00Z',
     url: 'https://example.com/document.pdf',
     contentType: 'application/pdf',
@@ -59,6 +60,20 @@ const mockDocumentReference: DocumentReference = {
     virusScannerResult: 'clean',
     fileSize: 1024,
     isPdf: true,
+};
+
+const mockDocumentRefNotPDF: DocumentReference = {
+    id: 'test-id',
+    fileName: 'test-document.pdf',
+    author: 'Y12345',
+    created: '2023-01-01T10:00:00Z',
+    url: 'https://example.com/document.pdf',
+    contentType: '',
+    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+    version: '1',
+    virusScannerResult: 'clean',
+    fileSize: 1024,
+    isPdf: false,
 };
 
 const mockPatientDetails = buildPatientDetails();
@@ -222,7 +237,8 @@ describe('DocumentView', () => {
         it('displays formatted creation date', () => {
             renderComponent();
 
-            expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
+            expect(screen.queryByTestId('document-file-name')).not.toBeInTheDocument();
+            expect(screen.getByText(/Created by practice:/)).toBeInTheDocument();
         });
 
         it('displays document type label in record card', () => {
@@ -231,6 +247,12 @@ describe('DocumentView', () => {
             expect(screen.getByTestId('record-card-container')).toHaveTextContent(
                 buildDocumentConfig().content.viewDocumentTitle as string,
             );
+        });
+
+        it('displays file name, document is not a PDF', () => {
+            renderComponent(mockDocumentRefNotPDF);
+
+            expect(screen.queryByTestId('document-file-name')).toBeInTheDocument();
         });
     });
 

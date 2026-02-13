@@ -7,6 +7,7 @@ GITHUB_REQUIREMENTS=$(REQUIREMENTS_PATH)/requirements_github_runner.txt
 TEST_REQUIREMENTS=$(REQUIREMENTS_PATH)/requirements_test.txt
 CORE_REQUIREMENTS=$(LAMBDA_LAYER_REQUIREMENTS_PATH)/requirements_core_lambda_layer.txt
 DATA_REQUIREMENTS=$(LAMBDA_LAYER_REQUIREMENTS_PATH)/requirements_data_lambda_layer.txt
+FILES_REQUIREMENTS=$(LAMBDA_LAYER_REQUIREMENTS_PATH)/requirements_files_lambda_layer.txt
 REPORTS_REQUIREMENTS=$(LAMBDA_LAYER_REQUIREMENTS_PATH)/requirements_reports_lambda_layer.txt
 ALERTING_REQUIREMENTS=$(LAMBDA_LAYER_REQUIREMENTS_PATH)/requirements_alerting_lambda_layer.txt
 EDGE_REQUIREMENTS=$(REQUIREMENTS_PATH)/requirements_edge_lambda.txt
@@ -86,18 +87,19 @@ format:
 	@if [ $(FORMAT_ALL) = true ]; then \
 		CHANGED_FILES=''; \
 	else \
-		CHANGED_FILES=$$(git diff main --name-only | grep '.py$$' | xargs); \
+		CHANGED_FILES=$$(git diff main --name-status | grep -E '^[^D].*\.py$$' | cut -f2 | xargs); \
 		echo $$CHANGED_FILES; \
 		if [ -z "$$CHANGED_FILES" ]; then echo "No changed files to format"; exit 0; fi; \
 	fi; \
-	$(VENV_PATH_PREFIX)/bin/python3 -m black $$CHANGED_FILES; \
 	$(VENV_PATH_PREFIX)/bin/ruff check $$CHANGED_FILES --fix; \
+	$(VENV_PATH_PREFIX)/bin/python3 -m black $$CHANGED_FILES; \
 	$(VENV_PATH_PREFIX)/bin/python3 -m isort --profile black $$CHANGED_FILES
 
 sort-requirements:
 	sort -o $(TEST_REQUIREMENTS) $(TEST_REQUIREMENTS)
 	sort -o $(CORE_REQUIREMENTS) $(CORE_REQUIREMENTS)
 	sort -o $(DATA_REQUIREMENTS) $(DATA_REQUIREMENTS)
+	sort -o $(FILES_REQUIREMENTS) $(FILES_REQUIREMENTS)
 	sort -o $(REPORTS_REQUIREMENTS) $(REPORTS_REQUIREMENTS)
 	sort -o $(ALERTING_REQUIREMENTS) $(ALERTING_REQUIREMENTS)
 
@@ -106,6 +108,7 @@ check-packages:
 	./lambdas/venv/bin/pip-audit -r $(TEST_REQUIREMENTS)
 	./lambdas/venv/bin/pip-audit -r $(CORE_REQUIREMENTS)
 	./lambdas/venv/bin/pip-audit -r $(DATA_REQUIREMENTS)
+	./lambdas/venv/bin/pip-audit -r $(FILES_REQUIREMENTS)
 	./lambdas/venv/bin/pip-audit -r $(REPORTS_REQUIREMENTS)
 	./lambdas/venv/bin/pip-audit -r $(ALERTING_REQUIREMENTS)
 
@@ -206,6 +209,7 @@ env:
 	@./lambdas/venv/bin/pip3 install -r $(TEST_REQUIREMENTS) --no-cache-dir
 	@./lambdas/venv/bin/pip3 install -r $(CORE_REQUIREMENTS) --no-cache-dir
 	@./lambdas/venv/bin/pip3 install -r $(DATA_REQUIREMENTS) --no-cache-dir
+	@./lambdas/venv/bin/pip3 install -r $(FILES_REQUIREMENTS) --no-cache-dir
 	@./lambdas/venv/bin/pip3 install -r $(REPORTS_REQUIREMENTS) --no-cache-dir
 	@./lambdas/venv/bin/pip3 install -r $(ALERTING_REQUIREMENTS) --no-cache-dir
 	@echo " "

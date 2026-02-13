@@ -23,6 +23,7 @@ from tests.unit.conftest import (
     MOCK_LG_TABLE_NAME,
     MOCK_UNSTITCHED_LG_TABLE_NAME,
     TEST_BASE_DIRECTORY,
+    TEST_CURRENT_GP_ODS,
     TEST_NHS_NUMBER,
     TEST_UUID,
 )
@@ -93,7 +94,8 @@ def mock_upload_stitched_file(mocker, mock_service):
 @pytest.fixture
 def mock_update_stitched_reference_with_version_id(mocker, mock_service):
     return mocker.patch.object(
-        mock_service, "update_stitched_reference_with_version_id"
+        mock_service,
+        "update_stitched_reference_with_version_id",
     )
 
 
@@ -135,7 +137,10 @@ def mock_rollback_reference_migration(mocker, mock_service):
 @pytest.fixture
 def mock_download_fileobj():
     def _mock_download_fileobj(
-        s3_object_data: dict[str, BytesIO], Bucket: str, Key: str, Fileobj: BytesIO
+        s3_object_data: dict[str, BytesIO],
+        Bucket: str,
+        Key: str,
+        Fileobj: BytesIO,
     ):
         if Key in s3_object_data:
             Fileobj.write(s3_object_data[Key].read())
@@ -152,14 +157,16 @@ def mock_download_fileobj():
     ],
 )
 def test_retrieve_multipart_references_returns_multipart_references(
-    mock_service, doc_type
+    mock_service,
+    doc_type,
 ):
     mock_service.document_service.fetch_available_document_references_by_type.return_value = (
         TEST_DOCUMENT_REFERENCES
     )
 
     actual = mock_service.retrieve_multipart_references(
-        nhs_number=TEST_NHS_NUMBER, doc_type=doc_type
+        nhs_number=TEST_NHS_NUMBER,
+        doc_type=doc_type,
     )
 
     assert actual == TEST_DOCUMENT_REFERENCES
@@ -168,11 +175,12 @@ def test_retrieve_multipart_references_returns_multipart_references(
 
 def test_retrieve_multipart_references_returns_empty_list_if_LG_stitched(mock_service):
     mock_service.document_service.fetch_available_document_references_by_type.return_value = [
-        TEST_1_OF_1_DOCUMENT_REFERENCE
+        TEST_1_OF_1_DOCUMENT_REFERENCE,
     ]
 
     actual = mock_service.retrieve_multipart_references(
-        nhs_number=TEST_NHS_NUMBER, doc_type=SupportedDocumentTypes.LG
+        nhs_number=TEST_NHS_NUMBER,
+        doc_type=SupportedDocumentTypes.LG,
     )
 
     assert actual == []
@@ -220,7 +228,7 @@ def test_process_message(
     mock_migrate_multipart_references.assert_called_once()
     mock_write_stitching_reference.assert_called_once()
     mock_publish_nrl_message.assert_called_once_with(
-        snomed_code_doc_type=test_message.snomed_code_doc_type
+        snomed_code_doc_type=test_message.snomed_code_doc_type,
     )
 
 
@@ -342,7 +350,10 @@ def test_process_stitching(mock_service, mock_download_fileobj):
 
     mock_service.s3_service.client.download_fileobj.side_effect = (
         lambda Bucket, Key, Fileobj: mock_download_fileobj(
-            s3_object_data, Bucket, Key, Fileobj
+            s3_object_data,
+            Bucket,
+            Key,
+            Fileobj,
         )
     )
 
@@ -360,12 +371,14 @@ def test_migrate_multipart_references(mock_service):
             table_name=MOCK_UNSTITCHED_LG_TABLE_NAME,
             item={
                 "ContentType": "application/pdf",
+                "Author": TEST_CURRENT_GP_ODS,
                 "Created": "2024-01-01T12:00:00.000Z",
                 "DocumentScanCreation": "2024-01-01",
                 "DocStatus": "final",
                 "DocumentSnomedCodeType": "16521000000101",
                 "FileLocation": f"{TEST_DOCUMENT_REFERENCES[0].file_location}",
                 "FileName": f"{TEST_DOCUMENT_REFERENCES[0].file_name}",
+                "FileSize": TEST_DOCUMENT_REFERENCES[0].file_size,
                 "ID": f"{TEST_DOCUMENT_REFERENCES[0].id}",
                 "LastUpdated": 1704110400,
                 "NhsNumber": f"{TEST_DOCUMENT_REFERENCES[0].nhs_number}",
@@ -382,11 +395,13 @@ def test_migrate_multipart_references(mock_service):
             item={
                 "ContentType": "application/pdf",
                 "Created": "2024-01-01T12:00:00.000Z",
+                "Author": TEST_CURRENT_GP_ODS,
                 "DocStatus": "final",
                 "DocumentScanCreation": "2024-01-01",
                 "DocumentSnomedCodeType": "16521000000101",
                 "FileLocation": f"{TEST_DOCUMENT_REFERENCES[1].file_location}",
                 "FileName": f"{TEST_DOCUMENT_REFERENCES[1].file_name}",
+                "FileSize": TEST_DOCUMENT_REFERENCES[1].file_size,
                 "ID": f"{TEST_DOCUMENT_REFERENCES[1].id}",
                 "LastUpdated": 1704110400,
                 "NhsNumber": f"{TEST_DOCUMENT_REFERENCES[1].nhs_number}",
@@ -403,11 +418,13 @@ def test_migrate_multipart_references(mock_service):
             item={
                 "ContentType": "application/pdf",
                 "Created": "2024-01-01T12:00:00.000Z",
+                "Author": TEST_CURRENT_GP_ODS,
                 "DocStatus": "final",
                 "DocumentScanCreation": "2024-01-01",
                 "DocumentSnomedCodeType": "16521000000101",
                 "FileLocation": f"{TEST_DOCUMENT_REFERENCES[2].file_location}",
                 "FileName": f"{TEST_DOCUMENT_REFERENCES[2].file_name}",
+                "FileSize": TEST_DOCUMENT_REFERENCES[2].file_size,
                 "ID": f"{TEST_DOCUMENT_REFERENCES[2].id}",
                 "LastUpdated": 1704110400,
                 "NhsNumber": f"{TEST_DOCUMENT_REFERENCES[2].nhs_number}",
@@ -433,7 +450,8 @@ def test_migrate_multipart_references(mock_service):
 
 
 def test_migrate_multipart_references_handles_client_error_on_create(
-    mock_service, caplog
+    mock_service,
+    caplog,
 ):
     mock_service.multipart_references = TEST_DOCUMENT_REFERENCES
     mock_service.dynamo_service.create_item.side_effect = MOCK_CLIENT_ERROR
@@ -446,7 +464,8 @@ def test_migrate_multipart_references_handles_client_error_on_create(
 
 
 def test_migrate_multipart_references_handles_client_error_on_delete(
-    mock_service, caplog
+    mock_service,
+    caplog,
 ):
     mock_service.multipart_references = TEST_DOCUMENT_REFERENCES
     mock_service.dynamo_service.delete_item.side_effect = MOCK_CLIENT_ERROR
@@ -504,7 +523,7 @@ def test_publish_nrl_message(mock_service, mock_uuid):
     )
 
     mock_service.publish_nrl_message(
-        snomed_code_doc_type=SnomedCodes.LLOYD_GEORGE.value
+        snomed_code_doc_type=SnomedCodes.LLOYD_GEORGE.value,
     )
 
     mock_service.sqs_service.send_message_fifo.assert_called_once_with(
@@ -520,7 +539,7 @@ def test_publish_nrl_message_handles_client_error(mock_service):
 
     with pytest.raises(PdfStitchingException):
         mock_service.publish_nrl_message(
-            snomed_code_doc_type=SnomedCodes.LLOYD_GEORGE.value
+            snomed_code_doc_type=SnomedCodes.LLOYD_GEORGE.value,
         )
 
 
@@ -548,7 +567,9 @@ def test_sort_multipart_object_keys_raises_exception(mock_service):
 
 
 def test_rollback_stitching_process_successfully_rolls_back(
-    mock_service, mock_rollback_stitched_reference, mock_rollback_reference_migration
+    mock_service,
+    mock_rollback_stitched_reference,
+    mock_rollback_reference_migration,
 ):
     mock_service.stitched_reference = TEST_1_OF_1_DOCUMENT_REFERENCE
     mock_service.multipart_references = TEST_DOCUMENT_REFERENCES
@@ -565,10 +586,12 @@ def test_rollback_stitched_reference(mock_service):
     mock_service.rollback_stitched_reference()
 
     mock_service.dynamo_service.delete_item.assert_called_once_with(
-        table_name=MOCK_LG_TABLE_NAME, key={"ID": TEST_1_OF_1_DOCUMENT_REFERENCE.id}
+        table_name=MOCK_LG_TABLE_NAME,
+        key={"ID": TEST_1_OF_1_DOCUMENT_REFERENCE.id},
     )
     mock_service.s3_service.delete_object.assert_called_once_with(
-        s3_bucket_name=MOCK_LG_BUCKET, file_key=f"{TEST_NHS_NUMBER}/test-key-123"
+        s3_bucket_name=MOCK_LG_BUCKET,
+        file_key=f"{TEST_NHS_NUMBER}/test-key-123",
     )
 
 
@@ -593,8 +616,99 @@ def test_rollback_reference_migration(mock_service):
 
     mock_service.rollback_reference_migration()
 
-    assert mock_service.dynamo_service.create_item.call_count == 3
-    assert mock_service.dynamo_service.delete_item.call_count == 3
+    mock_service.dynamo_service.create_item.assert_has_calls(
+        [
+            call(
+                table_name=MOCK_LG_TABLE_NAME,
+                item={
+                    "ContentType": "application/pdf",
+                    "Created": TEST_DOCUMENT_REFERENCES[0].created,
+                    "Author": TEST_CURRENT_GP_ODS,
+                    "CurrentGpOds": TEST_DOCUMENT_REFERENCES[0].current_gp_ods,
+                    "DocStatus": "final",
+                    "DocumentScanCreation": "2024-01-01",
+                    "DocumentSnomedCodeType": "16521000000101",
+                    "FileLocation": f"{TEST_DOCUMENT_REFERENCES[0].file_location}",
+                    "FileName": f"{TEST_DOCUMENT_REFERENCES[0].file_name}",
+                    "FileSize": TEST_DOCUMENT_REFERENCES[0].file_size,
+                    "ID": f"{TEST_DOCUMENT_REFERENCES[0].id}",
+                    "LastUpdated": 1704110400,
+                    "NhsNumber": f"{TEST_DOCUMENT_REFERENCES[0].nhs_number}",
+                    "S3FileKey": f"{TEST_DOCUMENT_REFERENCES[0].s3_file_key}",
+                    "Status": "current",
+                    "Version": "1",
+                    "Uploaded": True,
+                    "Uploading": False,
+                    "VirusScannerResult": "Clean",
+                },
+            ),
+            call(
+                table_name=MOCK_LG_TABLE_NAME,
+                item={
+                    "ContentType": "application/pdf",
+                    "Created": TEST_DOCUMENT_REFERENCES[1].created,
+                    "CurrentGpOds": TEST_DOCUMENT_REFERENCES[1].current_gp_ods,
+                    "Author": TEST_CURRENT_GP_ODS,
+                    "DocStatus": "final",
+                    "DocumentScanCreation": "2024-01-01",
+                    "DocumentSnomedCodeType": "16521000000101",
+                    "FileLocation": f"{TEST_DOCUMENT_REFERENCES[1].file_location}",
+                    "FileName": f"{TEST_DOCUMENT_REFERENCES[1].file_name}",
+                    "FileSize": TEST_DOCUMENT_REFERENCES[1].file_size,
+                    "ID": f"{TEST_DOCUMENT_REFERENCES[1].id}",
+                    "LastUpdated": 1704110400,
+                    "NhsNumber": f"{TEST_DOCUMENT_REFERENCES[1].nhs_number}",
+                    "S3FileKey": f"{TEST_DOCUMENT_REFERENCES[1].s3_file_key}",
+                    "Status": "current",
+                    "Version": "1",
+                    "Uploaded": True,
+                    "Uploading": False,
+                    "VirusScannerResult": "Clean",
+                },
+            ),
+            call(
+                table_name=MOCK_LG_TABLE_NAME,
+                item={
+                    "ContentType": "application/pdf",
+                    "Created": TEST_DOCUMENT_REFERENCES[2].created,
+                    "CurrentGpOds": TEST_DOCUMENT_REFERENCES[2].current_gp_ods,
+                    "Author": TEST_CURRENT_GP_ODS,
+                    "DocStatus": "final",
+                    "DocumentScanCreation": "2024-01-01",
+                    "DocumentSnomedCodeType": "16521000000101",
+                    "FileLocation": f"{TEST_DOCUMENT_REFERENCES[2].file_location}",
+                    "FileName": f"{TEST_DOCUMENT_REFERENCES[2].file_name}",
+                    "FileSize": TEST_DOCUMENT_REFERENCES[2].file_size,
+                    "ID": f"{TEST_DOCUMENT_REFERENCES[2].id}",
+                    "LastUpdated": 1704110400,
+                    "NhsNumber": f"{TEST_DOCUMENT_REFERENCES[2].nhs_number}",
+                    "S3FileKey": f"{TEST_DOCUMENT_REFERENCES[2].s3_file_key}",
+                    "Status": "current",
+                    "Version": "1",
+                    "Uploaded": True,
+                    "Uploading": False,
+                    "VirusScannerResult": "Clean",
+                },
+            ),
+        ],
+    )
+
+    mock_service.dynamo_service.delete_item.assert_has_calls(
+        [
+            call(
+                table_name=MOCK_UNSTITCHED_LG_TABLE_NAME,
+                key={"ID": TEST_DOCUMENT_REFERENCES[0].id},
+            ),
+            call(
+                table_name=MOCK_UNSTITCHED_LG_TABLE_NAME,
+                key={"ID": TEST_DOCUMENT_REFERENCES[1].id},
+            ),
+            call(
+                table_name=MOCK_UNSTITCHED_LG_TABLE_NAME,
+                key={"ID": TEST_DOCUMENT_REFERENCES[2].id},
+            ),
+        ],
+    )
 
 
 def test_rollback_reference_migration_handles_exception(mock_service):
@@ -618,13 +732,15 @@ def test_update_stitched_reference_with_version_id(mock_service):
     mock_service.update_stitched_reference_with_version_id()
 
     mock_service.s3_service.get_head_object.assert_called_once_with(
-        MOCK_LG_BUCKET, TEST_1_OF_1_DOCUMENT_REFERENCE.s3_file_key
+        MOCK_LG_BUCKET,
+        TEST_1_OF_1_DOCUMENT_REFERENCE.s3_file_key,
     )
     assert mock_service.stitched_reference.s3_version_id == test_version_id
 
 
 def test_process_manual_trigger_calls_process_message_for_each_nhs_number(
-    mocker, mock_service
+    mocker,
+    mock_service,
 ):
     test_ods_code = "A12345"
     test_nhs_numbers = ["1234567890", "9876543210"]
@@ -635,7 +751,7 @@ def test_process_manual_trigger_calls_process_message_for_each_nhs_number(
         return_value=test_nhs_numbers,
     )
     mock_send_message = mocker.patch(
-        "lambdas.services.pdf_stitching_service.SQSService.send_message_batch_standard"
+        "lambdas.services.pdf_stitching_service.SQSService.send_message_batch_standard",
     )
 
     mock_service.process_manual_trigger(ods_code=test_ods_code, queue_url="url")
@@ -645,7 +761,8 @@ def test_process_manual_trigger_calls_process_message_for_each_nhs_number(
 
 
 def test_calculate_created_date_returns_now_when_no_created_values(
-    mock_service, patch_pdf_stitching_service_datetime
+    mock_service,
+    patch_pdf_stitching_service_datetime,
 ):
     mock_service.multipart_references = copy.deepcopy(TEST_DOCUMENT_REFERENCES)
     for r in mock_service.multipart_references:
@@ -653,12 +770,13 @@ def test_calculate_created_date_returns_now_when_no_created_values(
 
     actual = mock_service.calculate_created_date()
     assert actual == patch_pdf_stitching_service_datetime.strftime(
-        "%Y-%m-%dT%H:%M:%S.%fZ"
+        "%Y-%m-%dT%H:%M:%S.%fZ",
     )
 
 
 def test_calculate_created_date_returns_now_when_all_created_invalid(
-    mock_service, patch_pdf_stitching_service_datetime
+    mock_service,
+    patch_pdf_stitching_service_datetime,
 ):
     mock_service.multipart_references = copy.deepcopy(TEST_DOCUMENT_REFERENCES)
     mock_service.multipart_references[0].created = "not-a-date"
@@ -667,7 +785,7 @@ def test_calculate_created_date_returns_now_when_all_created_invalid(
 
     actual = mock_service.calculate_created_date()
     assert actual == patch_pdf_stitching_service_datetime.strftime(
-        "%Y-%m-%dT%H:%M:%S.%fZ"
+        "%Y-%m-%dT%H:%M:%S.%fZ",
     )
 
 
@@ -695,7 +813,8 @@ def test_retrieve_multipart_references_returns_empty_if_any_1of1_present_for_lg(
     )
 
     actual = mock_service.retrieve_multipart_references(
-        nhs_number=TEST_NHS_NUMBER, doc_type=SupportedDocumentTypes.LG
+        nhs_number=TEST_NHS_NUMBER,
+        doc_type=SupportedDocumentTypes.LG,
     )
     assert actual == []
 
@@ -756,7 +875,8 @@ def test_process_message_rolls_back_if_upload_fails(
 
     mock_create_stitched_reference.side_effect = set_stitched_reference
     mock_upload_stitched_file.side_effect = PdfStitchingException(
-        400, LambdaError.StitchError
+        400,
+        LambdaError.StitchError,
     )
 
     with pytest.raises(PdfStitchingException):
@@ -772,7 +892,7 @@ def test_process_manual_trigger_returns_early_if_no_nhs_numbers(mock_service, mo
         return_value=[],
     )
     mock_send_batch = mocker.patch(
-        "lambdas.services.pdf_stitching_service.SQSService.send_message_batch_standard"
+        "lambdas.services.pdf_stitching_service.SQSService.send_message_batch_standard",
     )
 
     mock_service.process_manual_trigger(ods_code="A12345", queue_url="url")
@@ -781,7 +901,9 @@ def test_process_manual_trigger_returns_early_if_no_nhs_numbers(mock_service, mo
 
 
 def test_process_manual_trigger_logs_error_when_batch_has_failures(
-    mock_service, mocker, caplog
+    mock_service,
+    mocker,
+    caplog,
 ):
     test_nhs_numbers = ["1234567890"]
     mocker.patch.object(

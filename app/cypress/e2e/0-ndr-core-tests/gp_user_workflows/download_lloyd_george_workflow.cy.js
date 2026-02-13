@@ -122,7 +122,10 @@ describe('GP Workflow: View Lloyd George record', () => {
 
         cy.intercept('GET', '/SearchDocumentReferences*', {
             statusCode: 200,
-            body: testFiles,
+            body: {
+                references: testFiles,
+                nextPageToken: 'abc',
+            },
         }).as('searchDocumentReferences');
 
         cy.get('#verify-submit').click();
@@ -142,7 +145,10 @@ describe('GP Workflow: View Lloyd George record', () => {
 
                 cy.intercept('GET', '/SearchDocumentReferences*', {
                     statusCode: 200,
-                    body: testFiles,
+                    body: {
+                        references: testFiles,
+                        nextPageToken: 'abc',
+                    },
                 }).as('searchDocumentReferences');
 
                 setUpDownloadManifestIntercepts();
@@ -259,7 +265,10 @@ describe('GP Workflow: View Lloyd George record', () => {
 
                 cy.intercept('GET', '/SearchDocumentReferences*', {
                     statusCode: 200,
-                    body: singleTestFile,
+                    body: {
+                        references: singleTestFile,
+                        nextPageToken: 'abc'
+                    },
                 }).as('searchDocumentReferences');
 
                 setUpDownloadManifestIntercepts();

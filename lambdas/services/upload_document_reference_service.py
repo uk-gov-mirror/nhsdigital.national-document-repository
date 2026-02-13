@@ -1,3 +1,4 @@
+import io
 import os
 from typing import Optional
 
@@ -21,6 +22,7 @@ from utils.exceptions import (
     FileProcessingException,
     TransactionConflictException,
 )
+from utils.file_utils import check_file_locked_or_corrupt
 from utils.lambda_exceptions import InvalidDocTypeException
 from utils.s3_utils import DocTypeS3BucketRouter
 from utils.utilities import get_virus_scan_service
@@ -42,7 +44,9 @@ class UploadDocumentReferenceService:
         self.bucket_router = DocTypeS3BucketRouter()
 
     def handle_upload_document_reference_request(
-        self, object_key: str, object_size: int = 0
+        self,
+        object_key: str,
+        object_size: int = 0,
     ):
         """Handle the upload document reference request with comprehensive error handling"""
         if not object_key:
@@ -58,13 +62,16 @@ class UploadDocumentReferenceService:
             self._get_infrastructure_for_document_key(object_parts)
 
             preliminary_document_reference = self._fetch_preliminary_document_reference(
-                document_key, nhs_number
+                document_key,
+                nhs_number,
             )
             if not preliminary_document_reference:
                 return
 
             self._process_preliminary_document_reference(
-                preliminary_document_reference, object_key, object_size
+                preliminary_document_reference,
+                object_key,
+                object_size,
             )
 
         except Exception as e:
@@ -86,12 +93,14 @@ class UploadDocumentReferenceService:
             self.destination_bucket_name = self.bucket_router.resolve(doc_type)
         except KeyError:
             logger.error(
-                f"SNOMED code {doc_type.code} - {doc_type.display_name} is not supported"
+                f"SNOMED code {doc_type.code} - {doc_type.display_name} is not supported",
             )
             raise InvalidDocTypeException(400, LambdaError.DocTypeDB)
 
     def _fetch_preliminary_document_reference(
-        self, document_key: str, nhs_number: str | None = None
+        self,
+        document_key: str,
+        nhs_number: str | None = None,
     ) -> Optional[DocumentReference]:
         """Fetch document reference from the database"""
         try:
@@ -101,7 +110,7 @@ class UploadDocumentReferenceService:
             else:
                 if not nhs_number:
                     logger.error(
-                        f"Failed to process object key with ID: {document_key}"
+                        f"Failed to process object key with ID: {document_key}",
                     )
                     raise FileProcessingException(400, LambdaError.DocRefInvalidFiles)
 
@@ -117,24 +126,24 @@ class UploadDocumentReferenceService:
 
             if not documents:
                 logger.error(
-                    f"No document with the following key found in {self.table_name} table: {document_key}"
+                    f"No document with the following key found in {self.table_name} table: {document_key}",
                 )
                 logger.info("Skipping this object")
                 return None
 
             if len(documents) > 1:
                 logger.warning(
-                    f"Multiple documents found for key {document_key}, using first one"
+                    f"Multiple documents found for key {document_key}, using first one",
                 )
 
             return documents[0]
 
         except ClientError as e:
             logger.error(
-                f"Error fetching document reference for key {document_key}: {str(e)}"
+                f"Error fetching document reference for key {document_key}: {str(e)}",
             )
             raise DocumentServiceException(
-                f"Failed to fetch document reference: {str(e)}"
+                f"Failed to fetch document reference: {str(e)}",
             )
 
     def _process_preliminary_document_reference(
@@ -146,20 +155,37 @@ class UploadDocumentReferenceService:
         """Process the preliminary (uploading) document reference with virus scanning and file operations"""
         try:
             virus_scan_result = self._perform_virus_scan(
-                preliminary_document_reference, object_key
+                preliminary_document_reference,
+                object_key,
             )
-            preliminary_document_reference.virus_scanner_result = virus_scan_result
 
             if virus_scan_result == VirusScanResult.CLEAN:
-                self._process_clean_document(
-                    preliminary_document_reference,
-                    object_key,
-                )
+                is_file_protected = False
+                if getattr(preliminary_document_reference, "file_name", None):
+                    file_type_extension = (
+                        preliminary_document_reference.file_name.split(".")[-1].lower()
+                    )
+                    is_file_protected = self.is_file_invalid(
+                        object_key,
+                        file_type_extension,
+                    )
+                if is_file_protected:
+                    logger.warning(
+                        f"Document {preliminary_document_reference.id} is password protected or corrupt, "
+                        f"marking as such in database",
+                    )
+                    virus_scan_result = VirusScanResult.INVALID
+                else:
+                    self._process_clean_document(
+                        preliminary_document_reference,
+                        object_key,
+                    )
             else:
                 logger.warning(
-                    f"Document {preliminary_document_reference.id} failed virus scan"
+                    f"Document {preliminary_document_reference.id} failed virus scan",
                 )
 
+            preliminary_document_reference.virus_scanner_result = virus_scan_result
             preliminary_document_reference.file_size = object_size
             preliminary_document_reference.uploaded = True
             preliminary_document_reference.uploading = False
@@ -173,7 +199,7 @@ class UploadDocumentReferenceService:
                 and self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code
             ):
                 self._finalize_and_supersede_with_transaction(
-                    preliminary_document_reference
+                    preliminary_document_reference,
                 )
 
                 # Update NRL Pointer
@@ -184,7 +210,7 @@ class UploadDocumentReferenceService:
 
         except Exception as e:
             logger.error(
-                f"Error processing document reference {preliminary_document_reference.id}: {str(e)}"
+                f"Error processing document reference {preliminary_document_reference.id}: {str(e)}",
             )
             raise
 
@@ -199,7 +225,7 @@ class UploadDocumentReferenceService:
         """
         try:
             logger.info(
-                f"Checking for existing final documents to supersede for NHS number {new_document.nhs_number}"
+                f"Checking for existing final documents to supersede for NHS number {new_document.nhs_number}",
             )
 
             existing_docs: list[DocumentReference] = (
@@ -243,7 +269,7 @@ class UploadDocumentReferenceService:
             # Supersede existing final documents
             if existing_docs:
                 logger.info(
-                    f"Superseding {len(existing_docs)} existing final document(s) for NHS number {new_document.nhs_number}"
+                    f"Superseding {len(existing_docs)} existing final document(s) for NHS number {new_document.nhs_number}",
                 )
 
                 for doc in existing_docs:
@@ -297,77 +323,85 @@ class UploadDocumentReferenceService:
                         f" and superseded {len(existing_docs)} document(s)"
                         if existing_docs
                         else ""
-                    )
+                    ),
                 )
             except ClientError as e:
                 error_code = e.response.get("Error", {}).get("Code", "")
                 if error_code == "TransactionCanceledException":
                     logger.error(
-                        f"Transaction cancelled - concurrent update detected for NHS number {new_document.nhs_number}"
+                        f"Transaction cancelled - concurrent update detected for NHS number {new_document.nhs_number}",
                     )
                     raise TransactionConflictException(
                         f"Concurrent update detected while finalizing document for NHS number {new_document.nhs_number}. "
-                        f"Another process may have already finalized a document for this patient."
+                        f"Another process may have already finalized a document for this patient.",
                     )
                 raise
 
         except Exception as e:
             if isinstance(e, TransactionConflictException):
                 logger.error(
-                    f"Cancelling preliminary document {new_document.id} due to transaction conflict"
+                    f"Cancelling preliminary document {new_document.id} due to transaction conflict",
                 )
             else:
                 logger.error(
-                    f"Unexpected error while finalizing document for {new_document.nhs_number}: {e}"
+                    f"Unexpected error while finalizing document for {new_document.nhs_number}: {e}",
                 )
-                
+
             new_document.doc_status = "cancelled"
             new_document.uploaded = False
             new_document.uploading = False
             new_document.file_size = None
             self._update_dynamo_table(new_document)
             self.delete_file_from_bucket(
-                new_document.file_location, new_document.s3_version_id
+                new_document.file_location,
+                new_document.s3_version_id,
             )
 
     def document_reference_key(self, document_id):
         return {DocumentReferenceMetadataFields.ID.value: document_id}
 
     def _perform_virus_scan(
-        self, document_reference: DocumentReference, object_key: str
+        self,
+        document_reference: DocumentReference,
+        object_key: str,
     ) -> VirusScanResult:
         """Perform a virus scan on the document"""
         try:
             return self.virus_scan_service.scan_file(
-                object_key, nhs_number=document_reference.nhs_number
+                object_key,
+                nhs_number=document_reference.nhs_number,
             )
 
         except Exception as e:
             logger.error(
-                f"Virus scan failed for document {document_reference.id}: {str(e)}"
+                f"Virus scan failed for document {document_reference.id}: {str(e)}",
             )
             return VirusScanResult.ERROR
 
     def _process_clean_document(
-        self, document_reference: DocumentReference, object_key: str
+        self,
+        document_reference: DocumentReference,
+        object_key: str,
     ):
         """Process a document that passed virus scanning"""
         try:
             self.copy_files_from_staging_bucket(document_reference, object_key)
-            
+
             logger.info(
-                f"Successfully processed clean document: {document_reference.id}"
+                f"Successfully processed clean document: {document_reference.id}",
             )
 
         except Exception as e:
             logger.error(
-                f"Error processing clean document {document_reference.id}: {str(e)}"
+                f"Error processing clean document {document_reference.id}: {str(e)}",
             )
             document_reference.doc_status = "cancelled"
             raise FileProcessingException(f"Failed to process clean document: {str(e)}")
 
     def copy_files_from_staging_bucket(
-        self, document_reference: DocumentReference, source_file_key: str
+        self,
+        document_reference: DocumentReference,
+        source_file_key: str,
     ):
         """Copy files from staging bucket to destination bucket"""
         try:
@@ -389,7 +423,8 @@ class UploadDocumentReferenceService:
             )
             document_reference.s3_bucket_name = self.destination_bucket_name
             document_reference.file_location = document_reference._build_s3_location(
-                self.destination_bucket_name, dest_file_key
+                self.destination_bucket_name,
+                dest_file_key,
             )
             document_reference.s3_version_id = copy_result.get("VersionId")
             return copy_result
@@ -397,7 +432,7 @@ class UploadDocumentReferenceService:
         except ClientError as e:
             logger.error(f"Error copying files from staging bucket: {str(e)}")
             raise FileProcessingException(
-                f"Failed to copy file from staging bucket: {str(e)}"
+                f"Failed to copy file from staging bucket: {str(e)}",
             )
 
     def delete_file_from_staging_bucket(self, source_file_key: str):
@@ -413,10 +448,10 @@ class UploadDocumentReferenceService:
         """Delete file from bucket"""
         try:
             s3_bucket_name, source_file_key = DocumentReference._parse_s3_location(
-                file_location
+                file_location,
             )
             logger.info(
-                f"Deleting file from bucket: {s3_bucket_name}/{source_file_key}"
+                f"Deleting file from bucket: {s3_bucket_name}/{source_file_key}",
             )
 
             self.s3_service.delete_object(s3_bucket_name, source_file_key, version_id)
@@ -457,5 +492,13 @@ class UploadDocumentReferenceService:
         except ClientError as e:
             logger.error(f"Error updating DynamoDB table: {str(e)}")
             raise DocumentServiceException(
-                f"Failed to update document in database: {str(e)}"
+                f"Failed to update document in database: {str(e)}",
             )
+
+    def is_file_invalid(self, object_key: str, file_type_extension: str) -> bool:
+        entire_object = self.s3_service.get_object_stream(
+            self.staging_s3_bucket_name,
+            object_key,
+        )
+        file_stream = io.BytesIO(entire_object.read())
+        return check_file_locked_or_corrupt(file_stream, file_type_extension)

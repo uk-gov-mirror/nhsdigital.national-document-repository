@@ -1,9 +1,8 @@
-import json
 import os
 from json import JSONDecodeError
 
 from botocore.exceptions import ClientError
-from enums.dynamo_filter import AttributeOperator
+from enums.dynamo_filter import AttributeOperator, ConditionOperator
 from enums.infrastructure import MAP_MTLS_TO_DYNAMO
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
@@ -17,6 +16,7 @@ from services.document_service import DocumentService
 from utils.audit_logging_setup import LoggingService
 from utils.common_query_filters import NotDeleted, UploadCompleted
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
+from utils.dynamo_utils import build_mixed_condition_expression
 from utils.exceptions import DynamoServiceException
 from utils.lambda_exceptions import DocumentRefSearchException
 from utils.lambda_header_utils import validate_common_name_in_mtls
@@ -36,20 +36,23 @@ class DocumentReferenceSearchService(DocumentService):
         """
         Fetch document references for a given NHS number.
 
-        :param nhs_number: The NHS number to search for.
-        :param return_fhir: If True, return FHIR DocumentReference objects.
-        :param additional_filters: Additional filters to apply to the search.
-        :param check_upload_completed: If True, check if the upload is completed before returning the results.
-        :return: List of document references or FHIR DocumentReferences.
+        Args:
+            nhs_number (str): NHS number
+            return_fhir (bool, optional): Return FHIR document references. Defaults to False.
+            additional_filters (dict, optional): Additional filters to apply to DynamoDB query. (Defaults to None.)
+            check_upload_completed (bool): Check upload of document is complete. (Defaults to True.)
+            api_request_context (dict, optional): API request context, used to obtain MTLS common name. (Defaults to {}.)
+        Returns:
+            List of document references or FHIR DocumentReferences.
         """
         common_name = validate_common_name_in_mtls(
             api_request_context=api_request_context,
         )
         try:
-            list_of_table_names = self._get_table_names(common_name)
+            table_name = self._get_table_name(common_name)
             results = self._search_tables_for_documents(
                 nhs_number,
-                list_of_table_names,
+                table_name,
                 return_fhir,
                 additional_filters,
                 check_upload_completed,
@@ -67,58 +70,51 @@ class DocumentReferenceSearchService(DocumentService):
             )
             raise DocumentRefSearchException(500, LambdaError.DocRefClient)
 
-    def _get_table_names(self, common_name: MtlsCommonNames | None) -> list[str]:
-        table_list = []
-        try:
-            table_list = json.loads(os.environ["DYNAMODB_TABLE_LIST"])
-        except JSONDecodeError as e:
-            logger.error(f"Failed to decode table list: {str(e)}")
-            raise
-
+    def _get_table_name(self, common_name: MtlsCommonNames | None) -> str:
+        logger.info("Getting table name for document search")
         if not common_name or common_name not in MtlsCommonNames:
-            return table_list
+            return os.environ["LLOYD_GEORGE_DYNAMODB_NAME"]
 
-        return [str(MAP_MTLS_TO_DYNAMO[common_name])]
+        return str(MAP_MTLS_TO_DYNAMO[common_name])
 
     def _search_tables_for_documents(
         self,
         nhs_number: str,
-        table_names: list[str],
+        table_name: str,
         return_fhir: bool,
         filters=None,
         check_upload_completed=False,
     ):
         document_resources = []
 
-        for table_name in table_names:
-            logger.info(f"Searching for results in {table_name}")
-            filter_expression = self._build_filter_expression(
-                filters,
-                check_upload_completed,
+        logger.info(f"Searching for results in {table_name}")
+        filter_expression = self._build_filter_expression(
+            filters,
+            check_upload_completed,
+        )
+
+        if "coredocumentmetadata" not in table_name.lower():
+            documents = self.fetch_documents_from_table_with_nhs_number(
+                nhs_number,
+                table_name,
+                query_filter=filter_expression,
+            )
+        else:
+            documents = self.fetch_documents_from_table(
+                search_condition=nhs_number,
+                search_key="NhsNumber",
+                table_name=table_name,
+                query_filter=filter_expression,
             )
 
-            if "coredocumentmetadata" not in table_name.lower():
-                documents = self.fetch_documents_from_table_with_nhs_number(
-                    nhs_number,
-                    table_name,
-                    query_filter=filter_expression,
-                )
-            else:
-                documents = self.fetch_documents_from_table(
-                    search_condition=nhs_number,
-                    search_key="NhsNumber",
-                    table_name=table_name,
-                    query_filter=filter_expression,
-                )
+        if check_upload_completed:
+            self._validate_upload_status(documents)
 
-            if check_upload_completed:
-                self._validate_upload_status(documents)
-
-            processed_documents = self._process_documents(
-                documents,
-                return_fhir=return_fhir,
-            )
-            document_resources.extend(processed_documents)
+        processed_documents = self._process_documents(
+            documents,
+            return_fhir=return_fhir,
+        )
+        document_resources.extend(processed_documents)
 
         logger.info(f"Found {len(document_resources)} document references")
 
@@ -181,6 +177,7 @@ class DocumentReferenceSearchService(DocumentService):
                 "version",
                 "content_type",
                 "document_snomed_code_type",
+                "author",
             },
         )
         return document_formatted
@@ -251,3 +248,112 @@ class DocumentReferenceSearchService(DocumentService):
             .model_dump(exclude_none=True)
         )
         return fhir_document_reference
+
+    def get_paginated_references_by_nhs_number(
+        self,
+        nhs_number: str,
+        limit: int | None = None,
+        next_page_token: str | None = None,
+        filter: dict | None = None,
+        api_request_context: dict = {},
+        return_fhir: bool = False,
+    ):
+
+        filter_expression, condition_attribute_names, condition_attribute_values = (
+            self._build_pagination_filter(filter)
+        )
+
+        common_name = validate_common_name_in_mtls(
+            api_request_context=api_request_context,
+        )
+
+        references, next_page_token = self.query_table_with_paginator(
+            table_name=self._get_table_name(common_name),
+            index_name="NhsNumberIndex",
+            search_key="NhsNumber",
+            search_condition=nhs_number,
+            limit=limit,
+            start_key=next_page_token,
+            filter_expression=filter_expression,
+            expression_attribute_names=condition_attribute_names,
+            expression_attribute_values=condition_attribute_values,
+        )
+
+        logger.info("Validating upload status")
+        self._validate_upload_status(references)
+
+        document_references = self._process_documents(
+            references,
+            return_fhir=return_fhir,
+        )
+
+        return {
+            "references": document_references,
+            "next_page_token": next_page_token,
+        }
+
+    def _build_pagination_filter(
+        self,
+        filter_values: dict[str, str] | None,
+    ) -> tuple[str, dict, dict]:
+        logger.info("Creating filter for pagination")
+        conditions = [
+            {
+                "field": DocumentReferenceMetadataFields.DELETED.value,
+                "operator": ConditionOperator.EQUAL.value,
+                "value": "",
+            },
+            {
+                "field": DocumentReferenceMetadataFields.DELETED.value,
+                "operator": "attribute_not_exists",
+            },
+        ]
+
+        query_filter, condition_attribute_names, condition_attribute_values = (
+            build_mixed_condition_expression(conditions=conditions, join_operator="OR")
+        )
+
+        if filter_values:
+            logger.info("Adding additional filters for pagination")
+            additional_conditions = []
+            for filter_key, filter_value in filter_values.items():
+                if filter_key == "custodian":
+                    additional_conditions.append(
+                        {
+                            "field": DocumentReferenceMetadataFields.CUSTODIAN.value,
+                            "operator": ConditionOperator.EQUAL.value,
+                            "value": filter_value,
+                        },
+                    )
+                elif filter_key == "document_snomed_code":
+                    additional_conditions.append(
+                        {
+                            "field": DocumentReferenceMetadataFields.DOCUMENT_SNOMED_CODE_TYPE.value,
+                            "operator": ConditionOperator.EQUAL.value,
+                            "value": filter_value,
+                        },
+                    )
+                elif filter_key == "doc_status":
+                    additional_conditions.append(
+                        {
+                            "field": DocumentReferenceMetadataFields.DOC_STATUS.value,
+                            "operator": ConditionOperator.EQUAL.value,
+                            "value": filter_value,
+                        },
+                    )
+
+            (
+                additional_filter,
+                additional_condition_attribute_names,
+                additional_condition_attribute_values,
+            ) = build_mixed_condition_expression(conditions=additional_conditions)
+            condition_attribute_names.update(additional_condition_attribute_names)
+            condition_attribute_values.update(additional_condition_attribute_values)
+
+            return (
+                f"({query_filter}) AND " + additional_filter,
+                condition_attribute_names,
+                condition_attribute_values,
+            )
+
+        return query_filter, condition_attribute_names, condition_attribute_values

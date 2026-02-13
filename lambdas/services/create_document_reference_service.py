@@ -10,13 +10,13 @@ from models.document_reference import DocumentReference, UploadRequestDocument
 from models.fhir.R4.fhir_document_reference import Attachment, DocumentReferenceInfo
 from pydantic import ValidationError
 from services.base.ssm_service import SSMService
+from services.feature_flags_service import FeatureFlagService
 from services.post_fhir_document_reference_service import (
     PostFhirDocumentReferenceService,
 )
 from utils import upload_file_configs
 from utils.audit_logging_setup import LoggingService
 from utils.common_query_filters import get_document_type_filter
-from utils.constants.ssm import UPLOAD_PILOT_ODS_ALLOWED_LIST
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.exceptions import (
     ConfigNotFoundException,
@@ -49,13 +49,16 @@ class CreateDocumentReferenceService:
     def __init__(self):
         self.post_fhir_doc_ref_service = PostFhirDocumentReferenceService()
         self.ssm_service = SSMService()
+        self.feature_flag_service = FeatureFlagService()
 
         self.lg_dynamo_table = os.getenv("LLOYD_GEORGE_DYNAMODB_NAME")
         self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
         self.upload_sub_folder = "user_upload"
 
     def create_document_reference_request(
-        self, nhs_number: str, documents_list: list[dict]
+        self,
+        nhs_number: str,
+        documents_list: list[dict],
     ):
         upload_document_names = []
         url_responses = {}
@@ -73,18 +76,19 @@ class CreateDocumentReferenceService:
 
             for validated_doc in upload_request_documents:
                 snomed_code = validated_doc.doc_type
-                config = upload_file_configs.get_config_by_snomed_code(
-                    snomed_code
-                )
+                config = upload_file_configs.get_config_by_snomed_code(snomed_code)
 
                 if config.single_file_only:
                     self.check_existing_records_and_remove_failed_upload(
                         nhs_number,
-                        snomed_code
+                        snomed_code,
                     )
 
                 document_reference = self.create_document_reference(
-                    nhs_number, user_ods_code, validated_doc, snomed_code
+                    nhs_number,
+                    user_ods_code,
+                    validated_doc,
+                    snomed_code,
                 )
 
                 self.validate_document_file_type(validated_doc, config)
@@ -126,13 +130,21 @@ class CreateDocumentReferenceService:
             raise DocumentRefException(400, LambdaError.DocRefInvalidFiles)
 
     def validate_document_file_type(self, validated_doc, document_config):
-        if not is_file_type_allowed(validated_doc.file_name, document_config.accepted_file_types):
+        if not is_file_type_allowed(
+            validated_doc.file_name,
+            document_config.accepted_file_types,
+        ):
             raise LGInvalidFilesException(
-                f"Unsupported file type for file: {validated_doc.file_name}"
+                f"Unsupported file type for file: {validated_doc.file_name}",
             )
 
     def build_and_process_fhir_doc_ref(
-        self, nhs_number, user_ods_code, validated_doc, snomed_code, document_reference
+        self,
+        nhs_number,
+        user_ods_code,
+        validated_doc,
+        snomed_code,
+        document_reference,
     ):
         doc_ref_info = self.build_doc_ref_info(
             validated_doc,
@@ -142,11 +154,11 @@ class CreateDocumentReferenceService:
         )
 
         fhir_doc_ref = doc_ref_info.create_fhir_document_reference_object(
-            document_reference
+            document_reference,
         )
 
         fhir_response = self.post_fhir_doc_ref_service.process_fhir_document_reference(
-            fhir_doc_ref.model_dump_json()
+            fhir_doc_ref.model_dump_json(),
         )
 
         return fhir_response
@@ -159,7 +171,11 @@ class CreateDocumentReferenceService:
             raise DocumentRefException(401, LambdaError.DocRefUnauthorizedOdsCode)
 
     def build_doc_ref_info(
-        self, validated_doc, nhs_number, snomed_code, user_ods_code
+        self,
+        validated_doc,
+        nhs_number,
+        snomed_code,
+        user_ods_code,
     ) -> DocumentReferenceInfo:
         attachment_details = Attachment(
             title=validated_doc.file_name,
@@ -176,14 +192,16 @@ class CreateDocumentReferenceService:
         return doc_ref_info
 
     def check_if_user_ods_code_is_in_pilot(self, ods_code) -> bool:
-        pilot_ods_codes = self.get_allowed_list_of_ods_codes_for_upload_pilot()
-        if ods_code in pilot_ods_codes:
+        pilot_ods_codes = (
+            self.feature_flag_service.get_allowed_list_of_ods_codes_for_upload_pilot()
+        )
+        if ods_code in pilot_ods_codes or pilot_ods_codes == []:
             return True
-        else:
-            raise OdsErrorException()
+        raise OdsErrorException()
 
     def parse_documents_list(
-        self, document_list: list[dict]
+        self,
+        document_list: list[dict],
     ) -> list[UploadRequestDocument]:
         upload_request_document_list = []
         for document in document_list:
@@ -250,7 +268,7 @@ class CreateDocumentReferenceService:
         )
         if not previous_records:
             logger.info(
-                "No record was found for this patient. Will continue to create doc ref."
+                "No record was found for this patient. Will continue to create doc ref.",
             )
             return
 
@@ -261,7 +279,7 @@ class CreateDocumentReferenceService:
     def stop_if_upload_is_in_process(self, previous_records: list[DocumentReference]):
         if any(
             self.post_fhir_doc_ref_service.document_service.is_upload_in_process(
-                document
+                document,
             )
             for document in previous_records
         ):
@@ -276,7 +294,7 @@ class CreateDocumentReferenceService:
         if all_records_uploaded:
             logger.info(
                 "The patient already has a full set of record. "
-                "We should not be processing the new Lloyd George record upload."
+                "We should not be processing the new Lloyd George record upload.",
             )
             logger.error(
                 f"{LambdaError.DocRefRecordAlreadyInPlace.to_str()}",
@@ -291,30 +309,23 @@ class CreateDocumentReferenceService:
     ):
         logger.info(
             "Found previous records of failed upload. "
-            "Will delete those records before creating new document references."
+            "Will delete those records before creating new document references.",
         )
 
         logger.info("Deleting files from s3...")
         for record in failed_upload_records:
             s3_bucket_name, s3_file_key = record._parse_s3_location(
-                record.file_location
+                record.file_location,
             )
             self.post_fhir_doc_ref_service.s3_service.delete_object(
-                s3_bucket_name, s3_file_key
+                s3_bucket_name,
+                s3_file_key,
             )
 
         logger.info("Deleting dynamodb record...")
         self.post_fhir_doc_ref_service.document_service.hard_delete_metadata_records(
-            table_name=table_name, document_references=failed_upload_records
+            table_name=table_name,
+            document_references=failed_upload_records,
         )
 
         logger.info("Previous failed records are deleted.")
-
-    def get_allowed_list_of_ods_codes_for_upload_pilot(self) -> list[str]:
-        logger.info(
-            "Starting ssm request to retrieve allowed list of ODS codes for Upload Pilot"
-        )
-        response = self.ssm_service.get_ssm_parameter(UPLOAD_PILOT_ODS_ALLOWED_LIST)
-        if not response:
-            logger.warning("No ODS codes found in allowed list for Upload Pilot")
-        return response

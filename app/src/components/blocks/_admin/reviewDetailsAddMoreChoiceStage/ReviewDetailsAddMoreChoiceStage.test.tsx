@@ -1,11 +1,18 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
-import ReviewDetailsAddMoreChoiceStage from './ReviewDetailsAddMoreChoiceStage';
+import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
+import * as documentTypeModule from '../../../../helpers/utils/documentType';
+import { ReviewDetails } from '../../../../types/generic/reviews';
+import ReviewDetailsAddMoreChoiceStage from './ReviewDetailsAddMoreChoiceStage';
+import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
 const mockNavigate = vi.fn();
 const mockReviewId = 'test-review-123';
+const testData = {
+    yesText: 'Yes, I have more scanned paper notes to add for this patient',
+    noText: "No, I don't have anymore scanned paper notes to add for this patient",
+};
 
 vi.mock('react-router-dom', async (): Promise<unknown> => {
     const actual = await vi.importActual('react-router-dom');
@@ -16,10 +23,23 @@ vi.mock('react-router-dom', async (): Promise<unknown> => {
     };
 });
 
-describe('ReviewDetailsAddMoreChoicePage', () => {
+describe('ReviewDetailsAddMoreChoiceStage', () => {
+    const mockReviewData = {
+        snomedCode: DOCUMENT_TYPE.LLOYD_GEORGE,
+    } as ReviewDetails;
+
     beforeEach(() => {
         vi.clearAllMocks();
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
+        const mockGetConfig = vi.spyOn(documentTypeModule, 'getConfigForDocType');
+        mockGetConfig.mockReturnValue({
+            ...documentTypeModule.getConfigForDocType(DOCUMENT_TYPE.LLOYD_GEORGE),
+            multifileZipped: true,
+            content: {
+                addMoreFilesRadioNoText: testData.noText,
+                addMoreFilesRadioYesText: testData.yesText,
+            },
+        } as any);
     });
 
     afterEach(() => {
@@ -28,29 +48,29 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
 
     describe('Rendering', () => {
         it('renders the page heading correctly', () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             expect(
                 screen.getByRole('heading', {
-                    name: 'Do you want to add more files to this patients record?',
+                    name: "Do you want to add more files to this patient's record?",
                 }),
             ).toBeInTheDocument();
         });
 
         it('renders back button with correct text', () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             expect(screen.getByText('Go back')).toBeInTheDocument();
         });
 
         it('renders both radio button options', () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const yesRadio = screen.getByRole('radio', {
-                name: /Yes I have more scanned paper records to add for this patient/i,
+                name: testData.yesText,
             });
             const noRadio = screen.getByRole('radio', {
-                name: /No, I don't have anymore scanned paper records to add for this patient/i,
+                name: testData.noText,
             });
 
             expect(yesRadio).toBeInTheDocument();
@@ -60,13 +80,13 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
         });
 
         it('renders continue button', () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
         });
 
         it('does not show error message initially', () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             expect(screen.queryByText('Select an option')).not.toBeInTheDocument();
         });
@@ -74,7 +94,7 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
 
     describe('Error Handling', () => {
         it('displays error message when continue is clicked without selection', async () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const continueButton = screen.getByRole('button', { name: 'Continue' });
             await userEvent.click(continueButton);
@@ -85,7 +105,7 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
         });
 
         it('does not navigate when no selection is made', async () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const continueButton = screen.getByRole('button', { name: 'Continue' });
             await userEvent.click(continueButton);
@@ -97,7 +117,7 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
         });
 
         it('clears error message when yes radio button is selected', async () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const continueButton = screen.getByRole('button', { name: 'Continue' });
             await userEvent.click(continueButton);
@@ -107,7 +127,7 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
             });
 
             const yesRadio = screen.getByRole('radio', {
-                name: /Yes I have more scanned paper records to add for this patient/i,
+                name: testData.yesText,
             });
             await userEvent.click(yesRadio);
 
@@ -117,7 +137,7 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
         });
 
         it('clears error message when no radio button is selected', async () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const continueButton = screen.getByRole('button', { name: 'Continue' });
             await userEvent.click(continueButton);
@@ -127,7 +147,7 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
             });
 
             const noRadio = screen.getByRole('radio', {
-                name: /No, I don't have anymore scanned paper records to add for this patient/i,
+                name: testData.noText,
             });
             await userEvent.click(noRadio);
 
@@ -139,10 +159,10 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
 
     describe('User Interactions', () => {
         it('allows selecting the yes radio button', async () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const yesRadio = screen.getByRole('radio', {
-                name: /Yes I have more scanned paper records to add for this patient/i,
+                name: testData.yesText,
             });
             await userEvent.click(yesRadio);
 
@@ -152,10 +172,10 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
         });
 
         it('allows selecting the no radio button', async () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const noRadio = screen.getByRole('radio', {
-                name: /No, I don't have anymore scanned paper records to add for this patient/i,
+                name: testData.noText,
             });
             await userEvent.click(noRadio);
 
@@ -165,13 +185,13 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
         });
 
         it('allows changing selection from yes to no', async () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const yesRadio = screen.getByRole('radio', {
-                name: /Yes I have more scanned paper records to add for this patient/i,
+                name: testData.yesText,
             });
             const noRadio = screen.getByRole('radio', {
-                name: /No, I don't have anymore scanned paper records to add for this patient/i,
+                name: testData.noText,
             });
 
             await userEvent.click(yesRadio);
@@ -187,7 +207,7 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
         });
 
         it('prevents default form submission', async () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const form = screen.getByRole('button', { name: 'Continue' }).closest('form');
             const submitHandler = vi.fn((e: Event) => e.preventDefault());
@@ -202,10 +222,10 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
 
     describe('Navigation', () => {
         it('navigates to add more files when yes is selected', async () => {
-            render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const yesRadio = screen.getByRole('radio', {
-                name: /Yes I have more scanned paper records to add for this patient/i,
+                name: testData.yesText,
             });
             await userEvent.click(yesRadio);
 
@@ -229,7 +249,7 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
             render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const noRadio = screen.getByRole('radio', {
-                name: /No, I don't have anymore scanned paper records to add for this patient/i,
+                name: testData.noText,
             });
             await userEvent.click(noRadio);
 
@@ -253,7 +273,7 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
             render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const noRadio = screen.getByRole('radio', {
-                name: /No, I don't have anymore scanned paper records to add for this patient/i,
+                name: testData.noText,
             });
             await userEvent.click(noRadio);
 
@@ -277,7 +297,7 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
             render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 
             const noRadio = screen.getByRole('radio', {
-                name: /No, I don't have anymore scanned paper records to add for this patient/i,
+                name: testData.noText,
             });
             await userEvent.click(noRadio);
 
@@ -295,14 +315,18 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
 
     describe('Accessibility', () => {
         it('passes axe accessibility tests in initial state', async () => {
-            const { container } = render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            const { container } = render(
+                <ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />,
+            );
 
             const results = await runAxeTest(container);
             expect(results).toHaveNoViolations();
         });
 
         it('passes axe accessibility tests in error state', async () => {
-            const { container } = render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            const { container } = render(
+                <ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />,
+            );
 
             const continueButton = screen.getByRole('button', { name: 'Continue' });
             await userEvent.click(continueButton);
@@ -316,10 +340,12 @@ describe('ReviewDetailsAddMoreChoicePage', () => {
         });
 
         it('passes axe accessibility tests with radio button selected', async () => {
-            const { container } = render(<ReviewDetailsAddMoreChoiceStage reviewData={null} />);
+            const { container } = render(
+                <ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />,
+            );
 
             const yesRadio = screen.getByRole('radio', {
-                name: /Yes I have more scanned paper records to add for this patient/i,
+                name: testData.yesText,
             });
             await userEvent.click(yesRadio);
 

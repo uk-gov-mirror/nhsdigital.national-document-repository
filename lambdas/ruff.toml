@@ -33,7 +33,7 @@ line-length = 130
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
 # COM812: Enforce trailing commas on multi-line constructs.
-select = ["E", "F", "COM812"]
+select = ["E", "F", "COM812", "RET505"]
 ignore = []
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.

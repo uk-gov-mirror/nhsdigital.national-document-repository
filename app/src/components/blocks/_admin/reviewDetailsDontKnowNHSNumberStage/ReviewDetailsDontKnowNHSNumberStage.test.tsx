@@ -90,6 +90,16 @@ describe('ReviewDetailsDontKnowNHSNumberPage', () => {
                 screen.getByText(/following their process for record transfers/i),
             ).toBeInTheDocument();
         });
+
+        it('renders the go back button with correct text and data-testid', () => {
+            render(
+                <ReviewDetailsDontKnowNHSNumberStage reviewData={testReviewData} documents={[]} />,
+            );
+
+            const backButton = screen.getByTestId('back-button');
+            expect(backButton).toBeInTheDocument();
+            expect(backButton).toHaveTextContent('Go back');
+        });
     });
 
     describe('User Interactions', () => {

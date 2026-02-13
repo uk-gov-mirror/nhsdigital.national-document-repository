@@ -14,7 +14,7 @@ export type DocumentSearchResultsArgs = {
 };
 
 export type GetDocumentSearchResultsResponse = {
-    data: Array<SearchResult>;
+    references: Array<SearchResult>;
 };
 
 const getDocumentSearchResults = async ({
@@ -26,16 +26,17 @@ const getDocumentSearchResults = async ({
     const gatewayUrl = baseUrl + endpoints.DOCUMENT_SEARCH;
 
     try {
-        const response: GetDocumentSearchResultsResponse = await axios.get(gatewayUrl, {
+        const { data } = await axios.get<GetDocumentSearchResultsResponse>(gatewayUrl, {
             headers: {
                 ...baseHeaders,
             },
             params: {
                 patientId: nhsNumber?.replaceAll(/\s/g, ''), // replace whitespace
                 docType: docType === DOCUMENT_TYPE.ALL ? undefined : docType,
+                limit: 9999,
             },
         });
-        return response?.data;
+        return data.references;
     } catch (e) {
         if (isLocal) {
             return [
@@ -43,6 +44,7 @@ const getDocumentSearchResults = async ({
                     fileName: 'document_1.pdf',
                     created: '2023-01-01T12:00:00Z',
                     virusScannerResult: 'CLEAN',
+                    author: 'Y12345',
                     id: 'mock-document-id-1',
                     fileSize: 1024,
                     version: '1.0',

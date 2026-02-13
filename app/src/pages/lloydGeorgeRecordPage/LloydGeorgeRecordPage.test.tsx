@@ -25,6 +25,10 @@ vi.mock('../../helpers/hooks/useBaseAPIHeaders');
 vi.mock('../../helpers/hooks/useBaseAPIUrl');
 vi.mock('../../helpers/hooks/useRole');
 
+vi.mock('../../providers/analyticsProvider/AnalyticsProvider', () => ({
+    useAnalyticsContext: (): [null, () => void] => [null, (): void => {}],
+}));
+
 const mockAxios = axios as Mocked<typeof axios>;
 const mockPatientDetails = buildPatientDetails();
 const mockedUsePatient = usePatient as Mock;

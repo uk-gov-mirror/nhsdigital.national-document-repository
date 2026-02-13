@@ -1,6 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { act } from 'react';
 import { describe, expect, it, Mock, vi } from 'vitest';
 import ReviewDetailsAssessmentStage from './ReviewDetailsAssessmentStage';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
@@ -136,6 +135,7 @@ const createMockReviewData = (
                   created: '2023-12-01T10:00:00Z',
                   virusScannerResult: 'Clean',
                   id: 'existing-1',
+                  author: 'Y1234',
                   fileSize: 1024,
                   version: '1',
                   documentSnomedCodeType: snomedCode,
@@ -175,15 +175,14 @@ const createMockUploadDocuments = (): ReviewUploadDocument[] => [
     },
 ];
 
-describe('ReviewDetailsAssessmentPage', () => {
+describe('ReviewDetailsAssessmentStage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
     });
 
     describe('Rendering', () => {
         it('displays spinner when reviewData is null', () => {
-            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
-
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={null}
@@ -199,8 +198,6 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('displays spinner only when uploadDocuments is null/undefined or reviewData is null', () => {
-            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
-
             const { rerender } = render(
                 <ReviewDetailsAssessmentStage
                     reviewData={null}
@@ -225,14 +222,10 @@ describe('ReviewDetailsAssessmentPage', () => {
                 />,
             );
 
-            expect(
-                screen.getByText(/Review the new and existing Scanned paper notes/i),
-            ).toBeInTheDocument();
+            expect(screen.getByText(/Review the new Scanned paper notes/i)).toBeInTheDocument();
         });
 
-        it('renders page title for review with existing and new files', () => {
-            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
-
+        it('renders page title for review the new scanned paper notes', () => {
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(true, true, true)}
@@ -244,14 +237,10 @@ describe('ReviewDetailsAssessmentPage', () => {
                 />,
             );
 
-            expect(
-                screen.getByText(/Review the new and existing Scanned paper notes/i),
-            ).toBeInTheDocument();
+            expect(screen.getByText(/Review the new scanned paper notes/)).toBeInTheDocument();
         });
 
         it('renders accept/reject radio buttons when only canBeDiscarded is true', () => {
-            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
-
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(
@@ -264,7 +253,7 @@ describe('ReviewDetailsAssessmentPage', () => {
                     uploadDocuments={createMockUploadDocuments()}
                     downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
                     setDownloadStage={mockSetDownloadStage}
-                    hasExistingRecordInStorage={false}
+                    hasExistingRecordInStorage={true}
                 />,
             );
 
@@ -272,30 +261,7 @@ describe('ReviewDetailsAssessmentPage', () => {
             expect(screen.getByRole('radio', { name: 'Reject record' })).toBeInTheDocument();
         });
 
-        it('renders add-all and choose-files radio buttons when no existing record', () => {
-            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
-
-            render(
-                <ReviewDetailsAssessmentStage
-                    reviewData={createMockReviewData(true, true, false)}
-                    setReviewData={mockSetReviewData}
-                    uploadDocuments={createMockUploadDocuments()}
-                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
-                    setDownloadStage={mockSetDownloadStage}
-                    hasExistingRecordInStorage={false}
-                />,
-            );
-
-            expect(screen.getByLabelText('Add all these files')).toBeInTheDocument();
-            expect(screen.getByLabelText('Choose which files to add')).toBeInTheDocument();
-            expect(
-                screen.queryByText(/I don't need these files, they are duplicates/),
-            ).not.toBeInTheDocument();
-        });
-
         it('renders all radio options when has existing record in storage', () => {
-            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
-
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(true, true, true)}
@@ -313,9 +279,6 @@ describe('ReviewDetailsAssessmentPage', () => {
                 }),
             ).toBeInTheDocument();
             expect(
-                screen.getByRole('radio', { name: /Choose which files to add to the existing/i }),
-            ).toBeInTheDocument();
-            expect(
                 screen.getByRole('radio', {
                     name: /I don't need these files, they are duplicates/i,
                 }),
@@ -323,8 +286,6 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('displays existing files table when available', () => {
-            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
-
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(true, true, true)}
@@ -340,8 +301,6 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('displays new files table', () => {
-            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
-
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData(true, true, true)}
@@ -359,8 +318,6 @@ describe('ReviewDetailsAssessmentPage', () => {
         });
 
         it('displays "all files" viewing message by default', () => {
-            mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
-
             render(
                 <ReviewDetailsAssessmentStage
                     reviewData={createMockReviewData()}
@@ -388,7 +345,7 @@ describe('ReviewDetailsAssessmentPage', () => {
                     uploadDocuments={createMockUploadDocuments()}
                     downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
                     setDownloadStage={mockSetDownloadStage}
-                    hasExistingRecordInStorage={false}
+                    hasExistingRecordInStorage={true}
                 />,
             );
 
@@ -417,9 +374,7 @@ describe('ReviewDetailsAssessmentPage', () => {
             );
 
             const viewButtons = screen.getAllByRole('button', { name: /View/i });
-            await act(async () => {
-                await user.click(viewButtons[1]);
-            });
+            await user.click(viewButtons[1]);
 
             await waitFor(() => {
                 expect(mockSetDownloadStage).toHaveBeenCalledWith(DOWNLOAD_STAGE.PENDING);
@@ -444,9 +399,7 @@ describe('ReviewDetailsAssessmentPage', () => {
             );
 
             const viewButtons = screen.getAllByRole('button', { name: /View/i });
-            await act(async () => {
-                await user.click(viewButtons[1]);
-            });
+            await user.click(viewButtons[1]);
 
             await waitFor(() => {
                 expect(mockGetReviewById).toHaveBeenCalled();
@@ -471,9 +424,7 @@ describe('ReviewDetailsAssessmentPage', () => {
             );
 
             const viewButtons = screen.getAllByRole('button', { name: /View/i });
-            await act(async () => {
-                await user.click(viewButtons[1]);
-            });
+            await user.click(viewButtons[1]);
 
             await waitFor(() => {
                 expect(
@@ -506,9 +457,7 @@ describe('ReviewDetailsAssessmentPage', () => {
             const existingFileViewButton = screen.getByTestId('existing-record-table');
             const viewButton = existingFileViewButton.querySelector('button');
 
-            await act(async () => {
-                await user.click(viewButton!);
-            });
+            await user.click(viewButton!);
 
             await waitFor(() => {
                 expect(
@@ -573,9 +522,7 @@ describe('ReviewDetailsAssessmentPage', () => {
             );
 
             const viewButtons = screen.getAllByRole('button', { name: /View duplicate.pdf/i });
-            await act(async () => {
-                await user.click(viewButtons[0]); // Click first duplicate
-            });
+            await user.click(viewButtons[0]); // Click first duplicate
 
             await waitFor(() => {
                 expect(screen.getByText(/\(new files\)/)).toBeInTheDocument();
@@ -625,6 +572,7 @@ describe('ReviewDetailsAssessmentPage', () => {
                     created: '2023-12-01T10:00:00Z',
                     virusScannerResult: 'Clean',
                     id: 'existing-1',
+                    author: 'Y1234',
                     fileSize: 1024,
                     version: '1',
                     documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
@@ -648,9 +596,7 @@ describe('ReviewDetailsAssessmentPage', () => {
             const existingFileViewButton = screen.getByTestId('existing-record-table');
             const viewButton = existingFileViewButton.querySelector('button');
 
-            await act(async () => {
-                await user.click(viewButton!);
-            });
+            await user.click(viewButton!);
 
             await waitFor(() => {
                 expect(screen.getByText(/\(existing files\)/)).toBeInTheDocument();
@@ -690,28 +636,6 @@ describe('ReviewDetailsAssessmentPage', () => {
             expect(addAllRadio).toBeChecked();
         });
 
-        it('allows selecting choose-files option', async () => {
-            const user = userEvent.setup();
-
-            render(
-                <ReviewDetailsAssessmentStage
-                    reviewData={createMockReviewData(true, true, true)}
-                    setReviewData={mockSetReviewData}
-                    uploadDocuments={createMockUploadDocuments()}
-                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
-                    setDownloadStage={mockSetDownloadStage}
-                    hasExistingRecordInStorage={true}
-                />,
-            );
-
-            const chooseFilesRadio = screen.getByLabelText(
-                /Choose which files to add to the existing/i,
-            );
-            await user.click(chooseFilesRadio);
-
-            expect(chooseFilesRadio).toBeChecked();
-        });
-
         it('allows selecting duplicate option', async () => {
             const user = userEvent.setup();
 
@@ -749,7 +673,7 @@ describe('ReviewDetailsAssessmentPage', () => {
                     uploadDocuments={createMockUploadDocuments()}
                     downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
                     setDownloadStage={mockSetDownloadStage}
-                    hasExistingRecordInStorage={false}
+                    hasExistingRecordInStorage={true}
                 />,
             );
 
@@ -774,7 +698,7 @@ describe('ReviewDetailsAssessmentPage', () => {
                     uploadDocuments={createMockUploadDocuments()}
                     downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
                     setDownloadStage={mockSetDownloadStage}
-                    hasExistingRecordInStorage={false}
+                    hasExistingRecordInStorage={true}
                 />,
             );
 
@@ -837,34 +761,6 @@ describe('ReviewDetailsAssessmentPage', () => {
             );
         });
 
-        it('navigates to choose which files when choose-files is selected', async () => {
-            const user = userEvent.setup();
-
-            render(
-                <ReviewDetailsAssessmentStage
-                    reviewData={createMockReviewData(true, true, true)}
-                    setReviewData={mockSetReviewData}
-                    uploadDocuments={createMockUploadDocuments()}
-                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
-                    setDownloadStage={mockSetDownloadStage}
-                    hasExistingRecordInStorage={true}
-                />,
-            );
-
-            const chooseFilesRadio = screen.getByRole('radio', {
-                name: /Choose which files to add to the existing/i,
-            });
-            await user.click(chooseFilesRadio);
-
-            const continueButton = screen.getByRole('button', { name: 'Continue' });
-            await user.click(continueButton);
-
-            expect(mockedUseNavigate).toHaveBeenCalledWith(
-                '/admin/reviews/test-review-id.v1/files',
-                undefined,
-            );
-        });
-
         it('navigates to no files choice when duplicate is selected', async () => {
             const user = userEvent.setup();
 
@@ -903,7 +799,7 @@ describe('ReviewDetailsAssessmentPage', () => {
                     uploadDocuments={createMockUploadDocuments()}
                     downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
                     setDownloadStage={mockSetDownloadStage}
-                    hasExistingRecordInStorage={false}
+                    hasExistingRecordInStorage={true}
                 />,
             );
 
@@ -1008,9 +904,7 @@ describe('ReviewDetailsAssessmentPage', () => {
             );
 
             const viewButtons = screen.getAllByRole('button', { name: /View/i });
-            await act(async () => {
-                await user.click(viewButtons[1]);
-            });
+            await user.click(viewButtons[1]);
 
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith('/session-expired');
@@ -1034,9 +928,7 @@ describe('ReviewDetailsAssessmentPage', () => {
             );
 
             const viewButtons = screen.getAllByRole('button', { name: /View/i });
-            await act(async () => {
-                await user.click(viewButtons[1]);
-            });
+            await user.click(viewButtons[1]);
 
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith(
@@ -1083,7 +975,7 @@ describe('ReviewDetailsAssessmentPage', () => {
                     uploadDocuments={singleUploadDoc}
                     downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
                     setDownloadStage={mockSetDownloadStage}
-                    hasExistingRecordInStorage={false}
+                    hasExistingRecordInStorage={true}
                 />,
             );
 
@@ -1148,7 +1040,7 @@ describe('ReviewDetailsAssessmentPage', () => {
                     uploadDocuments={multiUploadDocs}
                     downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
                     setDownloadStage={mockSetDownloadStage}
-                    hasExistingRecordInStorage={false}
+                    hasExistingRecordInStorage={true}
                 />,
             );
 
@@ -1181,6 +1073,49 @@ describe('ReviewDetailsAssessmentPage', () => {
             );
 
             expect(screen.getByTestId('back-button')).toBeInTheDocument();
+        });
+    });
+
+    describe('Redirect behavior when no existing record in storage', () => {
+        it('redirects to add more choice page with replace option when hasExistingRecordInStorage is false', async () => {
+            vi.useFakeTimers();
+
+            render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={createMockReviewData()}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={createMockUploadDocuments()}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={false}
+                />,
+            );
+
+            // Fast-forward timers to trigger the setTimeout
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(mockedUseNavigate).toHaveBeenCalledWith(
+                '/admin/reviews/test-review-id.v1/add-more-choice',
+                { replace: true },
+            );
+
+            vi.useRealTimers();
+        });
+
+        it('renders empty fragment when redirecting', () => {
+            const { container } = render(
+                <ReviewDetailsAssessmentStage
+                    reviewData={createMockReviewData()}
+                    setReviewData={mockSetReviewData}
+                    uploadDocuments={createMockUploadDocuments()}
+                    downloadStage={DOWNLOAD_STAGE.SUCCEEDED}
+                    setDownloadStage={mockSetDownloadStage}
+                    hasExistingRecordInStorage={false}
+                />,
+            );
+
+            // Should render empty fragment (no content)
+            expect(container.firstChild).toBeNull();
         });
     });
 });

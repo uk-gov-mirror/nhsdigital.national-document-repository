@@ -62,10 +62,20 @@ const ReviewDetailsAssessmentStage = ({
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
 
+    if (!hasExistingRecordInStorage && reviewId !== undefined) {
+        setTimeout(() => {
+            navigateUrlParam(routeChildren.ADMIN_REVIEW_ADD_MORE_CHOICE, { reviewId }, navigate, {
+                replace: true,
+            });
+        }, 0);
+        return <></>;
+    }
+
     const handleExistingFileView = async (filename: string, id: string): Promise<void> => {
         if (!reviewData) {
             return;
         }
+
         if (isLocal) {
             const file = reviewData.existingFiles?.find((f) => f.fileName === filename);
             if (!file) {
@@ -209,8 +219,7 @@ const ReviewDetailsAssessmentStage = ({
     if (reviewConfig.canBeUpdated === false && reviewConfig.canBeDiscarded) {
         pageTitle = 'Do you want to accept these records?';
     } else if (reviewConfig.canBeUpdated && reviewConfig.canBeDiscarded) {
-        const andExisting = reviewData.existingFiles!.length > 0 ? ' and existing ' : ' ';
-        pageTitle = `Review the new${andExisting}${reviewTypeLabel.toSentenceCase()}`;
+        pageTitle = reviewConfig.content.reviewAssessmentPageTitle as string;
     } else {
         pageTitle = `Review the ${reviewTypeLabel.toSentenceCase()}`;
     }
@@ -256,15 +265,6 @@ const ReviewDetailsAssessmentStage = ({
                         }}
                     >
                         Add all files to the existing {reviewTypeLabel.toSentenceCase()}
-                    </Radios.Radio>
-                    <Radios.Radio
-                        id="choose-files"
-                        value="choose-files"
-                        onChange={(e): void => {
-                            setFileAction(e.currentTarget.value as FileAction);
-                        }}
-                    >
-                        Choose which files to add to the existing {reviewTypeLabel.toSentenceCase()}
                     </Radios.Radio>
                     <Radios.Radio
                         id="duplicate"
