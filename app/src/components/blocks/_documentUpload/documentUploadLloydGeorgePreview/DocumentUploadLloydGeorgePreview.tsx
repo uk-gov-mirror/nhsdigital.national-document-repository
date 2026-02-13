@@ -72,8 +72,8 @@ const DocumentUploadLloydGeorgePreview = ({
                     {documentConfig.stitched ? (
                         <>
                             <p>
-                                This shows how these {documentConfig.displayName} will look when
-                                combined into a single document.{' '}
+                                {documentConfig.content.stitchedPreviewFirstParagraph}
+
                                 {journey === 'update' &&
                                     `Any files added will appear after the existing ${documentConfig.displayName}.`}
                             </p>

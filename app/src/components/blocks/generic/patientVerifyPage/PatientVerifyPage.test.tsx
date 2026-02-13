@@ -316,10 +316,12 @@ describe('PatientVerifyPage', () => {
             });
             await userEvent.click(confirmButton);
 
-            await waitFor(async () => {
-                const results = await runAxeTest(document.body);
-                expect(results).toHaveNoViolations();
+            await waitFor(() => {
+                expect(screen.getByText('There is a problem')).toBeInTheDocument();
             });
+
+            const results = await runAxeTest(document.body);
+            expect(results).toHaveNoViolations();
         });
     });
 });

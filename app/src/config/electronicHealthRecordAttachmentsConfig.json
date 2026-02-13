@@ -34,6 +34,10 @@
         "previewUploadTitle": "Preview electronic health record attachment",
         "uploadFilesExtraParagraph": "",
         "reviewDocumentTitle": "EHR Attachments",
-        "skipDocumentLinkText": "Continue without uploading any EHR attachments"
+        "skipDocumentLinkText": "Continue without uploading any EHR attachments",
+        "addMoreFilesRadioNoText": "",
+        "addMoreFilesRadioYesText": "",
+        "reviewAssessmentPageTitle": "",
+        "stitchedPreviewFirstParagraph": ""
     }
 }

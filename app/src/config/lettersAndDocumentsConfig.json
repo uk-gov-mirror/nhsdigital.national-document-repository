@@ -32,6 +32,10 @@
         "beforeYouUploadTitle": "Before you upload",
         "previewUploadTitle": "Preview your PDF files",
         "uploadFilesExtraParagraph": "",
-        "reviewDocumentTitle": "Letters and documents"
+        "reviewDocumentTitle": "Letters and documents",
+        "addMoreFilesRadioNoText": "",
+        "addMoreFilesRadioYesText": "",
+        "reviewAssessmentPageTitle": "",
+        "stitchedPreviewFirstParagraph": ""
     }
 }

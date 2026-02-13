@@ -14,7 +14,7 @@ const ExistingRecordTable = ({
     return (
         <section className="existing-files mb-4">
             <h2>Existing files</h2>
-            <Table caption="Existing record files">
+            <Table>
                 <Table.Head>
                     <Table.Row>
                         <Table.Cell className="word-break-keep-all">Filename</Table.Cell>

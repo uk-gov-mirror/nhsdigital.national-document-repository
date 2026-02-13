@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { navigateUrlParam, routeChildren } from '../../../../types/generic/routes';
 import BackButton from '../../../generic/backButton/BackButton';
 import { ReviewDetails } from '../../../../types/generic/reviews';
+import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 
 type ReviewDetailsAddMoreChoicePageProps = {
     reviewData: ReviewDetails | null;
@@ -19,6 +20,13 @@ const ReviewDetailsAddMoreChoiceStage: React.FC<ReviewDetailsAddMoreChoicePagePr
     const [showError, setShowError] = useState(false);
     const { reviewId } = useParams<{ reviewId: string }>();
 
+    if (!reviewData) {
+        navigate(routeChildren.ADMIN_REVIEW);
+        return <></>;
+    }
+
+    const reviewConfig = getConfigForDocType(reviewData?.snomedCode || '');
+
     const handleContinue = (): void => {
         if (!addMoreChoice || !reviewId) {
             setShowError(true);
@@ -33,7 +41,7 @@ const ReviewDetailsAddMoreChoiceStage: React.FC<ReviewDetailsAddMoreChoicePagePr
             );
         } else {
             navigateUrlParam(
-                reviewData!.files!.length > 1
+                reviewData.files!.length > 1
                     ? routeChildren.ADMIN_REVIEW_UPLOAD_FILE_ORDER
                     : routeChildren.ADMIN_REVIEW_UPLOAD,
                 { reviewId },
@@ -54,7 +62,7 @@ const ReviewDetailsAddMoreChoiceStage: React.FC<ReviewDetailsAddMoreChoicePagePr
             >
                 <Fieldset>
                     <Fieldset.Legend isPageHeading>
-                        Do you want to add more files to this patients record?
+                        Do you want to add more files to this patient's record?
                     </Fieldset.Legend>
                     <Radios
                         name="add-more-choice"
@@ -72,7 +80,7 @@ const ReviewDetailsAddMoreChoiceStage: React.FC<ReviewDetailsAddMoreChoicePagePr
                                 }
                             }}
                         >
-                            Yes I have more scanned paper records to add for this patient
+                            {reviewConfig.content.addMoreFilesRadioYesText}
                         </Radios.Radio>
                         <Radios.Radio
                             value="no"
@@ -85,8 +93,7 @@ const ReviewDetailsAddMoreChoiceStage: React.FC<ReviewDetailsAddMoreChoicePagePr
                                 }
                             }}
                         >
-                            No, I don&apos;t have anymore scanned paper records to add for this
-                            patient
+                            {reviewConfig.content.addMoreFilesRadioNoText}
                         </Radios.Radio>
                     </Radios>
                 </Fieldset>

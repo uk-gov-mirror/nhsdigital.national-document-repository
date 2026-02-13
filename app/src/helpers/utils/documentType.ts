@@ -26,7 +26,11 @@ export type ContentKey =
     | 'uploadFilesBulletPoints'
     | 'skipDocumentLinkText'
     | 'confirmFilesTableTitle'
-    | 'confirmFilesTableParagraph';
+    | 'confirmFilesTableParagraph'
+    | 'addMoreFilesRadioNoText'
+    | 'addMoreFilesRadioYesText'
+    | 'reviewAssessmentPageTitle'
+    | 'stitchedPreviewFirstParagraph';
 export interface IndividualDocumentTypeContent extends Record<ContentKey, string | string[]> {}
 
 // The individual config for each document type
