@@ -18,6 +18,7 @@
         "uploadFilesBulletPoints": [
             "You can upload files in any format except .zip and .exe files",
             "If you add more than one attachment, we'll automatically zip them when you upload",
+            "Remove any passwords from the files",
             "If there's a problem with your files during upload, you'll need to resolve these before continuing"
         ],
         "chooseFilesMessage": "Choose files to upload",

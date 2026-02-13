@@ -19,6 +19,7 @@
         "uploadFilesBulletPoints": [
             "There is no maximum number of size of files you can upload",
             "You can upload files in any format except .zip and .exe files",
+            "Remove any passwords from files",
             "If there is a problem with your files during upload, you'll need to resolve these before continuing"
         ],
         "chooseFilesMessage": "Choose files to upload",

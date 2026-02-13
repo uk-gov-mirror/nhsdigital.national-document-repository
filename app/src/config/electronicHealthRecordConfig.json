@@ -21,6 +21,7 @@
             "There is no file size limit",
             "You can only upload a PDF file",
             "If your file is not a PDF, you'll need to convert it to one before uploading",
+            "Remove any passwords from the file",
             "If there's a problem with your files during upload, you'll need to resolve these before continuing"
         ],
         "chooseFilesMessage": "Choose a file to upload",
