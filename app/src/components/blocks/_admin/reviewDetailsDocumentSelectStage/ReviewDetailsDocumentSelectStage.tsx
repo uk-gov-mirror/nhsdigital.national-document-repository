@@ -55,6 +55,15 @@ const ReviewDetailsDocumentSelectStage = ({
             ),
         );
     };
+
+    const onError = (): void => {
+        navigate(
+            routeChildren.ADMIN_REVIEW_FILE_ERRORS.replaceAll(
+                ':reviewId',
+                `${reviewData?.id}.${reviewData?.version}`,
+            ),
+        );
+    };
     if (!reviewData?.snomedCode) {
         return <Spinner status={'Loading'} />;
     }
@@ -67,6 +76,7 @@ const ReviewDetailsDocumentSelectStage = ({
             filesErrorRef={filesErrorRef}
             documentConfig={getConfigForDocType(reviewData.snomedCode)}
             onSuccessOverride={onSuccess}
+            onErrorOverride={onError}
             backLinkOverride={(): void => {
                 navigate(-1);
             }}

@@ -1,4 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+// need to use happy-dom for this test file as jsdom doesn't support DOMMatrix and scrollIntoView
+// @vitest-environment happy-dom
+import { render, screen, waitFor, fireEvent, RenderResult } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import ReviewDetailsDocumentSelectStage from './ReviewDetailsDocumentSelectStage';
@@ -10,6 +12,8 @@ import {
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import { routeChildren } from '../../../../types/generic/routes';
+import { getDocument } from 'pdfjs-dist';
+import { PDF_PARSING_ERROR_TYPE } from '../../../../helpers/utils/fileUploadErrorMessages';
 
 const mockNavigate = vi.fn();
 
@@ -49,7 +53,7 @@ vi.mock('react-router-dom', () => ({
 }));
 
 describe('ReviewDetailsDocumentSelectStage', () => {
-    const testReviewSnoMed: DOCUMENT_TYPE = DOCUMENT_TYPE.LLOYD_GEORGE;
+    const testReviewSnomed: DOCUMENT_TYPE = DOCUMENT_TYPE.LLOYD_GEORGE;
 
     let mockReviewData: ReviewDetails;
     let mockDocuments: UploadDocument[];
@@ -60,7 +64,7 @@ describe('ReviewDetailsDocumentSelectStage', () => {
 
         mockReviewData = new ReviewDetails(
             'test-review-id',
-            testReviewSnoMed,
+            testReviewSnomed,
             '2024-01-01T12:00:00Z',
             'Test Uploader',
             '2024-01-01T12:00:00Z',
@@ -74,39 +78,35 @@ describe('ReviewDetailsDocumentSelectStage', () => {
         mockSetDocuments = vi.fn() as SetUploadDocuments;
     });
 
+    const renderApp = (props?: {
+        reviewData?: ReviewDetails | null;
+        documents?: UploadDocument[];
+        setDocuments?: SetUploadDocuments;
+    }): RenderResult => {
+        const defaultProps = {
+            reviewData: mockReviewData,
+            documents: mockDocuments,
+            setDocuments: mockSetDocuments,
+        };
+
+        return render(<ReviewDetailsDocumentSelectStage {...defaultProps} {...props} />);
+    };
+
     describe('Rendering', () => {
         it('shows spinner when reviewData is null', () => {
-            render(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={null}
-                    documents={mockDocuments}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
+            renderApp({ reviewData: null });
 
             expect(screen.getByTestId('mock-spinner')).toBeInTheDocument();
         });
 
         it('shows spinner when files is null', () => {
-            render(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={{ ...mockReviewData, files: null } as any}
-                    documents={mockDocuments}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
+            renderApp({ reviewData: { ...mockReviewData, files: null } as any });
 
             expect(screen.getByTestId('mock-spinner')).toBeInTheDocument();
         });
 
         it('shows spinner when documents are not initialised', () => {
-            render(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={mockReviewData}
-                    documents={mockDocuments}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
+            renderApp();
 
             expect(screen.getByTestId('mock-spinner')).toBeInTheDocument();
         });
@@ -120,22 +120,14 @@ describe('ReviewDetailsDocumentSelectStage', () => {
                     file: new File(['test'], 'test.pdf', { type: 'application/pdf' }),
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     progress: 0,
-                    docType: testReviewSnoMed,
+                    docType: testReviewSnomed,
                     attempts: 0,
                     numPages: 1,
                     validated: false,
                 },
             ];
 
-            const { rerender } = render(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={mockReviewData}
-                    documents={[]}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
-
-            rerender(
+            render(
                 <ReviewDetailsDocumentSelectStage
                     reviewData={mockReviewData}
                     documents={testDocuments}
@@ -161,28 +153,14 @@ describe('ReviewDetailsDocumentSelectStage', () => {
                     }),
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     progress: 0,
-                    docType: testReviewSnoMed,
+                    docType: testReviewSnomed,
                     attempts: 0,
                     numPages: 1,
                     validated: false,
                 },
             ];
 
-            const { rerender } = render(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={mockReviewData}
-                    documents={[]}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
-
-            rerender(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={mockReviewData}
-                    documents={testDocuments}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
+            renderApp({ documents: testDocuments });
 
             await waitFor(() => {
                 expect(screen.queryByTestId('mock-spinner')).not.toBeInTheDocument();
@@ -200,28 +178,14 @@ describe('ReviewDetailsDocumentSelectStage', () => {
                     file: new File(['test'], 'test.pdf', { type: 'application/pdf' }),
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     progress: 0,
-                    docType: testReviewSnoMed,
+                    docType: testReviewSnomed,
                     attempts: 0,
                     numPages: 1,
                     validated: false,
                 },
             ];
 
-            const { rerender } = render(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={mockReviewData}
-                    documents={[]}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
-
-            rerender(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={mockReviewData}
-                    documents={testDocuments}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
+            renderApp({ documents: testDocuments });
 
             await waitFor(() => {
                 expect(screen.queryByTestId('mock-spinner')).not.toBeInTheDocument();
@@ -243,28 +207,14 @@ describe('ReviewDetailsDocumentSelectStage', () => {
                     file: new File(['test'], 'test.pdf', { type: 'application/pdf' }),
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     progress: 0,
-                    docType: testReviewSnoMed,
+                    docType: testReviewSnomed,
                     attempts: 0,
                     numPages: 1,
                     validated: false,
                 },
             ];
 
-            const { rerender } = render(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={mockReviewData}
-                    documents={[]}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
-
-            rerender(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={mockReviewData}
-                    documents={testDocuments}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
+            renderApp({ documents: testDocuments });
 
             await waitFor(() => {
                 expect(screen.queryByTestId('mock-spinner')).not.toBeInTheDocument();
@@ -287,7 +237,7 @@ describe('ReviewDetailsDocumentSelectStage', () => {
             const user = userEvent.setup();
             const customReviewData = new ReviewDetails(
                 'custom-id',
-                testReviewSnoMed,
+                testReviewSnomed,
                 '2024-01-01T12:00:00Z',
                 'Test Uploader',
                 '2024-01-01T12:00:00Z',
@@ -303,28 +253,14 @@ describe('ReviewDetailsDocumentSelectStage', () => {
                     file: new File(['test'], 'test.pdf', { type: 'application/pdf' }),
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     progress: 0,
-                    docType: testReviewSnoMed,
+                    docType: testReviewSnomed,
                     attempts: 0,
                     numPages: 1,
                     validated: false,
                 },
             ];
 
-            const { rerender } = render(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={customReviewData}
-                    documents={[]}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
-
-            rerender(
-                <ReviewDetailsDocumentSelectStage
-                    reviewData={customReviewData}
-                    documents={testDocuments}
-                    setDocuments={mockSetDocuments}
-                />,
-            );
+            renderApp({ reviewData: customReviewData, documents: testDocuments });
 
             await waitFor(() => {
                 expect(screen.queryByTestId('mock-spinner')).not.toBeInTheDocument();
@@ -335,6 +271,94 @@ describe('ReviewDetailsDocumentSelectStage', () => {
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('custom-id.5'));
+            });
+        });
+    });
+
+    describe('Error handling', () => {
+        const errorCases = [
+            ['password protected file', PDF_PARSING_ERROR_TYPE.PASSWORD_MISSING],
+            ['invalid PDF structure', PDF_PARSING_ERROR_TYPE.INVALID_PDF_STRUCTURE],
+            ['empty PDF', PDF_PARSING_ERROR_TYPE.EMPTY_PDF],
+        ];
+
+        it.each(errorCases)(
+            'navigates to admin file errors page when user selects a %s',
+            async (_description, errorType) => {
+                const testDocuments: UploadDocument[] = [
+                    {
+                        id: 'test-id',
+                        file: new File(['test'], 'test.pdf', { type: 'application/pdf' }),
+                        state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                        progress: 0,
+                        docType: testReviewSnomed,
+                        attempts: 0,
+                        numPages: 1,
+                        validated: false,
+                    },
+                ];
+
+                renderApp({ documents: testDocuments });
+
+                await waitFor(() => {
+                    expect(screen.queryByTestId('mock-spinner')).not.toBeInTheDocument();
+                });
+
+                // Set up mock to throw error AFTER component is ready
+                vi.mocked(getDocument).mockImplementationOnce(() => {
+                    throw new Error(errorType as string);
+                });
+
+                const errorFile = new File(['test'], 'error-file.pdf', { type: 'application/pdf' });
+                const dropzone = screen.getByTestId('dropzone');
+                fireEvent.drop(dropzone, {
+                    dataTransfer: { files: [errorFile] },
+                });
+
+                await waitFor(() => {
+                    expect(mockNavigate).toHaveBeenCalledWith(
+                        routeChildren.ADMIN_REVIEW_FILE_ERRORS.replaceAll(
+                            ':reviewId',
+                            'test-review-id.1',
+                        ),
+                    );
+                });
+            },
+        );
+
+        it('navigates to admin file errors page when user selects a non-PDF file', async () => {
+            const testDocuments: UploadDocument[] = [
+                {
+                    id: 'test-id',
+                    file: new File(['test'], 'test.pdf', { type: 'application/pdf' }),
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    progress: 0,
+                    docType: testReviewSnomed,
+                    attempts: 0,
+                    numPages: 1,
+                    validated: false,
+                },
+            ];
+
+            renderApp({ documents: testDocuments });
+
+            await waitFor(() => {
+                expect(screen.queryByTestId('mock-spinner')).not.toBeInTheDocument();
+            });
+
+            const nonPdfFile = new File(['test'], 'nonPdfFile.txt', { type: 'text/plain' });
+            const dropzone = screen.getByTestId('dropzone');
+            fireEvent.drop(dropzone, {
+                dataTransfer: { files: [nonPdfFile] },
+            });
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(
+                    routeChildren.ADMIN_REVIEW_FILE_ERRORS.replaceAll(
+                        ':reviewId',
+                        'test-review-id.1',
+                    ),
+                );
             });
         });
     });

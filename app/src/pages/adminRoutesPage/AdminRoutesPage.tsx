@@ -15,6 +15,7 @@ import ReviewsDetailsStage from '../../components/blocks/_admin/reviewsDetailsSt
 import ReviewDetailsPatientSearchStage from '../../components/blocks/_admin/reviewDetailsPatientSearchStage/ReviewDetailsPatientSearchStage';
 import { ReviewsPage } from '../../components/blocks/_admin/reviewsPage/ReviewsPage';
 import PatientVerifyPage from '../../components/blocks/generic/patientVerifyPage/PatientVerifyPage';
+import DocumentSelectFileErrorsPage from '../../components/blocks/_documentUpload/documentSelectFileErrorsPage/DocumentSelectFileErrorsPage';
 import useConfig from '../../helpers/hooks/useConfig';
 import { getLastURLPath } from '../../helpers/utils/urlManipulations';
 import { routeChildren, routes } from '../../types/generic/routes';
@@ -176,6 +177,10 @@ const AdminRoutesPage = (): JSX.Element => {
                         setDocuments={setAdditionalFiles}
                     />
                 }
+            />
+            <Route
+                path="reviews/:reviewId/file-errors"
+                element={<DocumentSelectFileErrorsPage documents={additionalFiles} />}
             />
             <Route
                 path="reviews/:reviewId/add-more-choice"

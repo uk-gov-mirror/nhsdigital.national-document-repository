@@ -83,6 +83,7 @@ export enum routeChildren {
     ADMIN_REVIEW_REMOVE_ALL = '/admin/reviews/:reviewId/remove-all',
     ADMIN_REVIEW_UPLOAD_FILE_ORDER = '/admin/reviews/:reviewId/upload-file-order',
     ADMIN_REVIEW_UPLOAD = '/admin/reviews/:reviewId/upload',
+    ADMIN_REVIEW_FILE_ERRORS = '/admin/reviews/:reviewId/file-errors',
 
     REVIEWS = 'reviews/*',
     COOKIES_POLICY_UPDATED = '/cookies-policy/confirmation',

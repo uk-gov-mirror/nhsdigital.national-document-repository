@@ -343,6 +343,30 @@ describe('DocumentSelectStage', () => {
                 );
             });
         });
+
+        it('should call onErrorOverride when provided instead of navigating to default error route', async () => {
+            const mockOnErrorOverride = vi.fn();
+            const lgDocumentOne = buildLgFile(1);
+
+            vi.mocked(getDocument).mockImplementationOnce(() => {
+                throw new Error(PDF_PARSING_ERROR_TYPE.PASSWORD_MISSING);
+            });
+
+            renderApp(history, { onErrorOverride: mockOnErrorOverride });
+
+            const dropzone = screen.getByTestId('dropzone');
+            fireEvent.drop(dropzone, {
+                dataTransfer: { files: [lgDocumentOne] },
+            });
+
+            await waitFor(() => {
+                expect(mockOnErrorOverride).toHaveBeenCalled();
+            });
+
+            expect(mockedUseNavigate).not.toHaveBeenCalledWith(
+                routeChildren.DOCUMENT_UPLOAD_FILE_ERRORS,
+            );
+        });
     });
 
     describe('Update Journey', () => {
@@ -741,6 +765,7 @@ describe('DocumentSelectStage', () => {
         documentConfig?: DOCUMENT_TYPE_CONFIG;
         isReview?: boolean;
         initialDocuments?: Array<UploadDocument | ReviewUploadDocument>;
+        onErrorOverride?: () => void;
     };
 
     const TestApp = ({
@@ -751,6 +776,7 @@ describe('DocumentSelectStage', () => {
         documentConfig,
         isReview,
         initialDocuments,
+        onErrorOverride,
     }: TestAppProps): JSX.Element => {
         const [documents, setDocuments] = useState<Array<UploadDocument | ReviewUploadDocument>>(
             initialDocuments ?? [],
@@ -769,6 +795,7 @@ describe('DocumentSelectStage', () => {
                 showSkiplink={showSkipLink}
                 removeAllFilesLinkOverride={removeAllFilesLinkOverride}
                 isReview={isReview}
+                onErrorOverride={onErrorOverride}
             />
         );
     };
