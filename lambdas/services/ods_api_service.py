@@ -31,16 +31,22 @@ class OdsApiService:
     ORD_API_URL = "https://directory.spineservices.nhs.uk/ORD/2-0-0/organisations"
 
     def fetch_organisation_data(self, ods_code: str):
+        logger.info(
+            f"Calling ODS API with ods code {ods_code}...",
+        )
         response = requests.get(f"{self.ORD_API_URL}/{ods_code}")
+        logger.info(
+            f"...ODS API has responded with status code {response.status_code} for ods code {ods_code}",
+        )
         if response.status_code == 200:
             return response.json()
-        elif response.status_code == 404:
+        if response.status_code == 404:
             raise OrganisationNotFoundException(
-                "Organisation does not exist for given ODS code"
+                "Organisation does not exist for given ODS code",
             )
         else:
             logger.info(
-                f"Got error response from ODS API with ods code {ods_code}: {response}"
+                f"Got error response from ODS API with ods code {ods_code}: {response}",
             )
             raise OdsErrorException("Failed to fetch organisation data from ODS")
 
@@ -48,7 +54,7 @@ class OdsApiService:
 
         if not ods_code:
             raise TooManyOrgsException(
-                "No single organisation found for identified ods codes"
+                "No single organisation found for identified ods codes",
             )
 
         logger.info(f"ods_code selected: {ods_code}")
@@ -91,7 +97,7 @@ class OdsApiService:
             return response
 
         logger.info(
-            f"ODS code {ods_code} is not a GP, PCSE, ITOC nor in allowed list, returning empty list"
+            f"ODS code {ods_code} is not a GP, PCSE, ITOC nor in allowed list, returning empty list",
         )
         return {}
 
