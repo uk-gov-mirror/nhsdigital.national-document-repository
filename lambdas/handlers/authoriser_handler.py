@@ -42,7 +42,8 @@ def lambda_handler(event, context):
     if event.get("methodArn") is None:
         return {"Error": "methodArn is not defined"}
     _, _, _, region, aws_account_id, api_gateway_arn = event.get("methodArn").split(
-        ":", 5
+        ":",
+        5,
     )
     api_id, stage, _http_verb, _resource_name = api_gateway_arn.split("/", 3)
     path = "/" + _resource_name
@@ -57,7 +58,11 @@ def lambda_handler(event, context):
         patient_id = event.get("queryStringParameters", {}).get("patientId", None)
         logger.info("Validating resource req: %s, http: %s" % (path, _http_verb))
         is_allow_policy = authoriser_service.auth_request(
-            path, ssm_jwt_public_key_parameter, auth_token, patient_id
+            path,
+            _http_verb,
+            ssm_jwt_public_key_parameter,
+            auth_token,
+            patient_id,
         )
         if is_allow_policy:
             policy.allow_method(_http_verb, path)

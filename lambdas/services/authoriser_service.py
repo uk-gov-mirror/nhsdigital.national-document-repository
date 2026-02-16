@@ -2,6 +2,7 @@ import re
 import time
 
 from enums.repository_role import RepositoryRole
+from models.auth_policy import HttpVerb
 from models.staging_metadata import NHS_NUMBER_PLACEHOLDER
 from services.manage_user_session_access import ManageUserSessionAccess
 from services.token_service import TokenService
@@ -23,7 +24,12 @@ class AuthoriserService:
         self.manage_user_session_service = ManageUserSessionAccess()
 
     def auth_request(
-        self, path, ssm_jwt_public_key_parameter, auth_token, nhs_number: str = None
+        self,
+        path,
+        http_verb,
+        ssm_jwt_public_key_parameter,
+        auth_token,
+        nhs_number: str = None,
     ):
         try:
             decoded_token = token_service.get_public_key_and_decode_auth_token(
@@ -39,7 +45,7 @@ class AuthoriserService:
             user_role = decoded_token.get("repository_role")
 
             current_session = self.manage_user_session_service.find_login_session(
-                ndr_session_id
+                ndr_session_id,
             )
             self.allowed_nhs_numbers = (
                 current_session.get("AllowedNHSNumbers", "").split(",")
@@ -54,7 +60,12 @@ class AuthoriserService:
 
             self.validate_login_session(float(current_session["TimeToExist"]))
 
-            resource_denied = self.deny_access_policy(path, user_role, nhs_number)
+            resource_denied = self.deny_access_policy(
+                path,
+                http_verb,
+                user_role,
+                nhs_number,
+            )
 
             allow_policy = False
 
@@ -67,7 +78,7 @@ class AuthoriserService:
         except (KeyError, IndexError) as e:
             raise AuthorisationException(e)
 
-    def deny_access_policy(self, path, user_role, nhs_number: str = None):
+    def deny_access_policy(self, path, http_verb, user_role, nhs_number: str = None):
         logger.info(f"Path: {path}")
 
         patient_access_is_allowed = (
@@ -80,7 +91,6 @@ class AuthoriserService:
 
         patient_id_is_placeholder = nhs_number == NHS_NUMBER_PLACEHOLDER
 
-        is_user_gp_admin = user_role == RepositoryRole.GP_ADMIN.value
         is_user_gp_clinical = user_role == RepositoryRole.GP_CLINICAL.value
         is_user_pcse = user_role == RepositoryRole.PCSE.value
 
@@ -100,12 +110,8 @@ class AuthoriserService:
                 deny_resource = not patient_access_is_allowed or is_user_gp_clinical
 
             case doc_ref if re.match(doc_ref_pattern, doc_ref):
-                deny_resource = True
-                if (
-                    is_user_gp_admin or is_user_gp_clinical
-                ) and patient_access_is_allowed:
-                    deny_resource = False
-                if patient_access_is_allowed and access_to_deceased_patient:
+                deny_resource = is_user_pcse or not patient_access_is_allowed
+                if http_verb != HttpVerb.GET and access_to_deceased_patient:
                     deny_resource = True
 
             case "/LloydGeorgeStitch":

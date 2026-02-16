@@ -13,7 +13,7 @@ DENY_ALL_POLICY = {
             "Action": "execute-api:Invoke",
             "Effect": "Deny",
             "Resource": [f"{MOCK_METHOD_ARN_PREFIX}/*/*"],
-        }
+        },
     ],
     "Version": "2012-10-17",
 }
@@ -58,12 +58,11 @@ def mock_jwt_decode(mocker):
     def mocked_decode_method(auth_token: str, *_args, **_kwargs):
         if auth_token == "valid_gp_admin_token":
             return build_decoded_token_for_role(RepositoryRole.GP_ADMIN.name)
-        elif auth_token == "valid_gp_clinical_token":
+        if auth_token == "valid_gp_clinical_token":
             return build_decoded_token_for_role(RepositoryRole.GP_CLINICAL.name)
-        elif auth_token == "valid_pcse_token":
+        if auth_token == "valid_pcse_token":
             return build_decoded_token_for_role(RepositoryRole.PCSE.name)
-        else:
-            return None
+        return None
 
     yield mocker.patch(
         "services.token_service.TokenService.get_public_key_and_decode_auth_token",
@@ -87,13 +86,17 @@ def test_deny_access_policy_returns_true_for_gp_clinical_on_paths(
     expected = True
     mock_auth_service.allowed_nhs_numbers = ["900000001"]
     actual = mock_auth_service.deny_access_policy(
-        test_path, RepositoryRole.GP_CLINICAL.value, "900000001"
+        test_path,
+        "GET",
+        RepositoryRole.GP_CLINICAL.value,
+        "900000001",
     )
     assert actual == expected
 
 
 @pytest.mark.parametrize(
-    "test_path", ["/DocumentManifest", "/DocumentDelete", "/DocumentStatus", "Any"]
+    "test_path",
+    ["/DocumentManifest", "/DocumentDelete", "/DocumentStatus", "Any"],
 )
 def test_deny_access_policy_returns_true_for_nhs_number_not_in_allowed(
     test_path,
@@ -102,7 +105,10 @@ def test_deny_access_policy_returns_true_for_nhs_number_not_in_allowed(
     expected = True
     mock_auth_service.allowed_nhs_numbers = ["900000002"]
     actual = mock_auth_service.deny_access_policy(
-        test_path, RepositoryRole.GP_ADMIN.value, "900000001"
+        test_path,
+        "GET",
+        RepositoryRole.GP_ADMIN.value,
+        "900000001",
     )
     assert actual == expected
 
@@ -115,7 +121,10 @@ def test_deny_access_policy_returns_false_for_nhs_number_in_allowed(
     expected = False
     mock_auth_service.allowed_nhs_numbers = ["900000002"]
     actual = mock_auth_service.deny_access_policy(
-        test_path, RepositoryRole.GP_ADMIN.value, "900000002"
+        test_path,
+        "GET",
+        RepositoryRole.GP_ADMIN.value,
+        "900000002",
     )
     assert actual == expected
 
@@ -157,7 +166,7 @@ def test_deny_access_policy_for_various_paths_and_roles(
 ):
     mock_auth_service.allowed_nhs_numbers.append("122222222")
 
-    actual = mock_auth_service.deny_access_policy(path, role, "122222222")
+    actual = mock_auth_service.deny_access_policy(path, "GET", role, "122222222")
     assert actual == expected
 
 
@@ -171,21 +180,25 @@ def test_deny_access_policy_allows_review_for_placeholder_nhs_number(
     ]
     for role in roles:
         actual = mock_auth_service.deny_access_policy(
-            f"/DocumentReview/{TEST_UUID}/1", role, NHS_NUMBER_PLACEHOLDER
+            f"/DocumentReview/{TEST_UUID}/1",
+            "GET",
+            role,
+            NHS_NUMBER_PLACEHOLDER,
         )
         assert not actual
 
 
 @pytest.mark.parametrize(
-    "path",
+    ["path", "http_verb"],
     [
-        "/DocumentReference",
-        "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7",
+        ("/DocumentReference", "POST"),
+        ("/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7", "PUT"),
     ],
 )
-def test_deny_document_reference_as_any_role_on_deceased_patient_returns_true(
+def test_deny_document_reference_as_any_role_on_deceased_patient_returns_true_for_POST_and_PUT(
     mock_auth_service: AuthoriserService,
     path: str,
+    http_verb: str,
 ):
     expected = True
 
@@ -197,7 +210,33 @@ def test_deny_document_reference_as_any_role_on_deceased_patient_returns_true(
         RepositoryRole.GP_CLINICAL.value,
         RepositoryRole.GP_ADMIN.value,
     ):
-        actual = mock_auth_service.deny_access_policy(path, role, "122222222")
+        actual = mock_auth_service.deny_access_policy(
+            path,
+            http_verb,
+            role,
+            "122222222",
+        )
+        assert actual == expected
+
+
+def test_deny_document_reference_as_gp_role_on_deceased_patient_returns_false_for_GET(
+    mock_auth_service: AuthoriserService,
+):
+    expected = False
+
+    mock_auth_service.allowed_nhs_numbers.append("122222222")
+    mock_auth_service.deceased_nhs_numbers.append("122222222")
+
+    for role in (
+        RepositoryRole.GP_CLINICAL.value,
+        RepositoryRole.GP_ADMIN.value,
+    ):
+        actual = mock_auth_service.deny_access_policy(
+            "/DocumentReference",
+            "GET",
+            role,
+            "122222222",
+        )
         assert actual == expected
 
 
@@ -219,7 +258,10 @@ def test_deny_access_policy_returns_true_for_invalid_nhs_number(
     expected = True
     mock_auth_service.allowed_nhs_numbers = ["900000002"]
     actual = mock_auth_service.deny_access_policy(
-        test_path, RepositoryRole.GP_ADMIN.value, nhs_number
+        test_path,
+        "GET",
+        RepositoryRole.GP_ADMIN.value,
+        nhs_number,
     )
     assert actual == expected
 
@@ -247,7 +289,12 @@ def test_endpoints_allow_access_regardless_of_nhs_number(
         RepositoryRole.GP_CLINICAL.value,
         RepositoryRole.GP_ADMIN.value,
     ):
-        actual = mock_auth_service.deny_access_policy(test_path, role, "122222222")
+        actual = mock_auth_service.deny_access_policy(
+            test_path,
+            "GET",
+            role,
+            "122222222",
+        )
         assert actual == expected
 
 
@@ -264,7 +311,10 @@ def test_deny_access_policy_returns_false_for_pcse_on_all_paths(
     mock_auth_service.allowed_nhs_numbers = ["122222222"]
 
     actual = mock_auth_service.deny_access_policy(
-        test_path, RepositoryRole.PCSE.value, "122222222"
+        test_path,
+        "GET",
+        RepositoryRole.PCSE.value,
+        "122222222",
     )
     assert expected == actual
 
@@ -285,7 +335,11 @@ def test_deny_access_policy_returns_true_for_pcse_on_paths(
     mock_auth_service: AuthoriserService,
 ):
     expected = True
-    actual = mock_auth_service.deny_access_policy(test_path, RepositoryRole.PCSE.value)
+    actual = mock_auth_service.deny_access_policy(
+        test_path,
+        "GET",
+        RepositoryRole.PCSE.value,
+    )
     assert expected == actual
 
 
@@ -296,6 +350,7 @@ def test_deny_access_policy_returns_true_for_unrecognised_path(
 
     actual = mock_auth_service.deny_access_policy(
         "/test",
+        "GET",
         RepositoryRole.PCSE.value,
     )
 
@@ -310,7 +365,10 @@ def test_validate_login_expired_session(mocker, mock_auth_service: AuthoriserSer
 
 @pytest.mark.parametrize("path_test", ["/DocumentManifest"])
 def test_valid_gp_admin_token_returns_allow_policy_true(
-    path_test, mock_jwt_decode, mocker, mock_auth_service: AuthoriserService
+    path_test,
+    mock_jwt_decode,
+    mocker,
+    mock_auth_service: AuthoriserService,
 ):
     auth_token = "valid_gp_admin_token"
     mock_auth_service.manage_user_session_service.find_login_session.return_value = (
@@ -326,10 +384,16 @@ def test_valid_gp_admin_token_returns_allow_policy_true(
         return_value=False,
     )
 
-    response = mock_auth_service.auth_request(path_test, "test public key", auth_token)
+    response = mock_auth_service.auth_request(
+        path_test,
+        "GET",
+        "test public key",
+        auth_token,
+    )
 
     mock_jwt_decode.assert_called_with(
-        auth_token=auth_token, ssm_public_key_parameter="test public key"
+        auth_token=auth_token,
+        ssm_public_key_parameter="test public key",
     )
     assert response
     mock_auth_service.manage_user_session_service.find_login_session.assert_called_once()
@@ -339,7 +403,10 @@ def test_valid_gp_admin_token_returns_allow_policy_true(
 
 @pytest.mark.parametrize("test_path", ["/SearchPatient"])
 def test_valid_pcse_token_return_allow_policy_true(
-    test_path, mocker, mock_jwt_decode, mock_auth_service: AuthoriserService
+    test_path,
+    mocker,
+    mock_jwt_decode,
+    mock_auth_service: AuthoriserService,
 ):
     auth_token = "valid_pcse_token"
 
@@ -348,17 +415,23 @@ def test_valid_pcse_token_return_allow_policy_true(
     )
 
     mock_validate_login_session = mocker.patch(
-        "services.authoriser_service.AuthoriserService.validate_login_session"
+        "services.authoriser_service.AuthoriserService.validate_login_session",
     )
     mock_deny_access_policy = mocker.patch(
         "services.authoriser_service.AuthoriserService.deny_access_policy",
         return_value=False,
     )
 
-    response = mock_auth_service.auth_request(test_path, "test public key", auth_token)
+    response = mock_auth_service.auth_request(
+        test_path,
+        "GET",
+        "test public key",
+        auth_token,
+    )
 
     mock_jwt_decode.assert_called_with(
-        auth_token=auth_token, ssm_public_key_parameter="test public key"
+        auth_token=auth_token,
+        ssm_public_key_parameter="test public key",
     )
     assert response
     mock_auth_service.manage_user_session_service.find_login_session.assert_called_once()
@@ -368,7 +441,10 @@ def test_valid_pcse_token_return_allow_policy_true(
 
 @pytest.mark.parametrize("test_path", ["/SearchPatient"])
 def test_return_deny_policy_when_no_session_found(
-    test_path, mocker, mock_jwt_decode, mock_auth_service: AuthoriserService
+    test_path,
+    mocker,
+    mock_jwt_decode,
+    mock_auth_service: AuthoriserService,
 ):
     auth_token = "valid_pcse_token"
     mock_auth_service.manage_user_session_service.find_login_session.side_effect = (
@@ -376,16 +452,17 @@ def test_return_deny_policy_when_no_session_found(
     )
 
     mock_validate_login_session = mocker.patch(
-        "services.authoriser_service.AuthoriserService.validate_login_session"
+        "services.authoriser_service.AuthoriserService.validate_login_session",
     )
     mock_deny_access_policy = mocker.patch(
-        "services.authoriser_service.AuthoriserService.deny_access_policy"
+        "services.authoriser_service.AuthoriserService.deny_access_policy",
     )
     with pytest.raises(AuthorisationException):
-        mock_auth_service.auth_request(test_path, "test public key", auth_token)
+        mock_auth_service.auth_request(test_path, "GET", "test public key", auth_token)
 
         mock_jwt_decode.assert_called_with(
-            auth_token=auth_token, ssm_public_key_parameter="test public key"
+            auth_token=auth_token,
+            ssm_public_key_parameter="test public key",
         )
         mock_auth_service.manage_user_session_service.find_login_session.assert_called_once()
         mock_validate_login_session.assert_not_called()
@@ -410,13 +487,14 @@ def test_raise_exception_when_user_session_is_expired(
         side_effect=AuthorisationException(),
     )
     mock_deny_access_policy = mocker.patch(
-        "services.authoriser_service.AuthoriserService.deny_access_policy"
+        "services.authoriser_service.AuthoriserService.deny_access_policy",
     )
     with pytest.raises(AuthorisationException):
-        mock_auth_service.auth_request(test_path, "test public key", auth_token)
+        mock_auth_service.auth_request(test_path, "GET", "test public key", auth_token)
 
     mock_jwt_decode.assert_called_with(
-        auth_token=auth_token, ssm_public_key_parameter="test public key"
+        auth_token=auth_token,
+        ssm_public_key_parameter="test public key",
     )
     mock_auth_service.manage_user_session_service.find_login_session.assert_called_once()
     mock_validate_login_session.assert_called_once()
@@ -425,21 +503,25 @@ def test_raise_exception_when_user_session_is_expired(
 
 @pytest.mark.parametrize("test_path", ["/SearchPatient"])
 def test_invalid_token_raise_exception(
-    test_path, mocker, mock_jwt_decode, mock_auth_service: AuthoriserService
+    test_path,
+    mocker,
+    mock_jwt_decode,
+    mock_auth_service: AuthoriserService,
 ):
     auth_token = "invalid_token"
 
     mock_validate_login_session = mocker.patch(
-        "services.authoriser_service.AuthoriserService.validate_login_session"
+        "services.authoriser_service.AuthoriserService.validate_login_session",
     )
     mock_deny_access_policy = mocker.patch(
-        "services.authoriser_service.AuthoriserService.deny_access_policy"
+        "services.authoriser_service.AuthoriserService.deny_access_policy",
     )
     with pytest.raises(AuthorisationException):
-        mock_auth_service.auth_request(test_path, "test public key", auth_token)
+        mock_auth_service.auth_request(test_path, "GET", "test public key", auth_token)
 
     mock_jwt_decode.assert_called_with(
-        auth_token=auth_token, ssm_public_key_parameter="test public key"
+        auth_token=auth_token,
+        ssm_public_key_parameter="test public key",
     )
     mock_auth_service.manage_user_session_service.find_login_session.assert_not_called()
     mock_validate_login_session.assert_not_called()
