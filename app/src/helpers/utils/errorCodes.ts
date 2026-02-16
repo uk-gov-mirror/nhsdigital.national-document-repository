@@ -42,6 +42,8 @@ const errorCodes: { [key: string]: string } = {
         "You cannot access this patient's record because they are not registered at your practice. The patient's current practice can access this record if it's stored in this service.",
     UC_4002: 'There was an issue when attempting to virus scan your uploaded files',
     UC_4004: technicalIssueMsg,
+    UC_4006:
+        "1 or more files failed to upload. Remove any passwords from files and check that all files open correctly. Then return to the patient's record to upload them again.",
 };
 
 export default errorCodes;

@@ -14,7 +14,7 @@ import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import useConfig from '../../helpers/hooks/useConfig';
 import usePatient from '../../helpers/hooks/usePatient';
 import { uploadDocumentToS3 } from '../../helpers/requests/uploadDocuments';
-import { errorCodeToParams, errorToParams } from '../../helpers/utils/errorToParams';
+import { errorToParams } from '../../helpers/utils/errorToParams';
 import { isLocal, isMock } from '../../helpers/utils/isLocal';
 import {
     markDocumentsAsUploading,
@@ -44,10 +44,12 @@ import {
     getUploadSession,
     goToNextDocType,
     goToPreviousDocType,
+    handleDocumentStatusUpdates,
     reduceDocumentsForUpload,
     startIntervalTimer,
 } from '../../helpers/utils/documentUpload';
 import DocumentUploadIndex from '../../components/blocks/_documentUpload/documentUploadIndex/DocumentUploadIndex';
+import { UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS } from '../../helpers/constants/network';
 
 const DocumentUploadPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
@@ -74,9 +76,6 @@ const DocumentUploadPage = (): React.JSX.Element => {
     const [showSkipLink, setShowSkipLink] = useState<boolean | undefined>(undefined);
     const [documentTypeList, setDocumentTypeList] = useState<DOCUMENT_TYPE[]>([]);
 
-    const UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS = 5000;
-    const MAX_POLLING_TIME = 600000;
-
     useEffect(() => {
         const journeyParam = getJourney();
         if (journeyParam === 'update') {
@@ -91,44 +90,15 @@ const DocumentUploadPage = (): React.JSX.Element => {
     }, []);
 
     useEffect(() => {
-        const journeyParam = getJourney();
-
-        if (journeyParam === 'update' && journey !== journeyParam) {
-            globalThis.clearInterval(intervalTimer);
-            navigate(routes.SERVER_ERROR);
-            return;
-        }
-
-        if (interval.current * UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS > MAX_POLLING_TIME) {
-            window.clearInterval(intervalTimer);
-            navigate(routes.SERVER_ERROR);
-            return;
-        }
-
-        const hasVirus = documents.some((d) => d.state === DOCUMENT_UPLOAD_STATE.INFECTED);
-        const docWithError =
-            documents.length === 1 &&
-            documents.find((d) => d.state === DOCUMENT_UPLOAD_STATE.ERROR);
-        const allFinished =
-            documents.length > 0 &&
-            documents.every(
-                (d) =>
-                    d.state === DOCUMENT_UPLOAD_STATE.SUCCEEDED ||
-                    d.state === DOCUMENT_UPLOAD_STATE.ERROR,
-            );
-
-        if (hasVirus && !virusReference.current) {
-            virusReference.current = true;
-            window.clearInterval(intervalTimer);
-            navigate(routeChildren.DOCUMENT_UPLOAD_INFECTED);
-        } else if (docWithError) {
-            const errorParams = docWithError.error ? errorCodeToParams(docWithError.error) : '';
-            navigate(routes.SERVER_ERROR + errorParams);
-        } else if (allFinished && !completeRef.current) {
-            completeRef.current = true;
-            window.clearInterval(intervalTimer);
-            navigate.withParams(routeChildren.DOCUMENT_UPLOAD_COMPLETED);
-        }
+        handleDocumentStatusUpdates(
+            journey,
+            navigate,
+            intervalTimer,
+            interval,
+            documents,
+            virusReference,
+            completeRef,
+        );
     }, [
         baseHeaders,
         baseUrl,

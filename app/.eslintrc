@@ -84,7 +84,8 @@
                 "import/no-extraneous-dependencies": [
                     "error",
                     { "devDependencies": true }
-                ]
+                ],
+                "@typescript-eslint/explicit-function-return-type": "off"
             }
         },
         {

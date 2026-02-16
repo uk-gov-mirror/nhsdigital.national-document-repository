@@ -28,6 +28,7 @@ export enum DOCUMENT_STATUS {
     CANCELLED = 'cancelled',
     INFECTED = 'infected',
     NOT_FOUND = 'not-found',
+    INVALID = 'invalid',
 }
 
 export enum UploadDocumentType {

@@ -3,6 +3,7 @@ import { ButtonLink } from 'nhsuk-react-components';
 import errorCodes from '../../helpers/utils/errorCodes';
 import { unixTimestamp } from '../../helpers/utils/createTimestamp';
 import useTitle from '../../helpers/hooks/useTitle';
+import { routes } from '../../types/generic/routes';
 
 type ServerError = [errorCode: string | null, interactionId: string | null];
 
@@ -26,27 +27,17 @@ const ServerErrorPage = (): React.JSX.Element => {
             <h1>Sorry, there is a problem with the service</h1>
             <p>{errorMessage}</p>
             <p>
-                Try again by returning to the previous page. You'll need to enter any information
-                you submitted again.
+                Try again by returning to the home page. You'll need to enter any information you
+                submitted again.
             </p>
             <ButtonLink
                 href="#"
                 onClick={(e): void => {
                     e.preventDefault();
-                    const errorUrl = window.location.href;
-                    // Navigate back two paces incase the previous page has an error in the prefetch
-                    navigate(-2);
-
-                    // If this code is reached, we can assume that the component
-                    // has not destroyed and navigate(-2) has no where to go
-                    const urlAfterMinusTwoNavigate = window.location.href;
-                    const urlHasNotChanged = errorUrl === urlAfterMinusTwoNavigate;
-                    if (urlHasNotChanged) {
-                        navigate(-1);
-                    }
+                    navigate(routes.HOME);
                 }}
             >
-                Return to previous page
+                Go to home
             </ButtonLink>
 
             <h2>If this error keeps appearing</h2>

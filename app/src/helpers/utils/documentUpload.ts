@@ -22,6 +22,13 @@ import {
 } from '../../types/blocks/documentReview';
 import { getDocumentReviewStatus, uploadDocumentForReview } from '../requests/documentReview';
 import { Dispatch, RefObject, SetStateAction } from 'react';
+import { EnhancedNavigate, getJourney, JourneyType } from './urlManipulations';
+import { routeChildren, routes } from '../../types/generic/routes';
+import {
+    MAX_POLLING_TIME,
+    UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS,
+} from '../constants/network';
+import { errorCodeToParams } from './errorToParams';
 
 export const reduceDocumentsForUpload = async (
     documents: UploadDocument[],
@@ -164,6 +171,7 @@ export const handleDocStatusResult = (
 
                 case DOCUMENT_STATUS.NOT_FOUND:
                 case DOCUMENT_STATUS.CANCELLED:
+                case DOCUMENT_STATUS.INVALID:
                     updatedDoc.state = DOCUMENT_UPLOAD_STATE.ERROR;
                     updatedDoc.errorCode = docStatus.error_code;
                     break;
@@ -243,6 +251,7 @@ export const startIntervalTimer = (
                             doc.state = DOCUMENT_UPLOAD_STATE.INFECTED;
                         } else if (doc.file.name.toLocaleLowerCase() === 'virus-failed.pdf') {
                             doc.state = DOCUMENT_UPLOAD_STATE.ERROR;
+                            doc.errorCode = 'UC_4006';
                         } else {
                             doc.state = DOCUMENT_UPLOAD_STATE.SUCCEEDED;
                         }
@@ -306,4 +315,55 @@ export const goToPreviousDocType = (
 
     setShowSkipLink(true);
     setDocumentType(documentTypeList[previousDocTypeIndex]);
+};
+
+export const handleDocumentStatusUpdates = (
+    journey: JourneyType,
+    navigate: EnhancedNavigate,
+    intervalTimer: number,
+    interval: RefObject<number>,
+    documents: UploadDocument[],
+    virusReference: RefObject<boolean>,
+    completeRef: RefObject<boolean>,
+): void => {
+    const journeyParam = getJourney();
+
+    if (journeyParam === 'update' && journey !== journeyParam) {
+        globalThis.clearInterval(intervalTimer);
+        navigate(routes.SERVER_ERROR);
+        return;
+    }
+
+    if (interval.current * UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS > MAX_POLLING_TIME) {
+        globalThis.clearInterval(intervalTimer);
+        navigate(routes.SERVER_ERROR);
+        return;
+    }
+
+    if (documents.length === 0) {
+        return;
+    }
+
+    const hasVirus = documents.some((d) => d.state === DOCUMENT_UPLOAD_STATE.INFECTED);
+    const failedDocs = documents.filter((d) => d.state === DOCUMENT_UPLOAD_STATE.ERROR);
+    const allFinished =
+        documents.length > 0 &&
+        documents.every(
+            (d) =>
+                d.state === DOCUMENT_UPLOAD_STATE.SUCCEEDED ||
+                d.state === DOCUMENT_UPLOAD_STATE.ERROR,
+        );
+
+    if (hasVirus && !virusReference.current) {
+        virusReference.current = true;
+        globalThis.clearInterval(intervalTimer);
+        navigate(routeChildren.DOCUMENT_UPLOAD_INFECTED);
+    } else if (failedDocs.length === documents.length) {
+        const errorParams = errorCodeToParams(failedDocs[0].errorCode!);
+        navigate(routes.SERVER_ERROR + errorParams);
+    } else if (allFinished && !completeRef.current) {
+        completeRef.current = true;
+        globalThis.clearInterval(intervalTimer);
+        navigate.withParams(routeChildren.DOCUMENT_UPLOAD_COMPLETED);
+    }
 };

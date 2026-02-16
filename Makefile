@@ -309,13 +309,25 @@ docker-down:
 	docker-compose -f ./app/docker-compose.yml down
 
 cypress-open:
+ifeq ($(CONTAINER), true)
 	xvfb-run -- npm --prefix ./app run cypress
+else
+	npm --prefix ./app run cypress
+endif
 
 cypress-run:
+ifeq ($(CONTAINER), true)
 	xvfb-run -- npm --prefix ./app run cypress-run
+else
+	npm --prefix ./app run cypress-run
+endif
 
 cypress-report:
+ifeq ($(CONTAINER), true)
 	xvfb-run -- npm --prefix ./app run cypress-report
+else
+	npm --prefix ./app run cypress-report
+endif
 
 install-cypress:
 	npm install --save-dev cypress

@@ -267,7 +267,7 @@ describe('GP Workflow: View Lloyd George record', () => {
                     statusCode: 200,
                     body: {
                         references: singleTestFile,
-                        nextPageToken: 'abc'
+                        nextPageToken: 'abc',
                     },
                 }).as('searchDocumentReferences');
 
@@ -360,7 +360,7 @@ describe('GP Workflow: View Lloyd George record', () => {
                     statusCode: 200,
                     body: { jobStatus: 'Pending' },
                 });
-                if (pendingCounts >= 3) {
+                if (pendingCounts >= 10) {
                     req.alias = 'documentManifestThirdTimePending';
                 }
             });
@@ -372,7 +372,7 @@ describe('GP Workflow: View Lloyd George record', () => {
             cy.getByTestId('toggle-selection-btn').click();
             cy.getByTestId('download-selected-files-btn').click();
 
-            cy.wait('@documentManifestThirdTimePending');
+            cy.wait('@documentManifestThirdTimePending', { timeout: 20000 });
 
             cy.title().should('have.string', 'Service error');
             cy.url().should('have.string', '/server-error?encodedError=');

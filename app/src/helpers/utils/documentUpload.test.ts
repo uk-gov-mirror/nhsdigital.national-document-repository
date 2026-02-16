@@ -5,6 +5,7 @@ import {
     goToPreviousDocType,
     handleDocReviewStatusResult,
     handleDocStatusResult,
+    handleDocumentStatusUpdates,
     reduceDocumentsForUpload,
     startIntervalTimer,
 } from './documentUpload';
@@ -22,6 +23,12 @@ import { uploadDocumentForReview } from '../requests/documentReview';
 import * as isLocal from './isLocal';
 import { DocumentReviewStatus } from '../../types/blocks/documentReview';
 import { buildDocumentConfig } from '../test/testBuilders';
+import { routes, routeChildren } from '../../types/generic/routes';
+import {
+    MAX_POLLING_TIME,
+    UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS,
+} from '../constants/network';
+import * as urlManipulations from './urlManipulations';
 
 vi.mock('../requests/uploadDocuments');
 vi.mock('../requests/documentReview');
@@ -406,6 +413,33 @@ describe('documentUpload', () => {
                 const result = updateFn(mockDocs);
                 expect(result[0].state).toBe(DOCUMENT_UPLOAD_STATE.ERROR);
                 expect(result[0].errorCode).toBe('ERR_CANCELLED');
+            });
+
+            handleDocStatusResult(documentStatusResult, mockSetDocuments);
+
+            expect(mockSetDocuments).toHaveBeenCalledTimes(1);
+        });
+
+        it('should update document state to ERROR when status is INVALID', () => {
+            const documentStatusResult = {
+                'doc-ref-1': {
+                    status: DOCUMENT_STATUS.INVALID as const,
+                    error_code: 'ERR_INVALID',
+                },
+            };
+
+            const mockDocs: UploadDocument[] = [
+                {
+                    ...mockDocuments[0],
+                    ref: 'doc-ref-1',
+                    state: DOCUMENT_UPLOAD_STATE.UPLOADING,
+                },
+            ];
+
+            mockSetDocuments.mockImplementation((updateFn) => {
+                const result = updateFn(mockDocs);
+                expect(result[0].state).toBe(DOCUMENT_UPLOAD_STATE.ERROR);
+                expect(result[0].errorCode).toBe('ERR_INVALID');
             });
 
             handleDocStatusResult(documentStatusResult, mockSetDocuments);
@@ -1029,6 +1063,321 @@ describe('documentUpload', () => {
 
             expect(mockSetDocumentType).not.toHaveBeenCalled();
             expect(mockSetShowSkipLink).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('handleDocumentStatusUpdates', () => {
+        const mockNavigate = Object.assign(vi.fn(), {
+            withParams: vi.fn(),
+        });
+
+        let mockInterval: { current: number };
+        let mockVirusRef: { current: boolean };
+        let mockCompleteRef: { current: boolean };
+
+        beforeEach(() => {
+            vi.clearAllMocks();
+            vi.spyOn(globalThis, 'clearInterval');
+            vi.spyOn(window, 'clearInterval');
+            vi.spyOn(urlManipulations, 'getJourney').mockReturnValue('new');
+            mockInterval = { current: 1 };
+            mockVirusRef = { current: false };
+            mockCompleteRef = { current: false };
+        });
+
+        it('should navigate to SERVER_ERROR when journey param is update but journey type does not match', () => {
+            vi.spyOn(urlManipulations, 'getJourney').mockReturnValue('update');
+
+            const intervalTimer = 123;
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                intervalTimer,
+                mockInterval,
+                mockDocuments,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(globalThis.clearInterval).toHaveBeenCalledWith(intervalTimer);
+            expect(mockNavigate).toHaveBeenCalledWith(routes.SERVER_ERROR);
+        });
+
+        it('should navigate to SERVER_ERROR when polling time exceeds MAX_POLLING_TIME', () => {
+            mockInterval.current =
+                Math.ceil(MAX_POLLING_TIME / UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS) + 1;
+
+            const intervalTimer = 456;
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                intervalTimer,
+                mockInterval,
+                mockDocuments,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(window.clearInterval).toHaveBeenCalledWith(intervalTimer);
+            expect(mockNavigate).toHaveBeenCalledWith(routes.SERVER_ERROR);
+        });
+
+        it('should return early when documents array is empty', () => {
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                123,
+                mockInterval,
+                [],
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(mockNavigate).not.toHaveBeenCalled();
+            expect(mockNavigate.withParams).not.toHaveBeenCalled();
+        });
+
+        it('should navigate to DOCUMENT_UPLOAD_INFECTED when a document has virus', () => {
+            const documentsWithVirus: UploadDocument[] = [
+                {
+                    ...mockDocuments[0],
+                    state: DOCUMENT_UPLOAD_STATE.INFECTED,
+                },
+            ];
+
+            const intervalTimer = 789;
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                intervalTimer,
+                mockInterval,
+                documentsWithVirus,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(mockVirusRef.current).toBe(true);
+            expect(window.clearInterval).toHaveBeenCalledWith(intervalTimer);
+            expect(mockNavigate).toHaveBeenCalledWith(routeChildren.DOCUMENT_UPLOAD_INFECTED);
+        });
+
+        it('should not navigate to infected page again if virusReference is already true', () => {
+            const documentsWithVirus: UploadDocument[] = [
+                {
+                    ...mockDocuments[0],
+                    state: DOCUMENT_UPLOAD_STATE.INFECTED,
+                },
+            ];
+
+            mockVirusRef.current = true;
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                123,
+                mockInterval,
+                documentsWithVirus,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(mockNavigate).not.toHaveBeenCalledWith(routeChildren.DOCUMENT_UPLOAD_INFECTED);
+        });
+
+        it('should navigate to SERVER_ERROR with error params when all documents have failed', () => {
+            const allFailedDocs: UploadDocument[] = [
+                {
+                    ...mockDocuments[0],
+                    state: DOCUMENT_UPLOAD_STATE.ERROR,
+                    errorCode: 'UC_4006',
+                },
+                {
+                    ...mockDocuments[1],
+                    state: DOCUMENT_UPLOAD_STATE.ERROR,
+                    errorCode: 'UC_4007',
+                },
+            ];
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                123,
+                mockInterval,
+                allFailedDocs,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining(routes.SERVER_ERROR));
+            expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('?encodedError='));
+        });
+
+        it('should navigate to DOCUMENT_UPLOAD_COMPLETED when all documents finished successfully', () => {
+            const allSucceededDocs: UploadDocument[] = [
+                {
+                    ...mockDocuments[0],
+                    state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
+                },
+                {
+                    ...mockDocuments[1],
+                    state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
+                },
+            ];
+
+            const intervalTimer = 101;
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                intervalTimer,
+                mockInterval,
+                allSucceededDocs,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(mockCompleteRef.current).toBe(true);
+            expect(window.clearInterval).toHaveBeenCalledWith(intervalTimer);
+            expect(mockNavigate.withParams).toHaveBeenCalledWith(
+                routeChildren.DOCUMENT_UPLOAD_COMPLETED,
+            );
+        });
+
+        it('should not navigate to completed page again if completeRef is already true', () => {
+            const allSucceededDocs: UploadDocument[] = [
+                {
+                    ...mockDocuments[0],
+                    state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
+                },
+            ];
+
+            mockCompleteRef.current = true;
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                123,
+                mockInterval,
+                allSucceededDocs,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(mockNavigate.withParams).not.toHaveBeenCalled();
+        });
+
+        it('should navigate to completed page when mix of succeeded and error documents', () => {
+            const mixedDocs: UploadDocument[] = [
+                {
+                    ...mockDocuments[0],
+                    state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
+                },
+                {
+                    ...mockDocuments[1],
+                    state: DOCUMENT_UPLOAD_STATE.ERROR,
+                    errorCode: 'UC_4006',
+                },
+            ];
+
+            const intervalTimer = 202;
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                intervalTimer,
+                mockInterval,
+                mixedDocs,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(mockCompleteRef.current).toBe(true);
+            expect(window.clearInterval).toHaveBeenCalledWith(intervalTimer);
+            expect(mockNavigate.withParams).toHaveBeenCalledWith(
+                routeChildren.DOCUMENT_UPLOAD_COMPLETED,
+            );
+        });
+
+        it('should not navigate when documents are still uploading', () => {
+            const uploadingDocs: UploadDocument[] = [
+                {
+                    ...mockDocuments[0],
+                    state: DOCUMENT_UPLOAD_STATE.UPLOADING,
+                },
+                {
+                    ...mockDocuments[1],
+                    state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
+                },
+            ];
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                123,
+                mockInterval,
+                uploadingDocs,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(mockNavigate).not.toHaveBeenCalled();
+            expect(mockNavigate.withParams).not.toHaveBeenCalled();
+        });
+
+        it('should not navigate when documents are still scanning', () => {
+            const scanningDocs: UploadDocument[] = [
+                {
+                    ...mockDocuments[0],
+                    state: DOCUMENT_UPLOAD_STATE.SCANNING,
+                },
+            ];
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                123,
+                mockInterval,
+                scanningDocs,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(mockNavigate).not.toHaveBeenCalled();
+            expect(mockNavigate.withParams).not.toHaveBeenCalled();
+        });
+
+        it('should prioritize virus detection over all documents failed', () => {
+            const virusAndFailedDocs: UploadDocument[] = [
+                {
+                    ...mockDocuments[0],
+                    state: DOCUMENT_UPLOAD_STATE.INFECTED,
+                },
+                {
+                    ...mockDocuments[1],
+                    state: DOCUMENT_UPLOAD_STATE.ERROR,
+                    errorCode: 'UC_4006',
+                },
+            ];
+
+            const intervalTimer = 303;
+
+            handleDocumentStatusUpdates(
+                'new',
+                mockNavigate,
+                intervalTimer,
+                mockInterval,
+                virusAndFailedDocs,
+                mockVirusRef,
+                mockCompleteRef,
+            );
+
+            expect(mockNavigate).toHaveBeenCalledWith(routeChildren.DOCUMENT_UPLOAD_INFECTED);
+            expect(mockNavigate).not.toHaveBeenCalledWith(
+                expect.stringContaining(routes.SERVER_ERROR + '?'),
+            );
         });
     });
 });
