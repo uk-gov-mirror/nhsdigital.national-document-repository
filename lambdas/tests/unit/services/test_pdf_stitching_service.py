@@ -23,6 +23,7 @@ from tests.unit.conftest import (
     MOCK_LG_TABLE_NAME,
     MOCK_UNSTITCHED_LG_TABLE_NAME,
     TEST_BASE_DIRECTORY,
+    TEST_CURRENT_GP_ODS,
     TEST_NHS_NUMBER,
     TEST_UUID,
 )
@@ -370,6 +371,7 @@ def test_migrate_multipart_references(mock_service):
             table_name=MOCK_UNSTITCHED_LG_TABLE_NAME,
             item={
                 "ContentType": "application/pdf",
+                "Author": TEST_CURRENT_GP_ODS,
                 "Created": "2024-01-01T12:00:00.000Z",
                 "DocumentScanCreation": "2024-01-01",
                 "DocStatus": "final",
@@ -393,6 +395,7 @@ def test_migrate_multipart_references(mock_service):
             item={
                 "ContentType": "application/pdf",
                 "Created": "2024-01-01T12:00:00.000Z",
+                "Author": TEST_CURRENT_GP_ODS,
                 "DocStatus": "final",
                 "DocumentScanCreation": "2024-01-01",
                 "DocumentSnomedCodeType": "16521000000101",
@@ -415,6 +418,7 @@ def test_migrate_multipart_references(mock_service):
             item={
                 "ContentType": "application/pdf",
                 "Created": "2024-01-01T12:00:00.000Z",
+                "Author": TEST_CURRENT_GP_ODS,
                 "DocStatus": "final",
                 "DocumentScanCreation": "2024-01-01",
                 "DocumentSnomedCodeType": "16521000000101",
@@ -619,6 +623,7 @@ def test_rollback_reference_migration(mock_service):
                 item={
                     "ContentType": "application/pdf",
                     "Created": TEST_DOCUMENT_REFERENCES[0].created,
+                    "Author": TEST_CURRENT_GP_ODS,
                     "CurrentGpOds": TEST_DOCUMENT_REFERENCES[0].current_gp_ods,
                     "DocStatus": "final",
                     "DocumentScanCreation": "2024-01-01",
@@ -643,6 +648,7 @@ def test_rollback_reference_migration(mock_service):
                     "ContentType": "application/pdf",
                     "Created": TEST_DOCUMENT_REFERENCES[1].created,
                     "CurrentGpOds": TEST_DOCUMENT_REFERENCES[1].current_gp_ods,
+                    "Author": TEST_CURRENT_GP_ODS,
                     "DocStatus": "final",
                     "DocumentScanCreation": "2024-01-01",
                     "DocumentSnomedCodeType": "16521000000101",
@@ -666,6 +672,7 @@ def test_rollback_reference_migration(mock_service):
                     "ContentType": "application/pdf",
                     "Created": TEST_DOCUMENT_REFERENCES[2].created,
                     "CurrentGpOds": TEST_DOCUMENT_REFERENCES[2].current_gp_ods,
+                    "Author": TEST_CURRENT_GP_ODS,
                     "DocStatus": "final",
                     "DocumentScanCreation": "2024-01-01",
                     "DocumentSnomedCodeType": "16521000000101",

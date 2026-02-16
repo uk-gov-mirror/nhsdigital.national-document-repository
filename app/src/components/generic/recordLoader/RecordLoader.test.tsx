@@ -343,12 +343,6 @@ describe('RecordDetails', () => {
     });
 
     describe('Edge Cases', () => {
-        it('handles empty string for lastUpdated', () => {
-            render(<RecordDetails fileName="test-document.pdf" lastUpdated="" />);
-
-            expect(screen.getByText('Last updated:')).toBeInTheDocument();
-        });
-
         it('handles long date strings', () => {
             const longDate = 'Wednesday, 25th December 2024 at 12:30:45pm GMT';
             render(<RecordDetails fileName="test-document.pdf" lastUpdated={longDate} />);

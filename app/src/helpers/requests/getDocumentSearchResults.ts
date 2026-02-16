@@ -44,6 +44,7 @@ const getDocumentSearchResults = async ({
                     fileName: 'document_1.pdf',
                     created: '2023-01-01T12:00:00Z',
                     virusScannerResult: 'CLEAN',
+                    author: 'Y12345',
                     id: 'mock-document-id-1',
                     fileSize: 1024,
                     version: '1.0',

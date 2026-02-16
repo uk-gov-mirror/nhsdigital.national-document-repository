@@ -65,6 +65,7 @@ const ReviewDetailsDocumentSelectOrderStage = ({
             confirmFiles={(): void => {}}
             onSuccess={onSuccess}
             isReview={true}
+            reviewData={reviewData}
         />
     );
 };

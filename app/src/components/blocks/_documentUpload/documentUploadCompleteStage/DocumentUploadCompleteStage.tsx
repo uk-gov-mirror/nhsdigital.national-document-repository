@@ -62,57 +62,76 @@ const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): Reac
                 </div>
             </div>
             {failedDocuments.length > 0 ? (
-                <div className="govuk-accordion mb-8 govuk-frontend-supported">
-                    <h3>Some of your files failed to upload</h3>
-                    <button
-                        className="toggle-button govuk-accordion__section-button"
-                        onClick={(): void => setShowFiles(!showFiles)}
-                        data-testid="accordion-toggle-button"
-                        aria-expanded={showFiles}
-                        aria-controls="failed-files-list"
-                    >
-                        <span className="govuk-accordion__section-toggle">
-                            <span className="accordion-toggle govuk-accordion__section-toggle-focus">
-                                {showFiles ? (
-                                    <>
-                                        <ChevronLeftIcon className="accordion-toggle-icon" />
-                                        <span>Hide files</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <ChevronRightIcon className="accordion-toggle-icon" />
-                                        <span>View files</span>
-                                    </>
-                                )}
-                            </span>
-                        </span>
-                    </button>
-                    {showFiles && (
-                        <div id="failed-files-list" aria-hidden={!showFiles}>
-                            {failedDocuments.map((doc) => (
-                                <div key={doc.id}>
-                                    <span>{doc.file.name}</span>
-                                    <br />
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    <br />
-                    <h3>What you need to do</h3>
+                <>
                     <p>
-                        You must note which files uploaded successfully, then return to the
-                        patient's record to upload any files that failed.
+                        We uploaded {documents.length - failedDocuments.length} out of{' '}
+                        {documents.length} files.
+                        <br />
+                        {failedDocuments.length} files could not be uploaded.
                     </p>
-                    <Button
-                        data-testid="patient-docs-btn"
-                        type="button"
-                        onClick={(): void => {
-                            navigate(routes.PATIENT_DOCUMENTS, { replace: true });
-                        }}
-                    >
-                        Go to Lloyd George records
-                    </Button>
-                </div>
+                    <p>There may be a problem with your files.</p>
+
+                    <div className="govuk-accordion mb-8 govuk-frontend-supported">
+                        <h3>Files that could not be uploaded</h3>
+                        <button
+                            className="toggle-button govuk-accordion__section-button"
+                            onClick={(): void => setShowFiles(!showFiles)}
+                            data-testid="accordion-toggle-button"
+                            aria-expanded={showFiles}
+                            aria-controls="failed-files-list"
+                        >
+                            <span className="govuk-accordion__section-toggle">
+                                <span className="accordion-toggle govuk-accordion__section-toggle-focus">
+                                    {showFiles ? (
+                                        <>
+                                            <ChevronLeftIcon className="accordion-toggle-icon" />
+                                            <span>Hide files</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ChevronRightIcon className="accordion-toggle-icon" />
+                                            <span>View files</span>
+                                        </>
+                                    )}
+                                </span>
+                            </span>
+                        </button>
+
+                        {showFiles && (
+                            <div id="failed-files-list" aria-hidden={!showFiles}>
+                                {failedDocuments.map((doc) => (
+                                    <div key={doc.id}>
+                                        <p>{doc.file.name}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <h3>What you need to do</h3>
+                        <p>You must note which files did not upload.</p>
+
+                        <p>
+                            Remove any passwords from files and check that all files open correctly.
+                            Then return to the patient's record to upload them again.
+                        </p>
+
+                        <h3>Get help</h3>
+                        <p>
+                            Contact your local IT support desk to resolve the problems with these
+                            files.
+                        </p>
+
+                        <Button
+                            data-testid="patient-docs-btn"
+                            type="button"
+                            onClick={(): void => {
+                                navigate(routes.PATIENT_DOCUMENTS, { replace: true });
+                            }}
+                        >
+                            Go to Lloyd George records
+                        </Button>
+                    </div>
+                </>
             ) : (
                 <>
                     <h3>What happens next</h3>

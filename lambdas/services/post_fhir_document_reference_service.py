@@ -3,7 +3,9 @@ from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference
-from models.fhir.R4.fhir_document_reference import SNOMED_URL
+from models.fhir.R4.fhir_document_reference import (
+    SNOMED_URL,
+)
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
@@ -25,7 +27,9 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
         super().__init__()
 
     def process_fhir_document_reference(
-        self, fhir_document: str, api_request_context: dict = {}
+        self,
+        fhir_document: str,
+        api_request_context: dict = {},
     ) -> str:
         """
         Process a FHIR Document Reference request
@@ -40,7 +44,7 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             common_name = validate_common_name_in_mtls(api_request_context)
 
             validated_fhir_doc = FhirDocumentReference.model_validate_json(
-                fhir_document
+                fhir_document,
             )
 
             # Extract NHS number and author from the FHIR document
@@ -72,7 +76,9 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             )
 
             presigned_url = self._handle_document_save(
-                document_reference, validated_fhir_doc, dynamo_table
+                document_reference,
+                validated_fhir_doc,
+                dynamo_table,
             )
 
             return self._create_fhir_response(document_reference, presigned_url)
@@ -107,7 +113,9 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             raise DocumentRefException(400, LambdaError.DocRefNoParse)
 
     def _determine_document_type(
-        self, fhir_doc: FhirDocumentReference, common_name: MtlsCommonNames | None
+        self,
+        fhir_doc: FhirDocumentReference,
+        common_name: MtlsCommonNames | None,
     ) -> SnomedCode:
         if not common_name:
             """Determine the document type based on SNOMED code in the FHIR document"""
@@ -119,7 +127,7 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
                             return snomed_code
                     else:
                         logger.error(
-                            f"SNOMED code {coding.code} - {coding.display} is not supported"
+                            f"SNOMED code {coding.code} - {coding.display} is not supported",
                         )
                         raise DocumentRefException(400, LambdaError.DocRefInvalidType)
             logger.error("SNOMED code not found in FHIR document")
@@ -147,6 +155,12 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
         if not custodian:
             custodian = current_gp_ods
 
+        title = fhir_doc.content[0].attachment.title or None
+
+        if doc_type != SnomedCodes.PATIENT_DATA.value and title is None:
+            logger.error("FHIR document validation error: attachment.title missing")
+            raise DocumentRefException(400, LambdaError.DocRefNoParse)
+
         sub_folder, raw_request = (
             ("user_upload", None)
             if doc_type != SnomedCodes.PATIENT_DATA.value
@@ -161,7 +175,7 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             s3_bucket_name=self.staging_bucket_name,
             author=author,
             content_type=fhir_doc.content[0].attachment.contentType,
-            file_name=fhir_doc.content[0].attachment.title,
+            file_name=title,
             document_snomed_code_type=doc_type.code,
             doc_status="preliminary",
             status="current",

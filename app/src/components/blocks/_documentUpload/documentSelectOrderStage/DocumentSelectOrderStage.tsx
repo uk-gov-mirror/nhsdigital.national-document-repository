@@ -24,6 +24,9 @@ import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import DocumentUploadLloydGeorgePreview from '../documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import { DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
+import { CreatedByText } from '../../../generic/createdBy/createdBy';
+import { getFormattedDateTimeFromString } from '../../../../helpers/utils/formatDate';
+import { ReviewDetails } from '../../../../types/generic/reviews';
 
 type Props = {
     documents: UploadDocument[] | ReviewUploadDocument[];
@@ -34,6 +37,7 @@ type Props = {
     confirmFiles: () => void;
     onSuccess?: () => void;
     isReview?: boolean;
+    reviewData?: ReviewDetails;
 };
 
 type FormData = {
@@ -51,6 +55,7 @@ const DocumentSelectOrderStage = ({
     confirmFiles,
     onSuccess,
     isReview = false,
+    reviewData,
 }: Readonly<Props>): JSX.Element => {
     const navigate = useEnhancedNavigate();
     const journey = getJourney();
@@ -472,7 +477,18 @@ const DocumentSelectOrderStage = ({
                             setStitchedBlobLoaded(loaded);
                         }}
                         documentConfig={documentConfig}
-                    />
+                        isReview={isReview}
+                    >
+                        {isReview && reviewData && (
+                            <CreatedByText
+                                odsCode={reviewData.uploader}
+                                dateUploaded={getFormattedDateTimeFromString(
+                                    reviewData.dateUploaded,
+                                )}
+                                cssClass="pt-5"
+                            />
+                        )}
+                    </DocumentUploadLloydGeorgePreview>
                 </div>
                 {documents.length > 0 && stitchedBlobLoaded && (
                     <Button

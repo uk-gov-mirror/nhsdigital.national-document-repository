@@ -169,6 +169,7 @@ const LloydGeorgeViewRecordStage = ({
                             patientDetails,
                             lloydGeorgeConfig as DOCUMENT_TYPE_CONFIG,
                         ),
+                        author: 'Y1234',
                         version: 'mock-version-id',
                         created: new Date().toISOString(),
                         fileSize: 12345,

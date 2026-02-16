@@ -102,7 +102,7 @@ class DocumentReference(BaseModel):
     author: str | None = None
     content_type: str = Field(default=DEFAULT_CONTENT_TYPE)
     created: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).strftime(DATE_FORMAT)
+        default_factory=lambda: datetime.now(timezone.utc).strftime(DATE_FORMAT),
     )
     document_scan_creation: Optional[str] = Field(
         default_factory=lambda: datetime.date(datetime.now()).isoformat(),
@@ -125,10 +125,10 @@ class DocumentReference(BaseModel):
     ] = Field(default="preliminary")
     doc_type: str = Field(default=None, exclude=True)
     document_snomed_code_type: Optional[str] = Field(
-        default=SnomedCodes.LLOYD_GEORGE.value.code
+        default=SnomedCodes.LLOYD_GEORGE.value.code,
     )
     file_location: str = ""
-    file_name: str
+    file_name: str | None
     file_size: int | None = Field(default=None)
     last_updated: int = Field(
         default_factory=lambda: int(datetime.now(timezone.utc).timestamp()),
@@ -140,11 +140,12 @@ class DocumentReference(BaseModel):
     s3_version_id: Optional[str] = Field(default=None, alias="S3VersionID")
     s3_upload_key: str = Field(default=None, exclude=True)
     status: Literal["current", "superseded", "entered-in-error"] = Field(
-        default="current"
+        default="current",
     )
     sub_folder: str = Field(default=None, exclude=True)
     ttl: Optional[int] = Field(
-        alias=str(DocumentReferenceMetadataFields.TTL.value), default=None
+        alias=str(DocumentReferenceMetadataFields.TTL.value),
+        default=None,
     )
     uploaded: bool = Field(default=None)
     uploading: bool = Field(default=None)
@@ -174,7 +175,8 @@ class DocumentReference(BaseModel):
             if "s3_file_key" not in data:
                 data["s3_file_key"] = cls._build_final_s3_key(data)
             data["file_location"] = cls._build_s3_location(
-                data["s3_bucket_name"], current_s3_file_key
+                data["s3_bucket_name"],
+                current_s3_file_key,
             )
         return data
 

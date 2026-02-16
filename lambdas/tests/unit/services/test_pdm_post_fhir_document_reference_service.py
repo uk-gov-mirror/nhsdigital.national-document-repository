@@ -6,22 +6,30 @@ from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.fhir.R4.base_models import Identifier, Reference
-from models.fhir.R4.fhir_document_reference import Attachment
+from models.fhir.R4.fhir_document_reference import (
+    Attachment,
+)
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
-from models.fhir.R4.fhir_document_reference import DocumentReferenceContent
+from models.fhir.R4.fhir_document_reference import (
+    DocumentReferenceContent,
+)
 from services.fhir_document_reference_service_base import (
     FhirDocumentReferenceServiceBase,
 )
 from services.post_fhir_document_reference_service import (
     PostFhirDocumentReferenceService,
 )
-from tests.unit.conftest import APIM_API_URL
+from tests.unit.conftest import (
+    APIM_API_URL,
+)
 from tests.unit.conftest import (
     EXPECTED_PARSED_PATIENT_BASE_CASE as mock_pds_patient_details,
 )
-from tests.unit.conftest import TEST_UUID
+from tests.unit.conftest import (
+    TEST_UUID,
+)
 from utils.lambda_exceptions import DocumentRefException
 from utils.request_context import request_context
 
@@ -45,13 +53,13 @@ def mock_post_fhir_doc_ref_service(set_env):
 @pytest.fixture
 def mock_fhir_doc_ref_base_service(mocker, setup_request_context):
     mock_document_service = mocker.patch(
-        "services.fhir_document_reference_service_base.DocumentService"
+        "services.fhir_document_reference_service_base.DocumentService",
     )
     mock_s3_service = mocker.patch(
-        "services.fhir_document_reference_service_base.S3Service"
+        "services.fhir_document_reference_service_base.S3Service",
     )
     mock_dynamo_service = mocker.patch(
-        "services.fhir_document_reference_service_base.DynamoDBService"
+        "services.fhir_document_reference_service_base.DynamoDBService",
     )
     service = FhirDocumentReferenceServiceBase()
     service.document_service = mock_document_service.return_value
@@ -70,8 +78,8 @@ def mock_mtls_common_names(monkeypatch):
                 "PDM": [
                     "ndrclient.main.int.pdm.national.nhs.uk",
                     "client.dev.ndr.national.nhs.uk",
-                ]
-            }
+                ],
+            },
         ),
     )
 
@@ -111,7 +119,7 @@ def valid_fhir_doc_json():
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/nhs-number",
                     "value": "9000000009",
-                }
+                },
             },
             "type": {
                 "coding": [
@@ -119,22 +127,22 @@ def valid_fhir_doc_json():
                         "system": "http://snomed.info/sct",
                         "code": SnomedCodes.LLOYD_GEORGE.value.code,
                         "display": SnomedCodes.LLOYD_GEORGE.value.display_name,
-                    }
-                ]
+                    },
+                ],
             },
             "custodian": {
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                     "value": "A12345",
-                }
+                },
             },
             "author": [
                 {
                     "identifier": {
                         "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                         "value": "A12345",
-                    }
-                }
+                    },
+                },
             ],
             "content": [
                 {
@@ -143,10 +151,10 @@ def valid_fhir_doc_json():
                         "language": "en-GB",
                         "title": "test-file.pdf",
                         "creation": "2023-01-01T12:00:00Z",
-                    }
-                }
+                    },
+                },
             ],
-        }
+        },
     )
 
 
@@ -161,13 +169,13 @@ def valid_fhir_doc_json_only_required():
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/nhs-number",
                     "value": "9000000009",
-                }
+                },
             },
             "custodian": {
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                     "value": "A12345",
-                }
+                },
             },
             "content": [
                 {
@@ -176,10 +184,10 @@ def valid_fhir_doc_json_only_required():
                         "language": "en-GB",
                         "title": "test-file.pdf",
                         "creation": "2023-01-01T12:00:00Z",
-                    }
-                }
+                    },
+                },
             ],
-        }
+        },
     )
 
 
@@ -225,7 +233,7 @@ def valid_mtls_fhir_doc_json():
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/nhs-number",
                     "value": "9000000009",
-                }
+                },
             },
             "type": {
                 "coding": [
@@ -233,22 +241,22 @@ def valid_mtls_fhir_doc_json():
                         "system": "http://snomed.info/sct",
                         "code": SnomedCodes.PATIENT_DATA.value.code,
                         "display": SnomedCodes.PATIENT_DATA.value.display_name,
-                    }
-                ]
+                    },
+                ],
             },
             "custodian": {
                 "identifier": {
                     "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                     "value": "A12345",
-                }
+                },
             },
             "author": [
                 {
                     "identifier": {
                         "system": "https://fhir.nhs.uk/Id/ods-organization-code",
                         "value": "A12345",
-                    }
-                }
+                    },
+                },
             ],
             "content": [
                 {
@@ -257,10 +265,91 @@ def valid_mtls_fhir_doc_json():
                         "language": "en-GB",
                         "title": "test-file.pdf",
                         "creation": "2023-01-01T12:00:00Z",
-                    }
-                }
+                    },
+                },
             ],
-        }
+        },
+    )
+
+
+@pytest.fixture
+def invalid_fhir_doc_json_missing_content():
+    return json.dumps(
+        {
+            "resourceType": "DocumentReference",
+            "docStatus": "final",
+            "status": "current",
+            "subject": {
+                "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/nhs-number",
+                    "value": "9000000009",
+                },
+            },
+            "type": {
+                "coding": [
+                    {
+                        "system": "http://snomed.info/sct",
+                        "code": SnomedCodes.PATIENT_DATA.value.code,
+                        "display": SnomedCodes.PATIENT_DATA.value.display_name,
+                    },
+                ],
+            },
+            "custodian": {
+                "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": "A12345",
+                },
+            },
+            "author": [
+                {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "A12345",
+                    },
+                },
+            ],
+        },
+    )
+
+
+@pytest.fixture
+def invalid_fhir_doc_json_missing_content_attachment():
+    return json.dumps(
+        {
+            "resourceType": "DocumentReference",
+            "docStatus": "final",
+            "status": "current",
+            "subject": {
+                "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/nhs-number",
+                    "value": "9000000009",
+                },
+            },
+            "type": {
+                "coding": [
+                    {
+                        "system": "http://snomed.info/sct",
+                        "code": SnomedCodes.PATIENT_DATA.value.code,
+                        "display": SnomedCodes.PATIENT_DATA.value.display_name,
+                    },
+                ],
+            },
+            "custodian": {
+                "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": "A12345",
+                },
+            },
+            "author": [
+                {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "A12345",
+                    },
+                },
+            ],
+            "content": [{}],
+        },
     )
 
 
@@ -298,20 +387,22 @@ def valid_fhir_doc_object_without_optional(valid_fhir_doc_json_only_required):
 
 
 def test_get_dynamo_table_for_patient_data_doc_type(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
 ):
     """Test _get_dynamo_table_for_doc_type method with a non-Lloyd George document type."""
 
     patient_data_code = SnomedCodes.PATIENT_DATA.value
 
     result = mock_post_fhir_doc_ref_service._get_dynamo_table_for_doc_type(
-        patient_data_code
+        patient_data_code,
     )
     assert result == str(DynamoTables.CORE)
 
 
 def test_get_dynamo_table_for_unsupported_doc_type(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
 ):
     """Test _get_dynamo_table_for_doc_type method with a non-Lloyd George document type."""
 
@@ -325,7 +416,8 @@ def test_get_dynamo_table_for_unsupported_doc_type(
 
 
 def test_get_dynamo_table_for_lloyd_george_doc_type(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
 ):
     """Test _get_dynamo_table_for_doc_type method with Lloyd George document type."""
     lg_code = SnomedCodes.LLOYD_GEORGE.value
@@ -346,7 +438,8 @@ def test_process_mtls_fhir_document_reference_with_binary(
     custom_endpoint = f"{APIM_API_URL}/DocumentReference"
 
     result = mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-        valid_mtls_fhir_doc_with_binary, valid_mtls_request_context
+        valid_mtls_fhir_doc_with_binary,
+        valid_mtls_request_context,
     )
 
     assert isinstance(result, str)
@@ -357,20 +450,25 @@ def test_process_mtls_fhir_document_reference_with_binary(
 
 
 def test_determine_document_type_with_correct_common_name(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
     """Test _determine_document_type method when type is missing entirely."""
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
     fhir_doc.type = None
 
     result = mock_post_fhir_doc_ref_service._determine_document_type(
-        fhir_doc, MtlsCommonNames.PDM
+        fhir_doc,
+        MtlsCommonNames.PDM,
     )
     assert result == SnomedCodes.PATIENT_DATA.value
 
 
 def test_s3_file_key_for_pdm(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
     """Test _create_document_reference method without custodian information."""
 
@@ -381,15 +479,16 @@ def test_s3_file_key_for_pdm(
                 contentType="application/pdf",
                 title="test-file.pdf",
                 creation="2023-01-01T12:00:00Z",
-            )
-        )
+            ),
+        ),
     ]
     fhir_doc.author = [
         Reference(
             identifier=Identifier(
-                system="https://fhir.nhs.uk/Id/ods-organization-code", value="B67890"
-            )
-        )
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
     ]
     fhir_doc.custodian = None
 
@@ -414,7 +513,9 @@ def test_s3_file_key_for_pdm(
 
 
 def test_create_pdm_document_reference_with_raw_request(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
     """Test _create_document_reference method with raw_request included (pdm)."""
 
@@ -425,20 +526,22 @@ def test_create_pdm_document_reference_with_raw_request(
                 contentType="application/pdf",
                 title="test-file.pdf",
                 creation="2023-01-01T12:00:00Z",
-            )
-        )
+            ),
+        ),
     ]
     fhir_doc.custodian = Reference(
         identifier=Identifier(
-            system="https://fhir.nhs.uk/Id/ods-organization-code", value="A12345"
-        )
+            system="https://fhir.nhs.uk/Id/ods-organization-code",
+            value="A12345",
+        ),
     )
     fhir_doc.author = [
         Reference(
             identifier=Identifier(
-                system="https://fhir.nhs.uk/Id/ods-organization-code", value="B67890"
-            )
-        )
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
     ]
 
     doc_type = SnomedCodes.PATIENT_DATA.value
@@ -461,7 +564,9 @@ def test_create_pdm_document_reference_with_raw_request(
 
 
 def test_create_lg_document_reference_with_raw_request(
-    mock_fhir_doc_ref_base_service, mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
     """Test _create_document_reference method with raw_request included (LG, should be empty)."""
 
@@ -472,20 +577,22 @@ def test_create_lg_document_reference_with_raw_request(
                 contentType="application/pdf",
                 title="test-file.pdf",
                 creation="2023-01-01T12:00:00Z",
-            )
-        )
+            ),
+        ),
     ]
     fhir_doc.custodian = Reference(
         identifier=Identifier(
-            system="https://fhir.nhs.uk/Id/ods-organization-code", value="A12345"
-        )
+            system="https://fhir.nhs.uk/Id/ods-organization-code",
+            value="A12345",
+        ),
     )
     fhir_doc.author = [
         Reference(
             identifier=Identifier(
-                system="https://fhir.nhs.uk/Id/ods-organization-code", value="B67890"
-            )
-        )
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
     ]
 
     doc_type = SnomedCodes.LLOYD_GEORGE.value
@@ -508,9 +615,11 @@ def test_create_lg_document_reference_with_raw_request(
 
 
 def test_create_pdm_document_reference_without_author_or_type(
-    mock_post_fhir_doc_ref_service, mocker
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
 ):
-    """Test _create_document_reference method with raw_request included (LG, should be empty)."""
+    """Test _create_document_reference method without author or type."""
 
     fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
     fhir_doc.content = [
@@ -519,13 +628,14 @@ def test_create_pdm_document_reference_without_author_or_type(
                 contentType="application/pdf",
                 title="test-file.pdf",
                 creation="2023-01-01T12:00:00Z",
-            )
-        )
+            ),
+        ),
     ]
     fhir_doc.custodian = Reference(
         identifier=Identifier(
-            system="https://fhir.nhs.uk/Id/ods-organization-code", value="A12345"
-        )
+            system="https://fhir.nhs.uk/Id/ods-organization-code",
+            value="A12345",
+        ),
     )
     fhir_doc.author = []
     fhir_doc.type = []
@@ -546,3 +656,88 @@ def test_create_pdm_document_reference_without_author_or_type(
     assert result.custodian == "A12345"
     assert result.current_gp_ods == "C13579"
     assert result.author is None
+
+
+def test_create_pdm_document_reference_without_title(
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
+):
+    """Test _create_document_reference method without title"""
+
+    fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
+    fhir_doc.content = [
+        DocumentReferenceContent(
+            attachment=Attachment(
+                contentType="application/pdf",
+                creation="2023-01-01T12:00:00Z",
+            ),
+        ),
+    ]
+    fhir_doc.custodian = Reference(
+        identifier=Identifier(
+            system="https://fhir.nhs.uk/Id/ods-organization-code",
+            value="A12345",
+        ),
+    )
+    fhir_doc.author = [
+        Reference(
+            identifier=Identifier(
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
+    ]
+
+    doc_type = SnomedCodes.PATIENT_DATA.value
+    result = mock_post_fhir_doc_ref_service._create_document_reference(
+        nhs_number="9000000009",
+        author="B67890",
+        doc_type=doc_type,
+        fhir_doc=fhir_doc,
+        current_gp_ods="C13579",
+        raw_fhir_doc=json.dumps({"foo": "bar"}),
+    )
+
+    assert result.raw_request == json.dumps({"foo": "bar"})
+    assert result.nhs_number == "9000000009"
+    assert result.document_snomed_code_type == SnomedCodes.PATIENT_DATA.value.code
+    assert result.custodian == "A12345"
+    assert result.current_gp_ods == "C13579"
+    assert result.file_name is None
+
+
+def test_process_fhir_document_reference_without_content_raises_error(
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mock_mtls_common_names,
+    invalid_fhir_doc_json_missing_content,
+    valid_mtls_request_context,
+):
+    with pytest.raises(DocumentRefException) as excinfo:
+        mock_post_fhir_doc_ref_service.process_fhir_document_reference(
+            invalid_fhir_doc_json_missing_content,
+            valid_mtls_request_context,
+        )
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.error == LambdaError.DocRefNoParse
+    assert excinfo.value.message == "Failed to parse document upload request data"
+
+
+def test_process_fhir_document_reference_without_content_attachment_raises_error(
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mock_mtls_common_names,
+    invalid_fhir_doc_json_missing_content_attachment,
+    valid_mtls_request_context,
+):
+    with pytest.raises(DocumentRefException) as excinfo:
+        mock_post_fhir_doc_ref_service.process_fhir_document_reference(
+            invalid_fhir_doc_json_missing_content_attachment,
+            valid_mtls_request_context,
+        )
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.error == LambdaError.DocRefNoParse
+    assert excinfo.value.message == "Failed to parse document upload request data"

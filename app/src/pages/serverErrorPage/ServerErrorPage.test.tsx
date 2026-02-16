@@ -1,10 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { act } from 'react';
 import ServerErrorPage from './ServerErrorPage';
 import userEvent from '@testing-library/user-event';
 import { unixTimestamp } from '../../helpers/utils/createTimestamp';
 import { runAxeTest } from '../../helpers/test/axeTestHelper';
 import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { routes } from '../../types/generic/routes';
 
 const mockedUseNavigate = vi.fn();
 const mockSearchParamsGet = vi.fn();
@@ -38,12 +38,12 @@ describe('ServerErrorPage', () => {
             expect(screen.getByText('There was an unexplained error')).toBeInTheDocument();
             expect(
                 screen.getByText(
-                    "Try again by returning to the previous page. You'll need to enter any information you submitted again.",
+                    "Try again by returning to the home page. You'll need to enter any information you submitted again.",
                 ),
             ).toBeInTheDocument();
             expect(
                 screen.getByRole('button', {
-                    name: 'Return to previous page',
+                    name: 'Go to home',
                 }),
             ).toBeInTheDocument();
             expect(
@@ -128,16 +128,14 @@ describe('ServerErrorPage', () => {
             mockSearchParamsGet.mockReturnValue(mockEncoded);
 
             render(<ServerErrorPage />);
-            const returnButtonLink = screen.getByRole('button', {
-                name: 'Return to previous page',
+            const homeButtonLink = screen.getByRole('button', {
+                name: 'Go to home',
             });
-            expect(returnButtonLink).toBeInTheDocument();
-            act(() => {
-                userEvent.click(returnButtonLink);
-            });
+            expect(homeButtonLink).toBeInTheDocument();
+            await userEvent.click(homeButtonLink);
 
             await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(-2);
+                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.HOME);
             });
         });
     });

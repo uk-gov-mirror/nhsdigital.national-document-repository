@@ -110,6 +110,7 @@ const buildUploadSession = (documents: Array<UploadDocument>): UploadSession => 
 
 const buildSearchResult = (searchResultOverride?: Partial<SearchResult>): SearchResult => {
     const result: SearchResult = {
+        author: 'Y12345',
         fileName: 'fileName.pdf',
         created: moment().format(),
         virusScannerResult: 'Clean',

@@ -15,6 +15,7 @@ from services.document_reference_search_service import DocumentReferenceSearchSe
 from tests.unit.conftest import (
     APIM_API_URL,
     MOCK_LG_TABLE_NAME,
+    TEST_CURRENT_GP_ODS,
     TEST_FILE_SIZE,
     TEST_NHS_NUMBER,
 )
@@ -29,6 +30,7 @@ MOCK_DOCUMENT_REFERENCE = [
 
 EXPECTED_RESPONSE = {
     "created": "2024-01-01T12:00:00.000Z",
+    "author": TEST_CURRENT_GP_ODS,
     "fileName": "document.csv",
     "virusScannerResult": "Clean",
     "id": "3d8683b9-1665-40d2-8499-6e8302d507ff",
