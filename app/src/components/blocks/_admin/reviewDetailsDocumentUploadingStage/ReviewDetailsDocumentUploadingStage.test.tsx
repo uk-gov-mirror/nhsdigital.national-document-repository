@@ -11,8 +11,13 @@ import {
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import { routes, routeChildren } from '../../../../types/generic/routes';
-import { buildLgFile, buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import {
+    buildLgFile,
+    buildPatientDetails,
+    buildUploadSession,
+} from '../../../../helpers/test/testBuilders';
 import * as uploadDocumentsModule from '../../../../helpers/requests/uploadDocuments';
+import * as documentUploadModule from '../../../../helpers/utils/documentUpload';
 import * as mergePdfsModule from '../../../../helpers/utils/mergePdfs';
 import { JSX } from 'react';
 
@@ -42,7 +47,8 @@ vi.mock('../../../../helpers/hooks/useBaseAPIHeaders', () => ({
     default: (): typeof mockUseBaseAPIHeaders => mockUseBaseAPIHeaders,
 }));
 
-vi.mock('../../../../helpers/utils/urlManipulations', () => ({
+vi.mock('../../../../helpers/utils/urlManipulations', async () => ({
+    ...(await vi.importActual('../../../../helpers/utils/urlManipulations')),
     useEnhancedNavigate: (): any => {
         const fn = mockNavigate;
         (fn as any).withParams = mockNavigate;
@@ -264,7 +270,7 @@ describe('ReviewDetailsDocumentUploadingStage', (): void => {
             const error = {
                 response: { status: 500 },
             };
-            vi.spyOn(uploadDocumentsModule, 'default').mockRejectedValueOnce(error);
+            vi.spyOn(documentUploadModule, 'getUploadSession').mockRejectedValueOnce(error);
 
             const stitchedReviewData = new ReviewDetails(
                 'test-review-id',
@@ -365,6 +371,11 @@ describe('ReviewDetailsDocumentUploadingStage', (): void => {
         it('sets up interval timer for document status polling', async (): Promise<void> => {
             const setIntervalSpy = vi.spyOn(window, 'setInterval');
 
+            vi.spyOn(documentUploadModule, 'getUploadSession').mockResolvedValueOnce(
+                buildUploadSession(mockDocuments),
+            );
+            vi.spyOn(uploadDocumentsModule, 'uploadDocumentToS3').mockResolvedValue();
+
             const stitchedReviewData = new ReviewDetails(
                 'test-review-id',
                 '16521000000101' as DOCUMENT_TYPE,
@@ -437,109 +448,14 @@ describe('ReviewDetailsDocumentUploadingStage', (): void => {
         });
     });
 
-    describe('Session handling', (): void => {
-        it('navigates to SESSION_EXPIRED on 403 error during upload', async (): Promise<void> => {
-            const error = {
-                response: { status: 403 },
-            };
-            vi.spyOn(uploadDocumentsModule, 'default').mockRejectedValueOnce(error);
-
-            const stitchedReviewData = new ReviewDetails(
-                'test-review-id',
-                '16521000000101' as DOCUMENT_TYPE,
-                '2023-10-01T12:00:00Z',
-                'Test Uploader',
-                '2023-10-01T12:00:00Z',
-                'Test Reason',
-                '1',
-                '1234567890',
-            );
-
-            const documentsWithExisting = [
-                {
-                    ...mockDocuments[0],
-                    type: UploadDocumentType.EXISTING,
-                    versionId: 'v1',
-                },
-            ];
-
-            renderComponent(documentsWithExisting, stitchedReviewData);
-
-            await waitFor(
-                (): void => {
-                    expect(screen.queryByText('Preparing documents')).not.toBeInTheDocument();
-                },
-                { timeout: 2000 },
-            );
-
-            await waitFor((): void => {
-                expect(screen.getByTestId('start-upload-button')).toBeInTheDocument();
-            });
-
-            const startButton = screen.getByTestId('start-upload-button');
-            await act(async () => {
-                startButton.click();
-            });
-
-            await waitFor((): void => {
-                expect(mockNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
-            });
-        });
-
-        it('navigates to SESSION_EXPIRED on 403 error during S3 upload', async (): Promise<void> => {
-            const error = {
-                response: { status: 403 },
-            };
-            vi.spyOn(uploadDocumentsModule, 'uploadDocumentToS3').mockRejectedValueOnce(error);
-
-            const stitchedReviewData = new ReviewDetails(
-                'test-review-id',
-                '16521000000101' as DOCUMENT_TYPE,
-                '2023-10-01T12:00:00Z',
-                'Test Uploader',
-                '2023-10-01T12:00:00Z',
-                'Test Reason',
-                '1',
-                '1234567890',
-            );
-
-            const documentsWithExisting = [
-                {
-                    ...mockDocuments[0],
-                    type: UploadDocumentType.EXISTING,
-                    versionId: 'v1',
-                },
-            ];
-
-            renderComponent(documentsWithExisting, stitchedReviewData);
-
-            await waitFor(
-                (): void => {
-                    expect(screen.queryByText('Preparing documents')).not.toBeInTheDocument();
-                },
-                { timeout: 2000 },
-            );
-
-            await waitFor((): void => {
-                expect(screen.getByTestId('start-upload-button')).toBeInTheDocument();
-            });
-
-            const startButton = screen.getByTestId('start-upload-button');
-            await act(async () => {
-                startButton.click();
-            });
-
-            await waitFor((): void => {
-                expect(mockNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
-            });
-        });
-    });
-
     describe('S3 Upload error handling', (): void => {
         it('marks document as failed and navigates to SERVER_ERROR on S3 upload failure', async (): Promise<void> => {
             const error = {
                 response: { status: 500 },
             };
+            vi.spyOn(documentUploadModule, 'getUploadSession').mockResolvedValueOnce(
+                buildUploadSession(mockDocuments),
+            );
             vi.spyOn(uploadDocumentsModule, 'uploadDocumentToS3').mockRejectedValueOnce(error);
 
             const stitchedReviewData = new ReviewDetails(

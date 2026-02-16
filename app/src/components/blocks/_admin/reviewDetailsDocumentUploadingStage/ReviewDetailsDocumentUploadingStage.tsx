@@ -8,9 +8,8 @@ import {
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import usePatient from '../../../../helpers/hooks/usePatient';
-import uploadDocuments, {
+import {
     generateStitchedFileName,
-    getDocumentStatus,
     uploadDocumentToS3,
 } from '../../../../helpers/requests/uploadDocuments';
 import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
@@ -24,9 +23,8 @@ import {
 import { useEnhancedNavigate } from '../../../../helpers/utils/urlManipulations';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import { routeChildren, routes } from '../../../../types/generic/routes';
-import { DocumentStatusResult, UploadSession } from '../../../../types/generic/uploadResult';
+import { UploadSession } from '../../../../types/generic/uploadResult';
 import {
-    DOCUMENT_STATUS,
     DOCUMENT_UPLOAD_STATE,
     ReviewUploadDocument,
     UploadDocument,
@@ -34,6 +32,7 @@ import {
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import Spinner from '../../../generic/spinner/Spinner';
 import DocumentUploadingStage from '../../_documentUpload/documentUploadingStage/DocumentUploadingStage';
+import { getUploadSession, startIntervalTimer } from '../../../../helpers/utils/documentUpload';
 
 type Props = {
     reviewData: ReviewDetails | null;
@@ -55,7 +54,7 @@ const ReviewDetailsDocumentUploadingStage = ({
     const navigate = useEnhancedNavigate();
     const completeRef = useRef(false);
     const virusReference = useRef(false);
-    const interval = useRef<number>(0);
+    const [interval, setInterval] = useState<number>(0);
     const intervalTimerRef = useRef<number | null>(null);
     const documentsRef = useRef<UploadDocument[]>(documents);
 
@@ -145,7 +144,7 @@ const ReviewDetailsDocumentUploadingStage = ({
     }, [documents]);
 
     useEffect(() => {
-        if (interval.current * UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS > MAX_POLLING_TIME) {
+        if (interval * UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS > MAX_POLLING_TIME) {
             clearIntervalTimer();
             navigate(routes.SERVER_ERROR);
             return;
@@ -174,7 +173,7 @@ const ReviewDetailsDocumentUploadingStage = ({
                 ),
             );
         }
-    }, [baseHeaders, baseUrl, documents, navigate, nhsNumber, setDocuments]);
+    }, [baseHeaders, baseUrl, documents, navigate, nhsNumber, setDocuments, interval]);
 
     useEffect(() => {
         return (): void => {
@@ -225,15 +224,15 @@ const ReviewDetailsDocumentUploadingStage = ({
 
     const startUpload = async (): Promise<void> => {
         try {
-            const uploadSession: UploadSession = isLocal
-                ? getMockUploadSession(documents)
-                : await uploadDocuments({
-                      nhsNumber,
-                      documents: documents,
-                      baseUrl,
-                      baseHeaders,
-                      documentReferenceId: existingId,
-                  });
+            const uploadSession: UploadSession = await getUploadSession(
+                patientDetails!,
+                baseUrl,
+                baseHeaders,
+                existingId,
+                documents,
+                setDocuments,
+            );
+
             const uploadingDocuments = markDocumentsAsUploading(documents, uploadSession);
             setDocuments(uploadingDocuments);
             setIsLoading(false);
@@ -242,7 +241,16 @@ const ReviewDetailsDocumentUploadingStage = ({
                 uploadAllDocuments(uploadingDocuments, uploadSession);
             }
 
-            const updateStateInterval = startIntervalTimer(uploadingDocuments);
+            const updateStateInterval = startIntervalTimer(
+                uploadingDocuments,
+                setInterval,
+                documents,
+                setDocuments,
+                patientDetails!,
+                baseUrl,
+                baseHeaders,
+                UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS,
+            );
             intervalTimerRef.current = updateStateInterval;
         } catch (e) {
             setIsLoading(false);
@@ -267,105 +275,6 @@ const ReviewDetailsDocumentUploadingStage = ({
                 navigate(routes.SERVER_ERROR + errorToParams(error));
             }
         }
-    };
-
-    const startIntervalTimer = (uploadDocuments: Array<UploadDocument>): number => {
-        const startIntervalTimerIsLocal = (): void => {
-            const updatedDocuments = uploadDocuments.map((doc) => {
-                const min = (doc.progress ?? 0) + 40;
-                const max = 70;
-                doc.progress = Math.random() * (min + max - (min + 1)) + min;
-                doc.progress = doc.progress > 100 ? 100 : doc.progress;
-                if (doc.progress < 100) {
-                    doc.state = DOCUMENT_UPLOAD_STATE.UPLOADING;
-                } else if (doc.state !== DOCUMENT_UPLOAD_STATE.SCANNING) {
-                    doc.state = DOCUMENT_UPLOAD_STATE.SCANNING;
-                } else {
-                    const hasVirusFile = documents.filter(
-                        (d) => d.file.name.toLocaleLowerCase() === 'virus.pdf',
-                    );
-                    const hasFailedFile = documents.filter(
-                        (d) => d.file.name.toLocaleLowerCase() === 'virus-failed.pdf',
-                    );
-                    if (hasVirusFile.length > 0) {
-                        doc.state = DOCUMENT_UPLOAD_STATE.INFECTED;
-                    } else if (hasFailedFile.length > 0) {
-                        doc.state = DOCUMENT_UPLOAD_STATE.FAILED;
-                    } else {
-                        doc.state = DOCUMENT_UPLOAD_STATE.SUCCEEDED;
-                    }
-                }
-
-                return doc;
-            });
-            setDocuments(updatedDocuments);
-        };
-
-        return window.setInterval(() => {
-            interval.current = interval.current + 1;
-            if (isLocal) {
-                startIntervalTimerIsLocal();
-            } else {
-                getDocumentStatus({
-                    documents: documentsRef.current,
-                    baseUrl,
-                    baseHeaders,
-                    nhsNumber,
-                })
-                    .then((documentStatusResult) => {
-                        handleDocStatusResult(documentStatusResult);
-                    })
-                    .catch((e) => {
-                        const error = e as AxiosError;
-                        if (error.response?.status === 403) {
-                            navigate(routes.SESSION_EXPIRED);
-                            return;
-                        }
-                        navigate(routes.SERVER_ERROR + errorToParams(error));
-                    });
-            }
-        }, UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS);
-    };
-
-    const handleDocStatusResult = (documentStatusResult: DocumentStatusResult): void => {
-        setDocuments((previousState) =>
-            previousState.map((doc) => {
-                const docStatus = documentStatusResult[doc.ref!];
-
-                const updatedDoc = {
-                    ...doc,
-                };
-
-                switch (docStatus?.status) {
-                    case DOCUMENT_STATUS.FINAL:
-                        updatedDoc.state = DOCUMENT_UPLOAD_STATE.SUCCEEDED;
-                        break;
-
-                    case DOCUMENT_STATUS.INFECTED:
-                        updatedDoc.state = DOCUMENT_UPLOAD_STATE.INFECTED;
-                        break;
-
-                    case DOCUMENT_STATUS.NOT_FOUND:
-                    case DOCUMENT_STATUS.CANCELLED:
-                        updatedDoc.state = DOCUMENT_UPLOAD_STATE.ERROR;
-                        updatedDoc.errorCode = docStatus.error_code;
-                        break;
-                }
-
-                return updatedDoc;
-            }),
-        );
-    };
-
-    const getMockUploadSession = (documents: ReviewUploadDocument[]): UploadSession => {
-        const session: UploadSession = {};
-        documents.forEach((doc) => {
-            session[doc.id] = {
-                url: 'https://example.com/',
-            } as any;
-        });
-
-        return session;
     };
 
     if (!hasNormalisedOnEntry) {

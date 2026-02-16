@@ -83,7 +83,7 @@ export const getUploadSession = async (
     patientDetails: PatientDetails,
     baseUrl: string,
     baseHeaders: AuthHeaders,
-    existingDocuments: UploadDocument[],
+    existingDocumentId: string | undefined,
     documents: UploadDocument[],
     setDocuments: Dispatch<SetStateAction<UploadDocument[]>>,
 ): Promise<UploadSession> => {
@@ -97,7 +97,7 @@ export const getUploadSession = async (
             documents: documents,
             baseUrl,
             baseHeaders,
-            documentReferenceId: existingDocuments[0]?.id,
+            documentReferenceId: existingDocumentId,
         });
     }
 
@@ -222,17 +222,16 @@ export const handleDocReviewStatusResult = (
 
 export const startIntervalTimer = (
     uploadDocuments: Array<UploadDocument>,
-    interval: RefObject<number>,
+    setInterval: Dispatch<SetStateAction<number>>,
     documents: Array<UploadDocument>,
     setDocuments: Dispatch<SetStateAction<UploadDocument[]>>,
-    patientDetails: PatientDetails | null,
+    patientDetails: PatientDetails,
     baseUrl: string,
     baseHeaders: AuthHeaders,
-    nhsNumber: string,
     timeout: number,
 ): number => {
     return window.setInterval(async () => {
-        interval.current = interval.current + 1;
+        setInterval((prev) => prev + 1);
         try {
             if (isLocal) {
                 const updatedDocuments = uploadDocuments.map((doc) => {
@@ -260,12 +259,12 @@ export const startIntervalTimer = (
                     return doc;
                 });
                 setDocuments(updatedDocuments);
-            } else if (patientDetails?.canManageRecord) {
+            } else if (patientDetails.canManageRecord) {
                 const documentStatusResult = await getDocumentStatus({
                     documents: uploadDocuments,
                     baseUrl,
                     baseHeaders,
-                    nhsNumber,
+                    nhsNumber: patientDetails.nhsNumber,
                 });
 
                 handleDocStatusResult(documentStatusResult, setDocuments);
@@ -275,7 +274,7 @@ export const startIntervalTimer = (
                         document,
                         baseUrl,
                         baseHeaders,
-                        nhsNumber,
+                        nhsNumber: patientDetails.nhsNumber,
                     }).then((result) => handleDocReviewStatusResult(result, setDocuments));
                 });
             }
@@ -321,7 +320,7 @@ export const handleDocumentStatusUpdates = (
     journey: JourneyType,
     navigate: EnhancedNavigate,
     intervalTimer: number,
-    interval: RefObject<number>,
+    interval: number,
     documents: UploadDocument[],
     virusReference: RefObject<boolean>,
     completeRef: RefObject<boolean>,
@@ -334,7 +333,7 @@ export const handleDocumentStatusUpdates = (
         return;
     }
 
-    if (interval.current * UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS > MAX_POLLING_TIME) {
+    if (interval * UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS > MAX_POLLING_TIME) {
         globalThis.clearInterval(intervalTimer);
         navigate(routes.SERVER_ERROR);
         return;

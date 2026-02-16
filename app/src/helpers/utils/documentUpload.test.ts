@@ -199,7 +199,7 @@ describe('documentUpload', () => {
                 mockPatientDetails,
                 baseUrl,
                 baseHeaders,
-                [],
+                undefined,
                 mockDocuments,
                 mockSetDocuments,
             );
@@ -226,7 +226,7 @@ describe('documentUpload', () => {
                 patientWithPermission,
                 baseUrl,
                 baseHeaders,
-                existingDocs,
+                existingDocs[0].id,
                 mockDocuments,
                 mockSetDocuments,
             );
@@ -268,7 +268,7 @@ describe('documentUpload', () => {
                 patientWithoutPermission,
                 baseUrl,
                 baseHeaders,
-                [],
+                undefined,
                 mockDocuments,
                 mockSetDocuments,
             );
@@ -305,7 +305,7 @@ describe('documentUpload', () => {
                 patientWithoutPermission,
                 baseUrl,
                 baseHeaders,
-                [],
+                undefined,
                 [mockDocuments[0]],
                 mockSetDocuments,
             );
@@ -655,14 +655,14 @@ describe('documentUpload', () => {
             },
         ];
 
-        const mockInterval = { current: 0 };
+        const setInterval = vi.fn();
+
         const mockSetDocuments = vi.fn();
         const baseUrl = 'https://api.example.com';
         const baseHeaders = { Authorization: 'Bearer token', 'Content-Type': 'application/json' };
         const nhsNumber = '1234567890';
 
         beforeEach(() => {
-            mockInterval.current = 0;
             vi.useFakeTimers();
             vi.clearAllMocks();
         });
@@ -682,13 +682,12 @@ describe('documentUpload', () => {
 
             startIntervalTimer(
                 mockUploadDocuments,
-                mockInterval as any,
+                setInterval,
                 mockUploadDocuments,
                 mockSetDocuments,
                 patientWithPermission,
                 baseUrl,
                 baseHeaders,
-                nhsNumber,
                 1000,
             );
 
@@ -701,7 +700,6 @@ describe('documentUpload', () => {
                 nhsNumber,
             });
             expect(mockSetDocuments).toHaveBeenCalled();
-            expect(mockInterval.current).toBe(1);
         });
 
         it('should call getDocumentReviewStatus when user cannot manage record', async () => {
@@ -716,13 +714,12 @@ describe('documentUpload', () => {
 
             startIntervalTimer(
                 mockUploadDocuments,
-                mockInterval as any,
+                setInterval,
                 mockUploadDocuments,
                 mockSetDocuments,
                 patientWithoutPermission,
                 baseUrl,
                 baseHeaders,
-                nhsNumber,
                 1000,
             );
 
@@ -735,28 +732,6 @@ describe('documentUpload', () => {
                 nhsNumber,
             });
             expect(mockSetDocuments).toHaveBeenCalled();
-        });
-
-        it('should increment interval counter on each tick', async () => {
-            startIntervalTimer(
-                mockUploadDocuments,
-                mockInterval as any,
-                mockUploadDocuments,
-                mockSetDocuments,
-                { ...mockPatientDetails, canManageRecord: true },
-                baseUrl,
-                baseHeaders,
-                nhsNumber,
-                1000,
-            );
-
-            expect(mockInterval.current).toBe(0);
-
-            await vi.advanceTimersByTimeAsync(1000);
-            expect(mockInterval.current).toBe(1);
-
-            await vi.advanceTimersByTimeAsync(1000);
-            expect(mockInterval.current).toBe(2);
         });
 
         it('should update documents locally when isLocal is true', async () => {
@@ -772,13 +747,12 @@ describe('documentUpload', () => {
 
             startIntervalTimer(
                 localDocs,
-                mockInterval as any,
+                setInterval,
                 localDocs,
                 mockSetDocuments,
                 mockPatientDetails,
                 baseUrl,
                 baseHeaders,
-                nhsNumber,
                 1000,
             );
 
@@ -803,13 +777,12 @@ describe('documentUpload', () => {
 
             startIntervalTimer(
                 localDocs,
-                mockInterval as any,
+                setInterval,
                 localDocs,
                 mockSetDocuments,
                 mockPatientDetails,
                 baseUrl,
                 baseHeaders,
-                nhsNumber,
                 1000,
             );
 
@@ -832,13 +805,12 @@ describe('documentUpload', () => {
 
             startIntervalTimer(
                 [virusDoc],
-                mockInterval as any,
+                setInterval,
                 [virusDoc],
                 mockSetDocuments,
                 mockPatientDetails,
                 baseUrl,
                 baseHeaders,
-                nhsNumber,
                 1000,
             );
 
@@ -860,13 +832,12 @@ describe('documentUpload', () => {
 
             startIntervalTimer(
                 [failedDoc],
-                mockInterval as any,
+                setInterval,
                 [failedDoc],
                 mockSetDocuments,
                 mockPatientDetails,
                 baseUrl,
                 baseHeaders,
-                nhsNumber,
                 1000,
             );
 
@@ -889,13 +860,12 @@ describe('documentUpload', () => {
 
             startIntervalTimer(
                 localDocs,
-                mockInterval as any,
+                setInterval,
                 localDocs,
                 mockSetDocuments,
                 mockPatientDetails,
                 baseUrl,
                 baseHeaders,
-                nhsNumber,
                 1000,
             );
 
@@ -1071,7 +1041,7 @@ describe('documentUpload', () => {
             withParams: vi.fn(),
         });
 
-        let mockInterval: { current: number };
+        let mockInterval = 0;
         let mockVirusRef: { current: boolean };
         let mockCompleteRef: { current: boolean };
 
@@ -1080,7 +1050,7 @@ describe('documentUpload', () => {
             vi.spyOn(globalThis, 'clearInterval');
             vi.spyOn(window, 'clearInterval');
             vi.spyOn(urlManipulations, 'getJourney').mockReturnValue('new');
-            mockInterval = { current: 1 };
+            mockInterval = 1;
             mockVirusRef = { current: false };
             mockCompleteRef = { current: false };
         });
@@ -1105,7 +1075,7 @@ describe('documentUpload', () => {
         });
 
         it('should navigate to SERVER_ERROR when polling time exceeds MAX_POLLING_TIME', () => {
-            mockInterval.current =
+            mockInterval =
                 Math.ceil(MAX_POLLING_TIME / UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS) + 1;
 
             const intervalTimer = 456;

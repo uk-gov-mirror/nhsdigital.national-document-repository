@@ -67,7 +67,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
     const [mergedPdfBlob, setMergedPdfBlob] = useState<Blob>();
     const [journey, setJourney] = useState<JourneyType>(getJourney());
     const config = useConfig();
-    const interval = useRef<number>(0);
+    const [interval, setInterval] = useState(0);
     const filesErrorPageRef = useRef(false);
     const [documentType, setDocumentType] = useState<DOCUMENT_TYPE>(DOCUMENT_TYPE.LLOYD_GEORGE);
     const [documentConfig, setDocumentConfig] = useState<DOCUMENT_TYPE_CONFIG>(
@@ -108,6 +108,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
         setDocuments,
         uploadSession,
         intervalTimer,
+        interval,
     ]);
 
     useEffect(() => {
@@ -217,7 +218,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
                 patientDetails!,
                 baseUrl,
                 baseHeaders,
-                existingDocuments,
+                existingDocuments[0]?.id,
                 documents,
                 setDocuments,
             );
@@ -232,13 +233,12 @@ const DocumentUploadPage = (): React.JSX.Element => {
 
             const updateStateInterval = startIntervalTimer(
                 uploadingDocuments.filter((d) => d.state !== DOCUMENT_UPLOAD_STATE.ERROR),
-                interval,
+                setInterval,
                 documents,
                 setDocuments,
-                patientDetails,
+                patientDetails!,
                 baseUrl,
                 baseHeaders,
-                nhsNumber,
                 UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS,
             );
             setIntervalTimer(updateStateInterval);
