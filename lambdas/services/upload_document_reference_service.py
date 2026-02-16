@@ -22,7 +22,7 @@ from utils.exceptions import (
     FileProcessingException,
     TransactionConflictException,
 )
-from utils.file_utils import check_file_locked_or_corrupt
+from utils.file_integrity_check import check_file_locked_or_corrupt
 from utils.lambda_exceptions import InvalidDocTypeException
 from utils.s3_utils import DocTypeS3BucketRouter
 from utils.utilities import get_virus_scan_service
