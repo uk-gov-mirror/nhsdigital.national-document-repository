@@ -25,7 +25,6 @@ from tests.unit.helpers.data.dynamo.dynamo_responses import (
 from tests.unit.helpers.data.test_documents import (
     create_test_lloyd_george_doc_store_refs,
 )
-from utils.common_query_filters import NotDeleted
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.exceptions import DocumentServiceException
 
@@ -65,12 +64,16 @@ def mock_filter_expression():
 
 
 def test_fetch_available_document_references_by_type_lg_returns_list_of_doc_references(
-    mock_service, mock_dynamo_service, mock_filter_expression
+    mock_service,
+    mock_dynamo_service,
+    mock_filter_expression,
 ):
     mock_dynamo_service.query_table.return_value = MOCK_SEARCH_RESPONSE["Items"]
 
     results = mock_service.fetch_available_document_references_by_type(
-        TEST_NHS_NUMBER, SupportedDocumentTypes.LG, mock_filter_expression
+        TEST_NHS_NUMBER,
+        SupportedDocumentTypes.LG,
+        mock_filter_expression,
     )
 
     assert len(results) == 3
@@ -87,12 +90,16 @@ def test_fetch_available_document_references_by_type_lg_returns_list_of_doc_refe
 
 
 def test_fetch_available_document_references_by_type_arf_returns_list_of_doc_references(
-    mock_service, mock_dynamo_service, mock_filter_expression
+    mock_service,
+    mock_dynamo_service,
+    mock_filter_expression,
 ):
     mock_dynamo_service.query_table.return_value = MOCK_SEARCH_RESPONSE["Items"]
 
     results = mock_service.fetch_available_document_references_by_type(
-        TEST_NHS_NUMBER, SupportedDocumentTypes.ARF, mock_filter_expression
+        TEST_NHS_NUMBER,
+        SupportedDocumentTypes.ARF,
+        mock_filter_expression,
     )
 
     assert len(results) == 3
@@ -109,12 +116,16 @@ def test_fetch_available_document_references_by_type_arf_returns_list_of_doc_ref
 
 
 def test_fetch_available_document_references_by_type_lg_returns_empty_list_of_doc_references(
-    mock_service, mock_dynamo_service, mock_filter_expression
+    mock_service,
+    mock_dynamo_service,
+    mock_filter_expression,
 ):
     mock_dynamo_service.query_table.return_value = MOCK_EMPTY_RESPONSE
 
     result = mock_service.fetch_available_document_references_by_type(
-        TEST_NHS_NUMBER, SupportedDocumentTypes.LG, mock_filter_expression
+        TEST_NHS_NUMBER,
+        SupportedDocumentTypes.LG,
+        mock_filter_expression,
     )
     assert len(result) == 0
     mock_dynamo_service.query_table.assert_called_once_with(
@@ -127,7 +138,10 @@ def test_fetch_available_document_references_by_type_lg_returns_empty_list_of_do
 
 
 def test_fetch_documents_from_table_with_filter_returns_list_of_doc_references(
-    mocker, mock_service, mock_dynamo_service, mock_filter_expression
+    mocker,
+    mock_service,
+    mock_dynamo_service,
+    mock_filter_expression,
 ):
     expected_calls = [
         mocker.call(
@@ -136,7 +150,7 @@ def test_fetch_documents_from_table_with_filter_returns_list_of_doc_references(
             search_key="NhsNumber",
             search_condition=TEST_NHS_NUMBER,
             query_filter=mock_filter_expression,
-        )
+        ),
     ]
 
     mock_dynamo_service.query_table.return_value = MOCK_SEARCH_RESPONSE["Items"]
@@ -155,7 +169,10 @@ def test_fetch_documents_from_table_with_filter_returns_list_of_doc_references(
 
 
 def test_fetch_documents_from_table_with_filter_returns_empty_list_of_doc_references(
-    mocker, mock_service, mock_dynamo_service, mock_filter_expression
+    mocker,
+    mock_service,
+    mock_dynamo_service,
+    mock_filter_expression,
 ):
     expected_calls = [
         mocker.call(
@@ -164,7 +181,7 @@ def test_fetch_documents_from_table_with_filter_returns_empty_list_of_doc_refere
             search_key="NhsNumber",
             search_condition=TEST_NHS_NUMBER,
             query_filter=mock_filter_expression,
-        )
+        ),
     ]
     mock_dynamo_service.query_table.return_value = MOCK_EMPTY_RESPONSE
 
@@ -193,7 +210,9 @@ def test_delete_documents_soft_delete(mock_service, mock_dynamo_service):
     }
 
     mock_service.delete_document_references(
-        MOCK_TABLE_NAME, [test_doc_ref], DocumentRetentionDays.SOFT_DELETE
+        MOCK_TABLE_NAME,
+        [test_doc_ref],
+        DocumentRetentionDays.SOFT_DELETE,
     )
 
     mock_dynamo_service.update_item.assert_called_once_with(
@@ -247,7 +266,9 @@ def test_delete_documents_death_delete(mock_service, mock_dynamo_service):
     }
 
     mock_service.delete_document_references(
-        MOCK_TABLE_NAME, [test_doc_ref], DocumentRetentionDays.DEATH
+        MOCK_TABLE_NAME,
+        [test_doc_ref],
+        DocumentRetentionDays.DEATH,
     )
 
     mock_dynamo_service.update_item.assert_called_once_with(
@@ -290,7 +311,10 @@ def test_update_document_with_custom_key_pair(mock_service, mock_dynamo_service)
     )
 
     mock_service.update_document(
-        MOCK_TABLE_NAME, test_doc_ref, test_update_fields, key_pair=custom_key_pair
+        MOCK_TABLE_NAME,
+        test_doc_ref,
+        test_update_fields,
+        key_pair=custom_key_pair,
     )
 
     mock_dynamo_service.update_item.assert_has_calls([update_item_call])
@@ -338,7 +362,7 @@ def test_hard_delete_metadata_records(mock_service, mock_dynamo_service):
         [
             call(MOCK_TABLE_NAME, expected_deletion_keys[0]),
             call(MOCK_TABLE_NAME, expected_deletion_keys[1]),
-        ]
+        ],
     )
 
 
@@ -353,7 +377,7 @@ def test_check_existing_lloyd_george_records_return_true_if_upload_in_progress(
             "uploading": True,
             "last_updated": two_minutes_ago,
             "doc_status": "preliminary",
-        }
+        },
     )
 
     response = mock_service.is_upload_in_process(mock_records_upload_in_process[0])
@@ -376,10 +400,12 @@ def test_delete_document_object_successfully_deletes_s3_object(mock_service, cap
 
     assert mock_service.s3_service.file_exist_on_s3.call_count == 2
     mock_service.s3_service.file_exist_on_s3.assert_called_with(
-        s3_bucket_name=test_bucket, file_key=test_file_key
+        s3_bucket_name=test_bucket,
+        file_key=test_file_key,
     )
     mock_service.s3_service.delete_object.assert_called_with(
-        s3_bucket_name=test_bucket, file_key=test_file_key
+        s3_bucket_name=test_bucket,
+        file_key=test_file_key,
     )
 
     assert expected_log_message in caplog.records[-1].msg
@@ -401,10 +427,12 @@ def test_delete_document_object_fails_to_delete_s3_object(mock_service, caplog):
 
     assert mock_service.s3_service.file_exist_on_s3.call_count == 2
     mock_service.s3_service.file_exist_on_s3.assert_called_with(
-        s3_bucket_name=test_bucket, file_key=test_file_key
+        s3_bucket_name=test_bucket,
+        file_key=test_file_key,
     )
     mock_service.s3_service.delete_object.assert_called_with(
-        s3_bucket_name=test_bucket, file_key=test_file_key
+        s3_bucket_name=test_bucket,
+        file_key=test_file_key,
     )
     assert expected_err_msg == str(e.value)
 
@@ -413,26 +441,22 @@ def test_get_nhs_numbers_based_on_ods_code(mock_service, mocker):
     ods_code = "Y12345"
     expected_nhs_number = "9000000009"
 
-    mock_documents = create_test_lloyd_george_doc_store_refs()
+    mock_scan_results = [{"NhsNumber": expected_nhs_number}]
 
-    mock_fetch = mocker.patch.object(
-        mock_service,
-        "fetch_documents_from_table",
-        return_value=mock_documents,
-    )
+    mock_service.dynamo_service.scan_whole_table.return_value = mock_scan_results
 
     result = mock_service.get_nhs_numbers_based_on_ods_code(
-        ods_code, MOCK_LG_TABLE_NAME
+        ods_code,
+        MOCK_LG_TABLE_NAME,
     )
 
     assert result == [expected_nhs_number]
 
-    mock_fetch.assert_called_once_with(
+    mock_service.dynamo_service.scan_whole_table.assert_called_once_with(
         table_name=MOCK_LG_TABLE_NAME,
-        index_name="OdsCodeIndex",
-        search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
-        search_condition=ods_code,
-        query_filter=NotDeleted,
+        project_expression="NhsNumber",
+        filter_expression=Attr("Author").eq(ods_code)
+        & Attr("FileName").begins_with("2of"),
     )
 
 
@@ -464,7 +488,8 @@ def test_get_batch_document_references_by_id_success(mock_service):
     result = mock_service.get_batch_document_references_by_id(document_ids, doc_type)
 
     mock_service.dynamo_service.batch_get_items.assert_called_with(
-        table_name=table_name, key_list=document_ids
+        table_name=table_name,
+        key_list=document_ids,
     )
     assert len(result) == 2
     assert isinstance(result[0], DocumentReference)
@@ -482,20 +507,23 @@ def test_get_batch_document_references_by_id_not_found(mock_service):
     result = mock_service.get_batch_document_references_by_id(document_ids, doc_type)
 
     mock_service.dynamo_service.batch_get_items.assert_called_with(
-        table_name=table_name, key_list=document_ids
+        table_name=table_name,
+        key_list=document_ids,
     )
     assert len(result) == 0
 
 
 def test_get_batch_document_references_by_id_client_error(
-    mock_service, mock_dynamo_service
+    mock_service,
+    mock_dynamo_service,
 ):
     document_ids = ["doc1"]
     doc_type = SupportedDocumentTypes.LG
     error_response = {"Error": {"Code": "500", "Message": "Something went wrong"}}
 
     mock_dynamo_service.batch_get_items.side_effect = ClientError(
-        error_response, "BatchGetItem"
+        error_response,
+        "BatchGetItem",
     )
 
     with pytest.raises(ClientError):
@@ -526,7 +554,7 @@ def test_get_item_success(
             "Created": "2023-01-01T00:00:00Z",
             "Deleted": "",
             "VirusScannerResult": "Clean",
-        }
+        },
     }
 
     mock_dynamo_service.get_item.return_value = mock_dynamo_response
@@ -537,7 +565,8 @@ def test_get_item_success(
         result = mock_service.get_item(document_id)
 
     mock_dynamo_service.get_item.assert_called_once_with(
-        table_name=expected_table, key={"ID": document_id}
+        table_name=expected_table,
+        key={"ID": document_id},
     )
     assert result is not None
     assert isinstance(result, DocumentReference)
@@ -570,7 +599,8 @@ def test_get_item_returns_none(
     result = mock_service.get_item(document_id)
 
     mock_dynamo_service.get_item.assert_called_once_with(
-        table_name=MOCK_LG_TABLE_NAME, key={"ID": document_id}
+        table_name=MOCK_LG_TABLE_NAME,
+        key={"ID": document_id},
     )
     assert result is None
 
@@ -608,11 +638,11 @@ def test_get_item_with_custom_model_class(
                 {
                     "FileName": file_name,
                     "FileLocation": f"s3://bucket/{file_name}",
-                }
+                },
             ],
             "NhsNumber": TEST_NHS_NUMBER,
             "DocumentSnomedCodeType": "734163000",
-        }
+        },
     }
 
     mock_dynamo_service.get_item.return_value = mock_dynamo_response
@@ -625,11 +655,13 @@ def test_get_item_with_custom_model_class(
         )
     else:
         result = mock_service.get_item(
-            document_id, model_class=DocumentUploadReviewReference
+            document_id,
+            model_class=DocumentUploadReviewReference,
         )
 
     mock_dynamo_service.get_item.assert_called_once_with(
-        table_name=expected_table, key={"ID": document_id}
+        table_name=expected_table,
+        key={"ID": document_id},
     )
     assert result is not None
     assert isinstance(result, DocumentUploadReviewReference)
@@ -644,5 +676,6 @@ def test_get_item_document_id_with_sort_key(mock_service, mock_dynamo_service):
     mock_service.get_item(document_id, sort_key)
 
     mock_dynamo_service.get_item.assert_called_once_with(
-        table_name=MOCK_LG_TABLE_NAME, key={"ID": document_id, **sort_key}
+        table_name=MOCK_LG_TABLE_NAME,
+        key={"ID": document_id, **sort_key},
     )

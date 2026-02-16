@@ -11,7 +11,6 @@ from pydantic import BaseModel, ValidationError
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
-from utils.common_query_filters import NotDeleted
 from utils.exceptions import DocumentServiceException
 
 logger = LoggingService(__name__)
@@ -161,24 +160,37 @@ class DocumentService:
         if sort_key:
             document_key.update(sort_key)
         return self._get_item(
-            table_name=table_to_use, key=document_key, model_class=model_to_use
+            table_name=table_to_use,
+            key=document_key,
+            model_class=model_to_use,
         )
 
     def get_nhs_numbers_based_on_ods_code(
-        self, ods_code: str, table_name: str | None = None
+        self,
+        ods_code: str,
+        table_name: str | None = None,
     ) -> list[str]:
         """Get unique NHS numbers for patients with given ODS code."""
         table_name = table_name or self.table_name
-
-        documents = self.fetch_documents_from_table(
-            index_name="OdsCodeIndex",
-            search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
-            search_condition=ods_code,
-            query_filter=NotDeleted,
-            table_name=table_name,
+        filter_expression = Attr("Author").eq(ods_code) & Attr("FileName").begins_with(
+            "2of",
         )
-        nhs_numbers = list({document.nhs_number for document in documents})
-        return nhs_numbers
+        projection_expression = "NhsNumber"
+
+        logger.info("Starting scan of table for NHS numbers based on ODS code...")
+        results = self.dynamo_service.scan_whole_table(
+            table_name=table_name,
+            project_expression=projection_expression,
+            filter_expression=filter_expression,
+        )
+        unique_nhs_numbers = {
+            item["NhsNumber"] for item in results if "NhsNumber" in item
+        }
+
+        logger.info(
+            f"Retrieved {len(results)} records, found {len(unique_nhs_numbers)} unique NHS numbers.",
+        )
+        return list(unique_nhs_numbers)
 
     def delete_document_reference(
         self,
@@ -232,19 +244,21 @@ class DocumentService:
 
     def delete_document_object(self, bucket: str, key: str):
         file_exists = self.s3_service.file_exist_on_s3(
-            s3_bucket_name=bucket, file_key=key
+            s3_bucket_name=bucket,
+            file_key=key,
         )
 
         if not file_exists:
             raise DocumentServiceException("Document does not exist in S3")
 
         logger.info(
-            f"Located file `{key}` in `{bucket}`, attempting S3 object deletion"
+            f"Located file `{key}` in `{bucket}`, attempting S3 object deletion",
         )
         self.s3_service.delete_object(s3_bucket_name=bucket, file_key=key)
 
         file_exists = self.s3_service.file_exist_on_s3(
-            s3_bucket_name=bucket, file_key=key
+            s3_bucket_name=bucket,
+            file_key=key,
         )
 
         if file_exists:
@@ -265,7 +279,9 @@ class DocumentService:
         update_kwargs = {
             "table_name": table_name,
             "updated_fields": document.model_dump(
-                exclude_none=True, by_alias=True, include=update_fields_name
+                exclude_none=True,
+                by_alias=True,
+                include=update_fields_name,
             ),
             "key_pair": key_pair
             or {DocumentReferenceMetadataFields.ID.value: document.id},
@@ -280,7 +296,9 @@ class DocumentService:
         return self.dynamo_service.update_item(**update_kwargs)
 
     def hard_delete_metadata_records(
-        self, table_name: str, document_references: list[BaseModel]
+        self,
+        table_name: str,
+        document_references: list[BaseModel],
     ):
         """Permanently delete metadata from specified or configured table."""
         table_name = table_name or self.table_name
@@ -303,7 +321,9 @@ class DocumentService:
         )
 
     def get_batch_document_references_by_id(
-        self, document_ids: list[str], doc_type: SupportedDocumentTypes
+        self,
+        document_ids: list[str],
+        doc_type: SupportedDocumentTypes,
     ) -> list:
         table_name = doc_type.get_dynamodb_table_name()
 
@@ -311,7 +331,8 @@ class DocumentService:
         model_class = self.model_class
 
         response = self.dynamo_service.batch_get_items(
-            table_name=table_name, key_list=document_ids
+            table_name=table_name,
+            key_list=document_ids,
         )
 
         found_docs = [model_class.model_validate(item) for item in response]
