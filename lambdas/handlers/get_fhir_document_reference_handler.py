@@ -127,8 +127,12 @@ def get_id_and_snomed_from_path_parameters(path_parameters):
             raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
         params = path_parameters.split("~")
         if len(params) != 2:
-            logger.error("Invalid path parameters in request.")
-            raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
+            if len(params) > 2:
+                logger.error("Invalid path parameters in request.")
+                raise GetFhirDocumentReferenceException(
+                    400, LambdaError.DocRefInvalidFiles
+                )
+            return None, None
         if not is_uuid(params[1]):
             logger.error("Invalid path parameters in request.")
             raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)

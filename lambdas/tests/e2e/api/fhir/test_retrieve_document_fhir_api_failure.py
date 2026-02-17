@@ -102,11 +102,11 @@ def test_retrieve_invalid_resource_type(test_data):
 @pytest.mark.parametrize(
     "param,expected_status,expected_code",
     [
-        (f"{pdm_data_helper.snomed_code}-{str(uuid.uuid4())}", 400, "INVALID"),
-        (f"{pdm_data_helper.snomed_code}+{str(uuid.uuid4())}", 400, "INVALID"),
-        (f"{pdm_data_helper.snomed_code}&{str(uuid.uuid4())}", 400, "INVALID"),
-        (f"{pdm_data_helper.snomed_code}{str(uuid.uuid4())}", 400, "INVALID"),
-        (f"{str(uuid.uuid4())}~{pdm_data_helper.snomed_code}", 400, "INVALID"),
+        (f"{pdm_data_helper.snomed_code}-{str(uuid.uuid4())}", 400, "invalid"),
+        (f"{pdm_data_helper.snomed_code}+{str(uuid.uuid4())}", 400, "invalid"),
+        (f"{pdm_data_helper.snomed_code}&{str(uuid.uuid4())}", 400, "invalid"),
+        (f"{pdm_data_helper.snomed_code}{str(uuid.uuid4())}", 400, "invalid"),
+        (f"{str(uuid.uuid4())}~{pdm_data_helper.snomed_code}", 400, "invalid"),
     ],
 )
 def test_incorrectly_formatted_path_param_id(
@@ -163,4 +163,4 @@ def test_extra_parameter_in_id_in_path_param_id(test_data):
 
     body = response.json()
     assert response.status_code == 400
-    _assert_operation_outcome(body=body, code="INVALID")
+    _assert_operation_outcome(body=body, code="invalid")
