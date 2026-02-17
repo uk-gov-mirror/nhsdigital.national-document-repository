@@ -359,6 +359,7 @@ const DocumentUploadPage = (): React.JSX.Element => {
                     element={
                         <DocumentUploadConfirmStage
                             documents={documents}
+                            mergedPdfBlob={mergedPdfBlob}
                             setDocuments={setDocuments}
                             confirmFiles={confirmFiles}
                         />

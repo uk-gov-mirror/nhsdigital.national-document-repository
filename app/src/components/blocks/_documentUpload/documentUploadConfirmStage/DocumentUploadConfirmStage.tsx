@@ -4,19 +4,25 @@ import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/type
 import BackButton from '../../../generic/backButton/BackButton';
 import { useEffect, useState, useRef, Dispatch, SetStateAction } from 'react';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
-import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
+import {
+    DOCUMENT_TYPE,
+    DOCUMENT_TYPE_CONFIG,
+    getConfigForDocType,
+} from '../../../../helpers/utils/documentType';
 import DocumentUploadLloydGeorgePreview from '../documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import DocumentList from './components/DocumentList';
 
 type Props = {
     documents: UploadDocument[];
+    mergedPdfBlob?: Blob;
     setDocuments: Dispatch<SetStateAction<UploadDocument[]>>;
     confirmFiles: () => void;
 };
 
 const DocumentUploadConfirmStage = ({
     documents,
+    mergedPdfBlob,
     setDocuments,
     confirmFiles,
 }: Props): React.JSX.Element => {
@@ -35,6 +41,12 @@ const DocumentUploadConfirmStage = ({
         { [key in DOCUMENT_TYPE]: UploadDocument[] } | null
     >(null);
     const documentPreviewRef = useRef<HTMLDivElement>(null);
+    const [documentsForPreview, setDocumentsForPreview] = useState<UploadDocument[]>([]);
+    const [showCurrentlyViewingText, setShowCurrentlyViewingText] = useState<boolean>(false);
+    const [stitchedBlobLoadedFunction, setStitchedBlobLoadedFunction] = useState<
+        ((loaded: boolean) => void) | undefined
+    >(undefined);
+    const [currentDocConfig, setCurrentDocConfig] = useState<DOCUMENT_TYPE_CONFIG | null>(null);
 
     useTitle({ pageTitle: 'Check files are for the correct patient' });
 
@@ -66,6 +78,36 @@ const DocumentUploadConfirmStage = ({
 
         processingFiles.current = false;
     }, [documents]);
+
+    useEffect(() => {
+        if (!currentPreviewDocument) return;
+
+        const config = getConfigForDocType(currentPreviewDocument.docType);
+
+        const updateStitchedBlob = config.stitched
+            ? (loaded: boolean): void => {
+                  setStitchedBlobLoaded(loaded);
+              }
+            : undefined;
+
+        const documentsForPreview = mergedPdfBlob
+            ? ([
+                  {
+                      id: 'stitched-doc',
+                      file: new File([mergedPdfBlob], 'stitched-document.pdf', {
+                          type: 'application/pdf',
+                      }),
+                  },
+              ] as UploadDocument[])
+            : getDocumentsForPreview();
+
+        setCurrentDocConfig(config);
+        setStitchedBlobLoadedFunction(() => updateStitchedBlob);
+        setDocumentsForPreview(documentsForPreview);
+        setShowCurrentlyViewingText(
+            hasUnstitchedDocType && documents.length > 0 && !!groupedDocuments,
+        );
+    }, [currentPreviewDocument, mergedPdfBlob, groupedDocuments, hasUnstitchedDocType, documents]);
 
     const groupDocumentsByType = (
         documents: UploadDocument[],
@@ -160,34 +202,6 @@ const DocumentUploadConfirmStage = ({
         });
     };
 
-    const documentPreview = (): React.JSX.Element => {
-        if (!currentPreviewDocument) {
-            return <div ref={documentPreviewRef}></div>;
-        }
-
-        const config = getConfigForDocType(currentPreviewDocument.docType);
-
-        const updateStitchedBlob = config.stitched
-            ? (loaded: boolean): void => {
-                  setStitchedBlobLoaded(loaded);
-              }
-            : undefined;
-
-        const showCurrentlyViewingText =
-            hasUnstitchedDocType && documents.length > 0 && !!groupedDocuments;
-
-        return (
-            <div ref={documentPreviewRef}>
-                <DocumentUploadLloydGeorgePreview
-                    documents={getDocumentsForPreview()}
-                    stitchedBlobLoaded={updateStitchedBlob}
-                    documentConfig={config}
-                    showCurrentlyViewingText={showCurrentlyViewingText}
-                />
-            </div>
-        );
-    };
-
     return (
         <div className="document-upload-confirm">
             <BackButton dataTestid="go-back-link" />
@@ -204,7 +218,18 @@ const DocumentUploadConfirmStage = ({
 
             {!processingFiles.current && docLists()}
 
-            {documentPreview()}
+            {currentPreviewDocument && currentDocConfig ? (
+                <div ref={documentPreviewRef}>
+                    <DocumentUploadLloydGeorgePreview
+                        documents={documentsForPreview}
+                        stitchedBlobLoaded={stitchedBlobLoadedFunction}
+                        documentConfig={currentDocConfig}
+                        showCurrentlyViewingText={showCurrentlyViewingText}
+                    />
+                </div>
+            ) : (
+                <div ref={documentPreviewRef}></div>
+            )}
 
             {(!hasStitchedDocType || stitchedBlobLoaded) && !processingFiles.current && (
                 <Button data-testid="confirm-button" onClick={confirmClicked}>

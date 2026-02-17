@@ -60,6 +60,7 @@ const DocumentSelectOrderStage = ({
     const navigate = useEnhancedNavigate();
     const journey = getJourney();
     const [stitchedBlobLoaded, setStitchedBlobLoaded] = useState(false);
+    const submittingRef = useRef(false);
 
     const documentPositionKey = (documentId: string): string => {
         return `${documentId}`;
@@ -207,6 +208,8 @@ const DocumentSelectOrderStage = ({
     };
 
     const submitDocuments = (): void => {
+        submittingRef.current = true;
+
         updateDocumentPositions();
         if (onSuccess) {
             onSuccess();
@@ -465,31 +468,33 @@ const DocumentSelectOrderStage = ({
                     </Table.Body>
                 </Table>
 
-                <div>
-                    <DocumentUploadLloydGeorgePreview
-                        documents={getDocumentsForPreview()}
-                        setMergedPdfBlob={(blob): void => {
-                            if (documentConfig.stitched) {
-                                setMergedPdfBlob(blob);
-                            }
-                        }}
-                        stitchedBlobLoaded={(loaded: boolean): void => {
-                            setStitchedBlobLoaded(loaded);
-                        }}
-                        documentConfig={documentConfig}
-                        isReview={isReview}
-                    >
-                        {isReview && reviewData && (
-                            <CreatedByText
-                                odsCode={reviewData.uploader}
-                                dateUploaded={getFormattedDateTimeFromString(
-                                    reviewData.dateUploaded,
-                                )}
-                                cssClass="pt-5"
-                            />
-                        )}
-                    </DocumentUploadLloydGeorgePreview>
-                </div>
+                {!submittingRef.current && (
+                    <div>
+                        <DocumentUploadLloydGeorgePreview
+                            documents={getDocumentsForPreview()}
+                            setMergedPdfBlob={(blob): void => {
+                                if (documentConfig.stitched) {
+                                    setMergedPdfBlob(blob);
+                                }
+                            }}
+                            stitchedBlobLoaded={(loaded: boolean): void => {
+                                setStitchedBlobLoaded(loaded);
+                            }}
+                            documentConfig={documentConfig}
+                            isReview={isReview}
+                        >
+                            {isReview && reviewData && (
+                                <CreatedByText
+                                    odsCode={reviewData.uploader}
+                                    dateUploaded={getFormattedDateTimeFromString(
+                                        reviewData.dateUploaded,
+                                    )}
+                                    cssClass="pt-5"
+                                />
+                            )}
+                        </DocumentUploadLloydGeorgePreview>
+                    </div>
+                )}
                 {documents.length > 0 && stitchedBlobLoaded && (
                     <Button
                         type="submit"
