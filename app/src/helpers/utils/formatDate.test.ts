@@ -62,10 +62,87 @@ describe('formatDate.ts', () => {
         });
 
         it('formats numeric timestamp strings with time', () => {
-            const ts = String(new Date('2024-07-21T09:30:00Z').getTime());
+            const ts = String(new Date('2024-07-21T09:30:00Z'));
             const result = getFormattedDateTimeFromString(ts);
             expect(result).toContain('21 July 2024');
             expect(/\d{1,2}:[0-5][0-9]/.test(result)).toBe(true);
         });
+    });
+
+    describe('format epoch dates in seconds', () => {
+        it('getFormattedDateTimeFromString formats numeric timestamp strings in seconds', () => {
+            const result = getFormattedDateTimeFromString('1735689600');
+            expect(result).toContain('1 January 2025');
+        });
+
+        it('getFormattedDateFromString formats numeric timestamp strings in seconds', () => {
+            const result = getFormattedDateFromString('1735689600');
+            expect(result).toBe('1 January 2025');
+        });
+    });
+
+    describe('format epoch dates in milliseconds', () => {
+        it('getFormattedDateTimeFromString formats numeric timestamp strings in milliseconds', () => {
+            const result = getFormattedDateTimeFromString('1735689600000');
+            expect(result).toContain('1 January 2025');
+        });
+
+        it('getFormattedDateFromString formats numeric timestamp strings in milliseconds', () => {
+            const result = getFormattedDateFromString('1735689600000');
+            expect(result).toBe('1 January 2025');
+        });
+    });
+
+    describe('formats date strings and large epoch seconds', () => {
+        it('getFormattedDateTimeFromString formats date string', () => {
+            const result = getFormattedDateTimeFromString('Saturday, November 20, 2286 5:46:40 PM');
+            expect(result).toContain('20 November 2286');
+        });
+
+        it('getFormattedDateFromString formats epoch value 100000000000', () => {
+            const result = getFormattedDateFromString('100000000000');
+            expect(result).toBe('16 November 5138');
+        });
+
+        it('getFormattedDateTimeFromString formats epoch value', () => {
+            const result = getFormattedDateTimeFromString('100000000000');
+            expect(result).toBe('16 November 5138 at 09:46 am');
+        });
+    });
+
+    describe('formats very large epoch values in seconds', () => {
+        const epochSecondCases = [
+            {
+                epoch: '10000000000',
+                expectedDate: '20 November 2286',
+                expectedDateTime: '20 November 2286 at 05:46 pm',
+            },
+            {
+                epoch: '100000000000',
+                expectedDate: '16 November 5138',
+                expectedDateTime: '16 November 5138 at 09:46 am',
+            },
+            {
+                epoch: '999999999999',
+                expectedDate: '27 September 33658',
+                expectedDateTime: '27 September 33658 at 02:46 am',
+            },
+        ];
+
+        it.each(epochSecondCases)(
+            'getFormattedDateFromString formats epoch as seconds',
+            ({ epoch, expectedDate }) => {
+                const result = getFormattedDateFromString(epoch);
+                expect(result).toBe(expectedDate);
+            },
+        );
+
+        it.each(epochSecondCases)(
+            'getFormattedDateTimeFromString formats epoch as seconds',
+            ({ epoch, expectedDateTime }) => {
+                const result = getFormattedDateTimeFromString(epoch);
+                expect(result).toBe(expectedDateTime);
+            },
+        );
     });
 });

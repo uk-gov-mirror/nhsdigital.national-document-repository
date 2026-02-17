@@ -6,7 +6,7 @@ import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import getReviews from '../../../../helpers/requests/getReviews';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
-import { getFormattedDate } from '../../../../helpers/utils/formatDate';
+import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { usePatientDetailsContext } from '../../../../providers/patientProvider/PatientProvider';
 import {
@@ -55,13 +55,6 @@ const ReviewTableRows = ({
         return (
             <>
                 {reviews.map((review): JSX.Element => {
-                    let dateUploaded: Date;
-                    if (Number.isNaN(Number(review.dateUploaded))) {
-                        dateUploaded = new Date(review.dateUploaded);
-                    } else {
-                        dateUploaded = new Date(Number(review.dateUploaded));
-                    }
-
                     return (
                         <Table.Row key={review.id}>
                             <Table.Cell>
@@ -71,7 +64,9 @@ const ReviewTableRows = ({
                             </Table.Cell>
                             <Table.Cell>{review.recordType}</Table.Cell>
                             <Table.Cell>{review.uploader}</Table.Cell>
-                            <Table.Cell>{getFormattedDate(dateUploaded)}</Table.Cell>
+                            <Table.Cell>
+                                {getFormattedDateFromString(`${review.dateUploaded}`)}
+                            </Table.Cell>
                             <Table.Cell className="nowrap">
                                 <Link
                                     to={`${review.id}.${review.version}`}
@@ -230,7 +225,7 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
                 recordType: recordType,
                 snomedCode: dto.documentSnomedCodeType,
                 uploader: dto.author,
-                dateUploaded: `${dto.uploadDate}000`, // python provides time in seconds, JS uses ms
+                dateUploaded: dto.uploadDate,
                 reviewReason: dto.reviewReason,
             };
         });

@@ -10,6 +10,7 @@ export const getFormattedDateTime = (date: Date): string => {
         hour: '2-digit',
         minute: 'numeric',
         hour12: true,
+        timeZone: 'Europe/London',
     });
 };
 
@@ -21,22 +22,31 @@ export const formatDateWithDashes = (date: Date): string => {
     return `${day}-${month}-${year}`;
 };
 
+const getDateFromString = (dateString: string): Date => {
+    const numericDate = Number(dateString);
+
+    if (Number.isNaN(numericDate)) {
+        return new Date(dateString);
+    }
+
+    const absoluteValue = Math.abs(numericDate);
+    const milliseconds = absoluteValue < 1_000_000_000_000 ? numericDate * 1000 : numericDate;
+
+    return new Date(milliseconds);
+};
+
 export const getFormattedDateFromString = (dateString: string | undefined): string => {
     if (!dateString) {
         return '';
     }
-    if (Number.isNaN(Number(dateString))) {
-        return getFormattedDate(new Date(dateString));
-    }
-    return getFormattedDate(new Date(Number(dateString)));
+
+    return getFormattedDate(getDateFromString(dateString));
 };
 
 export const getFormattedDateTimeFromString = (dateString: string | undefined): string => {
     if (!dateString) {
         return '';
     }
-    if (Number.isNaN(Number(dateString))) {
-        return getFormattedDateTime(new Date(dateString));
-    }
-    return getFormattedDateTime(new Date(Number(dateString)));
+
+    return getFormattedDateTime(getDateFromString(dateString));
 };

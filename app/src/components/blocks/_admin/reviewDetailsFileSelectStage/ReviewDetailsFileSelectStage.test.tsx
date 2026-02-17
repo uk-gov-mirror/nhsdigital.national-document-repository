@@ -139,7 +139,7 @@ describe('ReviewDetailsFileSelectStage', () => {
         ).toBeInTheDocument();
 
         expect(screen.getByText('file1.pdf')).toBeInTheDocument();
-        expect(screen.getByText('21 January 1970')).toBeInTheDocument();
+        expect(screen.getByText('29 January 2026')).toBeInTheDocument();
         expect(screen.queryByText('existing.pdf')).not.toBeInTheDocument();
     });
 
@@ -422,7 +422,7 @@ describe('ReviewDetailsFileSelectStage', () => {
         expect(screen.getByText('file1.pdf')).toBeInTheDocument();
         expect(screen.getByText('file2.pdf')).toBeInTheDocument();
 
-        const dates = screen.getAllByText('21 January 1970');
+        const dates = screen.getAllByText('29 January 2026');
         expect(dates).toHaveLength(2);
     });
 
