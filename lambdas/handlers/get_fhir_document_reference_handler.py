@@ -1,3 +1,4 @@
+import uuid
 from enums.lambda_error import LambdaError
 from oauthlib.oauth2 import WebApplicationClient
 from services.base.ssm_service import SSMService
@@ -119,8 +120,26 @@ def verify_user_authorisation(bearer_token, selected_role_id, nhs_number):
 
 def get_id_and_snomed_from_path_parameters(path_parameters):
     """Extract document ID and SNOMED code from path parameters"""
+    print(path_parameters)
     if path_parameters:
+        if "~" not in path_parameters:
+            logger.error("Invalid path parameters in request.")
+            raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
         params = path_parameters.split("~")
-        if len(params) == 2:
-            return params[1], params[0]
+        if len(params) != 2:
+            logger.error("Invalid path parameters in request.")
+            raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
+        if not is_uuid(params[1]):
+            logger.error("Invalid path parameters in request.")
+            raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
+
+        return params[1], params[0]
     return None, None
+
+
+def is_uuid(value: str) -> bool:
+    try:
+        uuid.UUID(value)
+        return True
+    except (ValueError, TypeError):
+        return False

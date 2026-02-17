@@ -325,18 +325,20 @@ def test_get_id_and_snomed_from_path_parameters():
 
 
 def test_get_id_and_snomed_from_path_parameters_no_tilde():
-    document_id, snomed = get_id_and_snomed_from_path_parameters("notildePresent")
-    assert document_id is None
-    assert snomed is None
+    with pytest.raises(GetFhirDocumentReferenceException) as excinfo:
+        get_id_and_snomed_from_path_parameters("notildePresent")
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.error == LambdaError.DocRefInvalidFiles
 
 
 def test_get_id_and_snomed_from_path_parameters_extra_tildes():
     # Test with extra tildes
     path_parameter = f"{SNOMED_CODE}~{TEST_UUID}~extra"
 
-    document_id, snomed = get_id_and_snomed_from_path_parameters(path_parameter)
-    assert document_id is None
-    assert snomed is None
+    with pytest.raises(GetFhirDocumentReferenceException) as excinfo:
+        get_id_and_snomed_from_path_parameters(path_parameter)
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.error == LambdaError.DocRefInvalidFiles
 
 
 def test_get_id_and_snomed_from_path_parameters_empty():
