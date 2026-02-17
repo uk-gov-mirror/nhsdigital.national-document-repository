@@ -730,6 +730,11 @@ def test_check_existing_records_fetches_previous_records_for_doc_type(
             AttributeOperator.EQUAL,
             doc_type,
         )
+        .add_condition(
+            DocumentReferenceMetadataFields.DOC_STATUS,
+            AttributeOperator.EQUAL,
+            "final",
+        )
         .build()
     )
     mocker.patch(

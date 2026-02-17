@@ -12,14 +12,17 @@ def get_not_deleted_filter(filter_builder: DynamoQueryFilterBuilder):
 
 
 def get_document_type_filter(
-    filter_builder: DynamoQueryFilterBuilder, document_type: str
+    filter_builder: DynamoQueryFilterBuilder,
+    document_type: str,
 ):
     filter_builder.add_condition(
-        "DocumentSnomedCodeType", AttributeOperator.EQUAL, document_type
+        "DocumentSnomedCodeType",
+        AttributeOperator.EQUAL,
+        document_type,
     )
     document_type_filter = filter_builder.build()
-    filter_not_deleted = get_not_deleted_filter(filter_builder)
-    return document_type_filter & filter_not_deleted
+    filter_final = get_doc_status_final_filter(filter_builder)
+    return document_type_filter & filter_final
 
 
 def get_upload_complete_filter(filter_builder: DynamoQueryFilterBuilder):
@@ -38,7 +41,9 @@ def get_upload_incomplete_filter(filter_builder: DynamoQueryFilterBuilder):
 
 def get_clean_files_filter(filter_builder: DynamoQueryFilterBuilder):
     filter_builder.add_condition(
-        "VirusScannerResult", AttributeOperator.EQUAL, VirusScanResult.CLEAN.value
+        "VirusScannerResult",
+        AttributeOperator.EQUAL,
+        VirusScanResult.CLEAN.value,
     )
     clean_filter_expression = filter_builder.build()
     filter_not_deleted = get_not_deleted_filter(filter_builder)
