@@ -1,3 +1,4 @@
+from enums.snomed_codes import SnomedCodes
 from tests.e2e.api.fhir.conftest import (
     create_and_store_pdm_record,
     get_pdm_document_reference,
@@ -47,3 +48,19 @@ def test_delete_only_one_record_by_patient_details_and_doc_id(test_data):
 
     get_response_2_deleted = get_pdm_document_reference(expected_record_id_2)
     assert get_response_2_deleted.status_code == 200
+
+
+def test_delete_record_by_patient_details_and_doc_id_with_snomed(test_data):
+    created_record = create_and_store_pdm_record(test_data)
+    expected_record_id = created_record["id"]
+
+    get_response_1 = get_pdm_document_reference(expected_record_id)
+    assert get_response_1.status_code == 200
+
+    response = delete_document_reference(
+        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id={SnomedCodes.PATIENT_DATA.value.code}~{expected_record_id}"
+    )
+    assert response.status_code == 204
+
+    get_response = get_pdm_document_reference(expected_record_id)
+    assert get_response.status_code == 404

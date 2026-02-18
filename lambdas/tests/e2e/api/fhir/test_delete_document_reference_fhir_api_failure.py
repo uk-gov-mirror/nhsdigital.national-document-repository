@@ -1,4 +1,5 @@
 import uuid
+from lambdas.enums.snomed_codes import SnomedCodes
 from tests.e2e.api.fhir.conftest import (
     delete_document_reference,
 )
@@ -29,9 +30,16 @@ def test_malformatted_nhs_id(test_data):
     )
 
 
-def test_malformatted_document_id(test_data):
+@pytest.mark.parametrize(
+    "doc_id",
+    [
+        ("1234"),
+        (f"{SnomedCodes.PATIENT_DATA.value.code}~1234"),
+    ],
+)
+def test_malformatted_document_id(test_data, doc_id):
     response = delete_document_reference(
-        "?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id=1234"
+        f"?subject:identifier=https://fhir.nhs.uk/Id/nhs-number|9912003071&_id={doc_id}"
     )
     assert response.status_code == 400
     response_json = response.json()

@@ -58,12 +58,6 @@ class DeleteFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             if len(deletion_identifiers) < 2:
                 return []
 
-            if not self.is_uuid(deletion_identifiers[0]):
-                logger.error("FHIR document validation error: Id")
-                raise DocumentRefException(
-                    400, LambdaError.DocumentReferenceMissingParameters
-                )
-
             doc_type = self._determine_document_type_based_on_common_name(common_name)
 
             if not validate_nhs_number(deletion_identifiers[1]):
@@ -211,7 +205,35 @@ class DeleteFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
                 nhs_number = value.split("|")[-1]
             elif key == DOCUMENT_REFERENCE_IDENTIFIER:
                 document_reference_id = value
+                if not self.is_uuid(document_reference_id):
+                    document_reference_id = self.get_id_and_snomed_from_path_parameters(
+                        document_reference_id
+                    )
             else:
                 logger.warning(f"Unknown query parameter: {key}")
 
         return nhs_number, document_reference_id
+
+    def get_id_and_snomed_from_path_parameters(self, doc_id):
+        """Extract document ID and SNOMED code from path parameters"""
+        if "~" not in doc_id:
+            logger.error("Invalid path parameters in request.")
+            raise DocumentDeletionServiceException(400, LambdaError.DocRefInvalidFiles)
+
+        params = doc_id.split("~")
+        if len(params) < 2 or not all(params):
+            logger.error(
+                "Missing document id or snomed code in request path parameters."
+            )
+            raise DocumentDeletionServiceException(
+                400, LambdaError.DocumentReferenceMissingParameters
+            )
+        if len(params) > 2:
+            logger.error("Invalid path parameters in request.")
+            raise DocumentDeletionServiceException(400, LambdaError.DocRefInvalidFiles)
+
+        if not self.is_uuid(params[1]):
+            logger.error("Invalid path parameters in request.")
+            raise DocumentDeletionServiceException(400, LambdaError.DocRefInvalidFiles)
+
+        return params[1]

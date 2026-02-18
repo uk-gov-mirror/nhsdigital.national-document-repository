@@ -25,6 +25,7 @@ MOCK_DOCUMENT_REFERENCE = DocumentReference.model_validate(
 )
 
 TEST_DOCUMENT_ID = "3d8683b9-1665-40d2-8499-6e8302d507ff"
+TEST_SNOMED = SnomedCodes.PATIENT_DATA.value.code
 
 MOCK_MTLS_VALID_EVENT_BY_NHS_ID = {
     "httpMethod": "DELETE",
@@ -32,6 +33,35 @@ MOCK_MTLS_VALID_EVENT_BY_NHS_ID = {
     "queryStringParameters": {
         "subject:identifier": f"https://fhir.nhs.uk/Id/nhs-number|{TEST_NHS_NUMBER}",
         "_id": TEST_DOCUMENT_ID,
+    },
+    "body": None,
+    "requestContext": {
+        "accountId": "123456789012",
+        "apiId": "abc123",
+        "domainName": "api.example.com",
+        "identity": {
+            "sourceIp": "1.2.3.4",
+            "userAgent": "curl/7.64.1",
+            "clientCert": {
+                "clientCertPem": "-----BEGIN CERTIFICATE-----...",
+                "subjectDN": "CN=ndrclient.main.int.pdm.national.nhs.uk,O=NHS,C=UK",
+                "issuerDN": "CN=NHS Root CA,O=NHS,C=UK",
+                "serialNumber": "12:34:56",
+                "validity": {
+                    "notBefore": "May 10 00:00:00 2024 GMT",
+                    "notAfter": "May 10 00:00:00 2025 GMT",
+                },
+            },
+        },
+    },
+}
+
+MOCK_MTLS_VALID_EVENT_BY_NHS_ID_INCLUDING_SNOMED = {
+    "httpMethod": "DELETE",
+    "headers": {},
+    "queryStringParameters": {
+        "subject:identifier": f"https://fhir.nhs.uk/Id/nhs-number|{TEST_NHS_NUMBER}",
+        "_id": f"{TEST_SNOMED}~{TEST_DOCUMENT_ID}",
     },
     "body": None,
     "requestContext": {
@@ -146,10 +176,15 @@ def test_extract_path_parameter_path_param_exists_for_id(service):
     assert identifier is TEST_DOCUMENT_ID
 
 
-def test_extract_query_parameter_for_id_and_nhsnumber(service):
-    identifiers = service.extract_document_query_parameters(
-        MOCK_MTLS_VALID_EVENT_BY_NHS_ID["queryStringParameters"]
-    )
+@pytest.mark.parametrize(
+    "query_string",
+    [
+        (MOCK_MTLS_VALID_EVENT_BY_NHS_ID["queryStringParameters"]),
+        (MOCK_MTLS_VALID_EVENT_BY_NHS_ID_INCLUDING_SNOMED["queryStringParameters"]),
+    ],
+)
+def test_extract_query_parameter_for_id_and_nhsnumber(service, query_string):
+    identifiers = service.extract_document_query_parameters(query_string)
     assert identifiers[0] == TEST_NHS_NUMBER
     assert identifiers[1] == TEST_DOCUMENT_ID
 
