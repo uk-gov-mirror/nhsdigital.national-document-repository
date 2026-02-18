@@ -45,7 +45,7 @@ def test_malformatted_document_id(test_data, doc_id):
     assert response.status_code == 400
     response_json = response.json()
     assert response_json["resourceType"] == "OperationOutcome"
-    assert response_json["issue"][0]["details"]["coding"][0]["code"] == "MISSING_VALUE"
+    assert response_json["issue"][0]["details"]["coding"][0]["code"] == "invalid"
 
 
 def test_no_query_params(test_data):
