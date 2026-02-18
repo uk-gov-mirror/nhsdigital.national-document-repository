@@ -342,6 +342,7 @@ def test_get_id_and_snomed_from_path_parameters_extra_tildes():
 
 
 def test_get_id_and_snomed_from_path_parameters_empty():
-    document_id, snomed = get_id_and_snomed_from_path_parameters("")
-    assert document_id is None
-    assert snomed is None
+    with pytest.raises(GetFhirDocumentReferenceException) as excinfo:
+        get_id_and_snomed_from_path_parameters("")
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.error == LambdaError.DocumentReferenceMissingParameters
