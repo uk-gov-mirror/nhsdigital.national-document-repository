@@ -121,24 +121,24 @@ def verify_user_authorisation(bearer_token, selected_role_id, nhs_number):
 def get_id_and_snomed_from_path_parameters(path_parameters):
     """Extract document ID and SNOMED code from path parameters"""
     if not path_parameters:
-        return None, None
+        logger.error("Missing document id or snomed code in request path parameters.")
+        raise GetFhirDocumentReferenceException(
+            400, LambdaError.DocumentReferenceMissingParameters
+        )
 
     if "~" not in path_parameters:
         logger.error("Invalid path parameters in request.")
         raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
 
     params = path_parameters.split("~")
-    if len(params) != 2:
-        if len(params) > 2:
-            logger.error("Invalid path parameters in request.")
-            raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
-        if len(params) < 2:
-            logger.error(
-                "Missing document id or snomed code in request path parameters."
-            )
-            raise GetFhirDocumentReferenceException(
-                400, LambdaError.DocumentReferenceMissingParameters
-            )
+    if len(params) < 2 or not all(params):
+        logger.error("Missing document id or snomed code in request path parameters.")
+        raise GetFhirDocumentReferenceException(
+            400, LambdaError.DocumentReferenceMissingParameters
+        )
+    if len(params) > 2:
+        logger.error("Invalid path parameters in request.")
+        raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
 
     if not is_uuid(params[1]):
         logger.error("Invalid path parameters in request.")
