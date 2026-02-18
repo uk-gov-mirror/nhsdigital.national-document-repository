@@ -1,4 +1,5 @@
 import uuid
+
 from enums.lambda_error import LambdaError
 from oauthlib.oauth2 import WebApplicationClient
 from services.base.ssm_service import SSMService
@@ -30,7 +31,7 @@ logger = LoggingService(__name__)
         "APPCONFIG_ENVIRONMENT",
         "PRESIGNED_ASSUME_ROLE",
         "CLOUDFRONT_URL",
-    ]
+    ],
 )
 def lambda_handler(event, context):
     try:
@@ -41,33 +42,38 @@ def lambda_handler(event, context):
 
         get_document_service = GetFhirDocumentReferenceService()
         document_reference = get_document_service.handle_get_document_reference_request(
-            snomed_code, document_id
+            snomed_code,
+            document_id,
         )
 
         if selected_role_id and bearer_token:
             verify_user_authorisation(
-                bearer_token, selected_role_id, document_reference.nhs_number
+                bearer_token,
+                selected_role_id,
+                document_reference.nhs_number,
             )
 
         document_reference_response = (
             get_document_service.create_document_reference_fhir_response(
-                document_reference
+                document_reference,
             )
         )
 
         logger.info(
-            f"Successfully retrieved document reference for document_id: {document_id}, snomed_code: {snomed_code}"
+            f"Successfully retrieved document reference for document_id: {document_id}, snomed_code: {snomed_code}",
         )
 
         return ApiGatewayResponse(
-            status_code=200, body=document_reference_response, methods="GET"
+            status_code=200,
+            body=document_reference_response,
+            methods="GET",
         ).create_api_gateway_response()
 
     except GetFhirDocumentReferenceException as exception:
         return ApiGatewayResponse(
             status_code=exception.status_code,
             body=exception.error.create_error_response().create_error_fhir_response(
-                exception.error.value.get("fhir_coding")
+                exception.error.value.get("fhir_coding"),
             ),
             methods="GET",
         ).create_api_gateway_response()
@@ -81,7 +87,8 @@ def extract_document_parameters(event):
     if not document_id or not snomed_code:
         logger.error("Missing document id or snomed code in request path parameters.")
         raise GetFhirDocumentReferenceException(
-            400, LambdaError.DocumentReferenceMissingParameters
+            400,
+            LambdaError.DocumentReferenceMissingParameters,
         )
 
     return document_id, snomed_code
@@ -101,17 +108,21 @@ def verify_user_authorisation(bearer_token, selected_role_id, nhs_number):
 
         org_ods_code = oidc_service.fetch_user_org_code(userinfo, selected_role_id)
         smartcard_role_code, _ = oidc_service.fetch_user_role_code(
-            userinfo, selected_role_id, "R"
+            userinfo,
+            selected_role_id,
+            "R",
         )
     except (OidcApiException, AuthorisationException) as e:
         logger.error(f"Authorization error: {str(e)}")
         raise GetFhirDocumentReferenceException(
-            403, LambdaError.DocumentReferenceUnauthorised
+            403,
+            LambdaError.DocumentReferenceUnauthorised,
         )
 
     try:
         search_patient_service = SearchPatientDetailsService(
-            smartcard_role_code, org_ods_code
+            smartcard_role_code,
+            org_ods_code,
         )
         search_patient_service.handle_search_patient_request(nhs_number, False)
     except SearchPatientException as e:
@@ -123,7 +134,8 @@ def get_id_and_snomed_from_path_parameters(path_parameters):
     if not path_parameters:
         logger.error("Missing document id or snomed code in request path parameters.")
         raise GetFhirDocumentReferenceException(
-            400, LambdaError.DocumentReferenceMissingParameters
+            400,
+            LambdaError.DocumentReferenceMissingParameters,
         )
 
     if "~" not in path_parameters:
@@ -134,7 +146,8 @@ def get_id_and_snomed_from_path_parameters(path_parameters):
     if len(params) < 2 or not all(params):
         logger.error("Missing document id or snomed code in request path parameters.")
         raise GetFhirDocumentReferenceException(
-            400, LambdaError.DocumentReferenceMissingParameters
+            400,
+            LambdaError.DocumentReferenceMissingParameters,
         )
     if len(params) > 2:
         logger.error("Invalid path parameters in request.")
