@@ -1,4 +1,5 @@
 import uuid
+import pytest
 from lambdas.enums.snomed_codes import SnomedCodes
 from tests.e2e.api.fhir.conftest import (
     delete_document_reference,
