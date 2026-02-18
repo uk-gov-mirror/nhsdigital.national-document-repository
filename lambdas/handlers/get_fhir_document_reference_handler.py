@@ -120,25 +120,31 @@ def verify_user_authorisation(bearer_token, selected_role_id, nhs_number):
 
 def get_id_and_snomed_from_path_parameters(path_parameters):
     """Extract document ID and SNOMED code from path parameters"""
-    print(path_parameters)
-    if path_parameters:
-        if "~" not in path_parameters:
-            logger.error("Invalid path parameters in request.")
-            raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
-        params = path_parameters.split("~")
-        if len(params) != 2:
-            if len(params) > 2:
-                logger.error("Invalid path parameters in request.")
-                raise GetFhirDocumentReferenceException(
-                    400, LambdaError.DocRefInvalidFiles
-                )
-            return None, None
-        if not is_uuid(params[1]):
-            logger.error("Invalid path parameters in request.")
-            raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
+    if not path_parameters:
+        return None, None
 
-        return params[1], params[0]
-    return None, None
+    if "~" not in path_parameters:
+        logger.error("Invalid path parameters in request.")
+        raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
+
+    params = path_parameters.split("~")
+    if len(params) != 2:
+        if len(params) > 2:
+            logger.error("Invalid path parameters in request.")
+            raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
+        if len(params) < 2:
+            logger.error(
+                "Missing document id or snomed code in request path parameters."
+            )
+            raise GetFhirDocumentReferenceException(
+                400, LambdaError.DocumentReferenceMissingParameters
+            )
+
+    if not is_uuid(params[1]):
+        logger.error("Invalid path parameters in request.")
+        raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
+
+    return params[1], params[0]
 
 
 def is_uuid(value: str) -> bool:
