@@ -9,7 +9,7 @@ from tests.e2e.conftest import (
     API_ENDPOINT,
     API_KEY,
     APIM_ENDPOINT,
-    LLOYD_GEORGE_S3_BUCKET,
+    LLOYD_GEORGE_BUCKET,
     LLOYD_GEORGE_SNOMED,
     fetch_with_retry,
 )
@@ -152,7 +152,7 @@ def test_create_document_presign(test_data, snapshot_json):
     raw_retrieve_response = fetch_with_retry(retrieve_url, condition)
     retrieve_response = raw_retrieve_response.json()
 
-    expected_presign_uri = f"https://{LLOYD_GEORGE_S3_BUCKET}.s3.eu-west-2.amazonaws.com/{lloyd_george_record['nhs_number']}/{lloyd_george_record['id']}"
+    expected_presign_uri = f"https://{LLOYD_GEORGE_BUCKET}.s3.eu-west-2.amazonaws.com/{lloyd_george_record['nhs_number']}/{lloyd_george_record['id']}"
     assert expected_presign_uri in retrieve_response["content"][0]["attachment"]["url"]
 
     assert isinstance(retrieve_response["content"][0]["attachment"]["size"], (int))
