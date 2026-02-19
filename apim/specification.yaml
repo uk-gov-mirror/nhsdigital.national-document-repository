@@ -605,7 +605,7 @@ components:
             - DocumentReference
         id:
           type: string
-          pattern: '16521000000101~[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}'
+          pattern: '[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}'
           description: 'The logical id of the resource, as used in the URL for the resource. Once assigned, this value never changes.'
         meta:
           $ref: '#/components/schemas/Meta'
@@ -1198,7 +1198,7 @@ components:
         - div
     DocumentId:
       type: string
-      pattern: '16521000000101~[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}'
+      pattern: '[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}'
     RequestPathParams:
       type: object
       properties:
@@ -1269,7 +1269,7 @@ components:
       examples:
         valid:
           summary: Valid ID, document held, user has correct auth (200)
-          value: 16521000000101~f9ed81db-f90a-42d4-b7e4-d554d8f338fd
+          value: f9ed81db-f90a-42d4-b7e4-d554d8f338fd
         invalid_400:
           summary: Invalid request, no ID present (400)
           value: 400
