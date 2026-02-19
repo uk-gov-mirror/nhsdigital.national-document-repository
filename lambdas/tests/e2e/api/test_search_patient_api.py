@@ -4,7 +4,7 @@ import uuid
 
 import requests
 from syrupy.filters import paths
-from tests.e2e.conftest import API_ENDPOINT, API_KEY, APIM_ENDPOINT, LLOYD_GEORGE_SNOMED
+from tests.e2e.conftest import API_ENDPOINT, API_KEY, APIM_ENDPOINT
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
@@ -33,7 +33,7 @@ def test_search_patient_details(test_data, snapshot_json):
 
     attachment_url = bundle["entry"][0]["resource"]["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{LLOYD_GEORGE_SNOMED}~"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{lloyd_george_record['id']}"
         in attachment_url
     )
 
@@ -182,8 +182,7 @@ def test_search_patient_details_deleted_are_not_returned(test_data):
         (
             e
             for e in entries
-            if e["resource"].get("id")
-            == f"{LLOYD_GEORGE_SNOMED}~{lloyd_george_record['id']}"
+            if e["resource"].get("id") == f"{lloyd_george_record['id']}"
         ),
         None,
     )
@@ -193,8 +192,7 @@ def test_search_patient_details_deleted_are_not_returned(test_data):
         (
             e
             for e in entries
-            if e["resource"].get("id")
-            == f"{LLOYD_GEORGE_SNOMED}~{second_lloyd_george_record['id']}"
+            if e["resource"].get("id") == f"{second_lloyd_george_record['id']}"
         ),
         None,
     )

@@ -2,7 +2,7 @@ import io
 import uuid
 
 import requests
-from tests.e2e.conftest import API_ENDPOINT, API_KEY, LLOYD_GEORGE_SNOMED
+from tests.e2e.conftest import API_ENDPOINT, API_KEY
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
@@ -54,7 +54,7 @@ def test_delete_record_by_patient_details_and_get_by_id(test_data):
     data_helper.create_metadata(lloyd_george_record)
     data_helper.create_resource(lloyd_george_record)
 
-    url = f"https://{API_ENDPOINT}/FhirDocumentReference/{LLOYD_GEORGE_SNOMED}~{lloyd_george_record['id']}"
+    url = f"https://{API_ENDPOINT}/FhirDocumentReference/{lloyd_george_record['id']}"
     headers = {
         "Authorization": "Bearer 123",
         "X-Api-Key": API_KEY,

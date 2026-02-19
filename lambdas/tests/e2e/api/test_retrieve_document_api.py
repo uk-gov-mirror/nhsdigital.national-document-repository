@@ -3,12 +3,7 @@ import uuid
 
 import requests
 from syrupy.filters import paths
-from tests.e2e.conftest import (
-    API_ENDPOINT,
-    API_KEY,
-    LLOYD_GEORGE_S3_BUCKET,
-    LLOYD_GEORGE_SNOMED,
-)
+from tests.e2e.conftest import API_ENDPOINT, API_KEY, LLOYD_GEORGE_BUCKET
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
@@ -25,7 +20,7 @@ def test_small_file(test_data, snapshot_json):
     data_helper.create_metadata(lloyd_george_record)
     data_helper.create_resource(lloyd_george_record)
 
-    url = f"https://{API_ENDPOINT}/FhirDocumentReference/{LLOYD_GEORGE_SNOMED}~{lloyd_george_record['id']}"
+    url = f"https://{API_ENDPOINT}/FhirDocumentReference/{lloyd_george_record['id']}"
     headers = {
         "Authorization": "Bearer 123",
         "X-Api-Key": API_KEY,
@@ -49,7 +44,7 @@ def test_large_file(test_data, snapshot_json):
     data_helper.create_metadata(lloyd_george_record)
     data_helper.create_resource(lloyd_george_record)
 
-    url = f"https://{API_ENDPOINT}/FhirDocumentReference/{LLOYD_GEORGE_SNOMED}~{lloyd_george_record['id']}"
+    url = f"https://{API_ENDPOINT}/FhirDocumentReference/{lloyd_george_record['id']}"
     headers = {
         "Authorization": "Bearer 123",
         "X-Api-Key": API_KEY,
@@ -59,11 +54,11 @@ def test_large_file(test_data, snapshot_json):
     response = requests.request("GET", url, headers=headers)
     json = response.json()
 
-    expected_presign_uri = f"https://{LLOYD_GEORGE_S3_BUCKET}.s3.eu-west-2.amazonaws.com/{lloyd_george_record['nhs_number']}/{lloyd_george_record['id']}"
+    expected_presign_uri = f"https://{LLOYD_GEORGE_BUCKET}.s3.eu-west-2.amazonaws.com/{lloyd_george_record['nhs_number']}/{lloyd_george_record['id']}"
     assert expected_presign_uri in json["content"][0]["attachment"]["url"]
 
     assert json == snapshot_json(
-        exclude=paths("date", "id", "content.0.attachment.url")
+        exclude=paths("date", "id", "content.0.attachment.url"),
     )
 
 
@@ -71,7 +66,7 @@ def test_no_file_found(snapshot_json):
     lloyd_george_record = {}
     lloyd_george_record["id"] = str(uuid.uuid4())
 
-    url = f"https://{API_ENDPOINT}/FhirDocumentReference/{LLOYD_GEORGE_SNOMED}~{lloyd_george_record['id']}"
+    url = f"https://{API_ENDPOINT}/FhirDocumentReference/{lloyd_george_record['id']}"
     headers = {
         "Authorization": "Bearer 123",
         "X-Api-Key": API_KEY,
@@ -95,7 +90,7 @@ def test_preliminary_file(test_data, snapshot_json):
     data_helper.create_metadata(lloyd_george_record)
     data_helper.create_resource(lloyd_george_record)
 
-    url = f"https://{API_ENDPOINT}/FhirDocumentReference/{LLOYD_GEORGE_SNOMED}~{lloyd_george_record['id']}"
+    url = f"https://{API_ENDPOINT}/FhirDocumentReference/{lloyd_george_record['id']}"
     headers = {
         "Authorization": "Bearer 123",
         "X-Api-Key": API_KEY,
