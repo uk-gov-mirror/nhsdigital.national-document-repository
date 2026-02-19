@@ -43,7 +43,9 @@ class FhirDocumentReferenceServiceBase:
         self.doc_router = DocTypeTableRouter()
 
     def _store_binary_in_s3(
-        self, document_reference: DocumentReference, binary_content: bytes
+        self,
+        document_reference: DocumentReference,
+        binary_content: bytes,
     ) -> None:
         """Store binary content in S3"""
         try:
@@ -54,7 +56,7 @@ class FhirDocumentReferenceServiceBase:
                 file_key=document_reference.s3_upload_key,
             )
             logger.info(
-                f"Successfully stored binary content in S3: {document_reference.s3_upload_key}"
+                f"Successfully stored binary content in S3: {document_reference.s3_upload_key}",
             )
         except (binascii.Error, ValueError) as e:
             logger.error(f"Failed to decode base64: {str(e)}")
@@ -65,28 +67,29 @@ class FhirDocumentReferenceServiceBase:
         except ClientError as e:
             logger.error(f"Failed to store binary in S3: {str(e)}")
             raise FhirDocumentReferenceException(
-                f"Failed to store binary in S3: {str(e)}"
+                f"Failed to store binary in S3: {str(e)}",
             )
         except (OSError, IOError) as e:
             logger.error(f"I/O error when processing binary content: {str(e)}")
             raise FhirDocumentReferenceException(
-                f"I/O error when processing binary content: {str(e)}"
+                f"I/O error when processing binary content: {str(e)}",
             )
 
     def _create_s3_presigned_url(self, document_reference: DocumentReference) -> str:
         """Create a pre-signed URL for uploading a file"""
         try:
             response = self.s3_service.create_put_presigned_url(
-                document_reference.s3_bucket_name, document_reference.s3_upload_key
+                document_reference.s3_bucket_name,
+                document_reference.s3_upload_key,
             )
             logger.info(
-                f"Successfully created pre-signed URL for {document_reference.s3_upload_key}"
+                f"Successfully created pre-signed URL for {document_reference.s3_upload_key}",
             )
             return response
         except ClientError as e:
             logger.error(f"Failed to create pre-signed URL: {str(e)}")
             raise FhirDocumentReferenceException(
-                f"Failed to create pre-signed URL: {str(e)}"
+                f"Failed to create pre-signed URL: {str(e)}",
             )
 
     def _create_document_reference(
@@ -138,10 +141,9 @@ class FhirDocumentReferenceServiceBase:
         if len(documents) > 0:
             logger.info("Document found for given id")
             return documents[0]
-        else:
-            raise FhirDocumentReferenceException(
-                f"Did not find any documents for document ID {document_id}"
-            )
+        raise FhirDocumentReferenceException(
+            f"Did not find any documents for document ID {document_id}",
+        )
 
     def _determine_document_type(self, fhir_doc: FhirDocumentReference) -> SnomedCode:
         """Determine the document type based on SNOMED code in the FHIR document"""
@@ -154,7 +156,9 @@ class FhirDocumentReferenceServiceBase:
         raise FhirDocumentReferenceException("SNOMED code not found in FHIR document")
 
     def _save_document_reference_to_dynamo(
-        self, table_name: str, document_reference: DocumentReference
+        self,
+        table_name: str,
+        document_reference: DocumentReference,
     ) -> None:
         """Save document reference to DynamoDB"""
         try:
@@ -166,7 +170,7 @@ class FhirDocumentReferenceServiceBase:
         except ClientError as e:
             logger.error(f"Failed to create document reference: {str(e)}")
             raise FhirDocumentReferenceException(
-                f"Failed to create document reference: {str(e)}"
+                f"Failed to create document reference: {str(e)}",
             )
 
     def _check_nhs_number_with_pds(self, nhs_number: str) -> PatientDetails:
@@ -181,7 +185,7 @@ class FhirDocumentReferenceServiceBase:
         ) as e:
             logger.error(f"Error occurred when fetching patient details: {str(e)}")
             raise FhirDocumentReferenceException(
-                f"Error occurred when fetching patient details: {str(e)}"
+                f"Error occurred when fetching patient details: {str(e)}",
             )
 
     def _create_fhir_response(
@@ -195,14 +199,11 @@ class FhirDocumentReferenceServiceBase:
             attachment_url = presigned_url
         else:
             document_retrieve_endpoint = os.getenv(
-                "DOCUMENT_RETRIEVE_ENDPOINT_APIM", ""
+                "DOCUMENT_RETRIEVE_ENDPOINT_APIM",
+                "",
             )
             attachment_url = (
-                document_retrieve_endpoint
-                + "/"
-                + document_reference_ndr.document_snomed_code_type
-                + "~"
-                + document_reference_ndr.id
+                document_retrieve_endpoint + "/" + document_reference_ndr.id
             )
         document_details = Attachment(
             title=document_reference_ndr.file_name,
@@ -216,7 +217,7 @@ class FhirDocumentReferenceServiceBase:
                 attachment=document_details,
                 custodian=document_reference_ndr.custodian,
                 snomed_code_doc_type=SnomedCodes.find_by_code(
-                    document_reference_ndr.document_snomed_code_type
+                    document_reference_ndr.document_snomed_code_type,
                 ),
             )
             .create_fhir_document_reference_object(document_reference_ndr)

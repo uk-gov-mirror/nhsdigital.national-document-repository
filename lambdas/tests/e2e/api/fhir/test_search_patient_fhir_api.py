@@ -4,7 +4,6 @@ import pytest
 from enums.document_retention import DocumentRetentionDays
 from tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
-    PDM_SNOMED,
     create_and_store_pdm_record,
     create_mtls_session,
 )
@@ -60,18 +59,14 @@ def test_search_patient_details(test_data):
 
     # Find the entry with the matching record_id
     matching_entry = next(
-        (
-            e
-            for e in entries
-            if e["resource"].get("id") == f"{PDM_SNOMED}~{expected_record_id}"
-        ),
+        (e for e in entries if e["resource"].get("id") == expected_record_id),
         None,
     )
     assert matching_entry
 
     attachment_url = matching_entry["resource"]["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~{expected_record_id}"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{expected_record_id}"
         in attachment_url
     )
 
@@ -92,11 +87,7 @@ def test_multiple_cancelled_search_patient_details(test_data):
     # Validate all created records exist and have status cancelled
     for record_id in record_ids:
         entry = next(
-            (
-                e
-                for e in entries
-                if e["resource"].get("id") == f"{PDM_SNOMED}~{record_id}"
-            ),
+            (e for e in entries if e["resource"].get("id") == record_id),
             None,
         )
         assert entry
@@ -178,21 +169,13 @@ def test_search_patient_details_deleted_are_not_returned(test_data):
 
     # Find the entry with the matching record_id
     matching_entry = next(
-        (
-            e
-            for e in entries
-            if e["resource"].get("id") == f"{PDM_SNOMED}~{expected_record_id_1}"
-        ),
+        (e for e in entries if e["resource"].get("id") == expected_record_id_1),
         None,
     )
     assert matching_entry
     # Assert deleted item doesn't exist
     non_matching_entry = next(
-        (
-            e
-            for e in entries
-            if e["resource"].get("id") == f"{PDM_SNOMED}~{expected_record_id_2}"
-        ),
+        (e for e in entries if e["resource"].get("id") == expected_record_id_2),
         None,
     )
     assert non_matching_entry is None

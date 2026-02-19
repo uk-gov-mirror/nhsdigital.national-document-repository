@@ -15,7 +15,7 @@ SNOMED_CODE = SnomedCodes.PATIENT_DATA.value.code
 MOCK_MTLS_VALID_EVENT = {
     "httpMethod": "GET",
     "headers": {},
-    "pathParameters": {"id": f"{SNOMED_CODE}~{TEST_UUID}"},
+    "pathParameters": {"id": TEST_UUID},
     "body": None,
     "requestContext": {
         "accountId": "123456789012",
@@ -39,14 +39,14 @@ MOCK_MTLS_VALID_EVENT = {
 }
 
 MOCK_DOCUMENT_REFERENCE = DocumentReference.model_validate(
-    MOCK_SEARCH_RESPONSE["Items"][0]
+    MOCK_SEARCH_RESPONSE["Items"][0],
 )
 
 
 @pytest.fixture
 def mock_config_service(mocker):
     mock_config = mocker.patch(
-        "handlers.get_fhir_document_reference_handler.DynamicConfigurationService"
+        "handlers.get_fhir_document_reference_handler.DynamicConfigurationService",
     )
     mock_config_instance = mock_config.return_value
     return mock_config_instance
@@ -55,7 +55,7 @@ def mock_config_service(mocker):
 @pytest.fixture
 def mock_document_service(mocker):
     mock_service = mocker.patch(
-        "handlers.get_fhir_document_reference_handler.GetFhirDocumentReferenceService"
+        "handlers.get_fhir_document_reference_handler.GetFhirDocumentReferenceService",
     )
     mock_service_instance = mock_service.return_value
     mock_service_instance.handle_get_document_reference_request.return_value = (
@@ -89,10 +89,11 @@ def test_lambda_handler_happy_path_with_mtls_pdm_login(
     assert response["body"] == "test_document_reference"
     # Verify correct method calls
     mock_document_service.handle_get_document_reference_request.assert_called_once_with(
-        SNOMED_CODE, TEST_UUID
+        SNOMED_CODE,
+        TEST_UUID,
     )
     mock_document_service.create_document_reference_fhir_response.assert_called_once_with(
-        MOCK_DOCUMENT_REFERENCE
+        MOCK_DOCUMENT_REFERENCE,
     )
 
 
@@ -102,6 +103,5 @@ def test_extract_bearer_token_when_pdm(context, mock_mtls_common_names):
 
 
 def test_extract_document_parameters_valid_pdm():
-    document_id, snomed_code = extract_document_parameters(MOCK_MTLS_VALID_EVENT)
+    document_id = extract_document_parameters(MOCK_MTLS_VALID_EVENT)
     assert document_id == TEST_UUID
-    assert snomed_code == SNOMED_CODE

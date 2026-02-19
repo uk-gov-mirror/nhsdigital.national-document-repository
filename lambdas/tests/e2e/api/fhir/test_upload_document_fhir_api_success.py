@@ -3,11 +3,7 @@ import json
 import logging
 import os
 
-from tests.e2e.api.fhir.conftest import (
-    PDM_SNOMED,
-    retrieve_document_with_retry,
-    upload_document,
-)
+from tests.e2e.api.fhir.conftest import retrieve_document_with_retry, upload_document
 from tests.e2e.conftest import APIM_ENDPOINT
 from tests.e2e.helpers.data_helper import PdmDataHelper
 
@@ -34,7 +30,7 @@ def test_create_document_base64(test_data):
     upload_response = raw_upload_response.json()
     attachment_url = upload_response["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{record['id']}"
         in attachment_url
     )
 
