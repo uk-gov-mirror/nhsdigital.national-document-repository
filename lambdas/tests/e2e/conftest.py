@@ -13,7 +13,7 @@ API_ENDPOINT = data_helper.api_endpoint
 API_KEY = os.environ.get("NDR_API_KEY")
 
 LG_METADATA_TABLE = data_helper.dynamo_table
-LLOYD_GEORGE_S3_BUCKET = data_helper.s3_bucket
+LLOYD_GEORGE_BUCKET = data_helper.s3_bucket
 
 APIM_ENDPOINT = data_helper.apim_url
 
