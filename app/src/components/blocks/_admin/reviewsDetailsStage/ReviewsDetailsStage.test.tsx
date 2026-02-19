@@ -384,7 +384,9 @@ describe('ReviewDetailsStage', () => {
             await waitFor(() => {
                 expect(
                     screen.getByRole('radio', {
-                        name: 'Yes, the details match and I want to accept this document',
+                        name:
+                            'Yes, I want to accept this document. ' +
+                            'All or some of the details match the demographics shown.',
                     }),
                 ).toBeInTheDocument();
             });
@@ -407,7 +409,9 @@ describe('ReviewDetailsStage', () => {
 
             await waitFor(() => {
                 const yesRadio = screen.getByRole('radio', {
-                    name: 'Yes, the details match and I want to accept this document',
+                    name:
+                        'Yes, I want to accept this document. ' +
+                        'All or some of the details match the demographics shown.',
                 });
                 const noRadio = screen.getByRole('radio', {
                     name: /No, I don't want to accept this document/i,
@@ -449,7 +453,9 @@ describe('ReviewDetailsStage', () => {
             });
 
             const yesRadio = screen.getByRole('radio', {
-                name: 'Yes, the details match and I want to accept this document',
+                name:
+                    'Yes, I want to accept this document. ' +
+                    'All or some of the details match the demographics shown.',
             });
 
             await user.click(yesRadio);
@@ -483,7 +489,9 @@ describe('ReviewDetailsStage', () => {
             });
 
             const yesRadio = screen.getByRole('radio', {
-                name: 'Yes, the details match and I want to accept this document',
+                name:
+                    'Yes, I want to accept this document. ' +
+                    'All or some of the details match the demographics shown.',
             });
             const noRadio = screen.getByRole('radio', {
                 name: /No, I don't want to accept this document/i,
@@ -572,7 +580,9 @@ describe('ReviewDetailsStage', () => {
             expect(screen.getByText('There is a problem')).toBeInTheDocument();
 
             const yesRadio = screen.getByRole('radio', {
-                name: 'Yes, the details match and I want to accept this document',
+                name:
+                    'Yes, I want to accept this document. ' +
+                    'All or some of the details match the demographics shown.',
             });
             await user.click(yesRadio);
 
@@ -594,7 +604,9 @@ describe('ReviewDetailsStage', () => {
             });
 
             const yesRadio = screen.getByRole('radio', {
-                name: 'Yes, the details match and I want to accept this document',
+                name:
+                    'Yes, I want to accept this document. ' +
+                    'All or some of the details match the demographics shown.',
             });
             await user.click(yesRadio);
 
@@ -720,7 +732,9 @@ describe('ReviewDetailsStage', () => {
             });
 
             const yesRadio = screen.getByRole('radio', {
-                name: 'Yes, the details match and I want to accept this document',
+                name:
+                    'Yes, I want to accept this document. ' +
+                    'All or some of the details match the demographics shown.',
             });
             await user.click(yesRadio);
 
@@ -886,7 +900,9 @@ describe('ReviewDetailsStage', () => {
             });
 
             const yesRadio = screen.getByRole('radio', {
-                name: 'Yes, the details match and I want to accept this document',
+                name:
+                    'Yes, I want to accept this document. ' +
+                    'All or some of the details match the demographics shown.',
             });
             await user.click(yesRadio);
 
@@ -1391,7 +1407,9 @@ describe('ReviewDetailsStage', () => {
             });
 
             const yesRadio = screen.getByRole('radio', {
-                name: 'Yes, the details match and I want to accept this document',
+                name:
+                    'Yes, I want to accept this document. ' +
+                    'All or some of the details match the demographics shown.',
             });
             await user.click(yesRadio);
             await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -1650,7 +1668,9 @@ describe('ReviewDetailsStage', () => {
             });
 
             const yesRadio = screen.getByRole('radio', {
-                name: 'Yes, the details match and I want to accept this document',
+                name:
+                    'Yes, I want to accept this document. ' +
+                    'All or some of the details match the demographics shown.',
             });
             await user.click(yesRadio);
             await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -1744,7 +1764,7 @@ describe('ReviewDetailsStage', () => {
                 expect(screen.getByText(/Check this document/i)).toBeInTheDocument();
             });
 
-            const yesRadio = screen.getByLabelText(/Yes, the details match/i);
+            const yesRadio = screen.getByLabelText(/Yes, I want to accept this document./i);
             await userEvent.click(yesRadio);
 
             const continueButton = screen.getByRole('button', { name: /continue/i });
@@ -1796,7 +1816,7 @@ describe('ReviewDetailsStage', () => {
                 expect(screen.getByText(/Check this document/i)).toBeInTheDocument();
             });
 
-            const yesRadio = screen.getByLabelText(/Yes, the details match/i);
+            const yesRadio = screen.getByLabelText(/Yes, I want to accept this document./i);
             await userEvent.click(yesRadio);
 
             const continueButton = screen.getByRole('button', { name: /continue/i });
@@ -1852,7 +1872,7 @@ describe('ReviewDetailsStage', () => {
                 expect(screen.getByText(/Check this document/i)).toBeInTheDocument();
             });
 
-            const yesRadio = screen.getByLabelText(/Yes, the details match/i);
+            const yesRadio = screen.getByLabelText(/Yes, I want to accept this document./i);
             await userEvent.click(yesRadio);
 
             const continueButton = screen.getByRole('button', { name: /continue/i });
@@ -1912,7 +1932,7 @@ describe('ReviewDetailsStage', () => {
                 expect(screen.getByText(/Check this document/i)).toBeInTheDocument();
             });
 
-            const yesRadio = screen.getByLabelText(/Yes, the details match/i);
+            const yesRadio = screen.getByLabelText(/Yes, I want to accept this document./i);
             await userEvent.click(yesRadio);
 
             const continueButton = screen.getByRole('button', { name: /continue/i });
@@ -1973,7 +1993,7 @@ describe('ReviewDetailsStage', () => {
                 expect(screen.getByText(/Check this document/i)).toBeInTheDocument();
             });
 
-            const yesRadio = screen.getByLabelText(/Yes, the details match/i);
+            const yesRadio = screen.getByLabelText(/Yes, I want to accept this document./i);
             await userEvent.click(yesRadio);
 
             const continueButton = screen.getByRole('button', { name: /continue/i });

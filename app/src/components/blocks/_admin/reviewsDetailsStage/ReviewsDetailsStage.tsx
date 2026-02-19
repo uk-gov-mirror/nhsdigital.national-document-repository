@@ -378,11 +378,12 @@ const ReviewsDetailsStage = ({
                     </Fieldset.Legend>
                     <Radios id="accept-document" error={showError ? 'Select an option' : ''}>
                         <Radios.Radio value="yes" {...radioProps} inputRef={radioRef}>
-                            Yes, the details match and I want to accept this document
+                            Yes, I want to accept this document. All or some of the details match
+                            the demographics shown.
                         </Radios.Radio>
                         <Radios.Radio value="no" {...radioProps} inputRef={radioRef}>
                             No, I don't want to accept this document. None of the details match the
-                            demographics shown
+                            demographics shown.
                         </Radios.Radio>
                     </Radios>
                     <Button className="mt-4" type="submit">
