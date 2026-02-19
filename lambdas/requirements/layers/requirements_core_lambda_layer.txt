@@ -1,9 +1,9 @@
-PyJWT[crypto]==2.8.0
+PyJWT[crypto]==2.9.0
 boto3==1.42.1
 inflection==0.5.1
 oauthlib==3.2.2
-pydantic[email]==2.11
-pypdf==6.6.2
+pydantic[email]==2.11.10
+pypdf==6.7.1
 requests==2.32.4
 regex==2023.12.25
 pikepdf==8.4.0

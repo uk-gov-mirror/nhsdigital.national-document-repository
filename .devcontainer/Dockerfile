@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install base neovim
 RUN set -eux; \
-  NEOVIM_VERSION="v0.11.2"; \
+  NEOVIM_VERSION="v0.11.6"; \
   curl -fsSL -o nvim.tar.gz \
   https://github.com/neovim/neovim/releases/download/${NEOVIM_VERSION}/nvim-linux-x86_64.tar.gz; \
   tar -xzf nvim.tar.gz; \
@@ -67,11 +67,11 @@ RUN apt-get install -y \
   libatk-bridge2.0-0 \
   libasound2
 
-RUN wget https://github.com/mikefarah/yq/releases/download/v4.48.2/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq
+RUN wget https://github.com/mikefarah/yq/releases/download/v4.52.4/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq
 RUN wget https://github.com/asdf-vm/asdf/releases/download/v0.18.0/asdf-v0.18.0-linux-amd64.tar.gz -O - | tar xz && sudo mv asdf /usr/local/bin/asdf
 
 # Install Cypress globally
-RUN npm install -g cypress@15.7.0
+RUN npm install -g cypress@15.10.0
 
 # Installing ASDF
 USER vscode
@@ -79,6 +79,6 @@ RUN echo "export ASDF_DATA_DIR=/home/vscode/.asdf" >> ~/.bashrc
 RUN echo ". <(asdf completion bash)"  >> ~/.bashrc
 
 # Install poetry
-RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.2.1 python3
+RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.3.2 python3
 
 # ASDF and poetry added to path in devcontainer.json

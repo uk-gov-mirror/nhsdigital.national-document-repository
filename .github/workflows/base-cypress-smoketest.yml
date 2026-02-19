@@ -65,7 +65,6 @@ jobs:
             cypress/e2e/1-ndr-smoke-tests/**/*.cy.js
         env:
           CYPRESS_BASE_URL: "https://${{ inputs.sandbox }}.access-request-fulfilment.patient-deductions.nhs.uk"
-          CYPRESS_grepTags: "smoke"
           CYPRESS_WORKSPACE: ${{ inputs.sandbox }}
           CYPRESS_ODSCODE: ${{ secrets.CYPRESS_ODSCODE }}
           CYPRESS_KEY: ${{ secrets.CYPRESS_KEY }}
@@ -119,7 +118,6 @@ jobs:
             cypress/e2e/1-ndr-smoke-tests/**/*.cy.js
         env:
           CYPRESS_BASE_URL: "https://${{ inputs.sandbox }}.access-request-fulfilment.patient-deductions.nhs.uk"
-          CYPRESS_grepTags: "smoke"
           CYPRESS_WORKSPACE: ${{ inputs.sandbox }}
           CYPRESS_ODSCODE: ${{ secrets.CYPRESS_ODSCODE }}
           CYPRESS_KEY: ${{ secrets.CYPRESS_KEY }}

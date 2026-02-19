@@ -448,9 +448,21 @@ describe('GP Workflow: View Lloyd George record', () => {
             beforeEachConfiguration(Roles.PCSE);
             cy.intercept('GET', '/SearchDocumentReferences*', {
                 statusCode: 200,
-                body: [
-                    { fileName: 'testName', created: 'testCreated', virusScannerResult: 'Clean' },
-                ],
+                body: {
+                    references: [
+                        {
+                            fileName: 'document_1.pdf',
+                            created: '2023-01-01T12:00:00Z',
+                            virusScannerResult: 'CLEAN',
+                            author: 'Y12345',
+                            id: 'mock-document-id-1',
+                            fileSize: 1024,
+                            version: '1.0',
+                            documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                            contentType: 'application/pdf',
+                        },
+                    ],
+                },
             }).as('searchDocs');
 
             cy.intercept('POST', '/DocumentManifest**', {

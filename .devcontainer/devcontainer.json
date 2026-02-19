@@ -7,7 +7,7 @@
     "AWS_VAULT_FILE_PASSPHRASE": "default"
   },
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2.12.4": {
+    "ghcr.io/devcontainers/features/docker-in-docker:latest": {
       "moby": false,
       "version": "latest",
       "dockerDashComposeVersion": "latest"
