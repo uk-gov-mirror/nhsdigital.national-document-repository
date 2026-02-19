@@ -167,7 +167,7 @@ def test_create_document_reference_fhir_response(mock_document_service, mocker):
     mock_attachment.assert_called_once_with(
         title=mock_document_reference.file_name,
         creation=mock_document_reference.document_scan_creation,
-        url=f"{APIM_API_URL}/DocumentReference/{SnomedCodes.PATIENT_DATA.value.code}~{mock_document_reference.id}",
+        url=f"{APIM_API_URL}/DocumentReference/{mock_document_reference.id}",
     )
 
     mock_doc_ref_info.assert_called_once_with(
@@ -220,7 +220,7 @@ def test_create_document_reference_fhir_response_integration(
                     "language": "en-GB",
                     "title": "test_document.pdf",
                     "creation": "2023-05-01",
-                    "url": f"{APIM_API_URL}/DocumentReference/717391000000106~Y05868-1634567890",
+                    "url": f"{APIM_API_URL}/DocumentReference/Y05868-1634567890",
                 },
             },
         ],
@@ -294,7 +294,7 @@ def test_create_document_reference_fhir_response_no_title(
                     "contentType": "application/pdf",
                     "language": "en-GB",
                     "creation": "2023-05-01",
-                    "url": f"{APIM_API_URL}/DocumentReference/717391000000106~Y05868-1634567890",
+                    "url": f"{APIM_API_URL}/DocumentReference/Y05868-1634567890",
                 },
             },
         ],

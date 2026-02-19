@@ -33,7 +33,7 @@ MOCK_CIS2_VALID_EVENT = {
 }
 
 MOCK_INVALID_EVENT_ID_MALFORMED = deepcopy(MOCK_CIS2_VALID_EVENT)
-MOCK_INVALID_EVENT_ID_MALFORMED["pathParameters"]["id"] = f"~{TEST_UUID}"
+MOCK_INVALID_EVENT_ID_MALFORMED["pathParameters"]["id"] = "NOT_A_UUID"
 
 MOCK_EVENT_APPLICATION = deepcopy(MOCK_CIS2_VALID_EVENT)
 MOCK_EVENT_APPLICATION["headers"] = {"Authorization": f"Bearer {TEST_UUID}"}
@@ -168,10 +168,8 @@ def test_extract_document_parameters_valid():
 
 
 def test_extract_document_parameters_invalid():
-    with pytest.raises(GetFhirDocumentReferenceException) as e:
-        extract_document_parameters(MOCK_INVALID_EVENT_ID_MALFORMED)
-    assert e.value.status_code == 400
-    assert e.value.error == LambdaError.DocRefInvalidFiles
+    document_id = extract_document_parameters(MOCK_INVALID_EVENT_ID_MALFORMED)
+    assert document_id == "NOT_A_UUID"
 
 
 def test_verify_user_authorisation(
@@ -234,8 +232,7 @@ def test_lambda_handler_id_malformed(
     context,
 ):
     response = lambda_handler(MOCK_INVALID_EVENT_ID_MALFORMED, context)
-    assert response["statusCode"] == 400
-    mock_document_service.handle_get_document_reference_request.assert_not_called()
+    assert response["statusCode"] == 404
 
 
 def test_lambda_handler_oidc_error(
@@ -264,11 +261,10 @@ def test_lambda_handler_invalid_path_parameters(
     context,
 ):
     event_with_invalid_path = deepcopy(MOCK_CIS2_VALID_EVENT)
-    event_with_invalid_path["pathParameters"] = {"id": "invalid_format_no_tilde"}
+    event_with_invalid_path["pathParameters"] = {"id": "invalid_format"}
 
     response = lambda_handler(event_with_invalid_path, context)
-    assert response["statusCode"] == 400
-    mock_document_service.handle_get_document_reference_request.assert_not_called()
+    assert response["statusCode"] == 404
 
 
 @pytest.mark.parametrize(
