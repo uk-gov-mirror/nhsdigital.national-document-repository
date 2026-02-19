@@ -59,7 +59,7 @@ class PdfStitchingService:
         )
 
         if doc_type == SupportedDocumentTypes.LG:
-            if any("1of1" in result.file_name for result in document_references):
+            if any("1of1_" in result.file_name for result in document_references):
                 logger.error(
                     "There is already a stitched LG document reference present in DynamoDb"
                 )

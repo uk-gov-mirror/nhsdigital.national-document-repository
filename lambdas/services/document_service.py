@@ -172,10 +172,15 @@ class DocumentService:
     ) -> list[str]:
         """Get unique NHS numbers for patients with given ODS code."""
         table_name = table_name or self.table_name
-        filter_expression = Attr("Author").eq(ods_code) & Attr("FileName").begins_with(
-            "2of",
-        )
         projection_expression = "NhsNumber"
+        if ods_code == "ALL":
+            filter_expression = Attr("FileName").begins_with(
+                "2of",
+            )
+        else:
+            filter_expression = Attr("Author").eq(ods_code) & Attr("FileName").begins_with(
+                "2of",
+            )
 
         logger.info("Starting scan of table for NHS numbers based on ODS code...")
         results = self.dynamo_service.scan_whole_table(
