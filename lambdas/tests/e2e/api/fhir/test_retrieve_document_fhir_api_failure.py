@@ -102,11 +102,11 @@ def test_retrieve_invalid_resource_type(test_data):
 @pytest.mark.parametrize(
     "param,expected_status,expected_code",
     [
-        (f"{pdm_data_helper.snomed_code}-{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
-        (f"{pdm_data_helper.snomed_code}+{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
-        (f"{pdm_data_helper.snomed_code}&{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
-        (f"{pdm_data_helper.snomed_code}{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
-        (f"{str(uuid.uuid4())}~{pdm_data_helper.snomed_code}", 500, "exception"),
+        (f"{pdm_data_helper.snomed_code}-{str(uuid.uuid4())}", 404, "not-found"),
+        (f"{pdm_data_helper.snomed_code}+{str(uuid.uuid4())}", 404, "not-found"),
+        (f"{pdm_data_helper.snomed_code}&{str(uuid.uuid4())}", 404, "not-found"),
+        (f"{pdm_data_helper.snomed_code}{str(uuid.uuid4())}", 404, "not-found"),
+        (f"{str(uuid.uuid4())}~{pdm_data_helper.snomed_code}", 404, "not-found"),
     ],
 )
 def test_incorrectly_formatted_path_param_id(
@@ -145,9 +145,7 @@ def test_no_document_id_in_path_param_id():
 
 
 def test_no_snomed_or_document_id_in_path_param_id():
-    response = get_pdm_document_reference(
-        pdm_snomed="",
-    )
+    response = get_pdm_document_reference()
 
     body = response.json()
     assert response.status_code == 400
@@ -158,9 +156,9 @@ def test_no_snomed_or_document_id_in_path_param_id():
 def test_extra_parameter_in_id_in_path_param_id(test_data):
     pdm_record = create_and_store_pdm_record(test_data)
     response = get_pdm_document_reference(
-        endpoint_override=f"{pdm_data_helper.snomed_code}~{pdm_record['id']}~thisshouldnotbehere",
+        endpoint_override=f"{pdm_record['id']}~thisshouldnotbehere",
     )
 
     body = response.json()
-    assert response.status_code == 400
-    _assert_operation_outcome(body=body, code="MISSING_VALUE")
+    assert response.status_code == 404
+    _assert_operation_outcome(body=body, code="not-found")

@@ -23,7 +23,7 @@ def test_create_document_base64(test_data):
 
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 201
-    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    record["id"] = raw_upload_response.json()["id"]
     test_data.append(record)
 
     # Validate attachment URL
@@ -62,7 +62,7 @@ def test_create_document_saves_raw(test_data):
 
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 201
-    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    record["id"] = raw_upload_response.json()["id"]
     test_data.append(record)
 
     doc_ref = pdm_data_helper.retrieve_document_reference(record=record)
@@ -91,7 +91,7 @@ def test_create_document_without_author_or_type(test_data):
         assert field not in payload
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 201
-    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    record["id"] = raw_upload_response.json()["id"]
     test_data.append(record)
 
     doc_ref = pdm_data_helper.retrieve_document_reference(record=record)
@@ -118,7 +118,7 @@ def test_create_document_without_title(test_data):
 
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 201
-    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    record["id"] = raw_upload_response.json()["id"]
     test_data.append(record)
 
     doc_ref = pdm_data_helper.retrieve_document_reference(record=record)

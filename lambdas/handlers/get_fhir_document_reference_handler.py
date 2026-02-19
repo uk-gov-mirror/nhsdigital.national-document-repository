@@ -1,7 +1,6 @@
-import uuid
-
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
+from enums.snomed_codes import SnomedCode, SnomedCodes
 from oauthlib.oauth2 import WebApplicationClient
 from services.base.ssm_service import SSMService
 from services.dynamic_configuration_service import DynamicConfigurationService
@@ -20,8 +19,6 @@ from utils.lambda_exceptions import (
 from utils.lambda_handler_utils import extract_bearer_token
 from utils.lambda_header_utils import validate_common_name_in_mtls
 from utils.lambda_response import ApiGatewayResponse
-
-from lambdas.enums.snomed_codes import SnomedCode, SnomedCodes
 
 logger = LoggingService(__name__)
 
@@ -97,19 +94,7 @@ def extract_document_parameters(event):
             LambdaError.DocumentReferenceMissingParameters,
         )
 
-    if not is_uuid(document_id):
-        logger.error("Invalid path parameters in request.")
-        raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidFiles)
-
     return document_id
-
-
-def is_uuid(value: str) -> bool:
-    try:
-        uuid.UUID(value)
-        return True
-    except (ValueError, TypeError):
-        return False
 
 
 def verify_user_authorisation(bearer_token, selected_role_id, nhs_number):
