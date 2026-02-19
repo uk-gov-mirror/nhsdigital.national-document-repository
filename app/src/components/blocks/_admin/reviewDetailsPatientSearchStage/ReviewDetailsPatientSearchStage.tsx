@@ -33,7 +33,8 @@ import { ReviewUploadDocument } from '../../../../types/pages/UploadDocumentsPag
 import { getFormattedDateTimeFromString } from '../../../../helpers/utils/formatDate';
 import { CreatedByCard } from '../../../generic/createdBy/createdBy';
 
-export const incorrectFormatMessage = "Enter patient's 10 digit NHS number";
+export const incorrectFormatMessage =
+    "Enter a valid patient NHS number. If you keep getting this message, select 'I don't know the NHS number'.";
 
 interface ReviewDetailsPatientSearchPageProps {
     reviewData: ReviewDetails | null;
@@ -159,6 +160,8 @@ const ReviewDetailsPatientSearchStage = ({
         <>
             <BackButton backLinkText="Go back" dataTestid="back-button" />
 
+            <h1>Search for the correct patient</h1>
+
             {(submissionState === PATIENT_SEARCH_STATES.FAILED ||
                 inputError === incorrectFormatMessage) && (
                 <>
@@ -174,8 +177,6 @@ const ReviewDetailsPatientSearchStage = ({
                     )}
                 </>
             )}
-
-            <h1>Search for the correct patient</h1>
 
             <p>Enter the NHS number to find the correct patient demographics for this document.</p>
 

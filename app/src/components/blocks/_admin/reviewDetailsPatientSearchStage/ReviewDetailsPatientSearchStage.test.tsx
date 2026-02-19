@@ -236,6 +236,29 @@ describe('ReviewDetailsPatientSearchPage', () => {
             });
         });
 
+        it('displays incorrectFormatMessage in both ErrorBox and TextInput on validation failure', async () => {
+            render(
+                <ReviewDetailsPatientSearchStage
+                    uploadDocuments={[]}
+                    reviewData={mockReviewData}
+                    setNewPatientDetails={(): void => {}}
+                />,
+            );
+
+            const input = screen.getByTestId('nhs-number-input');
+            const continueButton = screen.getByTestId('continue-button');
+
+            // Submit with invalid NHS number
+            await userEvent.type(input, '12345');
+            await userEvent.click(continueButton);
+
+            await waitFor(() => {
+                // Check that incorrectFormatMessage appears twice (ErrorBox + TextInput)
+                const errorMessages = screen.getAllByText(incorrectFormatMessage);
+                expect(errorMessages).toHaveLength(2);
+            });
+        });
+
         it('shows error for invalid NHS number format', async () => {
             render(
                 <ReviewDetailsPatientSearchStage
