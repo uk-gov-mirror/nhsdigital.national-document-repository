@@ -328,3 +328,30 @@ def test_scan_file_when_parameters_are_set(
 
     virus_scanner_service.get_ssm_parameters_for_request_access_token.assert_not_called()
     mock_request_virus_scan.assert_called_once()
+
+def test_get_new_access_token_handles_TooManyRequests_exception(mocker, virus_scanner_service):
+    response = Response()
+    response.status_code = 200
+    response._content = json.dumps(RESPONSE_TOKEN).encode("utf-8")
+    virus_scanner_service.base_url = "test.endpoint"
+    virus_scanner_service.username = "test_username"
+    virus_scanner_service.password = "test_password"
+    mock_post = mocker.patch("requests.post", return_value=response)
+
+    excepted_token_url = virus_scanner_service.base_url + "/api/Token"
+    excepted_json_data_request = {
+        "username": virus_scanner_service.username,
+        "password": virus_scanner_service.password,
+    }
+
+    virus_scanner_service.get_new_access_token()
+
+    virus_scanner_service.update_ssm_access_token = mocker.MagicMock(side_effect=Exception("TooManyRequests"))
+
+    assert virus_scanner_service.access_token == RESPONSE_TOKEN["accessToken"]
+
+    mock_post.assert_called_with(
+        url=excepted_token_url,
+        headers={"Content-type": "application/json"},
+        data=json.dumps(excepted_json_data_request),
+    )

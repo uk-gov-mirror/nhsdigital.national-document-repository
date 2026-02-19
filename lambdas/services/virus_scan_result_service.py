@@ -114,11 +114,16 @@ class VirusScanService:
             )
 
             response.raise_for_status()
-            new_access_token = response.json()["accessToken"]
+            self.access_token = response.json()["accessToken"]
 
-            self.update_ssm_access_token(new_access_token)
-            self.access_token = new_access_token
-        except (HTTPError, KeyError, TypeError) as e:
+            self.update_ssm_access_token(self.access_token)
+        except Exception as e:
+            # ignore TooManyRequests exception as it will be handled by the retry mechanism in request_virus_scan
+            # this is to prevent a scenario where multiple concurrent Lambda executions all attempt to refresh the token at the same time, 
+            # resulting in a flood of requests to the token endpoint and subsequent failures. By ignoring the TooManyRequests exception, 
+            # we allow the retry mechanism to handle the situation gracefully without overwhelming the token service.
+            if str(e).find("TooManyRequests") != -1:
+                return
             logger.error(
                 f"{LambdaError.VirusScanNoToken.to_str()}: {str(e)}",
                 {"Result": FAIL_SCAN},
