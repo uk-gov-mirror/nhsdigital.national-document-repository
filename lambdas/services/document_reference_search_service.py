@@ -229,11 +229,7 @@ class DocumentReferenceSearchService(DocumentService):
             title=document_reference.file_name,
             creation=document_reference.document_scan_creation
             or document_reference.created,
-            url=document_retrieve_endpoint
-            + "/"
-            + document_reference.document_snomed_code_type
-            + "~"
-            + document_reference.id,
+            url=document_retrieve_endpoint + "/" + document_reference.id,
         )
         fhir_document_reference = (
             DocumentReferenceInfo(

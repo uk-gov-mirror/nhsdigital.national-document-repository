@@ -47,7 +47,7 @@ def test_create_document_virus(test_data):
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 201
     upload_response = raw_upload_response.json()
-    record["id"] = upload_response["id"].split("~")[1]
+    record["id"] = upload_response["id"]
     test_data.append(record)
 
     # Poll until processing/scan completes

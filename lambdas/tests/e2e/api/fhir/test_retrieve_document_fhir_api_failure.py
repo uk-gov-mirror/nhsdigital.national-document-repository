@@ -102,11 +102,31 @@ def test_retrieve_invalid_resource_type(test_data):
 @pytest.mark.parametrize(
     "param,expected_status,expected_code",
     [
-        (f"{pdm_data_helper.snomed_code}-{str(uuid.uuid4())}", 404, "not-found"),
-        (f"{pdm_data_helper.snomed_code}+{str(uuid.uuid4())}", 404, "not-found"),
-        (f"{pdm_data_helper.snomed_code}&{str(uuid.uuid4())}", 404, "not-found"),
-        (f"{pdm_data_helper.snomed_code}{str(uuid.uuid4())}", 404, "not-found"),
-        (f"{str(uuid.uuid4())}~{pdm_data_helper.snomed_code}", 404, "not-found"),
+        (
+            f"{pdm_data_helper.snomed_code}-{str(uuid.uuid4())}",
+            404,
+            "RESOURCE_NOT_FOUND",
+        ),
+        (
+            f"{pdm_data_helper.snomed_code}+{str(uuid.uuid4())}",
+            404,
+            "RESOURCE_NOT_FOUND",
+        ),
+        (
+            f"{pdm_data_helper.snomed_code}&{str(uuid.uuid4())}",
+            404,
+            "RESOURCE_NOT_FOUND",
+        ),
+        (
+            f"{pdm_data_helper.snomed_code}{str(uuid.uuid4())}",
+            404,
+            "RESOURCE_NOT_FOUND",
+        ),
+        (
+            f"{str(uuid.uuid4())}~{pdm_data_helper.snomed_code}",
+            404,
+            "RESOURCE_NOT_FOUND",
+        ),
     ],
 )
 def test_incorrectly_formatted_path_param_id(
@@ -124,27 +144,7 @@ def test_incorrectly_formatted_path_param_id(
     _assert_operation_outcome(body=body, code=expected_code)
 
 
-def test_no_snomed_code_in_path_param_id(test_data):
-    pdm_record = create_and_store_pdm_record(test_data)
-    response = get_pdm_document_reference(
-        record_id=pdm_record["id"],
-        pdm_snomed="",
-    )
-
-    body = response.json()
-    assert response.status_code == 400
-    _assert_operation_outcome(body=body, code="MISSING_VALUE")
-
-
 def test_no_document_id_in_path_param_id():
-    response = get_pdm_document_reference()
-
-    body = response.json()
-    assert response.status_code == 400
-    _assert_operation_outcome(body=body, code="MISSING_VALUE")
-
-
-def test_no_snomed_or_document_id_in_path_param_id():
     response = get_pdm_document_reference()
 
     body = response.json()
@@ -161,4 +161,4 @@ def test_extra_parameter_in_id_in_path_param_id(test_data):
 
     body = response.json()
     assert response.status_code == 404
-    _assert_operation_outcome(body=body, code="not-found")
+    _assert_operation_outcome(body=body, code="RESOURCE_NOT_FOUND")
