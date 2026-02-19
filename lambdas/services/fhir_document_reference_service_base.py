@@ -8,11 +8,16 @@ from enums.lambda_error import LambdaError
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference
-from models.fhir.R4.fhir_document_reference import SNOMED_URL, Attachment
+from models.fhir.R4.fhir_document_reference import (
+    SNOMED_URL,
+    Attachment,
+)
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
-from models.fhir.R4.fhir_document_reference import DocumentReferenceInfo
+from models.fhir.R4.fhir_document_reference import (
+    DocumentReferenceInfo,
+)
 from models.pds_models import PatientDetails
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service

@@ -7,15 +7,22 @@ from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference
 from models.fhir.R4.base_models import Coding, Identifier, Reference
-from models.fhir.R4.fhir_document_reference import SNOMED_URL, Attachment
+from models.fhir.R4.fhir_document_reference import (
+    SNOMED_URL,
+    Attachment,
+)
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
-from models.fhir.R4.fhir_document_reference import DocumentReferenceContent
+from models.fhir.R4.fhir_document_reference import (
+    DocumentReferenceContent,
+)
 from services.put_fhir_document_reference_service import (
     FhirDocumentReferenceServiceBase,
 )
-from tests.unit.conftest import APIM_API_URL
+from tests.unit.conftest import (
+    APIM_API_URL,
+)
 from tests.unit.conftest import (
     EXPECTED_PARSED_PATIENT_BASE_CASE as mock_pds_patient_details,
 )
