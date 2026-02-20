@@ -3,10 +3,11 @@ import os
 
 import requests
 from botocore.exceptions import ClientError
+from requests.models import HTTPError
+
 from enums.lambda_error import LambdaError
 from enums.pds_ssm_parameters import SSMParameter
 from enums.virus_scan_result import VirusScanResult
-from requests.models import HTTPError
 from services.base.ssm_service import SSMService
 from utils.audit_logging_setup import LoggingService
 from utils.lambda_exceptions import VirusScanResultException
@@ -83,7 +84,9 @@ class VirusScanService:
             logger.info(f"Json data request: {json_data_request}")
 
             response = requests.post(
-                url=scan_url, data=json.dumps(json_data_request), headers=headers
+                url=scan_url,
+                data=json.dumps(json_data_request),
+                headers=headers,
             )
             if response.status_code == 401 and retry_on_expired:
                 self.get_new_access_token()
@@ -102,8 +105,9 @@ class VirusScanService:
 
     def get_new_access_token(self):
         try:
+            logger.info("Fetching new virus scan token")
             json_login = json.dumps(
-                {"username": self.username, "password": self.password}
+                {"username": self.username, "password": self.password},
             )
             token_url = self.base_url + TOKEN_ENDPOINT
 
@@ -114,11 +118,19 @@ class VirusScanService:
             )
 
             response.raise_for_status()
-            new_access_token = response.json()["accessToken"]
+            self.access_token = response.json()["accessToken"]
 
-            self.update_ssm_access_token(new_access_token)
-            self.access_token = new_access_token
-        except (HTTPError, KeyError, TypeError) as e:
+            self.update_ssm_access_token(self.access_token)
+            logger.info("Successfully updated access token in SSM")
+        except ClientError as e:
+            # ignore SSM errors as it will be handled by the retry mechanism in request_virus_scan
+            # this is to prevent a scenario where multiple concurrent executions attempt to refresh the token at the same time,
+            # resulting in a flood of requests to update the token in SSM potentially causing an exception.
+            # By ignoring the exception, we allow the retry mechanism to handle the situation gracefully without
+            # overwhelming SSM.
+            logger.info(f"Failed to store token in SSM: {str(e)}")
+
+        except Exception as e:
             logger.error(
                 f"{LambdaError.VirusScanNoToken.to_str()}: {str(e)}",
                 {"Result": FAIL_SCAN},
@@ -142,7 +154,8 @@ class VirusScanService:
         parameters = [username_key, password_key, url_key, access_token_key]
 
         ssm_response = self.ssm_service.get_ssm_parameters(
-            parameters, with_decryption=True
+            parameters,
+            with_decryption=True,
         )
         self.username = ssm_response[username_key]
         self.password = ssm_response[password_key]
