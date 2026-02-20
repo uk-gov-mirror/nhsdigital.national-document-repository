@@ -1,4 +1,5 @@
 import datetime
+import json
 from io import BytesIO
 
 import pytest
@@ -21,12 +22,6 @@ from tests.unit.helpers.data.s3_responses import (
 from utils.exceptions import TagNotFoundException
 
 TEST_DOWNLOAD_PATH = "test_path"
-MOCK_EVENT_BODY = {
-    "resourceType": "DocumentReference",
-    "subject": {"identifier": {"value": 111111000}},
-    "content": [{"attachment": {"contentType": "application/pdf"}}],
-    "description": "test_filename.pdf",
-}
 
 
 def flatten(list_of_lists):
@@ -37,12 +32,16 @@ def flatten(list_of_lists):
 @freeze_time("2023-10-30T10:25:00")
 @pytest.fixture
 def mock_service(mocker, set_env):
+    S3Service._instance = None
+
     mocker.patch("boto3.client")
     mocker.patch("services.base.iam_service.IAMService")
+
     service = S3Service(custom_aws_role="mock_arn_custom_role")
     service.expiration_time = datetime.datetime.now(
-        datetime.timezone.utc
+        datetime.timezone.utc,
     ) + datetime.timedelta(hours=1)
+
     yield service
     S3Service._instance = None
 
@@ -63,6 +62,43 @@ def mock_custom_client(mocker, mock_service):
 def mock_list_objects_paginate(mock_client):
     mock_paginator_method = mock_client.get_paginator.return_value.paginate
     return mock_paginator_method
+
+
+def test_s3_service_constructs_boto_client_with_timeouts(mocker):
+    S3Service._instance = None
+    mocked_boto_client = mocker.patch("boto3.client")
+
+    _ = S3Service()
+
+    mocked_boto_client.assert_called_once()
+    _, kwargs = mocked_boto_client.call_args
+    assert kwargs["config"].connect_timeout == 3
+    assert kwargs["config"].read_timeout == 5
+
+    S3Service._instance = None
+
+
+def test_put_json_calls_put_object_with_encoded_json(mock_service, mock_client):
+    payload = {"a": 1, "b": {"c": 2}}
+
+    mock_service.put_json("bucket", "key.json", payload)
+
+    mock_client.put_object.assert_called_once()
+    _, kwargs = mock_client.put_object.call_args
+
+    assert kwargs["Bucket"] == "bucket"
+    assert kwargs["Key"] == "key.json"
+    assert kwargs["ContentType"] == "application/json"
+    assert json.loads(kwargs["Body"].decode("utf-8")) == payload
+
+
+def test_put_json_allows_custom_content_type(mock_service, mock_client):
+    payload = {"hello": "world"}
+
+    mock_service.put_json("bucket", "key", payload, content_type="application/x-ndjson")
+
+    _, kwargs = mock_client.put_object.call_args
+    assert kwargs["ContentType"] == "application/x-ndjson"
 
 
 def test_create_upload_presigned_url(mock_service, mocker, mock_custom_client):
@@ -89,6 +125,7 @@ def test_create_download_presigned_url(mock_service, mocker, mock_custom_client)
         mock_custom_client,
         mock_service.expiration_time,
     )
+
     response = mock_service.create_download_presigned_url(MOCK_BUCKET, TEST_FILE_KEY)
 
     assert response == MOCK_PRESIGNED_URL_RESPONSE
@@ -99,7 +136,9 @@ def test_download_file(mock_service, mock_client):
     mock_service.download_file(MOCK_BUCKET, TEST_FILE_KEY, TEST_DOWNLOAD_PATH)
 
     mock_client.download_file.assert_called_once_with(
-        MOCK_BUCKET, TEST_FILE_KEY, TEST_DOWNLOAD_PATH
+        MOCK_BUCKET,
+        TEST_FILE_KEY,
+        TEST_DOWNLOAD_PATH,
     )
 
 
@@ -107,7 +146,9 @@ def test_upload_file(mock_service, mock_client):
     mock_service.upload_file(TEST_FILE_NAME, MOCK_BUCKET, TEST_FILE_KEY)
 
     mock_client.upload_file.assert_called_with(
-        TEST_FILE_NAME, MOCK_BUCKET, TEST_FILE_KEY
+        TEST_FILE_NAME,
+        MOCK_BUCKET,
+        TEST_FILE_KEY,
     )
 
 
@@ -115,11 +156,17 @@ def test_upload_file_with_extra_args(mock_service, mock_client):
     test_extra_args = {"mock_tag": 123, "apple": "red", "banana": "true"}
 
     mock_service.upload_file_with_extra_args(
-        TEST_FILE_NAME, MOCK_BUCKET, TEST_FILE_KEY, test_extra_args
+        TEST_FILE_NAME,
+        MOCK_BUCKET,
+        TEST_FILE_KEY,
+        test_extra_args,
     )
 
     mock_client.upload_file.assert_called_with(
-        TEST_FILE_NAME, MOCK_BUCKET, TEST_FILE_KEY, test_extra_args
+        TEST_FILE_NAME,
+        MOCK_BUCKET,
+        TEST_FILE_KEY,
+        test_extra_args,
     )
 
 
@@ -160,8 +207,9 @@ def test_copy_across_bucket_if_none_match(mock_service, mock_client):
 def test_delete_object(mock_service, mock_client):
     mock_service.delete_object(s3_bucket_name=MOCK_BUCKET, file_key=TEST_FILE_NAME)
 
-    mock_client.delete_object_assert_called_once_with(
-        Bucket=MOCK_BUCKET, Key=TEST_FILE_NAME
+    mock_client.delete_object.assert_called_once_with(
+        Bucket=MOCK_BUCKET,
+        Key=TEST_FILE_NAME,
     )
 
 
@@ -198,10 +246,11 @@ def test_get_tag_value(mock_service, mock_client):
     mock_client.get_object_tagging.return_value = mock_response
 
     actual = mock_service.get_tag_value(
-        s3_bucket_name=MOCK_BUCKET, file_key=TEST_FILE_NAME, tag_key=test_tag_key
+        s3_bucket_name=MOCK_BUCKET,
+        file_key=TEST_FILE_NAME,
+        tag_key=test_tag_key,
     )
-    expected = test_tag_value
-    assert actual == expected
+    assert actual == test_tag_value
 
     mock_client.get_object_tagging.assert_called_once_with(
         Bucket=MOCK_BUCKET,
@@ -210,7 +259,8 @@ def test_get_tag_value(mock_service, mock_client):
 
 
 def test_get_tag_value_raises_error_when_specified_tag_is_missing(
-    mock_service, mock_client
+    mock_service,
+    mock_client,
 ):
     test_tag_key = "tag_key"
 
@@ -225,7 +275,9 @@ def test_get_tag_value_raises_error_when_specified_tag_is_missing(
 
     with pytest.raises(TagNotFoundException):
         mock_service.get_tag_value(
-            s3_bucket_name=MOCK_BUCKET, file_key=TEST_FILE_NAME, tag_key=test_tag_key
+            s3_bucket_name=MOCK_BUCKET,
+            file_key=TEST_FILE_NAME,
+            tag_key=test_tag_key,
         )
 
 
@@ -245,11 +297,13 @@ def test_file_exist_on_s3_return_true_if_object_exists(mock_service, mock_client
 
     mock_client.head_object.return_value = mock_response
 
-    expected = True
-    actual = mock_service.file_exist_on_s3(
-        s3_bucket_name=MOCK_BUCKET, file_key=TEST_FILE_NAME
+    assert (
+        mock_service.file_exist_on_s3(
+            s3_bucket_name=MOCK_BUCKET,
+            file_key=TEST_FILE_NAME,
+        )
+        is True
     )
-    assert actual == expected
 
     mock_client.head_object.assert_called_once_with(
         Bucket=MOCK_BUCKET,
@@ -258,7 +312,8 @@ def test_file_exist_on_s3_return_true_if_object_exists(mock_service, mock_client
 
 
 def test_file_exist_on_s3_return_false_if_object_does_not_exist(
-    mock_service, mock_client
+    mock_service,
+    mock_client,
 ):
     mock_error = ClientError(
         {"Error": {"Code": "403", "Message": "Forbidden"}},
@@ -267,12 +322,13 @@ def test_file_exist_on_s3_return_false_if_object_does_not_exist(
 
     mock_client.head_object.side_effect = mock_error
 
-    expected = False
-    actual = mock_service.file_exist_on_s3(
-        s3_bucket_name=MOCK_BUCKET, file_key=TEST_FILE_NAME
+    assert (
+        mock_service.file_exist_on_s3(
+            s3_bucket_name=MOCK_BUCKET,
+            file_key=TEST_FILE_NAME,
+        )
+        is False
     )
-
-    assert actual == expected
 
     mock_client.head_object.assert_called_with(
         Bucket=MOCK_BUCKET,
@@ -281,7 +337,8 @@ def test_file_exist_on_s3_return_false_if_object_does_not_exist(
 
 
 def test_file_exist_on_s3_raises_client_error_if_unexpected_response(
-    mock_service, mock_client
+    mock_service,
+    mock_client,
 ):
     mock_error = ClientError(
         {"Error": {"Code": "500", "Message": "Internal Server Error"}},
@@ -292,7 +349,8 @@ def test_file_exist_on_s3_raises_client_error_if_unexpected_response(
 
     with pytest.raises(ClientError):
         mock_service.file_exist_on_s3(
-            s3_bucket_name=MOCK_BUCKET, file_key=TEST_FILE_NAME
+            s3_bucket_name=MOCK_BUCKET,
+            file_key=TEST_FILE_NAME,
         )
 
     mock_client.head_object.assert_called_with(
@@ -302,6 +360,7 @@ def test_file_exist_on_s3_raises_client_error_if_unexpected_response(
 
 
 def test_s3_service_singleton_instance(mocker):
+    S3Service._instance = None
     mocker.patch("boto3.client")
 
     instance_1 = S3Service()
@@ -309,8 +368,11 @@ def test_s3_service_singleton_instance(mocker):
 
     assert instance_1 is instance_2
 
+    S3Service._instance = None
+
 
 def test_not_created_presigned_url_without_custom_client(mocker):
+    S3Service._instance = None
     mocker.patch("boto3.client")
     mock_service = S3Service()
 
@@ -318,8 +380,11 @@ def test_not_created_presigned_url_without_custom_client(mocker):
 
     assert response is None
 
+    S3Service._instance = None
+
 
 def test_not_created_custom_client_without_client_role(mocker):
+    S3Service._instance = None
     mocker.patch("boto3.client")
     iam_service = mocker.patch("services.base.iam_service.IAMService")
 
@@ -327,6 +392,8 @@ def test_not_created_custom_client_without_client_role(mocker):
 
     iam_service.assert_not_called()
     assert mock_service.custom_client is None
+
+    S3Service._instance = None
 
 
 @freeze_time("2023-10-30T10:25:00")
@@ -336,7 +403,8 @@ def test_created_custom_client_when_client_role_is_passed(mocker):
     mocker.patch("boto3.client")
     iam_service_instance = mocker.MagicMock()
     iam_service = mocker.patch(
-        "services.base.s3_service.IAMService", return_value=iam_service_instance
+        "services.base.s3_service.IAMService",
+        return_value=iam_service_instance,
     )
     mock_expiration_time = datetime.datetime.now(datetime.timezone.utc)
     custom_client_mock = mocker.MagicMock()
@@ -351,9 +419,13 @@ def test_created_custom_client_when_client_role_is_passed(mocker):
     assert mock_service.custom_client == custom_client_mock
     iam_service_instance.assume_role.assert_called()
 
+    S3Service._instance = None
+
 
 def test_list_all_objects_return_a_list_of_file_details(
-    mock_service, mock_client, mock_list_objects_paginate
+    mock_service,
+    mock_client,
+    mock_list_objects_paginate,
 ):
     mock_list_objects_paginate.return_value = [MOCK_LIST_OBJECTS_RESPONSE]
     expected = MOCK_LIST_OBJECTS_RESPONSE["Contents"]
@@ -367,12 +439,14 @@ def test_list_all_objects_return_a_list_of_file_details(
 
 
 def test_list_all_objects_handles_paginated_responses(
-    mock_service, mock_client, mock_list_objects_paginate
+    mock_service,
+    mock_client,
+    mock_list_objects_paginate,
 ):
     mock_list_objects_paginate.return_value = MOCK_LIST_OBJECTS_PAGINATED_RESPONSES
 
     expected = flatten(
-        [page["Contents"] for page in MOCK_LIST_OBJECTS_PAGINATED_RESPONSES]
+        [page["Contents"] for page in MOCK_LIST_OBJECTS_PAGINATED_RESPONSES],
     )
 
     actual = mock_service.list_all_objects(MOCK_BUCKET)
@@ -381,7 +455,9 @@ def test_list_all_objects_handles_paginated_responses(
 
 
 def test_list_all_objects_raises_client_error_if_unexpected_response(
-    mock_service, mock_client, mock_list_objects_paginate
+    mock_service,
+    mock_client,
+    mock_list_objects_paginate,
 ):
     mock_error = ClientError(
         {"Error": {"Code": "500", "Message": "Internal Server Error"}},
@@ -413,7 +489,8 @@ def test_file_size_return_int(mock_service, mock_client):
 
     expected = "3191"
     actual = mock_service.get_file_size(
-        s3_bucket_name=MOCK_BUCKET, object_key=TEST_FILE_NAME
+        s3_bucket_name=MOCK_BUCKET,
+        object_key=TEST_FILE_NAME,
     )
     assert actual == expected
 
@@ -428,7 +505,7 @@ def test_save_or_create_file(mock_service, mock_client):
     mock_service.save_or_create_file(MOCK_BUCKET, TEST_FILE_NAME, body)
 
     mock_client.put_object.assert_called()
-    args, kwargs = mock_client.put_object.call_args
+    _, kwargs = mock_client.put_object.call_args
 
     assert kwargs["Bucket"] == MOCK_BUCKET
     assert kwargs["Key"] == TEST_FILE_NAME
@@ -436,11 +513,21 @@ def test_save_or_create_file(mock_service, mock_client):
 
 
 def test_returns_binary_file_content_when_file_exists(
-    mock_service, mock_client, mocker
+    mock_service,
+    mock_client,
+    mocker,
 ):
     mock_client.get_object.return_value = {
-        "Body": mocker.Mock(read=lambda: b"file-content")
+        "Body": mocker.Mock(read=lambda: b"file-content"),
     }
+
+    body = mock_service.get_object_stream(bucket=MOCK_BUCKET, key=TEST_FILE_KEY)
+    assert body.read() == b"file-content"
+
+    mock_client.get_object.assert_called_once_with(
+        Bucket=MOCK_BUCKET,
+        Key=TEST_FILE_KEY,
+    )
 
 
 def test_raises_exception_when_file_does_not_exist(mock_service, mock_client):
@@ -455,7 +542,10 @@ def test_upload_file_obj_success(mock_service, mock_client):
     extra_args = {"ContentType": "application/pdf"}
 
     mock_service.upload_file_obj(
-        file_obj, MOCK_BUCKET, TEST_FILE_KEY, extra_args=extra_args
+        file_obj,
+        MOCK_BUCKET,
+        TEST_FILE_KEY,
+        extra_args=extra_args,
     )
 
     mock_client.upload_fileobj.assert_called_once_with(
@@ -470,7 +560,8 @@ def test_upload_file_obj_raises_client_error(mock_service, mock_client):
     file_obj = BytesIO(b"sample file content")
 
     mock_client.upload_fileobj.side_effect = ClientError(
-        {"Error": {"Code": "403", "Message": "Forbidden"}}, "UploadFileObj"
+        {"Error": {"Code": "403", "Message": "Forbidden"}},
+        "UploadFileObj",
     )
 
     with pytest.raises(ClientError):
@@ -492,7 +583,8 @@ def test_get_object_stream_returns_body_stream(mock_service, mock_client, mocker
 
     assert result == mock_stream
     mock_client.get_object.assert_called_once_with(
-        Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY
+        Bucket=MOCK_BUCKET,
+        Key=TEST_FILE_KEY,
     )
 
 
@@ -530,15 +622,18 @@ def test_get_head_object_returns_metadata(mock_service, mock_client):
 
     assert result == mock_response
     mock_client.head_object.assert_called_once_with(
-        Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY
+        Bucket=MOCK_BUCKET,
+        Key=TEST_FILE_KEY,
     )
 
 
 def test_get_head_object_raises_client_error_when_object_not_found(
-    mock_service, mock_client
+    mock_service,
+    mock_client,
 ):
     mock_error = ClientError(
-        {"Error": {"Code": "404", "Message": "Not Found"}}, "HeadObject"
+        {"Error": {"Code": "404", "Message": "Not Found"}},
+        "HeadObject",
     )
     mock_client.head_object.side_effect = mock_error
 
@@ -546,15 +641,18 @@ def test_get_head_object_raises_client_error_when_object_not_found(
         mock_service.get_head_object(bucket=MOCK_BUCKET, key=TEST_FILE_KEY)
 
     mock_client.head_object.assert_called_once_with(
-        Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY
+        Bucket=MOCK_BUCKET,
+        Key=TEST_FILE_KEY,
     )
 
 
 def test_get_head_object_raises_client_error_on_access_denied(
-    mock_service, mock_client
+    mock_service,
+    mock_client,
 ):
     mock_error = ClientError(
-        {"Error": {"Code": "403", "Message": "Forbidden"}}, "HeadObject"
+        {"Error": {"Code": "403", "Message": "Forbidden"}},
+        "HeadObject",
     )
     mock_client.head_object.side_effect = mock_error
 
@@ -562,7 +660,8 @@ def test_get_head_object_raises_client_error_on_access_denied(
         mock_service.get_head_object(bucket=MOCK_BUCKET, key=TEST_FILE_KEY)
 
     mock_client.head_object.assert_called_once_with(
-        Bucket=MOCK_BUCKET, Key=TEST_FILE_KEY
+        Bucket=MOCK_BUCKET,
+        Key=TEST_FILE_KEY,
     )
 
 
@@ -597,3 +696,42 @@ def test_copy_across_bucket_retries_on_409_conflict(mock_service, mock_client):
         "StorageClass": "INTELLIGENT_TIERING",
     }
     mock_client.copy_object.assert_called_with(**expected_call)
+
+
+def test_list_object_keys_returns_keys_for_prefix(
+    mock_service,
+    mock_client,
+    mock_list_objects_paginate,
+):
+    mock_list_objects_paginate.return_value = [MOCK_LIST_OBJECTS_RESPONSE]
+
+    prefix = "some/prefix/"
+    expected = [obj["Key"] for obj in MOCK_LIST_OBJECTS_RESPONSE["Contents"]]
+
+    actual = mock_service.list_object_keys(bucket_name=MOCK_BUCKET, prefix=prefix)
+
+    assert actual == expected
+    mock_client.get_paginator.assert_called_with("list_objects_v2")
+    mock_list_objects_paginate.assert_called_with(Bucket=MOCK_BUCKET, Prefix=prefix)
+
+
+def test_list_object_keys_handles_paginated_responses(
+    mock_service,
+    mock_client,
+    mock_list_objects_paginate,
+):
+    mock_list_objects_paginate.return_value = MOCK_LIST_OBJECTS_PAGINATED_RESPONSES
+
+    prefix = "some/prefix/"
+    expected = flatten(
+        [
+            [obj["Key"] for obj in page.get("Contents", [])]
+            for page in MOCK_LIST_OBJECTS_PAGINATED_RESPONSES
+        ],
+    )
+
+    actual = mock_service.list_object_keys(bucket_name=MOCK_BUCKET, prefix=prefix)
+
+    assert actual == expected
+    mock_client.get_paginator.assert_called_with("list_objects_v2")
+    mock_list_objects_paginate.assert_called_with(Bucket=MOCK_BUCKET, Prefix=prefix)

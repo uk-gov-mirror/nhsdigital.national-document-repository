@@ -5,7 +5,11 @@ from enums.lambda_error import LambdaError
 
 class LambdaException(Exception):
     def __init__(
-        self, status_code: int, error: LambdaError, *, details: Optional[str] = None
+        self,
+        status_code: int,
+        error: LambdaError,
+        *,
+        details: Optional[str] = None,
     ):
         self.status_code = status_code
         self.error = error
@@ -123,4 +127,8 @@ class DocumentReviewLambdaException(LambdaException):
 
 
 class UpdateDocumentReviewException(LambdaException):
+    pass
+
+
+class ReportDistributionException(LambdaException):
     pass

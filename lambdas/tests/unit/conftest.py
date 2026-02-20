@@ -12,6 +12,7 @@ from models.document_reference import DocumentReference
 from models.pds_models import Patient, PatientDetails
 from pydantic import ValidationError
 from pypdf import PdfWriter
+from repositories.reporting.reporting_dynamo_repository import ReportingDynamoRepository
 from requests import Response
 from tests.unit.helpers.data.pds.pds_patient_response import PDS_PATIENT
 from utils.audit_logging_setup import LoggingService
@@ -431,3 +432,30 @@ def valid_pdf_stream():
 @pytest.fixture
 def corrupt_pdf_stream():
     return BytesIO(b"This is not a valid PDF content")
+
+
+@pytest.fixture
+def mock_reporting_dynamo_service(mocker):
+    mock_cls = mocker.patch(
+        "repositories.reporting.reporting_dynamo_repository.DynamoDBService",
+    )
+    return mock_cls.return_value
+
+
+@pytest.fixture
+def reporting_repo(monkeypatch, mock_reporting_dynamo_service):
+    monkeypatch.setenv("BULK_UPLOAD_REPORT_TABLE_NAME", "TestTable")
+    return ReportingDynamoRepository()
+
+
+@pytest.fixture
+def fixed_tmpdir(mocker):
+    fake_tmp = "/tmp/fake_tmpdir"
+    td = mocker.MagicMock()
+    td.__enter__.return_value = fake_tmp
+    td.__exit__.return_value = False
+    mocker.patch(
+        "services.reporting.report_distribution_service.tempfile.TemporaryDirectory",
+        return_value=td,
+    )
+    return fake_tmp

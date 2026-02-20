@@ -4,104 +4,204 @@ from services.reporting.report_orchestration_service import ReportOrchestrationS
 
 @pytest.fixture
 def mock_repository(mocker):
-    repo = mocker.Mock()
+    repo = mocker.Mock(name="ReportingDynamoRepositoryInstance")
     repo.get_records_for_time_window.return_value = []
     return repo
 
 
 @pytest.fixture
 def mock_excel_generator(mocker):
-    return mocker.Mock()
+    return mocker.Mock(name="ExcelReportGeneratorInstance")
 
 
 @pytest.fixture
-def report_orchestration_service(mock_repository, mock_excel_generator):
-    return ReportOrchestrationService(
-        repository=mock_repository,
-        excel_generator=mock_excel_generator,
+def report_orchestration_service(mocker, mock_repository, mock_excel_generator):
+    mocker.patch(
+        "services.reporting.report_orchestration_service.ReportingDynamoRepository",
+        autospec=True,
+        return_value=mock_repository,
+    )
+    mocker.patch(
+        "services.reporting.report_orchestration_service.ExcelReportGenerator",
+        autospec=True,
+        return_value=mock_excel_generator,
+    )
+    return ReportOrchestrationService()
+
+
+@pytest.fixture
+def mocked_generate(report_orchestration_service, mocker):
+    return mocker.patch.object(
+        report_orchestration_service,
+        "generate_ods_report",
+        autospec=True,
+        side_effect=lambda ods_code, _records: f"/tmp/{ods_code}.xlsx",
     )
 
 
-def test_process_reporting_window_no_records(
-    report_orchestration_service, mock_repository, mock_excel_generator
+@pytest.mark.parametrize(
+    "records, expected_generate_calls, expected_result",
+    [
+        (
+            [],
+            [],
+            {},
+        ),
+        (
+            [{"UploaderOdsCode": "X1", "ID": 1}],
+            [
+                ("X1", [{"UploaderOdsCode": "X1", "ID": 1}]),
+            ],
+            {"X1": "/tmp/X1.xlsx"},
+        ),
+        (
+            [
+                {"UploaderOdsCode": "Y12345", "ID": 1},
+                {"UploaderOdsCode": "Y12345", "ID": 2},
+                {"UploaderOdsCode": "A99999", "ID": 3},
+            ],
+            [
+                (
+                    "Y12345",
+                    [
+                        {"UploaderOdsCode": "Y12345", "ID": 1},
+                        {"UploaderOdsCode": "Y12345", "ID": 2},
+                    ],
+                ),
+                ("A99999", [{"UploaderOdsCode": "A99999", "ID": 3}]),
+            ],
+            {"Y12345": "/tmp/Y12345.xlsx", "A99999": "/tmp/A99999.xlsx"},
+        ),
+        (
+            [
+                {"UploaderOdsCode": "Y12345", "ID": 1},
+                {"ID": 2},
+                {"UploaderOdsCode": None, "ID": 3},
+            ],
+            [
+                ("Y12345", [{"UploaderOdsCode": "Y12345", "ID": 1}]),
+                ("UNKNOWN", [{"ID": 2}, {"UploaderOdsCode": None, "ID": 3}]),
+            ],
+            {"Y12345": "/tmp/Y12345.xlsx", "UNKNOWN": "/tmp/UNKNOWN.xlsx"},
+        ),
+        (
+            [{"UploaderOdsCode": "", "ID": 1}],
+            [
+                ("UNKNOWN", [{"UploaderOdsCode": "", "ID": 1}]),
+            ],
+            {"UNKNOWN": "/tmp/UNKNOWN.xlsx"},
+        ),
+    ],
+)
+def test_process_reporting_window_behaviour(
+    report_orchestration_service,
+    mock_repository,
+    mocked_generate,
+    records,
+    expected_generate_calls,
+    expected_result,
 ):
-    mock_repository.get_records_for_time_window.return_value = []
-
-    report_orchestration_service.process_reporting_window(100, 200, output_dir="/tmp")
-
-    mock_excel_generator.create_report_orchestration_xlsx.assert_not_called()
-
-
-def test_group_records_by_ods_groups_correctly():
-    records = [
-        {"UploaderOdsCode": "Y12345", "ID": 1},
-        {"UploaderOdsCode": "Y12345", "ID": 2},
-        {"UploaderOdsCode": "A99999", "ID": 3},
-        {"ID": 4},  # missing ODS
-        {"UploaderOdsCode": None, "ID": 5},  # null ODS
-    ]
-
-    result = ReportOrchestrationService.group_records_by_ods(records)
-
-    assert result["Y12345"] == [
-        {"UploaderOdsCode": "Y12345", "ID": 1},
-        {"UploaderOdsCode": "Y12345", "ID": 2},
-    ]
-    assert result["A99999"] == [{"UploaderOdsCode": "A99999", "ID": 3}]
-    assert result["UNKNOWN"] == [
-        {"ID": 4},
-        {"UploaderOdsCode": None, "ID": 5},
-    ]
-
-
-def test_process_reporting_window_generates_reports_per_ods(
-    report_orchestration_service, mock_repository, mocker
-):
-    records = [
-        {"UploaderOdsCode": "Y12345", "ID": 1},
-        {"UploaderOdsCode": "Y12345", "ID": 2},
-        {"UploaderOdsCode": "A99999", "ID": 3},
-    ]
     mock_repository.get_records_for_time_window.return_value = records
 
-    mocked_generate = mocker.patch.object(
-        report_orchestration_service, "generate_ods_report"
-    )
+    result = report_orchestration_service.process_reporting_window(100, 200)
 
-    report_orchestration_service.process_reporting_window(100, 200, output_dir="/tmp")
+    mock_repository.get_records_for_time_window.assert_called_once_with(100, 200)
 
-    mocked_generate.assert_any_call(
-        "Y12345",
-        [
-            {"UploaderOdsCode": "Y12345", "ID": 1},
-            {"UploaderOdsCode": "Y12345", "ID": 2},
-        ],
-    )
-    mocked_generate.assert_any_call(
-        "A99999",
-        [{"UploaderOdsCode": "A99999", "ID": 3}],
-    )
-    assert mocked_generate.call_count == 2
+    assert mocked_generate.call_count == len(expected_generate_calls)
+    for ods_code, ods_records in expected_generate_calls:
+        mocked_generate.assert_any_call(ods_code, ods_records)
+
+    assert result == expected_result
 
 
-def test_generate_ods_report_creates_excel_report(
-    report_orchestration_service, mock_excel_generator, mocker
-):
+@pytest.mark.parametrize(
+    "records, expected",
+    [
+        (
+            [
+                {"UploaderOdsCode": "Y12345", "ID": 1},
+                {"UploaderOdsCode": "Y12345", "ID": 2},
+                {"UploaderOdsCode": "A99999", "ID": 3},
+                {"ID": 4},
+                {"UploaderOdsCode": None, "ID": 5},
+            ],
+            {
+                "Y12345": [
+                    {"UploaderOdsCode": "Y12345", "ID": 1},
+                    {"UploaderOdsCode": "Y12345", "ID": 2},
+                ],
+                "A99999": [{"UploaderOdsCode": "A99999", "ID": 3}],
+                "UNKNOWN": [{"ID": 4}, {"UploaderOdsCode": None, "ID": 5}],
+            },
+        ),
+        ([], {}),
+        (
+            [{"UploaderOdsCode": "", "ID": 1}],
+            {"UNKNOWN": [{"UploaderOdsCode": "", "ID": 1}]},
+        ),
+    ],
+)
+def test_group_records_by_ods(records, expected):
+    result = ReportOrchestrationService.group_records_by_ods(records)
+    assert dict(result) == expected
+
+
+@pytest.fixture
+def fake_named_tmpfile(mocker):
     fake_tmp = mocker.MagicMock()
     fake_tmp.__enter__.return_value = fake_tmp
+    fake_tmp.__exit__.return_value = False
     fake_tmp.name = "/tmp/fake_Y12345.xlsx"
 
-    mocker.patch(
+    mocked_ntf = mocker.patch(
         "services.reporting.report_orchestration_service.tempfile.NamedTemporaryFile",
         return_value=fake_tmp,
     )
+    return mocked_ntf, fake_tmp
 
+
+def test_generate_ods_report_creates_excel_report_and_returns_path(
+    report_orchestration_service,
+    mock_excel_generator,
+    fake_named_tmpfile,
+):
+    mocked_ntf, fake_tmp = fake_named_tmpfile
     records = [{"ID": 1, "UploaderOdsCode": "Y12345"}]
 
-    report_orchestration_service.generate_ods_report("Y12345", records)
+    result_path = report_orchestration_service.generate_ods_report("Y12345", records)
+
+    assert result_path == fake_tmp.name
+
+    mocked_ntf.assert_called_once_with(
+        suffix="_Y12345.xlsx",
+        delete=False,
+    )
 
     mock_excel_generator.create_report_orchestration_xlsx.assert_called_once_with(
         ods_code="Y12345",
         records=records,
         output_path=fake_tmp.name,
     )
+
+
+def test_init_constructs_repository_and_excel_generator(mocker):
+    mock_repo = mocker.Mock(name="ReportingDynamoRepositoryInstance")
+    mock_excel = mocker.Mock(name="ExcelReportGeneratorInstance")
+
+    mocked_repo_cls = mocker.patch(
+        "services.reporting.report_orchestration_service.ReportingDynamoRepository",
+        autospec=True,
+        return_value=mock_repo,
+    )
+    mocked_excel_cls = mocker.patch(
+        "services.reporting.report_orchestration_service.ExcelReportGenerator",
+        autospec=True,
+        return_value=mock_excel,
+    )
+
+    svc = ReportOrchestrationService()
+
+    mocked_repo_cls.assert_called_once_with()
+    mocked_excel_cls.assert_called_once_with()
+    assert svc.repository is mock_repo
+    assert svc.excel_generator is mock_excel

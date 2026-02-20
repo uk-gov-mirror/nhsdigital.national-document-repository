@@ -1,4 +1,5 @@
 import io
+import json
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from typing import Any, Mapping
@@ -27,6 +28,8 @@ class S3Service:
     def __init__(self, custom_aws_role=None):
         if not self.initialised:
             self.config = BotoConfig(
+                connect_timeout=3,
+                read_timeout=5,
                 retries={"max_attempts": 3, "mode": "standard"},
                 s3={"addressing_style": "virtual"},
                 signature_version="s3v4",
@@ -44,6 +47,21 @@ class S3Service:
                     "s3",
                     config=self.config,
                 )
+
+    def put_json(
+        self,
+        bucket: str,
+        key: str,
+        payload: Mapping[str, Any],
+        *,
+        content_type: str = "application/json",
+    ):
+        return self.client.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=json.dumps(payload).encode("utf-8"),
+            ContentType=content_type,
+        )
 
     # S3 Location should be a minimum of a s3_object_key but can also be a directory location in the form of
     # {{directory}}/{{s3_object_key}}
@@ -276,3 +294,13 @@ class S3Service:
             Key=file_key,
             Body=BytesIO(body),
         )
+
+    def list_object_keys(self, bucket_name: str, prefix: str) -> list[str]:
+        paginator = self.client.get_paginator("list_objects_v2")
+        keys: list[str] = []
+
+        for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                keys.append(obj["Key"])
+
+        return keys

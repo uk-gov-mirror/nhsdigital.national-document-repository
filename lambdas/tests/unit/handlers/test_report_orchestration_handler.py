@@ -1,75 +1,134 @@
-from unittest import mock
-from unittest.mock import MagicMock
+import json
 
-import pytest
-from handlers.report_orchestration_handler import lambda_handler
+from handlers import report_orchestration_handler as handler_module
 
 
-class FakeContext:
-    aws_request_id = "test-request-id"
-
-
-@pytest.fixture(autouse=True)
-def mock_env(monkeypatch):
-    monkeypatch.setenv("BULK_UPLOAD_REPORT_TABLE_NAME", "TestTable")
-
-
-@pytest.fixture
-def mock_logger(mocker):
-    return mocker.patch("handlers.report_orchestration_handler.logger", new=MagicMock())
-
-
-@pytest.fixture
-def mock_repo(mocker):
-    return mocker.patch(
-        "handlers.report_orchestration_handler.ReportingDynamoRepository",
-        autospec=True,
-    )
-
-
-@pytest.fixture
-def mock_excel_generator(mocker):
-    return mocker.patch(
-        "handlers.report_orchestration_handler.ExcelReportGenerator",
-        autospec=True,
-    )
-
-
-@pytest.fixture
-def mock_service(mocker):
-    return mocker.patch(
-        "handlers.report_orchestration_handler.ReportOrchestrationService",
-        autospec=True,
-    )
-
-
-@pytest.fixture
-def mock_window(mocker):
-    return mocker.patch(
-        "handlers.report_orchestration_handler.calculate_reporting_window",
-        return_value=(100, 200),
-    )
-
-
-def test_lambda_handler_calls_service(
-    mock_logger, mock_repo, mock_excel_generator, mock_service, mock_window
+def test_lambda_handler_calls_service_and_returns_expected_response(
+    required_report_orchestration_env,
+    lambda_context,
+    mock_report_orchestration_wiring,
 ):
-    lambda_handler(event={}, context=FakeContext())
+    orchestration_service = mock_report_orchestration_wiring["orchestration_service"]
+    s3_service = mock_report_orchestration_wiring["s3_service"]
+    mock_window = mock_report_orchestration_wiring["mock_window"]
+    mock_report_date = mock_report_orchestration_wiring["mock_report_date"]
 
-    mock_repo.assert_called_once_with("TestTable")
-    mock_excel_generator.assert_called_once_with()
+    orchestration_service.process_reporting_window.return_value = {
+        "A12345": "/tmp/A12345.xlsx",
+        "B67890": "/tmp/B67890.xlsx",
+    }
 
-    mock_service.assert_called_once()
-    instance = mock_service.return_value
-    instance.process_reporting_window.assert_called_once_with(
+    result = handler_module.lambda_handler(event={}, context=lambda_context)
+
+    mock_window.assert_called_once()
+    mock_report_date.assert_called_once()
+
+    orchestration_service.process_reporting_window.assert_called_once_with(
         window_start_ts=100,
         window_end_ts=200,
-        output_dir=mock.ANY,
+    )
+    assert s3_service.upload_file_with_extra_args.call_count == 2
+
+    assert result == {
+        "status": "ok",
+        "report_date": "2026-01-02",
+        "bucket": "test-report-bucket",
+        "prefix": "Report-Orchestration/2026-01-02/",
+        "keys": [
+            "Report-Orchestration/2026-01-02/A12345.xlsx",
+            "Report-Orchestration/2026-01-02/B67890.xlsx",
+        ],
+    }
+
+
+def test_lambda_handler_calls_window_function(
+    required_report_orchestration_env,
+    lambda_context,
+    mock_report_orchestration_wiring,
+):
+    orchestration_service = mock_report_orchestration_wiring["orchestration_service"]
+    mock_window = mock_report_orchestration_wiring["mock_window"]
+
+    orchestration_service.process_reporting_window.return_value = {}
+
+    handler_module.lambda_handler(event={}, context=lambda_context)
+
+    mock_window.assert_called_once()
+
+
+def test_lambda_handler_returns_empty_keys_when_no_reports_generated(
+    required_report_orchestration_env,
+    lambda_context,
+    mock_report_orchestration_wiring,
+):
+    orchestration_service = mock_report_orchestration_wiring["orchestration_service"]
+    s3_service = mock_report_orchestration_wiring["s3_service"]
+
+    orchestration_service.process_reporting_window.return_value = {}
+
+    result = handler_module.lambda_handler(event={}, context=lambda_context)
+
+    assert result == {
+        "status": "ok",
+        "report_date": "2026-01-02",
+        "bucket": "test-report-bucket",
+        "prefix": "Report-Orchestration/2026-01-02/",
+        "keys": [],
+    }
+    s3_service.upload_file_with_extra_args.assert_not_called()
+
+
+def test_lambda_handler_uploads_each_report_to_s3_with_kms_encryption(
+    required_report_orchestration_env,
+    lambda_context,
+    mock_report_orchestration_wiring,
+):
+    orchestration_service = mock_report_orchestration_wiring["orchestration_service"]
+    s3_service = mock_report_orchestration_wiring["s3_service"]
+
+    orchestration_service.process_reporting_window.return_value = {
+        "A12345": "/tmp/A12345.xlsx",
+        "UNKNOWN": "/tmp/UNKNOWN.xlsx",
+    }
+
+    result = handler_module.lambda_handler(event={}, context=lambda_context)
+
+    assert s3_service.upload_file_with_extra_args.call_count == 2
+
+    s3_service.upload_file_with_extra_args.assert_any_call(
+        file_name="/tmp/A12345.xlsx",
+        s3_bucket_name="test-report-bucket",
+        file_key="Report-Orchestration/2026-01-02/A12345.xlsx",
+        extra_args={"ServerSideEncryption": "aws:kms"},
+    )
+    s3_service.upload_file_with_extra_args.assert_any_call(
+        file_name="/tmp/UNKNOWN.xlsx",
+        s3_bucket_name="test-report-bucket",
+        file_key="Report-Orchestration/2026-01-02/UNKNOWN.xlsx",
+        extra_args={"ServerSideEncryption": "aws:kms"},
     )
 
-    mock_logger.info.assert_any_call("Report orchestration lambda invoked")
+    assert result["keys"] == [
+        "Report-Orchestration/2026-01-02/A12345.xlsx",
+        "Report-Orchestration/2026-01-02/UNKNOWN.xlsx",
+    ]
 
 
-def test_lambda_handler_calls_window_function(mock_service, mock_window):
-    lambda_handler(event={}, context=FakeContext())
-    mock_window.assert_called_once()
+def test_lambda_handler_returns_error_when_required_env_missing(
+    lambda_context,
+    monkeypatch,
+):
+    monkeypatch.setenv("BULK_UPLOAD_REPORT_TABLE_NAME", "TestTable")
+    monkeypatch.delenv("REPORT_BUCKET_NAME", raising=False)
+
+    result = handler_module.lambda_handler(event={}, context=lambda_context)
+
+    assert isinstance(result, dict)
+    assert result["statusCode"] == 500
+
+    body = json.loads(result["body"])
+    assert body["err_code"] == "ENV_5001"
+    assert "REPORT_BUCKET_NAME" in body["message"]
+
+    if body.get("interaction_id") is not None:
+        assert body["interaction_id"] == lambda_context.aws_request_id

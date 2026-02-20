@@ -1,5 +1,7 @@
 import pytest
 from enums.feature_flags import FeatureFlags
+from enums.report_distribution_action import ReportDistributionAction
+from repositories.reporting.reporting_dynamo_repository import ReportingDynamoRepository
 from services.feature_flags_service import FeatureFlagService
 
 
@@ -109,7 +111,7 @@ def missing_id_event():
 def mock_upload_lambda_enabled(mocker):
     mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
     mock_upload_lambda_feature_flag = mock_function.return_value = {
-        "uploadLambdaEnabled": True
+        "uploadLambdaEnabled": True,
     }
     yield mock_upload_lambda_feature_flag
 
@@ -118,7 +120,7 @@ def mock_upload_lambda_enabled(mocker):
 def mock_upload_lambda_disabled(mocker):
     mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
     mock_upload_lambda_feature_flag = mock_function.return_value = {
-        "uploadLambdaEnabled": False
+        "uploadLambdaEnabled": False,
     }
     yield mock_upload_lambda_feature_flag
 
@@ -207,7 +209,7 @@ def mock_validation_strict_disabled_send_to_review_enabled(mocker):
 def mock_upload_document_iteration_3_enabled(mocker):
     mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
     mock_feature_flag = mock_function.return_value = {
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: True
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: True,
     }
     yield mock_feature_flag
 
@@ -216,6 +218,106 @@ def mock_upload_document_iteration_3_enabled(mocker):
 def mock_upload_document_iteration_3_disabled(mocker):
     mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
     mock_feature_flag = mock_function.return_value = {
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: False
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: False,
     }
     yield mock_feature_flag
+
+
+@pytest.fixture
+def required_report_distribution_env(monkeypatch):
+    monkeypatch.setenv("REPORT_BUCKET_NAME", "my-report-bucket")
+    monkeypatch.setenv("CONTACT_TABLE_NAME", "contact-table")
+    monkeypatch.setenv("PRM_MAILBOX_EMAIL", "prm@example.com")
+    monkeypatch.setenv("SES_FROM_ADDRESS", "from@example.com")
+    monkeypatch.setenv("SES_CONFIGURATION_SET", "my-config-set")
+
+
+@pytest.fixture
+def lambda_context(mocker):
+    ctx = mocker.Mock()
+    ctx.aws_request_id = "req-123"
+    return ctx
+
+
+@pytest.fixture
+def required_report_orchestration_env(monkeypatch):
+    monkeypatch.setenv("BULK_UPLOAD_REPORT_TABLE_NAME", "TestTable")
+    monkeypatch.setenv("REPORT_BUCKET_NAME", "test-report-bucket")
+
+
+@pytest.fixture
+def mock_reporting_dynamo_service(mocker):
+    mock_cls = mocker.patch(
+        "repositories.reporting.reporting_dynamo_repository.DynamoDBService",
+    )
+    return mock_cls.return_value
+
+
+@pytest.fixture
+def reporting_repo(monkeypatch, mock_reporting_dynamo_service):
+    monkeypatch.setenv("BULK_UPLOAD_REPORT_TABLE_NAME", "TestTable")
+    return ReportingDynamoRepository()
+
+
+@pytest.fixture
+def report_distribution_list_event():
+    return {"action": ReportDistributionAction.LIST, "prefix": "p/"}
+
+
+@pytest.fixture
+def report_distribution_process_one_event():
+    return {
+        "action": ReportDistributionAction.PROCESS_ONE,
+        "key": "reports/ABC/whatever.xlsx",
+    }
+
+
+@pytest.fixture
+def mock_report_distribution_wiring(mocker):
+    svc_instance = mocker.Mock(name="ReportDistributionServiceInstance")
+    mocker.patch(
+        "handlers.report_distribution_handler.ReportDistributionService",
+        autospec=True,
+        return_value=svc_instance,
+    )
+    return svc_instance
+
+
+@pytest.fixture
+def mock_report_orchestration_wiring(mocker):
+    from handlers import report_orchestration_handler as handler_module
+
+    orchestration_service = mocker.Mock(name="ReportOrchestrationServiceInstance")
+    s3_service = mocker.Mock(name="S3ServiceInstance")
+
+    mocker.patch.object(
+        handler_module,
+        "ReportOrchestrationService",
+        autospec=True,
+        return_value=orchestration_service,
+    )
+    mocker.patch.object(
+        handler_module,
+        "S3Service",
+        autospec=True,
+        return_value=s3_service,
+    )
+
+    mock_window = mocker.patch.object(
+        handler_module,
+        "calculate_reporting_window",
+        return_value=(100, 200),
+    )
+    mock_report_date = mocker.patch.object(
+        handler_module,
+        "get_report_date_folder",
+        return_value="2026-01-02",
+    )
+
+    return {
+        "handler_module": handler_module,
+        "orchestration_service": orchestration_service,
+        "s3_service": s3_service,
+        "mock_window": mock_window,
+        "mock_report_date": mock_report_date,
+    }

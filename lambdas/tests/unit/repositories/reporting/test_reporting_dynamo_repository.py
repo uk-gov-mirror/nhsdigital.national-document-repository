@@ -1,41 +1,140 @@
-from unittest.mock import MagicMock
+from datetime import date
 
 import pytest
 from repositories.reporting.reporting_dynamo_repository import ReportingDynamoRepository
 
 
 @pytest.fixture
-def mock_dynamo_service(mocker):
-    mock_service = mocker.patch(
-        "repositories.reporting.reporting_dynamo_repository.DynamoDBService"
-    )
-    instance = mock_service.return_value
-    instance.scan_whole_table = MagicMock()
-    return instance
+def reporting_repo(monkeypatch, mock_reporting_dynamo_service):
+    monkeypatch.setenv("BULK_UPLOAD_REPORT_TABLE_NAME", "TestTable")
+    return ReportingDynamoRepository()
 
 
-@pytest.fixture
-def reporting_repo(mock_dynamo_service):
-    return ReportingDynamoRepository(table_name="TestTable")
-
-
-def test_get_records_for_time_window_calls_scan(mock_dynamo_service, reporting_repo):
-    mock_dynamo_service.scan_whole_table.return_value = []
-
-    reporting_repo.get_records_for_time_window(100, 200)
-
-    mock_dynamo_service.scan_whole_table.assert_called_once()
-    assert "filter_expression" in mock_dynamo_service.scan_whole_table.call_args.kwargs
-
-
-def test_get_records_for_time_window_returns_empty_list(
-    mock_dynamo_service, reporting_repo
+@pytest.mark.parametrize(
+    "start_dt,end_dt,service_side_effect,expected,expected_call_count",
+    [
+        (
+            date(2026, 1, 7),
+            date(2026, 1, 7),
+            [
+                [
+                    {
+                        "Date": "2026-01-07",
+                        "Timestamp": 1704601000,
+                        "UploaderOdsCode": "A12345",
+                        "DocumentId": "doc-001",
+                        "Status": "UPLOADED",
+                    },
+                ],
+            ],
+            [
+                {
+                    "Date": "2026-01-07",
+                    "Timestamp": 1704601000,
+                    "UploaderOdsCode": "A12345",
+                    "DocumentId": "doc-001",
+                    "Status": "UPLOADED",
+                },
+            ],
+            1,
+        ),
+        (
+            date(2026, 1, 6),
+            date(2026, 1, 7),
+            [
+                [
+                    {
+                        "Date": "2026-01-06",
+                        "Timestamp": 1704517200,
+                        "UploaderOdsCode": "A12345",
+                        "DocumentId": "doc-101",
+                        "Status": "UPLOADED",
+                    },
+                ],
+                [
+                    {
+                        "Date": "2026-01-07",
+                        "Timestamp": 1704590000,
+                        "UploaderOdsCode": "B67890",
+                        "DocumentId": "doc-202",
+                        "Status": "PROCESSED",
+                    },
+                    {
+                        "Date": "2026-01-07",
+                        "Timestamp": 1704593600,
+                        "UploaderOdsCode": "B67890",
+                        "DocumentId": "doc-203",
+                        "Status": "PROCESSED",
+                    },
+                ],
+            ],
+            [
+                {
+                    "Date": "2026-01-06",
+                    "Timestamp": 1704517200,
+                    "UploaderOdsCode": "A12345",
+                    "DocumentId": "doc-101",
+                    "Status": "UPLOADED",
+                },
+                {
+                    "Date": "2026-01-07",
+                    "Timestamp": 1704590000,
+                    "UploaderOdsCode": "B67890",
+                    "DocumentId": "doc-202",
+                    "Status": "PROCESSED",
+                },
+                {
+                    "Date": "2026-01-07",
+                    "Timestamp": 1704593600,
+                    "UploaderOdsCode": "B67890",
+                    "DocumentId": "doc-203",
+                    "Status": "PROCESSED",
+                },
+            ],
+            2,
+        ),
+        (
+            date(2026, 1, 6),
+            date(2026, 1, 7),
+            [
+                [],
+                [],
+            ],
+            [],
+            2,
+        ),
+    ],
+)
+def test_get_records_for_time_window(
+    mocker,
+    mock_reporting_dynamo_service,
+    reporting_repo,
+    start_dt,
+    end_dt,
+    service_side_effect,
+    expected,
+    expected_call_count,
 ):
-    start_ts = 0
-    end_ts = 50
-    mock_dynamo_service.scan_whole_table.return_value = []
+    mock_utc_date = mocker.patch(
+        "repositories.reporting.reporting_dynamo_repository.utc_date",
+    )
+    mock_utc_date.side_effect = [start_dt, end_dt]
+    mock_reporting_dynamo_service.query_by_key_condition_expression.side_effect = (
+        service_side_effect
+    )
 
-    result = reporting_repo.get_records_for_time_window(start_ts, end_ts)
+    result = reporting_repo.get_records_for_time_window(100, 200)
 
-    assert result == []
-    mock_dynamo_service.scan_whole_table.assert_called_once()
+    assert result == expected
+    assert (
+        mock_reporting_dynamo_service.query_by_key_condition_expression.call_count
+        == expected_call_count
+    )
+
+    for (
+        call
+    ) in mock_reporting_dynamo_service.query_by_key_condition_expression.call_args_list:
+        kwargs = call.kwargs
+        assert kwargs["table_name"] == "TestTable"
+        assert kwargs["index_name"] == "TimestampIndex"
+        assert "key_condition_expression" in kwargs

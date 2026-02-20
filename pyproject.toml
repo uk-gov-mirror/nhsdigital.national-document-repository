@@ -57,3 +57,4 @@ msoffcrypto-tool = "6.0.0"
 [tool.poetry.group.reports_lambda.dependencies]
 openpyxl = "3.1.5"
 reportlab = "4.3.1"
+pyzipper = "^0.3.6"

@@ -79,15 +79,16 @@ def mock_scan_implementation(**kwargs):
     key = kwargs.get("ExclusiveStartKey")
     if not key:
         return copy.deepcopy(MOCK_PAGINATED_RESPONSE_1)
-    elif key.get("ID") == "id_token_for_page_2":
+    if key.get("ID") == "id_token_for_page_2":
         return copy.deepcopy(MOCK_PAGINATED_RESPONSE_2)
-    elif key.get("ID") == "id_token_for_page_3":
+    if key.get("ID") == "id_token_for_page_3":
         return copy.deepcopy(MOCK_PAGINATED_RESPONSE_3)
     return None
 
 
 def test_query_with_requested_fields_returns_items_from_dynamo(
-    mock_service, mock_table
+    mock_service,
+    mock_table,
 ):
     search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
     expected_projection = "FileName,Created"
@@ -117,7 +118,9 @@ def test_query_with_requested_fields_returns_items_from_dynamo(
 
 
 def test_query_with_requested_fields_with_filter_returns_items_from_dynamo(
-    mock_service, mock_table, mock_filter_expression
+    mock_service,
+    mock_table,
+    mock_filter_expression,
 ):
     search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
     expected_projection = "FileName,Created"
@@ -150,7 +153,9 @@ def test_query_with_requested_fields_with_filter_returns_items_from_dynamo(
 
 
 def test_query_by_index_handles_pagination(
-    mock_service, mock_table, mock_filter_expression
+    mock_service,
+    mock_table,
+    mock_filter_expression,
 ):
     mock_table.return_value.query.side_effect = [
         MOCK_PAGINATED_RESPONSE_1,
@@ -185,7 +190,9 @@ def test_query_by_index_handles_pagination(
 
 
 def test_query_by_index_handles_limits(
-    mock_service, mock_filter_expression, mock_query_method
+    mock_service,
+    mock_filter_expression,
+    mock_query_method,
 ):
 
     mock_query_method.side_effect = [MOCK_PAGINATED_RESPONSE_1]
@@ -221,7 +228,9 @@ def test_query_table_single_returns_full_response(mock_service, mock_query_metho
 
 
 def test_query_table_single_with_all_parameters(
-    mock_service, mock_query_method, mock_filter_expression
+    mock_service,
+    mock_query_method,
+    mock_filter_expression,
 ):
     mock_query_method.return_value = MOCK_RESPONSE
     search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
@@ -251,7 +260,8 @@ def test_query_table_single_with_all_parameters(
 
 
 def test_query_table_single_with_consistent_read_true_no_index(
-    mock_service, mock_query_method
+    mock_service,
+    mock_query_method,
 ):
     """Test that ConsistentRead=True is included when no index is specified"""
     mock_query_method.return_value = MOCK_RESPONSE
@@ -272,7 +282,8 @@ def test_query_table_single_with_consistent_read_true_no_index(
 
 
 def test_query_table_single_with_consistent_read_false_no_index(
-    mock_service, mock_query_method
+    mock_service,
+    mock_query_method,
 ):
     """Test that ConsistentRead=False is included when no index is specified"""
     mock_query_method.return_value = MOCK_RESPONSE
@@ -293,7 +304,8 @@ def test_query_table_single_with_consistent_read_false_no_index(
 
 
 def test_query_table_single_ignores_consistent_read_with_index(
-    mock_service, mock_query_method
+    mock_service,
+    mock_query_method,
 ):
     """Test that ConsistentRead is NOT included when index is specified"""
     mock_query_method.return_value = MOCK_RESPONSE
@@ -316,7 +328,8 @@ def test_query_table_single_ignores_consistent_read_with_index(
 
 
 def test_query_table_single_with_start_key_for_pagination(
-    mock_service, mock_query_method
+    mock_service,
+    mock_query_method,
 ):
     mock_query_method.return_value = MOCK_PAGINATED_RESPONSE_2
     search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
@@ -337,7 +350,8 @@ def test_query_table_single_with_start_key_for_pagination(
 
 
 def test_query_table_single_client_error_raises_exception(
-    mock_service, mock_query_method
+    mock_service,
+    mock_query_method,
 ):
     mock_query_method.side_effect = MOCK_CLIENT_ERROR
 
@@ -352,10 +366,13 @@ def test_query_table_single_client_error_raises_exception(
 
 
 def test_query_table_calls_query_table_single_and_returns_items_list(
-    mock_service, mocker
+    mock_service,
+    mocker,
 ):
     mock_query_table_single = mocker.patch.object(
-        mock_service, "query_table_single", return_value=MOCK_RESPONSE
+        mock_service,
+        "query_table_single",
+        return_value=MOCK_RESPONSE,
     )
 
     actual = mock_service.query_table(
@@ -406,7 +423,9 @@ def test_query_table_handles_pagination_using_query_table_single(mock_service, m
 
 def test_query_table_with_all_optional_parameters(mock_service, mocker):
     mock_query_table_single = mocker.patch.object(
-        mock_service, "query_table_single", return_value=MOCK_RESPONSE
+        mock_service,
+        "query_table_single",
+        return_value=MOCK_RESPONSE,
     )
     filter_expression = Attr("Deleted").eq("")
     requested_fields = ["FileName", "Created"]
@@ -435,7 +454,9 @@ def test_query_table_with_all_optional_parameters(mock_service, mocker):
 
 def test_query_table_with_consistent_read_true(mock_service, mocker):
     mock_query_table_single = mocker.patch.object(
-        mock_service, "query_table_single", return_value=MOCK_RESPONSE
+        mock_service,
+        "query_table_single",
+        return_value=MOCK_RESPONSE,
     )
 
     actual = mock_service.query_table(
@@ -460,7 +481,9 @@ def test_query_table_with_consistent_read_true(mock_service, mocker):
 
 def test_query_table_with_consistent_read_false(mock_service, mocker):
     mock_query_table_single = mocker.patch.object(
-        mock_service, "query_table_single", return_value=MOCK_RESPONSE
+        mock_service,
+        "query_table_single",
+        return_value=MOCK_RESPONSE,
     )
 
     actual = mock_service.query_table(
@@ -510,7 +533,8 @@ def test_query_table_raises_exception_when_response_is_none(mock_service, mocker
 
 
 def test_query_with_requested_fields_raises_exception_when_results_are_empty(
-    mock_service, mock_table
+    mock_service,
+    mock_table,
 ):
     mock_table.return_value.query.return_value = []
 
@@ -528,7 +552,8 @@ def test_query_with_requested_fields_raises_exception_when_results_are_empty(
 
 
 def test_query_with_requested_fields_raises_exception_when_fields_requested_is_none(
-    mock_service, mock_table
+    mock_service,
+    mock_table,
 ):
     search_key_obj = Key("NhsNumber").eq(TEST_NHS_NUMBER)
 
@@ -551,7 +576,8 @@ def test_query_with_requested_fields_raises_exception_when_fields_requested_is_n
 
 
 def test_query_with_requested_fields_client_error_raises_exception(
-    mock_service, mock_table
+    mock_service,
+    mock_table,
 ):
     expected_response = MOCK_CLIENT_ERROR
     mock_table.return_value.query.side_effect = MOCK_CLIENT_ERROR
@@ -590,12 +616,14 @@ def test_query_table_raises_exception_when_results_are_empty(mock_service, mock_
 
     with pytest.raises(DynamoServiceException):
         mock_service.query_table(
-            MOCK_TABLE_NAME, "test_key_condition", "test_key_value"
+            MOCK_TABLE_NAME,
+            "test_key_condition",
+            "test_key_value",
         )
 
     mock_table.assert_called_with(MOCK_TABLE_NAME)
     mock_table.return_value.query.assert_called_once_with(
-        KeyConditionExpression=Key("test_key_condition").eq("test_key_value")
+        KeyConditionExpression=Key("test_key_condition").eq("test_key_value"),
     )
 
 
@@ -605,7 +633,9 @@ def test_query_table_client_error_raises_exception(mock_service, mock_table):
 
     with pytest.raises(ClientError) as actual_response:
         mock_service.query_table(
-            MOCK_TABLE_NAME, "test_key_condition", "test_key_value"
+            MOCK_TABLE_NAME,
+            "test_key_condition",
+            "test_key_value",
         )
 
     assert expected_response == actual_response.value
@@ -616,7 +646,7 @@ def test_create_item_is_called_with_correct_parameters(mock_service, mock_table)
 
     mock_table.assert_called_with(MOCK_TABLE_NAME)
     mock_table.return_value.put_item.assert_called_once_with(
-        Item={"NhsNumber": TEST_NHS_NUMBER}
+        Item={"NhsNumber": TEST_NHS_NUMBER},
     )
 
 
@@ -626,7 +656,7 @@ def test_create_item_raise_client_error(mock_service, mock_table):
 
     mock_table.assert_called_with(MOCK_TABLE_NAME)
     mock_table.return_value.put_item.assert_called_once_with(
-        Item={"NhsNumber": TEST_NHS_NUMBER}
+        Item={"NhsNumber": TEST_NHS_NUMBER},
     )
 
     with pytest.raises(ClientError) as actual_response:
@@ -642,7 +672,8 @@ def test_create_item_with_key_name(mock_service, mock_table):
     mock_service.create_item(MOCK_TABLE_NAME, item, key_name)
     mock_table.assert_called_with(MOCK_TABLE_NAME)
     mock_table.return_value.put_item.assert_called_once_with(
-        Item=item, ConditionExpression=f"attribute_not_exists({key_name})"
+        Item=item,
+        ConditionExpression=f"attribute_not_exists({key_name})",
     )
 
 
@@ -663,7 +694,7 @@ def test_delete_item_is_called_with_correct_parameters(mock_service, mock_table)
 
     mock_table.assert_called_with(MOCK_TABLE_NAME)
     mock_table.return_value.delete_item.assert_called_once_with(
-        Key={"NhsNumber": TEST_NHS_NUMBER}
+        Key={"NhsNumber": TEST_NHS_NUMBER},
     )
 
 
@@ -682,7 +713,7 @@ def test_get_item_is_called_with_correct_parameters(mock_service, mock_table):
 
     mock_table.assert_called_with(MOCK_TABLE_NAME)
     mock_table.return_value.get_item.assert_called_once_with(
-        Key={"NhsNumber": TEST_NHS_NUMBER}
+        Key={"NhsNumber": TEST_NHS_NUMBER},
     )
 
 
@@ -704,18 +735,18 @@ def test_batch_get_items_success(mock_service, mock_dynamo_service):
                 {"ID": "id1", "data": "value1"},
                 {"ID": "id2", "data": "value2"},
                 {"ID": "id3", "data": "value3"},
-            ]
-        }
+            ],
+        },
     }
     mock_dynamo_service.batch_get_item.return_value = mock_response
 
     results = mock_service.batch_get_items(MOCK_TABLE_NAME, key_list)
 
     expected_request_items = {
-        MOCK_TABLE_NAME: {"Keys": [{"ID": "id1"}, {"ID": "id2"}, {"ID": "id3"}]}
+        MOCK_TABLE_NAME: {"Keys": [{"ID": "id1"}, {"ID": "id2"}, {"ID": "id3"}]},
     }
     mock_dynamo_service.batch_get_item.assert_called_once_with(
-        RequestItems=expected_request_items
+        RequestItems=expected_request_items,
     )
     assert len(results) == 3
     assert results[0]["ID"] == "id1"
@@ -736,8 +767,8 @@ def test_batch_get_items_with_unprocessed_keys(mock_service, mock_dynamo_service
             MOCK_TABLE_NAME: [
                 {"ID": "id2", "data": "value2"},
                 {"ID": "id3", "data": "value3"},
-            ]
-        }
+            ],
+        },
     }
 
     mock_dynamo_service.batch_get_item.side_effect = [first_response, second_response]
@@ -770,7 +801,7 @@ def test_batch_get_items_with_exception(mock_service, mock_dynamo_service):
 
     expected_request_items = {MOCK_TABLE_NAME: {"Keys": [{"ID": "id1"}, {"ID": "id2"}]}}
     mock_dynamo_service.batch_get_item.assert_called_once_with(
-        RequestItems=expected_request_items
+        RequestItems=expected_request_items,
     )
 
 
@@ -842,15 +873,17 @@ def test_scan_table_with_is_called_with_start_key(mock_service, mock_table):
     mock_table.return_value.scan.return_value = []
 
     mock_service.scan_table(
-        MOCK_TABLE_NAME, exclusive_start_key={"key": "exclusive_start_key"}
+        MOCK_TABLE_NAME,
+        exclusive_start_key={"key": "exclusive_start_key"},
     )
     mock_table.return_value.scan.assert_called_once_with(
-        ExclusiveStartKey={"key": "exclusive_start_key"}
+        ExclusiveStartKey={"key": "exclusive_start_key"},
     )
 
 
 def test_scan_table_is_called_correctly_with_start_key_and_filter(
-    mock_service, mock_table
+    mock_service,
+    mock_table,
 ):
     mock_table.return_value.scan.return_value = []
 
@@ -880,7 +913,9 @@ def test_scan_table_client_error_raises_exception(mock_service, mock_table):
 
 
 def test_scan_whole_table_return_items_in_response(
-    mock_service, mock_scan_method, mock_filter_expression
+    mock_service,
+    mock_scan_method,
+    mock_filter_expression,
 ):
     mock_project_expression = "mock_project_expression"
     mock_scan_method.return_value = MOCK_RESPONSE
@@ -902,7 +937,9 @@ def test_scan_whole_table_return_items_in_response(
 
 
 def test_scan_whole_table_handles_pagination(
-    mock_service, mock_scan_method, mock_filter_expression
+    mock_service,
+    mock_scan_method,
+    mock_filter_expression,
 ):
     mock_project_expression = "mock_project_expression"
     mock_scan_method.side_effect = mock_scan_implementation
@@ -938,7 +975,8 @@ def test_scan_whole_table_handles_pagination(
 
 
 def test_scan_whole_table_omit_expression_arguments_if_not_given(
-    mock_service, mock_scan_method
+    mock_service,
+    mock_scan_method,
 ):
     mock_service.scan_whole_table(
         table_name=MOCK_TABLE_NAME,
@@ -949,7 +987,8 @@ def test_scan_whole_table_omit_expression_arguments_if_not_given(
 
 
 def test_get_table_when_table_exists_then_table_is_returned_successfully(
-    mock_service, mock_dynamo_service
+    mock_service,
+    mock_dynamo_service,
 ):
     mock_service.get_table(
         MOCK_TABLE_NAME,
@@ -959,7 +998,8 @@ def test_get_table_when_table_exists_then_table_is_returned_successfully(
 
 
 def test_get_table_when_table_does_not_exists_then_exception_is_raised(
-    mock_service, mock_dynamo_service
+    mock_service,
+    mock_dynamo_service,
 ):
     expected_response = MOCK_CLIENT_ERROR
     mock_dynamo_service.Table.side_effect = expected_response
@@ -1026,7 +1066,7 @@ def test_update_item_with_condition_expression(mock_service, mock_table):
         table_name=MOCK_TABLE_NAME,
         key_pair={"ID": TEST_NHS_NUMBER},
         updated_fields={
-            DocumentReferenceMetadataFields.FILE_NAME.value: "test-filename"
+            DocumentReferenceMetadataFields.FILE_NAME.value: "test-filename",
         },
         condition_expression=condition_expression,
         expression_attribute_values=expression_attribute_values,
@@ -1098,7 +1138,7 @@ def test_transact_write_items_success(mock_service, mock_dynamo_service):
             "Put": {
                 "TableName": MOCK_TABLE_NAME,
                 "Item": {"ID": "id1", "Name": "Item 1"},
-            }
+            },
         },
         {
             "Update": {
@@ -1107,7 +1147,7 @@ def test_transact_write_items_success(mock_service, mock_dynamo_service):
                 "UpdateExpression": "SET #name = :name",
                 "ExpressionAttributeNames": {"#name": "Name"},
                 "ExpressionAttributeValues": {":name": "Updated Item 2"},
-            }
+            },
         },
     ]
 
@@ -1117,7 +1157,7 @@ def test_transact_write_items_success(mock_service, mock_dynamo_service):
     result = mock_service.transact_write_items(transact_items)
 
     mock_dynamo_service.meta.client.transact_write_items.assert_called_once_with(
-        TransactItems=transact_items
+        TransactItems=transact_items,
     )
     assert result == mock_response
 
@@ -1128,8 +1168,8 @@ def test_transact_write_items_transaction_cancelled(mock_service, mock_dynamo_se
             "Put": {
                 "TableName": MOCK_TABLE_NAME,
                 "Item": {"ID": "id1", "Name": "Item 1"},
-            }
-        }
+            },
+        },
     ]
 
     error_response = {
@@ -1140,7 +1180,8 @@ def test_transact_write_items_transaction_cancelled(mock_service, mock_dynamo_se
         "CancellationReasons": [{"Code": "ConditionalCheckFailed"}],
     }
     mock_dynamo_service.meta.client.transact_write_items.side_effect = ClientError(
-        error_response, "TransactWriteItems"
+        error_response,
+        "TransactWriteItems",
     )
 
     with pytest.raises(ClientError) as exc_info:
@@ -1155,8 +1196,8 @@ def test_transact_write_items_generic_client_error(mock_service, mock_dynamo_ser
             "Put": {
                 "TableName": MOCK_TABLE_NAME,
                 "Item": {"ID": "id1", "Name": "Item 1"},
-            }
-        }
+            },
+        },
     ]
 
     mock_dynamo_service.meta.client.transact_write_items.side_effect = MOCK_CLIENT_ERROR
@@ -1174,7 +1215,10 @@ def test_build_update_transaction_item_single_condition(mock_service):
     condition_fields = {"DocStatus": "final"}
 
     result = mock_service.build_update_transaction_item(
-        table_name, document_key, update_fields, condition_fields
+        table_name,
+        document_key,
+        update_fields,
+        condition_fields,
     )
 
     assert "Update" in result
@@ -1211,7 +1255,10 @@ def test_build_update_transaction_item_multiple_conditions(mock_service):
     condition_fields = {"DocStatus": "final", "Version": 1, "Uploaded": True}
 
     result = mock_service.build_update_transaction_item(
-        table_name, document_key, update_fields, condition_fields
+        table_name,
+        document_key,
+        update_fields,
+        condition_fields,
     )
 
     assert "Update" in result
@@ -1249,7 +1296,10 @@ def test_build_update_transaction_item_empty_condition_fields(mock_service):
     condition_fields = {}
 
     result = mock_service.build_update_transaction_item(
-        table_name, document_key, update_fields, condition_fields
+        table_name,
+        document_key,
+        update_fields,
+        condition_fields,
     )
 
     assert "Update" in result
@@ -1282,7 +1332,8 @@ def test_build_update_transaction_item_empty_condition_fields(mock_service):
 )
 def test_build_key_condition(mock_service, search_key, search_condition, expected):
     key_condition = mock_service.build_key_condition(
-        search_key=search_key, search_condition=search_condition
+        search_key=search_key,
+        search_condition=search_condition,
     )
     if isinstance(key_condition, Equals):
         attr_key, attr_value = key_condition._values
@@ -1316,13 +1367,141 @@ def test_build_key_condition(mock_service, search_key, search_condition, expecte
     ],
 )
 def test_build_key_condition_non_matching_list_lengths(
-    mock_service, search_key, search_condition
+    mock_service,
+    search_key,
+    search_condition,
 ):
 
     with pytest.raises(DynamoServiceException):
         mock_service.build_key_condition(
-            search_key=search_key, search_condition=search_condition
+            search_key=search_key,
+            search_condition=search_condition,
         )
+
+
+def test_query_by_key_condition_expression_single_page_returns_items(
+    mock_service,
+    mock_table,
+):
+    key_condition_expression = Key("Date").eq("2026-01-07") & Key("Timestamp").gte(
+        1767779952,
+    )
+
+    mock_table.return_value.query.return_value = {
+        "Items": [{"ID": "item-1"}, {"ID": "item-2"}],
+    }
+
+    result = mock_service.query_by_key_condition_expression(
+        table_name=MOCK_TABLE_NAME,
+        index_name="TimestampIndex",
+        key_condition_expression=key_condition_expression,
+    )
+
+    assert result == [{"ID": "item-1"}, {"ID": "item-2"}]
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.query.assert_called_once_with(
+        IndexName="TimestampIndex",
+        KeyConditionExpression=key_condition_expression,
+    )
+
+
+def test_query_by_key_condition_expression_handles_pagination(
+    mock_service,
+    mock_table,
+):
+    key_condition_expression = Key("Date").eq("2026-01-07") & Key("Timestamp").gte(
+        1767779952,
+    )
+
+    mock_table.return_value.query.side_effect = [
+        {
+            "Items": [{"ID": "item-1"}],
+            "LastEvaluatedKey": {"ID": "page-2"},
+        },
+        {
+            "Items": [{"ID": "item-2"}],
+            "LastEvaluatedKey": {"ID": "page-3"},
+        },
+        {
+            "Items": [{"ID": "item-3"}],
+        },
+    ]
+
+    result = mock_service.query_by_key_condition_expression(
+        table_name=MOCK_TABLE_NAME,
+        index_name="TimestampIndex",
+        key_condition_expression=key_condition_expression,
+    )
+
+    assert result == [{"ID": "item-1"}, {"ID": "item-2"}, {"ID": "item-3"}]
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+
+    expected_calls = [
+        call(
+            IndexName="TimestampIndex",
+            KeyConditionExpression=key_condition_expression,
+        ),
+        call(
+            IndexName="TimestampIndex",
+            KeyConditionExpression=key_condition_expression,
+            ExclusiveStartKey={"ID": "page-2"},
+        ),
+        call(
+            IndexName="TimestampIndex",
+            KeyConditionExpression=key_condition_expression,
+            ExclusiveStartKey={"ID": "page-3"},
+        ),
+    ]
+    mock_table.return_value.query.assert_has_calls(expected_calls)
+
+
+def test_query_by_key_condition_expression_passes_filter_and_limit(
+    mock_service,
+    mock_table,
+):
+    key_condition_expression = Key("Date").eq("2026-01-07") & Key("Timestamp").lte(
+        1767780025,
+    )
+    filter_expression = Attr("UploadStatus").eq("complete")
+
+    mock_table.return_value.query.return_value = {"Items": [{"ID": "item-1"}]}
+
+    result = mock_service.query_by_key_condition_expression(
+        table_name=MOCK_TABLE_NAME,
+        index_name="TimestampIndex",
+        key_condition_expression=key_condition_expression,
+        query_filter=filter_expression,
+        limit=25,
+    )
+
+    assert result == [{"ID": "item-1"}]
+    mock_table.assert_called_with(MOCK_TABLE_NAME)
+    mock_table.return_value.query.assert_called_once_with(
+        IndexName="TimestampIndex",
+        KeyConditionExpression=key_condition_expression,
+        FilterExpression=filter_expression,
+        Limit=25,
+    )
+
+
+def test_query_by_key_condition_expression_client_error_raises_exception(
+    mock_service,
+    mock_table,
+):
+    key_condition_expression = Key("Date").eq("2026-01-07") & Key("Timestamp").gte(
+        1767779952,
+    )
+
+    mock_table.return_value.query.side_effect = MOCK_CLIENT_ERROR
+
+    with pytest.raises(ClientError) as exc_info:
+        mock_service.query_by_key_condition_expression(
+            table_name=MOCK_TABLE_NAME,
+            index_name="TimestampIndex",
+            key_condition_expression=key_condition_expression,
+        )
+
+    assert exc_info.value == MOCK_CLIENT_ERROR
 
 
 def test_query_table_using_paginator(mock_service):
@@ -1375,7 +1554,7 @@ def test_query_table_using_pagination_with_filter_expression(mock_service):
     )
 
     serialized_condition_attribute_values = serialize_dict_to_dynamodb_object(
-        condition_attribute_values
+        condition_attribute_values,
     )
 
     mock_service.query_table_with_paginator(

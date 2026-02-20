@@ -2,7 +2,7 @@ import itertools
 import os
 import re
 import uuid
-from datetime import datetime
+from datetime import date, datetime, time, timezone
 from urllib.parse import urlparse
 
 from inflection import camelize
@@ -72,17 +72,15 @@ def get_pds_service() -> PatientSearch:
         ssm_service = SSMService()
         auth_service = NhsOauthService(ssm_service)
         return PdsApiService(ssm_service, auth_service)
-    else:
-        return MockPdsApiService(
-            always_pass_mock=os.getenv("BYPASS_PDS", "false").lower() == "true"
-        )
+    return MockPdsApiService(
+        always_pass_mock=os.getenv("BYPASS_PDS", "false").lower() == "true",
+    )
 
 
 def get_virus_scan_service():
     if os.getenv("VIRUS_SCAN_STUB") in ["False", "false"]:
         return VirusScanService()
-    else:
-        return MockVirusScanService()
+    return MockVirusScanService()
 
 
 def redact_id_to_last_4_chars(str_id: str) -> str:
@@ -127,3 +125,23 @@ def parse_date(date_string: str) -> datetime | None:
         except ValueError:
             continue
     return None
+
+
+def utc_date_string(timestamp_seconds: int) -> str:
+    return datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc).strftime(
+        "%Y-%m-%d",
+    )
+
+
+def utc_date(timestamp_seconds: int) -> date:
+    return datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc).date()
+
+
+def utc_day_start_timestamp(day: date) -> int:
+    return int(
+        datetime.combine(day, time.min, tzinfo=timezone.utc).timestamp(),
+    )
+
+
+def utc_day_end_timestamp(day: date) -> int:
+    return utc_day_start_timestamp(day) + 24 * 60 * 60 - 1

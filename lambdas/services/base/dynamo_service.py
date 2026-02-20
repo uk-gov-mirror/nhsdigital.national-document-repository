@@ -42,7 +42,9 @@ class DynamoDBService:
             raise e
 
     def build_key_condition(
-        self, search_key: str | list[str], search_condition: str | list[str]
+        self,
+        search_key: str | list[str],
+        search_condition: str | list[str],
     ):
         if isinstance(search_key, str) and isinstance(search_condition, str):
             return Key(search_key).eq(search_condition)
@@ -50,7 +52,7 @@ class DynamoDBService:
         if isinstance(search_key, list) and isinstance(search_condition, list):
             if len(search_key) != len(search_condition):
                 logger.error(
-                    "search_key and search_condition lists must be the same length"
+                    "search_key and search_condition lists must be the same length",
                 )
                 raise DynamoServiceException("search condition lengths do not match.")
 
@@ -94,7 +96,8 @@ class DynamoDBService:
             table = self.get_table(table_name)
 
             expr = self.build_key_condition(
-                search_key=search_key, search_condition=search_condition
+                search_key=search_key,
+                search_condition=search_condition,
             )
             query_params: dict = {"KeyConditionExpression": expr}
 
@@ -192,13 +195,14 @@ class DynamoDBService:
             logger.info(f"Writing item to table: {table_name}")
             if key_name:
                 return table.put_item(
-                    Item=item, ConditionExpression=f"attribute_not_exists({key_name})"
+                    Item=item,
+                    ConditionExpression=f"attribute_not_exists({key_name})",
                 )
-            else:
-                return table.put_item(Item=item)
+            return table.put_item(Item=item)
         except ClientError as e:
             logger.error(
-                str(e), {"Result": f"Unable to write item to table: {table_name}"}
+                str(e),
+                {"Result": f"Unable to write item to table: {table_name}"},
             )
             raise e
 
@@ -216,7 +220,7 @@ class DynamoDBService:
         _, expression_attribute_names = create_expressions(updated_field_names)
 
         generated_expression_attribute_values = create_expression_attribute_values(
-            updated_fields
+            updated_fields,
         )
 
         if expression_attribute_values:
@@ -242,7 +246,8 @@ class DynamoDBService:
             logger.info(f"Deleting item in table: {table_name}")
         except ClientError as e:
             logger.error(
-                str(e), {"Result": f"Unable to delete item in table: {table_name}"}
+                str(e),
+                {"Result": f"Unable to delete item in table: {table_name}"},
             )
             raise e
 
@@ -306,7 +311,8 @@ class DynamoDBService:
                     batch.put_item(Item=item)
         except ClientError as e:
             logger.error(
-                str(e), {"Result": f"Unable to write item to table: {table_name}"}
+                str(e),
+                {"Result": f"Unable to write item to table: {table_name}"},
             )
             raise e
 
@@ -331,7 +337,7 @@ class DynamoDBService:
                 unprocessed_keys = response.get("UnprocessedKeys", {})
                 if table_name in unprocessed_keys:
                     logger.info(
-                        f"Retrying {len(unprocessed_keys[table_name]['Keys'])} unprocessed keys..."
+                        f"Retrying {len(unprocessed_keys[table_name]['Keys'])} unprocessed keys...",
                     )
                     request_items = unprocessed_keys
                     retries += 1
@@ -351,7 +357,8 @@ class DynamoDBService:
             return table.get_item(Key=key)
         except ClientError as e:
             logger.error(
-                str(e), {"Result": f"Unable to retrieve item from table: {table_name}"}
+                str(e),
+                {"Result": f"Unable to retrieve item from table: {table_name}"},
             )
             raise e
 
@@ -368,7 +375,7 @@ class DynamoDBService:
         try:
             logger.info(f"Executing transaction with {len(transact_items)} items")
             response = self.dynamodb.meta.client.transact_write_items(
-                TransactItems=transact_items
+                TransactItems=transact_items,
             )
             logger.info("Transaction completed successfully")
             return response
@@ -416,7 +423,7 @@ class DynamoDBService:
             condition_placeholder = f"#{field_name}_attr"
             condition_value_placeholder = f":{field_name}_condition_val"
             condition_expressions.append(
-                f"{condition_placeholder} = {condition_value_placeholder}"
+                f"{condition_placeholder} = {condition_value_placeholder}",
             )
             condition_attribute_names[condition_placeholder] = field_name
             condition_attribute_values[condition_value_placeholder] = field_value
@@ -438,8 +445,50 @@ class DynamoDBService:
                     **expression_attribute_values,
                     **condition_attribute_values,
                 },
-            }
+            },
         }
+
+    def query_by_key_condition_expression(
+        self,
+        table_name: str,
+        key_condition_expression: ConditionBase,
+        index_name: str | None = None,
+        query_filter: Attr | ConditionBase | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
+        table = self.get_table(table_name)
+
+        collected_items: list[dict] = []
+        exclusive_start_key: dict | None = None
+
+        while True:
+            query_params: dict = {"KeyConditionExpression": key_condition_expression}
+
+            if index_name:
+                query_params["IndexName"] = index_name
+            if query_filter:
+                query_params["FilterExpression"] = query_filter
+            if exclusive_start_key:
+                query_params["ExclusiveStartKey"] = exclusive_start_key
+            if limit:
+                query_params["Limit"] = limit
+
+            try:
+                response = table.query(**query_params)
+            except ClientError as exc:
+                logger.error(
+                    str(exc),
+                    {"Result": f"Unable to query table: {table_name}"},
+                )
+                raise
+
+            collected_items.extend(response.get("Items", []))
+
+            exclusive_start_key = response.get("LastEvaluatedKey")
+            if not exclusive_start_key:
+                break
+
+        return collected_items
 
     def query_table_with_paginator(
         self,

@@ -12,6 +12,7 @@ from utils.utilities import (
     get_pds_service,
     parse_date,
     redact_id_to_last_4_chars,
+    utc_date_string,
     validate_nhs_number,
 )
 
@@ -135,3 +136,20 @@ def test_format_cloudfront_url_valid():
 def test_parse_date_returns_correct_date_for_valid_formats(input_date, expected_date):
     result = parse_date(input_date)
     assert result == expected_date
+
+
+@pytest.mark.parametrize(
+    "timestamp_seconds, expected_date_string",
+    [
+        (0, "1970-01-01"),
+        (1704067200, "2024-01-01"),
+        (1767780025, "2026-01-07"),
+        (1704153599, "2024-01-01"),
+        (1704153600, "2024-01-02"),
+    ],
+)
+def test_utc_date_string_returns_correct_utc_date(
+    timestamp_seconds,
+    expected_date_string,
+):
+    assert utc_date_string(timestamp_seconds) == expected_date_string

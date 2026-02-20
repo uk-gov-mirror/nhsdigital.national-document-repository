@@ -742,3 +742,7 @@ class LambdaError(Enum):
         "message": "An internal server error occurred",
         "fhir_coding": FhirIssueCoding.EXCEPTION,
     }
+    InvalidAction = {
+        "err_code": "RD_IA",
+        "message": "Invalid action. Expected 'list' or 'process_one'.",
+    }
