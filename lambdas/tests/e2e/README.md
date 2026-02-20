@@ -4,8 +4,8 @@ These tests serve as a suite of end-to-end (E2E) tests to validate FHIR API func
 
 There are 2 suites which separately test
 
-1. FHIR API endpoints using mTLS `lambdas/tests/e2e/api/fhir/` (routed to **PDM** usecase)
-2. API endpoints **not** using mTLS `lambdas/tests/e2e/api/` (routed to **Lloyd George** usecase)
+1. FHIR API endpoints using mTLS `lambdas/tests/e2e/api/fhir/` (routed to **PDM** usecase using `Confidential patient data` snomed code: `717391000000106`)
+2. API endpoints **not** using mTLS `lambdas/tests/e2e/api/` (routed to **Lloyd George** usecase using `Lloyd George record folder` snomed code: `16521000000101`)
 
 as well as APIM E2E tests `lambdas/tests/e2e/apim/`.
 
