@@ -57,6 +57,14 @@ describe('ReviewDetailsAddMoreChoiceStage', () => {
             ).toBeInTheDocument();
         });
 
+        it('renders the hint text correctly', () => {
+            render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
+
+            expect(
+                screen.getByText('You can add any Lloyd George files you have for this patient.'),
+            ).toBeInTheDocument();
+        });
+
         it('renders back button with correct text', () => {
             render(<ReviewDetailsAddMoreChoiceStage reviewData={mockReviewData} />);
 

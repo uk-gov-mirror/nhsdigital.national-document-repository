@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Fieldset, Radios } from 'nhsuk-react-components';
+import { Button, Fieldset, HintText, Radios } from 'nhsuk-react-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import { navigateUrlParam, routeChildren } from '../../../../types/generic/routes';
 import BackButton from '../../../generic/backButton/BackButton';
@@ -64,6 +64,9 @@ const ReviewDetailsAddMoreChoiceStage: React.FC<ReviewDetailsAddMoreChoicePagePr
                     <Fieldset.Legend isPageHeading>
                         Do you want to add more files to this patient's record?
                     </Fieldset.Legend>
+                    <HintText>
+                        You can add any Lloyd George files you have for this patient.
+                    </HintText>
                     <Radios
                         name="add-more-choice"
                         id="add-more-choice"
