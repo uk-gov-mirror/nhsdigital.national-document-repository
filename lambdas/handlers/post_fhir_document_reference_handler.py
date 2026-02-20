@@ -2,6 +2,7 @@ from services.post_fhir_document_reference_service import (
     PostFhirDocumentReferenceService,
 )
 from utils.audit_logging_setup import LoggingService
+from utils.constants.api import DOCUMENT_RETRIEVE_ENDPOINT
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions_fhir
 from utils.lambda_exceptions import DocumentRefException
 from utils.lambda_response import ApiGatewayResponse
@@ -30,20 +31,28 @@ def lambda_handler(event, context):
 
         fhir_doc_ref_service = PostFhirDocumentReferenceService()
 
-        fhir_response = fhir_doc_ref_service.process_fhir_document_reference(
-            event.get("body"), event.get("requestContext")
+        fhir_response, document_id = (
+            fhir_doc_ref_service.process_fhir_document_reference(
+                event.get("body"),
+                event.get("requestContext"),
+            )
         )
 
+        # Construct the Location header for FHIR compliance
+        location_url = f"{DOCUMENT_RETRIEVE_ENDPOINT}/{document_id}"
+
         return ApiGatewayResponse(
-            status_code=201, body=fhir_response, methods="POST"
-        ).create_api_gateway_response()
+            status_code=201,
+            body=fhir_response,
+            methods="POST",
+        ).create_api_gateway_response(headers={"Location": location_url})
 
     except DocumentRefException as exception:
         logger.error(f"Error processing FHIR document reference: {str(exception)}")
         return ApiGatewayResponse(
             status_code=exception.status_code,
             body=exception.error.create_error_response(
-                details=exception.details
+                details=exception.details,
             ).create_error_fhir_response(exception.error.value.get("fhir_coding")),
             methods="POST",
         ).create_api_gateway_response()

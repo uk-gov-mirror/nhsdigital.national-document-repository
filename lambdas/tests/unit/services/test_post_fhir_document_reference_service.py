@@ -2,6 +2,7 @@ import json
 
 import pytest
 from botocore.exceptions import ClientError
+
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference
@@ -170,19 +171,24 @@ def test_process_fhir_document_reference_with_presigned_url(
     mock_check_nhs_number_with_pds,
     mock_get_dynamo_table_for_doc_type,
     mock_handle_document_save,
+    mock_uuid,
 ):
     mock_presigned_url_response = "https://test-bucket.s3.amazonaws.com/"
     mock_handle_document_save.return_value = mock_presigned_url_response
 
-    result = mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-        valid_fhir_doc_json,
+    json_result, document_id = (
+        mock_post_fhir_doc_ref_service.process_fhir_document_reference(
+            valid_fhir_doc_json,
+        )
     )
     expected_pre_sign_url = mock_presigned_url_response
+    expected_document_id = f"{SnomedCodes.LLOYD_GEORGE.value.code}~{TEST_UUID}"
 
-    assert isinstance(result, str)
-    result_json = json.loads(result)
+    assert isinstance(json_result, str)
+    result_json = json.loads(json_result)
     assert result_json["resourceType"] == "DocumentReference"
     assert result_json["content"][0]["attachment"]["url"] == expected_pre_sign_url
+    assert document_id == expected_document_id
 
 
 def test_process_fhir_document_reference_with_binary(
@@ -192,19 +198,23 @@ def test_process_fhir_document_reference_with_binary(
     mock_check_nhs_number_with_pds,
     mock_get_dynamo_table_for_doc_type,
     mock_handle_document_save,
+    mock_uuid,
 ):
     """Test a happy path with binary data in the request."""
-    custom_endpoint = f"{APIM_API_URL}/DocumentReference"
     mock_handle_document_save.return_value = None
-    result = mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-        valid_fhir_doc_with_binary,
+    json_result, document_id = (
+        mock_post_fhir_doc_ref_service.process_fhir_document_reference(
+            valid_fhir_doc_with_binary,
+        )
     )
+    expected_document_id = f"{SnomedCodes.LLOYD_GEORGE.value.code}~{TEST_UUID}"
 
-    assert isinstance(result, str)
-    result_json = json.loads(result)
+    assert isinstance(json_result, str)
+    result_json = json.loads(json_result)
     assert result_json["resourceType"] == "DocumentReference"
     attachment_url = result_json["content"][0]["attachment"]["url"]
-    assert custom_endpoint in attachment_url
+    assert f"{APIM_API_URL}/DocumentReference" in attachment_url
+    assert document_id == expected_document_id
 
 
 def test_validation_error(

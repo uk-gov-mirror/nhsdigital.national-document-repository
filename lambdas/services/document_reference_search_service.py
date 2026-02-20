@@ -2,6 +2,8 @@ import os
 from json import JSONDecodeError
 
 from botocore.exceptions import ClientError
+from pydantic import ValidationError
+
 from enums.dynamo_filter import AttributeOperator, ConditionOperator
 from enums.infrastructure import MAP_MTLS_TO_DYNAMO
 from enums.lambda_error import LambdaError
@@ -10,11 +12,14 @@ from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
 from models.fhir.R4.bundle import Bundle, BundleEntry
-from models.fhir.R4.fhir_document_reference import Attachment, DocumentReferenceInfo
-from pydantic import ValidationError
+from models.fhir.R4.fhir_document_reference import (
+    Attachment,
+    DocumentReferenceInfo,
+)
 from services.document_service import DocumentService
 from utils.audit_logging_setup import LoggingService
 from utils.common_query_filters import NotDeleted, UploadCompleted
+from utils.constants.api import DOCUMENT_RETRIEVE_ENDPOINT
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.dynamo_utils import build_mixed_condition_expression
 from utils.exceptions import DynamoServiceException
@@ -224,12 +229,11 @@ class DocumentReferenceSearchService(DocumentService):
         self,
         document_reference: DocumentReference,
     ) -> dict:
-        document_retrieve_endpoint = os.getenv("DOCUMENT_RETRIEVE_ENDPOINT_APIM", "")
         document_details = Attachment(
             title=document_reference.file_name,
             creation=document_reference.document_scan_creation
             or document_reference.created,
-            url=document_retrieve_endpoint
+            url=DOCUMENT_RETRIEVE_ENDPOINT
             + "/"
             + document_reference.document_snomed_code_type
             + "~"

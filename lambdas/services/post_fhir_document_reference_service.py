@@ -1,4 +1,6 @@
 from botocore.exceptions import ClientError
+from pydantic import ValidationError
+
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCode, SnomedCodes
@@ -9,7 +11,6 @@ from models.fhir.R4.fhir_document_reference import (
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
-from pydantic import ValidationError
 from services.fhir_document_reference_service_base import (
     FhirDocumentReferenceServiceBase,
 )
@@ -30,7 +31,7 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
         self,
         fhir_document: str,
         api_request_context: dict = {},
-    ) -> str:
+    ) -> tuple[str, str]:
         """
         Process a FHIR Document Reference request
 
@@ -38,7 +39,7 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             fhir_document: FHIR Document Reference object
 
         Returns:
-            FHIR Document Reference response JSON object
+            Tuple of (FHIR Document Reference response JSON object, document ID)
         """
         try:
             common_name = validate_common_name_in_mtls(api_request_context)
@@ -81,7 +82,13 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
                 dynamo_table,
             )
 
-            return self._create_fhir_response(document_reference, presigned_url)
+            fhir_response = self._create_fhir_response(
+                document_reference,
+                presigned_url,
+            )
+            document_id = f"{document_reference.document_snomed_code_type}~{document_reference.id}"
+
+            return fhir_response, document_id
 
         except (ValidationError, InvalidNhsNumberException) as e:
             logger.error(f"FHIR document validation error: {str(e)}")

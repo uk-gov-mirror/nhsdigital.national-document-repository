@@ -2,20 +2,28 @@ import json
 
 import pytest
 from botocore.exceptions import ClientError
+
 from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference
 from models.fhir.R4.base_models import Coding, Identifier, Reference
-from models.fhir.R4.fhir_document_reference import SNOMED_URL, Attachment
+from models.fhir.R4.fhir_document_reference import (
+    SNOMED_URL,
+    Attachment,
+)
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
-from models.fhir.R4.fhir_document_reference import DocumentReferenceContent
+from models.fhir.R4.fhir_document_reference import (
+    DocumentReferenceContent,
+)
 from services.put_fhir_document_reference_service import (
     FhirDocumentReferenceServiceBase,
 )
-from tests.unit.conftest import APIM_API_URL
+from tests.unit.conftest import (
+    APIM_API_URL,
+)
 from tests.unit.conftest import (
     EXPECTED_PARSED_PATIENT_BASE_CASE as mock_pds_patient_details,
 )
@@ -111,8 +119,8 @@ def mock_store_binary_in_s3(mocker, mock_service):
                         "system": "http://snomed.info/sct",
                         "code": "invalid-code",
                         "display": "Invalid",
-                    }
-                ]
+                    },
+                ],
             },
         },
         # Missing document type
@@ -173,7 +181,7 @@ def test_check_nhs_number_with_pds_raise_error(mock_service, mocker):
         return_value=mock_service_object,
     )
     mock_service_object.fetch_patient_details.side_effect = PatientNotFoundException(
-        "test test"
+        "test test",
     )
     with pytest.raises(FhirDocumentReferenceException):
         mock_service._check_nhs_number_with_pds("9000000009")
@@ -207,20 +215,22 @@ def test_create_document_reference_with_author(mock_service, mocker):
                 contentType="application/pdf",
                 title="test-file.pdf",
                 creation="2023-01-01T12:00:00Z",
-            )
-        )
+            ),
+        ),
     ]
     fhir_doc.custodian = Reference(
         identifier=Identifier(
-            system="https://fhir.nhs.uk/Id/ods-organization-code", value="A12345"
-        )
+            system="https://fhir.nhs.uk/Id/ods-organization-code",
+            value="A12345",
+        ),
     )
     fhir_doc.author = [
         Reference(
             identifier=Identifier(
-                system="https://fhir.nhs.uk/Id/ods-organization-code", value="B67890"
-            )
-        )
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
     ]
 
     doc_type = SnomedCode(code="test-code", display_name="Test Type")
@@ -253,15 +263,16 @@ def test_create_document_reference_without_custodian(mock_service, mocker):
                 contentType="application/pdf",
                 title="test-file.pdf",
                 creation="2023-01-01T12:00:00Z",
-            )
-        )
+            ),
+        ),
     ]
     fhir_doc.author = [
         Reference(
             identifier=Identifier(
-                system="https://fhir.nhs.uk/Id/ods-organization-code", value="B67890"
-            )
-        )
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
     ]
     fhir_doc.custodian = None
 
@@ -324,12 +335,14 @@ def test_process_fhir_document_reference_with_invalid_base64_data(mock_service):
     """Test process_fhir_document_reference with invalid base64 data."""
     with pytest.raises(FhirDocumentReferenceException):
         mock_service._store_binary_in_s3(
-            TEST_DOCUMENT_REFERENCE, b"invalid-base64-data!!!"
+            TEST_DOCUMENT_REFERENCE,
+            b"invalid-base64-data!!!",
         )
 
 
 def test_determine_document_type_returns_lloyd_george_type(
-    mock_service, valid_fhir_doc_object
+    mock_service,
+    valid_fhir_doc_object,
 ):
     """Test that determine_document_type returns the lloyd george type for
     a lloyd george document"""
@@ -339,12 +352,13 @@ def test_determine_document_type_returns_lloyd_george_type(
 
 
 def test_determine_document_type_non_snomed_coding(
-    mock_service, valid_fhir_doc_object: FhirDocumentReference
+    mock_service,
+    valid_fhir_doc_object: FhirDocumentReference,
 ):
     """Test that determine_document_type returns the lloyd george type for
     a lloyd george document"""
     valid_fhir_doc_object.type.coding.append(
-        Coding(system="mocked_system", code="mocked_code", display="mocked_display")
+        Coding(system="mocked_system", code="mocked_code", display="mocked_display"),
     )
 
     valid_fhir_doc_object.type.coding.reverse()
@@ -355,12 +369,13 @@ def test_determine_document_type_non_snomed_coding(
 
 
 def test_determine_document_type_non_george_lloyd_code(
-    mock_service, valid_fhir_doc_object: FhirDocumentReference
+    mock_service,
+    valid_fhir_doc_object: FhirDocumentReference,
 ):
     """Test that determine_document_type returns the lloyd george type for
     a lloyd george document"""
     valid_fhir_doc_object.type.coding.append(
-        Coding(system=SNOMED_URL, code="mocked_code", display="mocked_display")
+        Coding(system=SNOMED_URL, code="mocked_code", display="mocked_display"),
     )
 
     valid_fhir_doc_object.type.coding.reverse()
@@ -398,7 +413,8 @@ def test_get_document_reference_returns_document_reference(mocker, mock_service)
 def test_create_s3_presigned_url_error(mock_service):
     """Test that create_s3_presigned_url raises a FhirDocumentReferenceException on AWS S3 ClientError"""
     mock_service.s3_service.create_put_presigned_url.side_effect = ClientError(
-        {"Error": {}}, ""
+        {"Error": {}},
+        "",
     )
     document = create_test_lloyd_george_doc_store_refs()[0]
 
@@ -443,7 +459,7 @@ def test_store_binary_in_s3_with_client_error(mock_service):
             "Error": {
                 "Code": "NoSuchBucket",
                 "Message": "The specified bucket does not exist",
-            }
+            },
         },
         "PutObject",
     )
@@ -523,7 +539,9 @@ def test_create_fhir_response_with_presigned_url(mock_service, mocker):
     """Test _create_fhir_response method with a presigned URL."""
 
     mocker.patch.object(
-        SnomedCodes, "find_by_code", return_value=SnomedCodes.LLOYD_GEORGE.value
+        SnomedCodes,
+        "find_by_code",
+        return_value=SnomedCodes.LLOYD_GEORGE.value,
     )
 
     document_ref = DocumentReference(
@@ -550,9 +568,10 @@ def test_create_fhir_response_without_presigned_url(set_env, mock_service, mocke
     """Test _create_fhir_response method without a presigned URL (for binary uploads)."""
 
     mocker.patch.object(
-        SnomedCodes, "find_by_code", return_value=SnomedCodes.LLOYD_GEORGE.value
+        SnomedCodes,
+        "find_by_code",
+        return_value=SnomedCodes.LLOYD_GEORGE.value,
     )
-    custom_endpoint = f"{APIM_API_URL}/DocumentReference"
 
     document_ref = DocumentReference(
         id="test-id",
@@ -570,9 +589,7 @@ def test_create_fhir_response_without_presigned_url(set_env, mock_service, mocke
 
     result_json = json.loads(result)
     assert result_json["resourceType"] == "DocumentReference"
-    expected_url = (
-        f"{custom_endpoint}/{SnomedCodes.LLOYD_GEORGE.value.code}~{document_ref.id}"
-    )
+    expected_url = f"{APIM_API_URL}/DocumentReference/{SnomedCodes.LLOYD_GEORGE.value.code}~{document_ref.id}"
     assert result_json["content"][0]["attachment"]["url"] == expected_url
 
 
@@ -587,7 +604,9 @@ def test_handle_document_save_returns_presigned_url(
     """Test _handle_document_save method returns presigned URL for Lloyd George document."""
 
     result = mock_service._handle_document_save(
-        mock_document_reference, valid_fhir_doc_object, "test_table"
+        mock_document_reference,
+        valid_fhir_doc_object,
+        "test_table",
     )
 
     assert result == "https://test-presigned-url.com"
@@ -603,7 +622,9 @@ def test_handle_document_save_stores_binary_in_s3(
 ):
     valid_fhir_doc_object.content[0].attachment.data = "SGVsbG8gV29ybGQ="
     result = mock_service._handle_document_save(
-        mock_document_reference, valid_fhir_doc_object, "test_table"
+        mock_document_reference,
+        valid_fhir_doc_object,
+        "test_table",
     )
     assert result is None
     mock_service._store_binary_in_s3.assert_called_once()
@@ -625,7 +646,9 @@ def test_handle_document_save_store_binary_in_s3_failure(
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_service._handle_document_save(
-            mock_document_reference, valid_fhir_doc_object, "test_table"
+            mock_document_reference,
+            valid_fhir_doc_object,
+            "test_table",
         )
 
     assert excinfo.value.status_code == 500
@@ -652,7 +675,9 @@ def test_handle_document_save_create_s3_failure(
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_service._handle_document_save(
-            mock_document_reference, valid_fhir_doc_object, "test_table"
+            mock_document_reference,
+            valid_fhir_doc_object,
+            "test_table",
         )
 
     assert excinfo.value.status_code == 500
@@ -678,7 +703,9 @@ def test_save_document_reference_to_dynamo_failure(
 
     with pytest.raises(DocumentRefException) as excinfo:
         mock_service._handle_document_save(
-            mock_document_reference, valid_fhir_doc_object, "test_table"
+            mock_document_reference,
+            valid_fhir_doc_object,
+            "test_table",
         )
 
     assert excinfo.value.status_code == 500

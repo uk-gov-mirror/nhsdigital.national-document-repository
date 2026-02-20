@@ -1,6 +1,7 @@
 import json
 
 import pytest
+
 from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
@@ -433,20 +434,23 @@ def test_process_mtls_fhir_document_reference_with_binary(
     mock_mtls_common_names,
     valid_mtls_fhir_doc_with_binary,
     valid_mtls_request_context,
+    mock_uuid,
 ):
     """Test a happy path with binary data in the request."""
-    custom_endpoint = f"{APIM_API_URL}/DocumentReference"
-
-    result = mock_post_fhir_doc_ref_service.process_fhir_document_reference(
-        valid_mtls_fhir_doc_with_binary,
-        valid_mtls_request_context,
+    json_result, document_id = (
+        mock_post_fhir_doc_ref_service.process_fhir_document_reference(
+            valid_mtls_fhir_doc_with_binary,
+            valid_mtls_request_context,
+        )
     )
+    expected_document_id = f"{SnomedCodes.PATIENT_DATA.value.code}~{TEST_UUID}"
 
-    assert isinstance(result, str)
-    result_json = json.loads(result)
+    assert isinstance(json_result, str)
+    result_json = json.loads(json_result)
     assert result_json["resourceType"] == "DocumentReference"
     attachment_url = result_json["content"][0]["attachment"]["url"]
-    assert custom_endpoint in attachment_url
+    assert f"{APIM_API_URL}/DocumentReference" in attachment_url
+    assert document_id == expected_document_id
 
 
 def test_determine_document_type_with_correct_common_name(

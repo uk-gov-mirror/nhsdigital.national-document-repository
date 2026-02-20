@@ -27,11 +27,15 @@ def test_create_document_base64(test_data):
 
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 201
-    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    upload_response = raw_upload_response.json()
+    record["id"] = upload_response["id"].split("~")[1]
     test_data.append(record)
 
+    assert "Location" in raw_upload_response.headers
+    expected_location = f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{upload_response['id']}"
+    assert raw_upload_response.headers["Location"] == expected_location
+
     # Validate attachment URL
-    upload_response = raw_upload_response.json()
     attachment_url = upload_response["content"][0]["attachment"]["url"]
     assert (
         f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~"
@@ -66,8 +70,13 @@ def test_create_document_saves_raw(test_data):
 
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 201
-    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    upload_response = raw_upload_response.json()
+    record["id"] = upload_response["id"].split("~")[1]
     test_data.append(record)
+
+    assert "Location" in raw_upload_response.headers
+    expected_location = f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{upload_response['id']}"
+    assert raw_upload_response.headers["Location"] == expected_location
 
     doc_ref = pdm_data_helper.retrieve_document_reference(record=record)
     assert "Item" in doc_ref
@@ -95,8 +104,13 @@ def test_create_document_without_author_or_type(test_data):
         assert field not in payload
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 201
-    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    upload_response = raw_upload_response.json()
+    record["id"] = upload_response["id"].split("~")[1]
     test_data.append(record)
+
+    assert "Location" in raw_upload_response.headers
+    expected_location = f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{upload_response['id']}"
+    assert raw_upload_response.headers["Location"] == expected_location
 
     doc_ref = pdm_data_helper.retrieve_document_reference(record=record)
     assert "Item" in doc_ref
@@ -122,8 +136,13 @@ def test_create_document_without_title(test_data):
 
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 201
-    record["id"] = raw_upload_response.json()["id"].split("~")[1]
+    upload_response = raw_upload_response.json()
+    record["id"] = upload_response["id"].split("~")[1]
     test_data.append(record)
+
+    assert "Location" in raw_upload_response.headers
+    expected_location = f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{upload_response['id']}"
+    assert raw_upload_response.headers["Location"] == expected_location
 
     doc_ref = pdm_data_helper.retrieve_document_reference(record=record)
     assert "Item" in doc_ref

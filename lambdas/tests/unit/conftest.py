@@ -8,12 +8,13 @@ from io import BytesIO
 
 import pytest
 from botocore.exceptions import ClientError
-from models.document_reference import DocumentReference
-from models.pds_models import Patient, PatientDetails
 from pydantic import ValidationError
 from pypdf import PdfWriter
-from repositories.reporting.reporting_dynamo_repository import ReportingDynamoRepository
 from requests import Response
+
+from models.document_reference import DocumentReference
+from models.pds_models import Patient, PatientDetails
+from repositories.reporting.reporting_dynamo_repository import ReportingDynamoRepository
 from tests.unit.helpers.data.pds.pds_patient_response import PDS_PATIENT
 from utils.audit_logging_setup import LoggingService
 
@@ -385,6 +386,29 @@ def mock_uuid(mocker):
 @pytest.fixture
 def mock_sleep(mocker):
     return mocker.patch("time.sleep")
+
+
+@pytest.fixture(autouse=True)
+def mock_document_retrieve_endpoint(mocker):
+    """Mock DOCUMENT_RETRIEVE_ENDPOINT constant for all tests.
+
+    This patches the constant at its various import locations to ensure
+    tests use the expected endpoint value rather than the empty string
+    captured at module import time.
+    """
+    endpoint = f"{APIM_API_URL}/DocumentReference"
+    mocker.patch(
+        "services.fhir_document_reference_service_base.DOCUMENT_RETRIEVE_ENDPOINT",
+        endpoint,
+    )
+    mocker.patch(
+        "services.document_reference_search_service.DOCUMENT_RETRIEVE_ENDPOINT",
+        endpoint,
+    )
+    mocker.patch(
+        "handlers.post_fhir_document_reference_handler.DOCUMENT_RETRIEVE_ENDPOINT",
+        endpoint,
+    )
 
 
 @contextmanager

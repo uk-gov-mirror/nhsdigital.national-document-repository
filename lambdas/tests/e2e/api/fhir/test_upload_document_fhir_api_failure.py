@@ -5,11 +5,13 @@ import os
 
 import pytest
 import requests
+
 from tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
     retrieve_document_with_retry,
     upload_document,
 )
+from tests.e2e.conftest import APIM_ENDPOINT
 from tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
@@ -28,6 +30,7 @@ def test_create_document_presign_fails():
 
     upload_response = upload_document(payload)
     assert upload_response.status_code == 413
+    assert "Location" not in upload_response.headers
     assert upload_response.text == "HTTP content length exceeded 10485760 bytes."
 
 
@@ -50,6 +53,10 @@ def test_create_document_virus(test_data):
     record["id"] = upload_response["id"].split("~")[1]
     test_data.append(record)
 
+    assert "Location" in raw_upload_response.headers
+    expected_location = f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{upload_response['id']}"
+    assert raw_upload_response.headers["Location"] == expected_location
+
     # Poll until processing/scan completes
     def condition(response_json):
         logging.info(response_json)
@@ -59,7 +66,8 @@ def test_create_document_virus(test_data):
         )
 
     raw_retrieve_response = retrieve_document_with_retry(
-        upload_response["id"], condition
+        upload_response["id"],
+        condition,
     )
     retrieve_response = raw_retrieve_response.json()
 
@@ -84,7 +92,10 @@ def test_create_document_virus(test_data):
     ],
 )
 def test_search_edge_cases(
-    nhs_number, expected_status, expected_code, expected_diagnostics
+    nhs_number,
+    expected_status,
+    expected_code,
+    expected_diagnostics,
 ):
     record = {
         "ods": "H81109",
@@ -97,6 +108,7 @@ def test_search_edge_cases(
     payload = pdm_data_helper.create_upload_payload(record)
     response = upload_document(payload)
     assert response.status_code == expected_status
+    assert "Location" not in response.headers
 
     body = response.json()
     issue = body["issue"][0]
@@ -123,10 +135,14 @@ def test_forbidden_with_invalid_cert(temp_cert_and_key):
     headers = {"Authorization": "Bearer 123", "X-Correlation-Id": "1234"}
 
     response = requests.post(
-        url, headers=headers, cert=(cert_path, key_path), data=payload
+        url,
+        headers=headers,
+        cert=(cert_path, key_path),
+        data=payload,
     )
-    body = response.json()
     assert response.status_code == 403
+    assert "Location" not in response.headers
+    body = response.json()
     assert body["message"] == "Forbidden"
 
 
@@ -148,8 +164,9 @@ def test_create_document_with_invalid_author_returns_error(test_data, author_pay
     payload = json.dumps(payload)
 
     raw_upload_response = upload_document(payload)
-    response_json = raw_upload_response.json()
     assert raw_upload_response.status_code == 400
+    assert "Location" not in raw_upload_response.headers
+    response_json = raw_upload_response.json()
     assert response_json["resourceType"] == "OperationOutcome"
     assert (
         response_json["issue"][0]["details"]["coding"][0]["code"] == "VALIDATION_ERROR"
@@ -170,6 +187,7 @@ def test_upload_invalid_resource_type(test_data):
 
     raw_upload_response = upload_document(payload, resource_type="FooBar")
     assert raw_upload_response.status_code == 403
+    assert "Location" not in raw_upload_response.headers
 
     response_json = raw_upload_response.json()
     assert response_json["message"] == "Missing Authentication Token"

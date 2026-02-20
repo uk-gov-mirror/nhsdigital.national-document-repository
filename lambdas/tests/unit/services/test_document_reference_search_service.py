@@ -4,13 +4,14 @@ from unittest.mock import MagicMock, call
 import pytest
 from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
+from pydantic import ValidationError
+
 from enums.dynamo_filter import AttributeOperator
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
-from freezegun import freeze_time
 from models.document_reference import DocumentReference
-from pydantic import ValidationError
 from services.document_reference_search_service import DocumentReferenceSearchService
 from tests.unit.conftest import (
     APIM_API_URL,

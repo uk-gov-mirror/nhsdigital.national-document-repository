@@ -20,6 +20,7 @@ ZIP_COMMON_FILES = lambdas/utils lambdas/models lambdas/services lambdas/reposit
 CONTAINER ?= false
 VENV_PATH_PREFIX := $(if $(filter true,$(CONTAINER)),./.venv,./lambdas/venv)
 FORMAT_ALL ?= false
+CHECK ?= false
 
 .PHONY: \
 	install clean help format list requirements ruff build-and-deploy-sandbox \
@@ -83,17 +84,12 @@ clean-test:
 	find . -name 'htmlcov' -exec rm -fr {} +
 	find . -name '.cache' -exec rm -fr {} +
 
-format:
-	@if [ $(FORMAT_ALL) = true ]; then \
-		CHANGED_FILES=''; \
-	else \
-		CHANGED_FILES=$$(git diff main --name-status | grep -E '^[^D].*\.py$$' | cut -f2 | xargs); \
-		echo $$CHANGED_FILES; \
-		if [ -z "$$CHANGED_FILES" ]; then echo "No changed files to format"; exit 0; fi; \
-	fi; \
-	$(VENV_PATH_PREFIX)/bin/ruff check $$CHANGED_FILES --fix; \
-	$(VENV_PATH_PREFIX)/bin/python3 -m black $$CHANGED_FILES; \
-	$(VENV_PATH_PREFIX)/bin/python3 -m isort --profile black $$CHANGED_FILES
+format: ## Format Python files. Usage: make format CONTAINER=<true|false> FORMAT_ALL=<true|false> CHECK=<true|false>
+	@bash scripts/format.sh \
+		$(if $(filter true,$(FORMAT_ALL)),--all) \
+		$(if $(filter true,$(CONTAINER)),--container) \
+		$(if $(filter true,$(CHECK)),--check)
+
 
 sort-requirements:
 	sort -o $(TEST_REQUIREMENTS) $(TEST_REQUIREMENTS)

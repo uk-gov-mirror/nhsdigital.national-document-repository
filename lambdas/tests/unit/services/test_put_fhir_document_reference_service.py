@@ -1,12 +1,13 @@
 import json
 
 import pytest
+from pydantic import ValidationError
+
 from enums.lambda_error import LambdaError
 from models.document_reference import DocumentReference
 from models.fhir.R4.fhir_document_reference import (
     DocumentReference as FhirDocumentReference,
 )
-from pydantic import ValidationError
 from services.fhir_document_reference_service_base import (
     FhirDocumentReferenceServiceBase,
 )
@@ -37,7 +38,18 @@ def mock_service(set_env, mocker, valid_nhs_number):
         return_value=valid_nhs_number,
     )
     mock_doc_type_table_router = mocker.patch(
-        "services.put_fhir_document_reference_service.DocTypeTableRouter"
+        "services.put_fhir_document_reference_service.DocTypeTableRouter",
+    )
+
+    # Mock AWS services before creating the service
+    mocker.patch(
+        "services.fhir_document_reference_service_base.S3Service",
+    )
+    mocker.patch(
+        "services.fhir_document_reference_service_base.DynamoDBService",
+    )
+    mocker.patch(
+        "services.fhir_document_reference_service_base.DocumentService",
     )
 
     service = PutFhirDocumentReferenceService()
@@ -57,16 +69,16 @@ def mock_service(set_env, mocker, valid_nhs_number):
 @pytest.fixture
 def mock_fhir_doc_ref_base_service(mocker, setup_request_context):
     mock_document_service = mocker.patch(
-        "services.fhir_document_reference_service_base.DocumentService"
+        "services.fhir_document_reference_service_base.DocumentService",
     )
     mock_s3_service = mocker.patch(
-        "services.fhir_document_reference_service_base.S3Service"
+        "services.fhir_document_reference_service_base.S3Service",
     )
     mock_dynamo_service = mocker.patch(
-        "services.fhir_document_reference_service_base.DynamoDBService"
+        "services.fhir_document_reference_service_base.DynamoDBService",
     )
     mock_doc_type_table_router = mocker.patch(
-        "services.fhir_document_reference_service_base.DocTypeTableRouter"
+        "services.fhir_document_reference_service_base.DocTypeTableRouter",
     )
     service = FhirDocumentReferenceServiceBase()
     service.document_service = mock_document_service.return_value
@@ -121,7 +133,11 @@ def valid_fhir_doc_with_binary(valid_fhir_doc_json):
 
 @pytest.mark.parametrize("version_number", range(1, 10))
 def test_process_fhir_document_reference_with_presigned_url(
-    mock_service, valid_fhir_doc_json, version_number, valid_doc_ref, valid_nhs_number
+    mock_service,
+    valid_fhir_doc_json,
+    version_number,
+    valid_doc_ref,
+    valid_nhs_number,
 ):
     mock_presigned_url_response = "https://test-bucket.s3.amazonaws.com/"
 
@@ -162,8 +178,6 @@ def test_process_fhir_document_reference_with_binary(
     valid_nhs_number,
 ):
     """Test a happy path with binary data in the request."""
-    custom_endpoint = f"{APIM_API_URL}/DocumentReference"
-
     document = create_test_doc_store_refs()[0]
     document.nhs_number = valid_nhs_number
     document.version = str(version_number)
@@ -183,7 +197,7 @@ def test_process_fhir_document_reference_with_binary(
     result_json = json.loads(result)
     assert result_json["resourceType"] == "DocumentReference"
     attachment_url = result_json["content"][0]["attachment"]["url"]
-    assert custom_endpoint in attachment_url
+    assert f"{APIM_API_URL}/DocumentReference" in attachment_url
 
     assert mock_service._save_document_reference_to_dynamo.call_args.args[
         1
@@ -219,7 +233,9 @@ def test_pds_error(mock_service, valid_fhir_doc_json, valid_doc_ref, valid_nhs_n
 
 
 def test_process_fhir_document_reference_with_pds_error(
-    mock_service, valid_fhir_doc_json, valid_nhs_number
+    mock_service,
+    valid_fhir_doc_json,
+    valid_nhs_number,
 ):
     """Test process_fhir_document_reference with a real PDS error (PatientNotFoundException)."""
     mock_service._check_nhs_number_with_pds.side_effect = (
@@ -315,7 +331,9 @@ def test_process_fhir_document_reference_with_none(mock_service):
 
 
 def test_process_fhir_document_reference_non_final_document_error(
-    mock_service, valid_fhir_doc_json, valid_doc_ref
+    mock_service,
+    valid_fhir_doc_json,
+    valid_doc_ref,
 ):
     """Test process_fhir_document_reference errors when document to edit is not final version"""
     valid_doc_ref.doc_status = "deprecated"
@@ -329,7 +347,10 @@ def test_process_fhir_document_reference_non_final_document_error(
 
 
 def test_process_fhir_document_reference_request_mismatched_version_error(
-    mock_service, valid_fhir_doc_json, valid_doc_ref, valid_nhs_number
+    mock_service,
+    valid_fhir_doc_json,
+    valid_doc_ref,
+    valid_nhs_number,
 ):
     """Test process_fhir_document_reference errors when document to edit is not final version"""
     valid_doc_ref.version = "10"
@@ -345,7 +366,10 @@ def test_process_fhir_document_reference_request_mismatched_version_error(
 
 
 def test_process_fhir_document_reference_mismatched_nhs_number_error(
-    mock_service, valid_fhir_doc_json, valid_doc_ref, valid_nhs_number
+    mock_service,
+    valid_fhir_doc_json,
+    valid_doc_ref,
+    valid_nhs_number,
 ):
     """Test process_fhir_document_reference error when the NHS number doesn't match"""
     valid_doc_ref.doc_status = "final"
@@ -360,7 +384,10 @@ def test_process_fhir_document_reference_mismatched_nhs_number_error(
 
 
 def test_process_fhir_document_reference_missing_meta_field_error(
-    mock_service, valid_fhir_doc_json, valid_doc_ref, valid_nhs_number
+    mock_service,
+    valid_fhir_doc_json,
+    valid_doc_ref,
+    valid_nhs_number,
 ):
     """Test process_fhir_document_reference error when meta field is missing"""
     doc = json.loads(valid_fhir_doc_json)
@@ -417,7 +444,10 @@ def test_get_document_reference_error(mock_service, valid_fhir_doc_json):
 
 
 def test_save_document_reference_to_dynamo_error(
-    mock_fhir_doc_ref_base_service, mock_service, valid_fhir_doc_json, valid_nhs_number
+    mock_fhir_doc_ref_base_service,
+    mock_service,
+    valid_fhir_doc_json,
+    valid_nhs_number,
 ):
     """test handling errors from save_document_reference_to_dynamo"""
     document = create_test_doc_store_refs()[0]
@@ -436,7 +466,10 @@ def test_save_document_reference_to_dynamo_error(
 
 
 def test_create_fhir_response_validation_error(
-    mocker, mock_service, valid_fhir_doc_json, valid_nhs_number
+    mocker,
+    mock_service,
+    valid_fhir_doc_json,
+    valid_nhs_number,
 ):
     """test handling errors from _create_fhir_response"""
     document = create_test_doc_store_refs()[0]
@@ -444,7 +477,7 @@ def test_create_fhir_response_validation_error(
     mock_service._get_document_reference.return_value = document
 
     mock_service._create_fhir_response = mocker.patch(
-        "services.put_fhir_document_reference_service.PutFhirDocumentReferenceService._create_fhir_response"
+        "services.put_fhir_document_reference_service.PutFhirDocumentReferenceService._create_fhir_response",
     )
     mock_service._create_fhir_response.side_effect = ValidationError("", [])
 
@@ -474,7 +507,8 @@ def test_get_dynamo_table_for_doc_type_error(mock_service, valid_fhir_doc_json):
 
     mock_service._get_document_reference.return_value = document
     mock_service.doc_router.resolve.side_effect = InvalidDocTypeException(
-        400, LambdaError.DocTypeDB
+        400,
+        LambdaError.DocTypeDB,
     )
 
     with pytest.raises(UpdateFhirDocumentReferenceException) as excinfo:
