@@ -188,6 +188,7 @@ const ReviewsDetailsStage = ({
                             routeChildren.ADMIN_REVIEW_SEARCH_PATIENT,
                             { reviewId: reviewId! },
                             navigate,
+                            { replace: true },
                         );
                         return;
                     }

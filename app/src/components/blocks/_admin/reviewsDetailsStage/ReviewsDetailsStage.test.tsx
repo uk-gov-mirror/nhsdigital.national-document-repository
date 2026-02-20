@@ -694,7 +694,7 @@ describe('ReviewDetailsStage', () => {
                 () => {
                     expect(mockNavigate).toHaveBeenCalledWith(
                         '/admin/reviews/test-review-123/search-patient',
-                        undefined,
+                        { replace: true },
                     );
                 },
                 { timeout: 2000 },
