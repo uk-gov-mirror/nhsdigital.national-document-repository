@@ -2,13 +2,14 @@ import json
 import os
 from typing import Optional
 
+from pydantic import ValidationError
+
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
 from enums.supported_document_types import SupportedDocumentTypes
 from enums.upload_forbidden_file_extensions import is_file_type_allowed
 from models.document_reference import DocumentReference, UploadRequestDocument
 from models.fhir.R4.fhir_document_reference import Attachment, DocumentReferenceInfo
-from pydantic import ValidationError
 from services.base.ssm_service import SSMService
 from services.feature_flags_service import FeatureFlagService
 from services.post_fhir_document_reference_service import (
@@ -95,7 +96,7 @@ class CreateDocumentReferenceService:
 
                 upload_document_names.append(validated_doc.file_name)
 
-                fhir_response = self.build_and_process_fhir_doc_ref(
+                fhir_response, _ = self.build_and_process_fhir_doc_ref(
                     nhs_number,
                     user_ods_code,
                     validated_doc,
@@ -157,11 +158,13 @@ class CreateDocumentReferenceService:
             document_reference,
         )
 
-        fhir_response = self.post_fhir_doc_ref_service.process_fhir_document_reference(
-            fhir_doc_ref.model_dump_json(),
+        fhir_response, document_id = (
+            self.post_fhir_doc_ref_service.process_fhir_document_reference(
+                fhir_doc_ref.model_dump_json(),
+            )
         )
 
-        return fhir_response
+        return fhir_response, document_id
 
     def validate_patient_user_ods_codes_match(self, user_ods_code, patient_ods_code):
         if user_ods_code != patient_ods_code:

@@ -2,11 +2,20 @@ import json
 from datetime import datetime
 
 import pytest
+from freezegun import freeze_time
+
 from enums.dynamo_filter import AttributeOperator
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
-from freezegun import freeze_time
+from lambdas.enums.supported_document_types import SupportedDocumentTypes
+from lambdas.tests.unit.conftest import (
+    MOCK_LG_BUCKET,
+    MOCK_LG_TABLE_NAME,
+    TEST_CURRENT_GP_ODS,
+    TEST_NHS_NUMBER,
+    TEST_UUID,
+)
 from models.document_reference import DocumentReference, UploadRequestDocument
 from services.create_document_reference_service import CreateDocumentReferenceService
 from services.document_service import DocumentService
@@ -28,15 +37,6 @@ from utils.exceptions import PatientNotFoundException
 from utils.lambda_exceptions import DocumentRefException
 from utils.lloyd_george_validator import LGInvalidFilesException
 from utils.request_context import request_context
-
-from lambdas.enums.supported_document_types import SupportedDocumentTypes
-from lambdas.tests.unit.conftest import (
-    MOCK_LG_BUCKET,
-    MOCK_LG_TABLE_NAME,
-    TEST_CURRENT_GP_ODS,
-    TEST_NHS_NUMBER,
-    TEST_UUID,
-)
 
 NA_STRING = "Not Test Important"
 
@@ -95,12 +95,19 @@ def setup_request_context():
 def mock_process_fhir_document_reference(mocker):
     yield mocker.patch(
         "services.post_fhir_document_reference_service.PostFhirDocumentReferenceService.process_fhir_document_reference",
-        return_value=json.dumps(
-            {
-                "content": [
-                    {"attachment": {"url": "https://test-bucket.s3.amazonaws.com/"}},
-                ],
-            },
+        return_value=(
+            json.dumps(
+                {
+                    "content": [
+                        {
+                            "attachment": {
+                                "url": "https://test-bucket.s3.amazonaws.com/",
+                            },
+                        },
+                    ],
+                },
+            ),
+            TEST_UUID,
         ),
     )
 

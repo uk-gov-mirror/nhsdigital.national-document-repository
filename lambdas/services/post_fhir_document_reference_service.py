@@ -82,14 +82,10 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
                 dynamo_table,
             )
 
-            fhir_response = self._create_fhir_response(
+            return self._create_fhir_response(
                 document_reference,
                 presigned_url,
             )
-            document_id = f"{document_reference.document_snomed_code_type}~{document_reference.id}"
-
-            return fhir_response, document_id
-
         except (ValidationError, InvalidNhsNumberException) as e:
             logger.error(f"FHIR document validation error: {str(e)}")
             raise DocumentRefException(

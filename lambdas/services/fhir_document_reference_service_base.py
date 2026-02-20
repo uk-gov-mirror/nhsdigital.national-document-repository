@@ -199,7 +199,7 @@ class FhirDocumentReferenceServiceBase:
         self,
         document_reference_ndr: DocumentReference,
         presigned_url: str,
-    ) -> str:
+    ) -> tuple[str, str]:
         """Create a FHIR response document"""
 
         if presigned_url:
@@ -231,7 +231,9 @@ class FhirDocumentReferenceServiceBase:
             .model_dump_json(exclude_none=True)
         )
 
-        return fhir_document_reference
+        document_id = f"{document_reference_ndr.document_snomed_code_type}~{document_reference_ndr.id}"
+
+        return fhir_document_reference, document_id
 
     def _get_dynamo_table_for_doc_type(self, doc_type: SnomedCode) -> str:
         try:

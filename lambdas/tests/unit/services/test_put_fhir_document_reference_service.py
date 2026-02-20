@@ -156,7 +156,9 @@ def test_process_fhir_document_reference_with_presigned_url(
     mock_service._create_document_reference.return_value = valid_doc_ref
     mock_service._get_document_reference.return_value = document
 
-    result = mock_service.process_fhir_document_reference(valid_fhir_doc_json)
+    result, document_id = mock_service.process_fhir_document_reference(
+        valid_fhir_doc_json,
+    )
     expected_pre_sign_url = mock_presigned_url_response
 
     assert isinstance(result, str)
@@ -191,7 +193,9 @@ def test_process_fhir_document_reference_with_binary(
     mock_service._create_document_reference.return_value = valid_doc_ref
     mock_service._get_document_reference.return_value = document
 
-    result = mock_service.process_fhir_document_reference(valid_fhir_doc_with_binary)
+    result, document_id = mock_service.process_fhir_document_reference(
+        valid_fhir_doc_with_binary,
+    )
 
     assert isinstance(result, str)
     result_json = json.loads(result)

@@ -2,6 +2,8 @@ import json
 
 import pytest
 from freezegun import freeze_time
+
+from lambdas.tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_NHS_NUMBER
 from services.fhir_document_reference_service_base import (
     FhirDocumentReferenceServiceBase,
 )
@@ -15,8 +17,6 @@ from tests.unit.helpers.data.test_documents import (
 from utils.exceptions import LGInvalidFilesException, PatientNotFoundException
 from utils.lambda_exceptions import DocumentRefException
 from utils.request_context import request_context
-
-from lambdas.tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_NHS_NUMBER
 
 
 @pytest.fixture
@@ -90,12 +90,19 @@ def mock_prepare_pre_signed_url(mock_update_doc_ref_service, mocker):
 def mock_process_fhir_document_reference(mocker):
     yield mocker.patch(
         "services.put_fhir_document_reference_service.PutFhirDocumentReferenceService.process_fhir_document_reference",
-        return_value=json.dumps(
-            {
-                "content": [
-                    {"attachment": {"url": "https://test-bucket.s3.amazonaws.com/"}},
-                ],
-            },
+        return_value=(
+            json.dumps(
+                {
+                    "content": [
+                        {
+                            "attachment": {
+                                "url": "https://test-bucket.s3.amazonaws.com/",
+                            },
+                        },
+                    ],
+                },
+            ),
+            TEST_UUID,
         ),
     )
 

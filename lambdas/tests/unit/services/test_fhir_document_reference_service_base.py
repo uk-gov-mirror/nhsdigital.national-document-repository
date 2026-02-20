@@ -557,11 +557,15 @@ def test_create_fhir_response_with_presigned_url(mock_service, mocker):
     )
     presigned_url = "https://test-presigned-url.com"
 
-    result = mock_service._create_fhir_response(document_ref, presigned_url)
+    result, document_id = mock_service._create_fhir_response(
+        document_ref,
+        presigned_url,
+    )
 
     result_json = json.loads(result)
     assert result_json["resourceType"] == "DocumentReference"
     assert result_json["content"][0]["attachment"]["url"] == presigned_url
+    assert document_id == f"{SnomedCodes.LLOYD_GEORGE.value.code}~test-id"
 
 
 def test_create_fhir_response_without_presigned_url(set_env, mock_service, mocker):
@@ -585,7 +589,7 @@ def test_create_fhir_response_without_presigned_url(set_env, mock_service, mocke
         document_scan_creation="2023-01-01T12:00:00Z",
     )
 
-    result = mock_service._create_fhir_response(document_ref, None)
+    result, _ = mock_service._create_fhir_response(document_ref, None)
 
     result_json = json.loads(result)
     assert result_json["resourceType"] == "DocumentReference"

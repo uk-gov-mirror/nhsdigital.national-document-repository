@@ -1,11 +1,12 @@
 import json
 
+from pydantic import ValidationError
+
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
 from enums.supported_document_types import SupportedDocumentTypes
 from models.document_reference import UploadRequestDocument
 from models.fhir.R4.fhir_document_reference import Attachment, DocumentReferenceInfo
-from pydantic import ValidationError
 from services.base.ssm_service import SSMService
 from services.document_service import DocumentService
 from services.feature_flags_service import FeatureFlagService
@@ -73,7 +74,7 @@ class UpdateDocumentReferenceService:
             )
             self.stop_if_upload_is_in_progress(nhs_number)
 
-            fhir_response = self.build_and_process_fhir_doc_ref(
+            fhir_response, _ = self.build_and_process_fhir_doc_ref(
                 nhs_number,
                 doc_ref_id,
                 update_request_document,
