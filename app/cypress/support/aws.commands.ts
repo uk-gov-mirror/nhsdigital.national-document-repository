@@ -91,26 +91,35 @@ Cypress.Commands.add('deleteFileFromS3', (bucketName: string, fileName: string) 
     );
 });
 
-Cypress.Commands.add('deleteItemFromDynamoDb', (tableName: string, itemId: string) => {
-    const params: DeleteItemCommandInput = {
-        TableName: tableName,
-        Key: {
+Cypress.Commands.add(
+    'deleteItemFromDynamoDb',
+    (tableName: string, itemId: string, version?: number) => {
+        const key: DeleteItemCommandInput['Key'] = {
             ID: { S: itemId },
-        },
-    };
+        };
 
-    return cy.wrap(
-        dynamo
-            .send(new DeleteItemCommand(params))
-            .then((data) => data)
-            .catch((err) => {
-                const message = 'Error deleting item from Dynamo: ' + tableName;
-                // eslint-disable-next-line no-console
-                console.error(message, err);
-                throw new Error(message);
-            }),
-    );
-});
+        if (version !== undefined) {
+            key.Version = { N: version.toString() };
+        }
+
+        const params: DeleteItemCommandInput = {
+            TableName: tableName,
+            Key: key,
+        };
+
+        return cy.wrap(
+            dynamo
+                .send(new DeleteItemCommand(params))
+                .then((data) => data)
+                .catch((err) => {
+                    const message = 'Error deleting item from Dynamo: ' + tableName;
+                    // eslint-disable-next-line no-console
+                    console.error(message, err);
+                    throw new Error(message);
+                }),
+        );
+    },
+);
 
 Cypress.Commands.add(
     'deleteItemsBySecondaryKeyFromDynamoDb',

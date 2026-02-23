@@ -382,12 +382,17 @@ const ReviewsDetailsStage = ({
                             Yes, I want to accept this document. All or some of the details match
                             the demographics shown.
                         </Radios.Radio>
-                        <Radios.Radio value="no" {...radioProps} inputRef={radioRef}>
+                        <Radios.Radio
+                            value="no"
+                            {...radioProps}
+                            inputRef={radioRef}
+                            data-testid="reject-record-option"
+                        >
                             No, I don't want to accept this document. None of the details match the
                             demographics shown.
                         </Radios.Radio>
                     </Radios>
-                    <Button className="mt-4" type="submit">
+                    <Button className="mt-4" type="submit" data-testid="continue-btn">
                         Continue
                     </Button>
                 </Fieldset>

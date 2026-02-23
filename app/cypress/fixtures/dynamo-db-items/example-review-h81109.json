@@ -1,0 +1,17 @@
+{
+    "ID": "e3e4f62e-6f95-4d8c-8870-5212b6353ae9",
+    "Version": 1,
+    "Author": "H81109",
+    "Custodian": "H81109",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+        {
+            "FileLocation": "s3://{env}-document-pending-review-store/9730155348/e3e4f62e-6f95-4d8c-8870-5212b6353ae9/test_patient_record.pdf",
+            "FileName": "test_patient_record.pdf"
+        }
+    ],
+    "NhsNumber": "9730155348",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "UploadDate": 1768728372
+}

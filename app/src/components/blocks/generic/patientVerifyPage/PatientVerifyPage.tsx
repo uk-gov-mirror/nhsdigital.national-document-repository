@@ -92,7 +92,12 @@ const PatientVerifyPage = ({
                     This page displays the current data recorded in the Personal Demographics
                     Service for this patient.
                 </p>
-                <Button type="submit" id="verify-submit" className="nhsuk-u-margin-top-6">
+                <Button
+                    type="submit"
+                    id="verify-submit"
+                    className="nhsuk-u-margin-top-6"
+                    data-testid="confirm-patient-details-btn"
+                >
                     Confirm patient details and continue
                 </Button>
             </form>
