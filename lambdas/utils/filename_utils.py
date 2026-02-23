@@ -2,6 +2,7 @@ import datetime
 import os
 
 from regex import regex
+
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import InvalidFileNameException
 
@@ -25,7 +26,8 @@ def extract_page_number(filename: str) -> int:
         filename = "123of456_Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf"
         extract_page_number(filename) -> 123
     """
-    pos_to_trim = filename.index("of")
+    lower = filename.lower()
+    pos_to_trim = lower.index("of")
     page_number_as_string = filename[0:pos_to_trim]
     return int(page_number_as_string)
 
@@ -47,7 +49,8 @@ def extract_total_pages(filename: str) -> int:
         filename = "123of456_Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf"
         extract_total_pages(filename) -> 456
     """
-    start_pos = filename.index("of") + 2
+    lower = filename.lower()
+    start_pos = lower.index("of") + 2
     end_pos = filename.index("_")
     page_number_as_string = filename[start_pos:end_pos]
     return int(page_number_as_string)
@@ -155,7 +158,9 @@ def extract_patient_name_from_bulk_upload_file_name(
     """
     document_number_expression = r".*?([\p{L}][^\d]*[\p{L}])(.*)"
     expression_result = regex.search(
-        rf"{document_number_expression}", file_path, regex.IGNORECASE
+        rf"{document_number_expression}",
+        file_path,
+        regex.IGNORECASE,
     )
 
     if expression_result is None:
@@ -227,7 +232,7 @@ def extract_document_path_for_lloyd_george_record(
         file_path=folder_path/1of2_Lloyd_George_Record.pdf
         extract_document_path_for_lloyd_george_record(file_path) -> folder_path/, 1of2_Lloyd_George_Record.pdf
     """
-    document_number_expression = r"(.*[/])*((\d+)[^0-9]*of[^0-9]*(\d+)(.*))"
+    document_number_expression = r"(.*[/])*((\d+)[^0-9]*(?i:of)[^0-9]*(\d+)(.*))"
 
     expression_result = regex.search(rf"{document_number_expression}", file_path)
 
@@ -264,7 +269,7 @@ def extract_document_number_bulk_upload_file_name(
         extract_document_number_bulk_upload_file_name(file_path) ->
         1, 2, _Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf
     """
-    document_number_expression = r"[^0-9]*(\d+)[^0-9]*of[^0-9]*(\d+)(.*)"
+    document_number_expression = r"[^0-9]*(\d+)[^0-9]*(?i:of)[^0-9]*(\d+)(.*)"
     expression_result = regex.search(rf"{document_number_expression}", file_path)
 
     if expression_result is None:

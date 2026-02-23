@@ -1,6 +1,7 @@
 import datetime
 
 import pytest
+
 from utils.exceptions import InvalidFileNameException
 from utils.filename_utils import (
     assemble_lg_valid_file_name_full_path,
@@ -21,6 +22,9 @@ from utils.filename_utils import (
     ["filename", "expected"],
     [
         ("1of3_Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf", 1),
+        ("1Of3_Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf", 1),
+        ("1OF3_Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf", 1),
+        ("1oF3_Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf", 1),
         ("2of3_Lloyd_George_Record_[Jane Smith]_[123456789]_[25-12-2019].pdf", 2),
         (
             "123of456_Lloyd_George_Record_[Janet Smith]_[123456789]_[25-12-2019].pdf",
@@ -34,7 +38,8 @@ def test_extract_page_number(filename, expected):
 
 
 @pytest.mark.parametrize(
-    "invalid_filename", ["invalid_file_name.pdf", "abc_of_efg.pdf", "random string"]
+    "invalid_filename",
+    ["invalid_file_name.pdf", "abc_of_efg.pdf", "random string"],
 )
 def test_extract_page_number_raise_error_for_invalid_filename(invalid_filename):
     with pytest.raises(ValueError):
@@ -45,6 +50,9 @@ def test_extract_page_number_raise_error_for_invalid_filename(invalid_filename):
     ["filename", "expected"],
     [
         ("1of3_Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf", 3),
+        ("1Of3_Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf", 3),
+        ("1OF3_Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf", 3),
+        ("1oF3_Lloyd_George_Record_[Joe Bloggs]_[123456789]_[25-12-2019].pdf", 3),
         ("2of3_Lloyd_George_Record_[Jane Smith]_[123456789]_[25-12-2019].pdf", 3),
         (
             "123of456_Lloyd_George_Record_[Janet Smith]_[123456789]_[25-12-2019].pdf",
@@ -58,7 +66,8 @@ def test_extract_total_pages(filename, expected):
 
 
 @pytest.mark.parametrize(
-    "invalid_filename", ["invalid_file_name.pdf", "abc_of_efg.pdf", "random string"]
+    "invalid_filename",
+    ["invalid_file_name.pdf", "abc_of_efg.pdf", "random string"],
 )
 def test_extract_total_pages_raise_error_for_invalid_filename(invalid_filename):
     with pytest.raises(ValueError):
@@ -150,7 +159,8 @@ def test_correctly_extract_date_from_bulk_upload_file_name(input, expected):
 
 
 @pytest.mark.parametrize(
-    "invalid_data", [" 01-Nov-11992.pdf", "_32-12-2023.pdf", "_13-13-2023.pdf"]
+    "invalid_data",
+    [" 01-Nov-11992.pdf", "_32-12-2023.pdf", "_13-13-2023.pdf"],
 )
 def test_extract_data_from_bulk_upload_file_name_with_incorrect_date_format(
     invalid_data,
@@ -182,7 +192,9 @@ def test_extract_data_from_bulk_upload_file_name_with_incorrect_date_format(
     ],
 )
 def test_correctly_extract_nhs_number_from_bulk_upload_file_name(
-    input, expected, expected_exception
+    input,
+    expected,
+    expected_exception,
 ):
     if expected_exception:
         with pytest.raises(expected_exception):
@@ -288,6 +300,13 @@ def test_extract_person_name_from_bulk_upload_file_name_with_no_person_name():
                 "10of10_Lloyd_George_Record_[Carol Hughes]_[1234567890]_[14-11-2000].pdf",
             ),
         ),
+        (
+            "/_10Of10_Lloyd_George_Record_[Carol Hughes]_[1234567890]_[14-11-2000].pdf",
+            (
+                "/",
+                "10Of10_Lloyd_George_Record_[Carol Hughes]_[1234567890]_[14-11-2000].pdf",
+            ),
+        ),
     ],
 )
 def test_extract_document_path_for_lloyd_george_record(value, expected):
@@ -314,6 +333,9 @@ def test_extract_document_path_with_no_document_path():
         ("8ab12of34YZ", (12, 34, "YZ")),
         ("8ab12of34YZ2442-ofladimus 900123", (12, 34, "YZ2442-ofladimus 900123")),
         ("1 of 02_Lloyd_George_Record", (1, 2, "_Lloyd_George_Record")),
+        ("1 Of 02_Lloyd_George_Record", (1, 2, "_Lloyd_George_Record")),
+        ("1 OF 02_Lloyd_George_Record", (1, 2, "_Lloyd_George_Record")),
+        ("1 oF 02_Lloyd_George_Record", (1, 2, "_Lloyd_George_Record")),
         ("/9730786895/01 of 01_Lloyd_George_Record", (1, 1, "_Lloyd_George_Record")),
         ("some_text_1of1", (1, 1, "")),
         (
@@ -349,7 +371,8 @@ def test_extract_document_number_from_bulk_upload_file_name_with_no_document_num
     ],
 )
 def test_correctly_extract_lloyd_george_record_from_bulk_upload_file_name(
-    input, expected
+    input,
+    expected,
 ):
     actual = extract_lloyd_george_record_from_bulk_upload_file_name(input)
     assert actual == expected
