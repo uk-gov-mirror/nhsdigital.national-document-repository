@@ -11,6 +11,7 @@ export enum RECORD_ACTION {
 type ActionRoute = routeChildren | routes;
 
 export type LGRecordActionLink = {
+    index: number;
     label: string;
     key: string;
     stage?: LG_RECORD_STAGE;
@@ -19,22 +20,34 @@ export type LGRecordActionLink = {
     type: RECORD_ACTION;
     unauthorised?: Array<REPOSITORY_ROLE>;
     showIfRecordInStorage: boolean;
+    description?: string;
 };
+
+export enum ACTION_LINK_KEY {
+    DOWNLOAD = 'download-files-link',
+    DELETE = 'delete-files-link',
+    REASSIGN = 'reassign-pages-link',
+    ADD = 'add-files-link',
+}
 
 export const lloydGeorgeRecordLinks: Array<LGRecordActionLink> = [
     {
-        label: 'Remove record',
-        key: 'delete-files-link',
+        index: 1,
+        label: 'Remove this document',
+        key: ACTION_LINK_KEY.DELETE,
         type: RECORD_ACTION.UPDATE,
         unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
         href: routeChildren.LLOYD_GEORGE_DELETE,
         showIfRecordInStorage: true,
+        description:
+            'This action will remove all pages of this document from storage in this service.',
     },
     {
-        label: 'Download record',
-        key: 'download-files-link',
+        index: 0,
+        label: 'Download this document',
+        key: ACTION_LINK_KEY.DOWNLOAD,
         type: RECORD_ACTION.DOWNLOAD,
-        unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
+        unauthorised: [],
         href: routeChildren.LLOYD_GEORGE_DOWNLOAD,
         showIfRecordInStorage: true,
     },

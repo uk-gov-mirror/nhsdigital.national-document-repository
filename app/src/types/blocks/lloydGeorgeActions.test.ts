@@ -9,12 +9,12 @@ describe('getUserRecordActionLinks', () => {
             const hasRecordInRepo = true;
             const expectedOutput = expect.arrayContaining([
                 expect.objectContaining({
-                    label: 'Remove record',
+                    label: 'Remove this document',
                     key: 'delete-files-link',
                     type: RECORD_ACTION.UPDATE,
                 }),
                 expect.objectContaining({
-                    label: 'Download record',
+                    label: 'Download this document',
                     key: 'download-files-link',
                     type: RECORD_ACTION.DOWNLOAD,
                 }),
@@ -41,11 +41,20 @@ describe('getUserRecordActionLinks', () => {
     });
 
     describe('When role = GP_CLINICAL', () => {
-        it('returns an empty array in any case', () => {
+        it('returns no remove record button', () => {
             const role = REPOSITORY_ROLE.GP_CLINICAL;
 
-            expect(getUserRecordActionLinks({ role, hasRecordInStorage: true })).toEqual([]);
-            expect(getUserRecordActionLinks({ role, hasRecordInStorage: false })).toEqual([]);
+            const expected = expect.arrayContaining([
+                expect.objectContaining({
+                    label: 'Download this document',
+                    key: 'download-files-link',
+                    type: RECORD_ACTION.DOWNLOAD,
+                }),
+            ]);
+
+            const actual = getUserRecordActionLinks({ role, hasRecordInStorage: true });
+
+            expect(actual).toEqual(expected);
         });
     });
 });

@@ -95,10 +95,7 @@ const DocumentSelectOrderStage = ({
         });
     }, [documents.length, existingDocuments]);
 
-    const DocumentPositionDropdown = (
-        documentId: string,
-        currentPosition: number | undefined,
-    ): React.JSX.Element => {
+    const getDocumentPositionDropdown = (documentId: string): React.JSX.Element => {
         const key = documentPositionKey(documentId);
 
         const positionOffset = existingDocuments && existingDocuments.length > 0 ? 1 : 0;
@@ -271,7 +268,7 @@ const DocumentSelectOrderStage = ({
                     {id === 'existing-documents' ? <b>{filename}</b> : filename}
                 </Table.Cell>
                 <Table.Cell className="position-cell">
-                    {ableToReposition && DocumentPositionDropdown(id, position)}
+                    {ableToReposition && getDocumentPositionDropdown(id)}
                     {!ableToReposition && position}
                 </Table.Cell>
                 <Table.Cell className="view-cell">

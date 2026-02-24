@@ -30,26 +30,30 @@ export type ContentKey =
     | 'addMoreFilesRadioNoText'
     | 'addMoreFilesRadioYesText'
     | 'reviewAssessmentPageTitle'
-    | 'stitchedPreviewFirstParagraph';
+    | 'stitchedPreviewFirstParagraph'
+    | 'choosePagesToRemoveTitle'
+    | 'choosePagesToRemoveWarning'
+    | 'addFilesLinkLabel'
+    | 'reassignPagesLinkLabel';
 export interface IndividualDocumentTypeContent extends Record<ContentKey, string | string[]> {}
 
 // The individual config for each document type
 export type DOCUMENT_TYPE_CONFIG = {
-    snomedCode: DOCUMENT_TYPE;
+    acceptedFileTypes: string[];
+    associatedSnomed?: DOCUMENT_TYPE;
+    canBeDiscarded: boolean;
+    canBeUpdated: boolean;
+    content: IndividualDocumentTypeContent;
     displayName: string;
     filenameOverride?: string;
-    canBeUpdated: boolean;
-    associatedSnomed?: DOCUMENT_TYPE;
+    multifileReview: boolean;
     multifileUpload: boolean;
     multifileZipped: boolean;
-    zippedFilename?: string;
-    multifileReview: boolean;
-    canBeDiscarded: boolean;
-    stitched: boolean;
     singleDocumentOnly: boolean;
+    snomedCode: DOCUMENT_TYPE;
+    stitched: boolean;
     stitchedFilenamePrefix?: string;
-    acceptedFileTypes: string[];
-    content: IndividualDocumentTypeContent;
+    zippedFilename?: string;
 };
 
 export type DocumentTypeContentKey = 'uploadTitle' | 'uploadDescription';

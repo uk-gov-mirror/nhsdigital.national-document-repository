@@ -1,5 +1,5 @@
 import { JSX, useEffect, useRef, useState } from 'react';
-import DocumentSelectStage from '../../_documentUpload/documentSelectStage/DocumentSelectStage';
+import DocumentSelectStage from '../../_documentManagement/documentSelectStage/DocumentSelectStage';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { useNavigate } from 'react-router-dom';
 import { ReviewDetails } from '../../../../types/generic/reviews';

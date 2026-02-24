@@ -9,15 +9,17 @@ import { routeChildren, routes } from '../../../../types/generic/routes';
 import { buildDocumentConfig, buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import userEvent from '@testing-library/user-event';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
-import { lloydGeorgeRecordLinks } from '../../../../types/blocks/lloydGeorgeActions';
+import { ACTION_LINK_KEY } from '../../../../types/blocks/lloydGeorgeActions';
 import SessionProvider from '../../../../providers/sessionProvider/SessionProvider';
 import { createMemoryHistory } from 'history';
 import * as ReactRouter from 'react-router-dom';
 import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
 import useRole from '../../../../helpers/hooks/useRole';
+import useConfig from '../../../../helpers/hooks/useConfig';
 
 // Mock dependencies
 vi.mock('../../../../helpers/hooks/usePatient');
+vi.mock('../../../../helpers/hooks/useConfig');
 vi.mock('../../../../helpers/hooks/useTitle');
 vi.mock('../../../../helpers/hooks/useRole');
 vi.mock('../../../../helpers/utils/documentType', async () => {
@@ -40,6 +42,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 const mockUsePatient = usePatient as Mock;
+const mockUseConfig = useConfig as Mock;
 const mockUseTitle = useTitle as Mock;
 const mockUseRole = useRole as Mock;
 const mockUseNavigate = vi.fn();
@@ -123,6 +126,11 @@ describe('DocumentView', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockUsePatient.mockReturnValue(mockPatientDetails);
+        mockUseConfig.mockReturnValue({
+            featureFlags: {
+                documentCorrectEnabled: false,
+            },
+        });
         mockUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
         vi.mocked(getConfigForDocType).mockReturnValue(buildDocumentConfig());
 
@@ -260,7 +268,7 @@ describe('DocumentView', () => {
         it('navigates to upload page when add files is clicked', async () => {
             renderComponent();
 
-            const addFilesButton = screen.getByTestId('add-files-btn');
+            const addFilesButton = screen.getByTestId(ACTION_LINK_KEY.ADD);
             fireEvent.click(addFilesButton);
 
             await waitFor(() => {
@@ -287,7 +295,7 @@ describe('DocumentView', () => {
 
             renderComponent();
 
-            const addFilesButton = screen.getByTestId('add-files-btn');
+            const addFilesButton = screen.getByTestId(ACTION_LINK_KEY.ADD);
             fireEvent.click(addFilesButton);
 
             await waitFor(() => {
@@ -359,7 +367,7 @@ describe('DocumentView', () => {
                 }
 
                 await waitFor(() => {
-                    expect(screen.queryAllByTestId('add-files-btn')).toHaveLength(
+                    expect(screen.queryAllByTestId(ACTION_LINK_KEY.ADD)).toHaveLength(
                         addBtnVisible ? 1 : 0,
                     );
                 });
@@ -371,8 +379,7 @@ describe('DocumentView', () => {
         it('calls removeDocument when remove action is triggered', () => {
             renderComponent();
 
-            // assume first link is remove
-            const removeRecordLink = screen.getByTestId(lloydGeorgeRecordLinks[0].key);
+            const removeRecordLink = screen.getByTestId(ACTION_LINK_KEY.DELETE);
             fireEvent.click(removeRecordLink);
             expect(mockRemoveDocument).toHaveBeenCalled();
         });
@@ -381,13 +388,63 @@ describe('DocumentView', () => {
             vi.useFakeTimers();
             renderComponent();
 
-            // assume second link is download
-            const downloadRecordLink = screen.getByTestId(lloydGeorgeRecordLinks[1].key);
+            const downloadRecordLink = screen.getByTestId(ACTION_LINK_KEY.DOWNLOAD);
             fireEvent.click(downloadRecordLink);
 
             vi.advanceTimersByTime(5000000);
             expect(mockUseNavigate).toHaveBeenCalledWith(routes.DOWNLOAD_COMPLETE);
             vi.useRealTimers();
+        });
+
+        it('does not show reassign button when document type does not support it', () => {
+            vi.mocked(getConfigForDocType).mockReturnValue(
+                buildDocumentConfig({ canBeUpdated: false }),
+            );
+
+            renderComponent();
+
+            const reassignRecordLink = screen.queryByTestId(ACTION_LINK_KEY.REASSIGN);
+            expect(reassignRecordLink).not.toBeInTheDocument();
+        });
+
+        it('does not show reassign button when feature flag is disabled', () => {
+            renderComponent();
+
+            const reassignRecordLink = screen.queryByTestId(ACTION_LINK_KEY.REASSIGN);
+            expect(reassignRecordLink).not.toBeInTheDocument();
+        });
+
+        it('does not show reassign button when patient is deceased', () => {
+            mockUsePatient.mockReturnValue(buildPatientDetails({ deceased: true }));
+
+            renderComponent();
+
+            const reassignRecordLink = screen.queryByTestId(ACTION_LINK_KEY.REASSIGN);
+            expect(reassignRecordLink).not.toBeInTheDocument();
+        });
+
+        it('navigates to document reassign page when reassign action is triggered', async () => {
+            mockUseConfig.mockReturnValue({
+                featureFlags: {
+                    documentCorrectEnabled: true,
+                },
+            });
+
+            renderComponent();
+
+            const reassignRecordLink = screen.getByTestId(ACTION_LINK_KEY.REASSIGN);
+            await userEvent.click(reassignRecordLink);
+
+            expect(mockUseNavigate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    pathname: routeChildren.DOCUMENT_REASSIGN_SELECT_PAGES,
+                }),
+                expect.objectContaining({
+                    state: expect.objectContaining({
+                        documentReference: mockDocumentReference,
+                    }),
+                }),
+            );
         });
     });
 

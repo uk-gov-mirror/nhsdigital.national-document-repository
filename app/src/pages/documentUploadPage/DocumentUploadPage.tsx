@@ -1,14 +1,14 @@
 import { AxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import { Outlet, Route, Routes, useLocation } from 'react-router-dom';
-import DocumentSelectFileErrorsPage from '../../components/blocks/_documentUpload/documentSelectFileErrorsPage/DocumentSelectFileErrorsPage';
-import DocumentSelectOrderStage from '../../components/blocks/_documentUpload/documentSelectOrderStage/DocumentSelectOrderStage';
-import DocumentSelectStage from '../../components/blocks/_documentUpload/documentSelectStage/DocumentSelectStage';
-import DocumentUploadCompleteStage from '../../components/blocks/_documentUpload/documentUploadCompleteStage/DocumentUploadCompleteStage';
-import DocumentUploadConfirmStage from '../../components/blocks/_documentUpload/documentUploadConfirmStage/DocumentUploadConfirmStage';
-import DocumentUploadInfectedStage from '../../components/blocks/_documentUpload/documentUploadInfectedStage/DocumentUploadInfectedStage';
-import DocumentUploadingStage from '../../components/blocks/_documentUpload/documentUploadingStage/DocumentUploadingStage';
-import DocumentUploadRemoveFilesStage from '../../components/blocks/_documentUpload/documentUploadRemoveFilesStage/DocumentUploadRemoveFilesStage';
+import DocumentSelectFileErrorsPage from '../../components/blocks/_documentManagement/documentSelectFileErrorsPage/DocumentSelectFileErrorsPage';
+import DocumentSelectOrderStage from '../../components/blocks/_documentManagement/documentSelectOrderStage/DocumentSelectOrderStage';
+import DocumentSelectStage from '../../components/blocks/_documentManagement/documentSelectStage/DocumentSelectStage';
+import DocumentUploadCompleteStage from '../../components/blocks/_documentManagement/documentUploadCompleteStage/DocumentUploadCompleteStage';
+import DocumentUploadConfirmStage from '../../components/blocks/_documentManagement/documentUploadConfirmStage/DocumentUploadConfirmStage';
+import DocumentUploadInfectedStage from '../../components/blocks/_documentManagement/documentUploadInfectedStage/DocumentUploadInfectedStage';
+import DocumentUploadingStage from '../../components/blocks/_documentManagement/documentUploadingStage/DocumentUploadingStage';
+import DocumentUploadRemoveFilesStage from '../../components/blocks/_documentManagement/documentUploadRemoveFilesStage/DocumentUploadRemoveFilesStage';
 import useBaseAPIHeaders from '../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import useConfig from '../../helpers/hooks/useConfig';
@@ -31,8 +31,7 @@ import { UploadSession } from '../../types/generic/uploadResult';
 import {
     DOCUMENT_UPLOAD_STATE,
     ExistingDocument,
-    LocationParams,
-    LocationState,
+    DocumentUploadLocationState,
     UploadDocument,
 } from '../../types/pages/UploadDocumentsPage/types';
 import {
@@ -48,14 +47,15 @@ import {
     reduceDocumentsForUpload,
     startIntervalTimer,
 } from '../../helpers/utils/documentUpload';
-import DocumentUploadIndex from '../../components/blocks/_documentUpload/documentUploadIndex/DocumentUploadIndex';
 import { UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS } from '../../helpers/constants/network';
+import DocumentUploadIndex from '../../components/blocks/_documentManagement/documentUploadIndex/DocumentUploadIndex';
+import { LocationParams } from '../../types/generic/location';
 
 const DocumentUploadPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
     const nhsNumber: string = patientDetails?.nhsNumber ?? '';
     const baseUrl = useBaseAPIUrl();
-    const location: LocationParams<LocationState> = useLocation();
+    const location: LocationParams<DocumentUploadLocationState> = useLocation();
     const baseHeaders = useBaseAPIHeaders();
     const [documents, setDocuments] = useState<Array<UploadDocument>>([]);
     const [existingDocuments, setExistingDocuments] = useState<Array<UploadDocument>>([]);

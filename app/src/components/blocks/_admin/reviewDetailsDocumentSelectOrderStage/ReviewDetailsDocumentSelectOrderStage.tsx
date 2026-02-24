@@ -7,7 +7,7 @@ import {
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import Spinner from '../../../generic/spinner/Spinner';
-import DocumentSelectOrderStage from '../../_documentUpload/documentSelectOrderStage/DocumentSelectOrderStage';
+import DocumentSelectOrderStage from '../../_documentManagement/documentSelectOrderStage/DocumentSelectOrderStage';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 
 type Props = {

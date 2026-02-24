@@ -24,7 +24,7 @@ import BackButton from '../../../generic/backButton/BackButton';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import ServiceError from '../../../layout/serviceErrorBox/ServiceErrorBox';
-import DocumentUploadLloydGeorgePreview from '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
+import DocumentUploadLloydGeorgePreview from '../../_documentManagement/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import { RecordLayout } from '../../../generic/recordCard/RecordCard';
 import { RecordLoader, RecordLoaderProps } from '../../../generic/recordLoader/RecordLoader';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';

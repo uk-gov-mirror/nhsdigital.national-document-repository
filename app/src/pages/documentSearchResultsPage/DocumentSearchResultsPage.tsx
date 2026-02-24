@@ -142,12 +142,7 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
             await handleViewDocSuccess(documentResponse);
         } catch (e) {
             const error = e as AxiosError;
-            if (isMock(error)) {
-                await handleViewDocSuccess({
-                    url: '/dev/testFile.pdf',
-                    contentType: activeSearchResult.current?.contentType || 'application/pdf',
-                });
-            } else if (error.response?.status === 403) {
+            if (error.response?.status === 403) {
                 navigate(routes.SESSION_EXPIRED);
             } else if (error.response?.status === 404) {
                 await handleViewDocSuccess({

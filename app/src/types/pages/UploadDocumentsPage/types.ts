@@ -69,14 +69,7 @@ export type ExistingDocument = {
     documentId?: string | null;
     versionId: string;
 };
-export type LocationState = {
+export type DocumentUploadLocationState = {
     journey?: JourneyType;
     existingDocuments?: ExistingDocument[];
-};
-export type LocationParams<T> = {
-    pathname: string;
-    state: T | undefined;
-    search: string;
-    hash: string;
-    key: string;
 };

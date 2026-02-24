@@ -56,7 +56,7 @@ vi.mock('../../../../helpers/utils/urlManipulations', async () => ({
     },
 }));
 
-vi.mock('../../_documentUpload/documentUploadingStage/DocumentUploadingStage', () => ({
+vi.mock('../../_documentManagement/documentUploadingStage/DocumentUploadingStage', () => ({
     default: ({ documents, startUpload }: any): JSX.Element => (
         <div data-testid="mock-document-uploading-stage">
             <button data-testid="start-upload-button" onClick={startUpload}>

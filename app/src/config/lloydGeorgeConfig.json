@@ -37,6 +37,10 @@
         "addMoreFilesRadioNoText": "No, I don't have anymore scanned paper notes to add for this patient",
         "addMoreFilesRadioYesText": "Yes, I have more scanned paper notes to add for this patient",
         "reviewAssessmentPageTitle": "Review the new scanned paper notes",
-        "stitchedPreviewFirstParagraph": "This shows how the final notes will look when combined into a single document. "
+        "stitchedPreviewFirstParagraph": "This shows how the final notes will look when combined into a single document.",
+        "choosePagesToRemoveTitle": "Choose the pages you want to remove from these scanned paper notes",
+        "choosePagesToRemoveWarning": "These notes may contain pages for more than one other patient that you want to remove. Only remove pages for one patient at a time.",
+        "addFilesLinkLabel": "Add files to this patient's notes",
+        "reassignPagesLinkLabel": "Reassign pages in these notes to another patient"
     }
 }

@@ -16,6 +16,7 @@ export type RecordLayoutProps = {
     detailsElement: ReactNode;
     isFullScreen: boolean;
     recordLinks?: Array<LGRecordActionLink>;
+    linksElement?: ReactNode;
     setStage?: Dispatch<SetStateAction<LG_RECORD_STAGE>>;
     showMenu?: boolean;
     children?: ReactNode;
@@ -27,6 +28,7 @@ export const RecordLayout = ({
     heading,
     fullScreenHandler,
     recordLinks = [],
+    linksElement,
     setStage = (): void => {},
     showMenu = false,
     children,
@@ -64,11 +66,13 @@ export const RecordLayout = ({
 
                     {detailsElement}
 
-                    <RecordMenuCard
-                        recordLinks={recordLinks}
-                        setStage={setStage}
-                        showMenu={showMenu}
-                    />
+                    {linksElement || (
+                        <RecordMenuCard
+                            recordLinks={recordLinks}
+                            setStage={setStage}
+                            showMenu={showMenu}
+                        />
+                    )}
                 </Card.Content>
                 <div>{children}</div>
             </Card>
@@ -83,6 +87,7 @@ const RecordCard = ({
     isFullScreen,
     pdfObjectUrl,
     recordLinks = [],
+    linksElement,
     setStage = (): void => {},
     showMenu = false,
 }: RecordCardProps): React.JSX.Element => {
@@ -108,6 +113,7 @@ const RecordCard = ({
             heading={heading}
             fullScreenHandler={fullScreenHandler}
             recordLinks={recordLinks}
+            linksElement={linksElement}
             setStage={setStage}
             showMenu={showMenu}
         >

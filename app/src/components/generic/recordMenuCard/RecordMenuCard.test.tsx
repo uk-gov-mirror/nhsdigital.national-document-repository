@@ -5,7 +5,6 @@ import { LGRecordActionLink, RECORD_ACTION } from '../../../types/blocks/lloydGe
 import { REPOSITORY_ROLE } from '../../../types/generic/authRole';
 import { LinkProps } from 'react-router-dom';
 import { LG_RECORD_STAGE } from '../../../types/blocks/lloydGeorgeStages';
-import { routes } from '../../../types/generic/routes';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 
@@ -13,18 +12,10 @@ vi.mock('../../../helpers/hooks/useRole');
 const mockSetStage = vi.fn();
 const mockedUseNavigate = vi.fn();
 const mockedUseRole = useRole as Mock;
-const mockShowDownloadAndRemoveConfirmation = vi.fn();
 
 const mockLinks: Array<LGRecordActionLink> = [
     {
-        label: 'Upload files',
-        key: 'upload-files-link',
-        type: RECORD_ACTION.UPDATE,
-        href: routes.HOME,
-        unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
-        showIfRecordInStorage: false,
-    },
-    {
+        index: 1,
         label: 'Remove files',
         key: 'delete-all-files-link',
         type: RECORD_ACTION.UPDATE,
@@ -33,20 +24,13 @@ const mockLinks: Array<LGRecordActionLink> = [
         showIfRecordInStorage: true,
     },
     {
+        index: 0,
         label: 'Download files',
         key: 'download-all-files-link',
         type: RECORD_ACTION.DOWNLOAD,
         stage: LG_RECORD_STAGE.DOWNLOAD_ALL,
-        unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
+        unauthorised: [],
         showIfRecordInStorage: true,
-    },
-    {
-        label: 'Download and remove files',
-        key: 'download-and-remove-all-files-link',
-        type: RECORD_ACTION.DOWNLOAD,
-        unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
-        showIfRecordInStorage: true,
-        onClick: mockShowDownloadAndRemoveConfirmation,
     },
 ];
 
@@ -71,7 +55,6 @@ describe('RecordMenuCard', () => {
                 <RecordMenuCard setStage={mockSetStage} recordLinks={mockLinks} showMenu={true} />,
             );
             expect(screen.getByRole('link', { name: 'Remove files' })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: 'Upload files' })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: 'Download files' })).toBeInTheDocument();
         });
 
@@ -87,7 +70,6 @@ describe('RecordMenuCard', () => {
                     showMenu={true}
                 />,
             );
-            expect(screen.getByRole('link', { name: 'Upload files' })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: 'Remove files' })).toBeInTheDocument();
             expect(screen.queryByRole('link', { name: 'Download files' })).not.toBeInTheDocument();
 
@@ -103,7 +85,6 @@ describe('RecordMenuCard', () => {
             );
             expect(screen.getByRole('link', { name: 'Download files' })).toBeInTheDocument();
 
-            expect(screen.queryByRole('link', { name: 'Upload files' })).not.toBeInTheDocument();
             expect(screen.queryByRole('link', { name: 'Remove files' })).not.toBeInTheDocument();
         });
 
@@ -112,21 +93,6 @@ describe('RecordMenuCard', () => {
                 <RecordMenuCard setStage={mockSetStage} recordLinks={[]} showMenu={false} />,
             );
             expect(container).toBeEmptyDOMElement();
-        });
-
-        it('render menu item as a <button> if link item does not have stage or href', async () => {
-            render(
-                <RecordMenuCard setStage={mockSetStage} recordLinks={mockLinks} showMenu={true} />,
-            );
-            expect(
-                screen.getByRole('button', { name: 'Download and remove files' }),
-            ).toBeInTheDocument();
-
-            await userEvent.click(
-                screen.getByRole('button', { name: 'Download and remove files' }),
-            );
-
-            expect(mockShowDownloadAndRemoveConfirmation).toBeCalledTimes(1);
         });
 
         it('Does not render the MenuCard if showMenu is false', () => {
@@ -138,15 +104,6 @@ describe('RecordMenuCard', () => {
     });
 
     describe('Navigation', () => {
-        it('navigates to href when clicked', async () => {
-            render(
-                <RecordMenuCard setStage={mockSetStage} recordLinks={mockLinks} showMenu={true} />,
-            );
-            expect(screen.getByRole('link', { name: 'Upload files' })).toBeInTheDocument();
-            await userEvent.click(screen.getByRole('link', { name: 'Upload files' }));
-            expect(mockedUseNavigate).toHaveBeenCalledWith(routes.HOME);
-        });
-
         it('change stage when clicked', async () => {
             render(
                 <RecordMenuCard setStage={mockSetStage} recordLinks={mockLinks} showMenu={true} />,

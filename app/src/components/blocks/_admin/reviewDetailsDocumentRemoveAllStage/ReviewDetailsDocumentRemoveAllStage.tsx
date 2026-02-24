@@ -7,7 +7,7 @@ import {
     UploadDocumentType,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import Spinner from '../../../generic/spinner/Spinner';
-import DocumentUploadRemoveFilesStage from '../../_documentUpload/documentUploadRemoveFilesStage/DocumentUploadRemoveFilesStage';
+import DocumentUploadRemoveFilesStage from '../../_documentManagement/documentUploadRemoveFilesStage/DocumentUploadRemoveFilesStage';
 import BackButton from '../../../generic/backButton/BackButton';
 
 type ReviewDetailsDocumentRemoveAllStageProps = {

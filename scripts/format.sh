@@ -30,7 +30,7 @@ fi
 if [ "$FORMAT_ALL" = true ]; then
     CHANGED_PY="lambdas"
 else
-    CHANGED_PY=$(git diff origin/main --name-status | grep -E '^[^D].*\.py$' | cut -f2 | xargs)
+    CHANGED_PY=$(git diff origin/main --name-status | grep -E '^[^D].*\.py$' | awk '{print $NF}' | xargs)
 fi
 
 # Format Python files
@@ -47,9 +47,9 @@ if [ -n "$CHANGED_PY" ]; then
     fi
 fi
 
-# Get app files
-CHANGED_APP_TS=$(git diff origin/main --name-status | grep -E '^[^D].*app/.*\.(ts|tsx|js)$' | cut -f2 | sed 's|^app/||' | xargs)
-CHANGED_APP_ALL=$(git diff origin/main --name-status | grep -E '^[^D].*app/.*\.(ts|tsx|js|scss|json|css|md)$' | cut -f2 | sed 's|^app/||' | xargs)
+# Get app files (use awk to get the last field, handling renames which have 3 columns)
+CHANGED_APP_TS=$(git diff origin/main --name-status | grep -E '^[^D].*app/.*\.(ts|tsx|js)$' | awk '{print $NF}' | sed 's|^app/||' | xargs)
+CHANGED_APP_ALL=$(git diff origin/main --name-status | grep -E '^[^D].*app/.*\.(ts|tsx|js|scss|json|css|md)$' | awk '{print $NF}' | sed 's|^app/||' | xargs)
 
 # Format app files
 if [ -n "$CHANGED_APP_TS" ] || [ -n "$CHANGED_APP_ALL" ]; then

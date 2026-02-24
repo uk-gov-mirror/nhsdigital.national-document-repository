@@ -27,7 +27,7 @@ import {
     ReviewUploadDocument,
     UploadDocumentType,
 } from '../../../../types/pages/UploadDocumentsPage/types';
-import DocumentUploadLloydGeorgePreview from '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
+import DocumentUploadLloydGeorgePreview from '../../_documentManagement/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import { AxiosError } from 'axios';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';

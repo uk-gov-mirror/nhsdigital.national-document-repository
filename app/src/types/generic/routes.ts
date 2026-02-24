@@ -27,6 +27,8 @@ export enum routes {
     PATIENT_ACCESS_AUDIT_WILDCARD = '/patient/access-audit/*',
     DOCUMENT_UPLOAD = '/patient/document-upload',
     DOCUMENT_UPLOAD_WILDCARD = '/patient/document-upload/*',
+    DOCUMENT_REASSIGN_PAGES = '/patient/document-reassign-pages',
+    DOCUMENT_REASSIGN_PAGES_WILDCARD = '/patient/document-reassign-pages/*',
 
     MOCK_LOGIN = 'Auth/MockLogin',
 
@@ -58,6 +60,8 @@ export enum routeChildren {
     DOCUMENT_UPLOAD_COMPLETED = '/patient/document-upload/completed',
     DOCUMENT_UPLOAD_INFECTED = '/patient/document-upload/infected',
     DOCUMENT_UPLOAD_FILE_ERRORS = '/patient/document-upload/file-errors',
+
+    DOCUMENT_REASSIGN_SELECT_PAGES = '/patient/document-reassign-pages/select-pages',
 
     DOCUMENT_VIEW = '/patient/documents/view',
     DOCUMENT_DELETE = '/patient/documents/delete',

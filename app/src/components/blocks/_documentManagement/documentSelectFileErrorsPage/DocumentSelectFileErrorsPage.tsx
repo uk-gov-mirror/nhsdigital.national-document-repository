@@ -19,7 +19,6 @@ const DocumentSelectFileErrorsPage = ({ documents }: Props): JSX.Element => {
     useEffect(() => {
         if (documents.length === 0) {
             navigate(routes.HOME);
-            return;
         }
     }, []);
 

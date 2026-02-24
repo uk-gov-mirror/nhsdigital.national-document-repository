@@ -70,7 +70,7 @@ vi.mock('./ExistingRecordTable', () => ({
 }));
 
 vi.mock(
-    '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview',
+    '../../_documentManagement/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview',
     () => ({
         default: ({
             documents,

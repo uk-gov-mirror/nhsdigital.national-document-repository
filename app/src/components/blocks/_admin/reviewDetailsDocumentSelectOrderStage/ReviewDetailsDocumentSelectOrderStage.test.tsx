@@ -7,7 +7,7 @@ import { ReviewDetails } from '../../../../types/generic/reviews';
 import { UploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
 import userEvent from '@testing-library/user-event';
 
-vi.mock('../../_documentUpload/documentSelectOrderStage/DocumentSelectOrderStage', () => ({
+vi.mock('../../_documentManagement/documentSelectOrderStage/DocumentSelectOrderStage', () => ({
     default: vi.fn(
         ({ documents, setDocuments, setMergedPdfBlob, existingDocuments, onSuccess }) => (
             <div data-testid="mock-document-select-order-stage">

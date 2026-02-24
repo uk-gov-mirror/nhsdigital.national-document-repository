@@ -5,6 +5,7 @@ import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/do
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
 import {
+    ACTION_LINK_KEY,
     getRecordActionLinksAllowedForRole,
     LGRecordActionLink,
     lloydGeorgeRecordLinks,
@@ -14,13 +15,14 @@ import { createSearchParams, NavigateOptions, To, useNavigate } from 'react-rout
 import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
 import RecordCard from '../../../generic/recordCard/RecordCard';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
-import RecordMenuCard from '../../../generic/recordMenuCard/RecordMenuCard';
-import { Button, ChevronLeftIcon } from 'nhsuk-react-components';
+import { Button, Card, ChevronLeftIcon } from 'nhsuk-react-components';
 import BackButton from '../../../generic/backButton/BackButton';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import { useEffect } from 'react';
 import useRole from '../../../../helpers/hooks/useRole';
 import LinkButton from '../../../generic/linkButton/LinkButton';
+import useConfig from '../../../../helpers/hooks/useConfig';
+import Spinner from '../../../generic/spinner/Spinner';
 
 type Props = {
     documentReference: DocumentReference | null;
@@ -36,6 +38,7 @@ const DocumentView = ({
     const navigate = useNavigate();
     const showMenu = role === REPOSITORY_ROLE.GP_ADMIN && !session.isFullscreen;
     const patientDetails = usePatient();
+    const config = useConfig();
     const documentConfig = getConfigForDocType(
         documentReference?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
     );
@@ -112,25 +115,56 @@ const DocumentView = ({
         removeDocument();
     };
 
-    const getCardLinks = (): Array<LGRecordActionLink> => {
+    const getLinks = (): Array<LGRecordActionLink> => {
         if (session.isFullscreen) {
             return [];
+        }
+
+        const canAddFiles =
+            documentConfig.canBeUpdated &&
+            documentReference.url &&
+            !patientDetails?.deceased &&
+            (role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL);
+
+        const inputLinks = lloydGeorgeRecordLinks.map((link) => {
+            return {
+                ...link,
+                href: undefined,
+                onClick: link.type === RECORD_ACTION.DOWNLOAD ? downloadClicked : removeClicked,
+            } as LGRecordActionLink;
+        });
+
+        if (canAddFiles) {
+            inputLinks.push({
+                index: 2,
+                label: documentConfig.content.addFilesLinkLabel as string,
+                key: ACTION_LINK_KEY.ADD,
+                type: RECORD_ACTION.UPDATE,
+                unauthorised: [],
+                onClick: handleAddFilesClick,
+                showIfRecordInStorage: true,
+            });
+
+            if (config.featureFlags.documentCorrectEnabled) {
+                inputLinks.push({
+                    index: 3,
+                    label: documentConfig.content.reassignPagesLinkLabel as string,
+                    key: ACTION_LINK_KEY.REASSIGN,
+                    type: RECORD_ACTION.UPDATE,
+                    unauthorised: [],
+                    onClick: handleReassignPagesClick,
+                    showIfRecordInStorage: true,
+                });
+            }
         }
 
         const links = getRecordActionLinksAllowedForRole({
             role,
             hasRecordInStorage: true,
-            inputLinks: lloydGeorgeRecordLinks,
+            inputLinks,
         });
 
-        return links.map((link) => {
-            return {
-                ...link,
-                href:
-                    link.type === RECORD_ACTION.DELETE ? routeChildren.DOCUMENT_DELETE : undefined,
-                onClick: link.type === RECORD_ACTION.DOWNLOAD ? downloadClicked : removeClicked,
-            };
-        });
+        return links.sort((a, b) => a.index - b.index);
     };
 
     const getPdfObjectUrl = (): string => {
@@ -179,6 +213,21 @@ const DocumentView = ({
         navigate(to, options);
     };
 
+    const handleReassignPagesClick = (): void => {
+        const to: To = {
+            pathname: routeChildren.DOCUMENT_REASSIGN_SELECT_PAGES,
+        };
+        const options: NavigateOptions = {
+            state: {
+                documentReference,
+            },
+        };
+        // Defer navigation to next tick to ensure React state is settled
+        setTimeout(() => {
+            navigate(to, options);
+        }, 0);
+    };
+
     const getRecordCard = (): React.JSX.Element => {
         const card = (
             <RecordCard
@@ -186,7 +235,7 @@ const DocumentView = ({
                 fullScreenHandler={enableFullscreen}
                 detailsElement={details()}
                 isFullScreen={session.isFullscreen!}
-                recordLinks={getCardLinks()}
+                linksElement={recordCardLinks()}
                 pdfObjectUrl={getPdfObjectUrl()}
                 showMenu={showMenu}
             />
@@ -206,11 +255,33 @@ const DocumentView = ({
         );
     };
 
-    const canAddFiles =
-        documentConfig.canBeUpdated &&
-        documentReference.url &&
-        !patientDetails?.deceased &&
-        (role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL);
+    const recordCardLinks = (): React.JSX.Element => {
+        return (
+            <Card.Group className="card-links" data-testid="record-menu-card">
+                {getLinks().map((link) => (
+                    <Card.GroupItem key={link.key} width="one-half">
+                        <Card clickable cardType="primary">
+                            <Card.Content>
+                                <Card.Heading className="nhsuk-heading-m">
+                                    <Card.Link
+                                        data-testid={link.key}
+                                        href="#"
+                                        onClick={link.onClick}
+                                    >
+                                        {link.label}
+                                    </Card.Link>
+                                </Card.Heading>
+
+                                {link.description && (
+                                    <Card.Description>{link.description}</Card.Description>
+                                )}
+                            </Card.Content>
+                        </Card>
+                    </Card.GroupItem>
+                ))}
+            </Card.Group>
+        );
+    };
 
     return (
         <div className="document_record-stage">
@@ -261,33 +332,10 @@ const DocumentView = ({
                         <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
                     </PatientSummary>
 
-                    {session.isFullscreen && (
-                        <RecordMenuCard
-                            recordLinks={getCardLinks()}
-                            setStage={(): void => {}}
-                            showMenu={showMenu}
-                        />
-                    )}
-
-                    {!session.isFullscreen && canAddFiles && (
-                        <>
-                            <h2 className="title">Add Files</h2>
-                            <p>You can add more files to this patient's record.</p>
-                            <Button onClick={handleAddFilesClick} data-testid="add-files-btn">
-                                Add Files
-                            </Button>
-                        </>
-                    )}
+                    {session.isFullscreen && showMenu && recordCardLinks()}
                 </div>
 
-                {documentReference.url ? (
-                    getRecordCard()
-                ) : (
-                    <p>
-                        This document is currently being uploaded, please try again in a few
-                        minutes.
-                    </p>
-                )}
+                {documentReference.url ? getRecordCard() : <Spinner status="Loading document" />}
             </div>
         </div>
     );

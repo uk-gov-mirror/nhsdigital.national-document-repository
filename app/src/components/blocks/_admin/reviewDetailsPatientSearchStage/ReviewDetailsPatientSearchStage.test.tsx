@@ -54,7 +54,7 @@ vi.mock('../../../../providers/sessionProvider/SessionProvider', () => ({
 }));
 
 vi.mock(
-    '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview',
+    '../../_documentManagement/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview',
     () => ({
         default: (): React.JSX.Element => <div data-testid="lloyd-george-preview">Preview</div>,
     }),

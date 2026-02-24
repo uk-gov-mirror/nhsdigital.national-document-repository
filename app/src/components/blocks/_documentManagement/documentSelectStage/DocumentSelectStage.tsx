@@ -95,7 +95,6 @@ const DocumentSelectStage = ({
     useEffect(() => {
         if (filesErrorRef.current) {
             navigate(routes.HOME);
-            return;
         }
     }, []);
 
@@ -222,16 +221,16 @@ const DocumentSelectStage = ({
     };
 
     const updateDocuments = (docs: UploadDocument[]): void => {
-        const sortedDocs = docs
-            .sort((a, b) => a.file.lastModified - b.file.lastModified)
-            .map((doc, index) => ({
-                ...doc,
-                position: index + 1,
-            }));
+        const sortedDocs = docs.toSorted((a, b) => a.file.lastModified - b.file.lastModified);
+
+        const docsWithPositions = sortedDocs.map((doc, index) => ({
+            ...doc,
+            position: index + 1,
+        }));
 
         setDocuments((previousState) => {
             const docs = previousState.filter((doc) => doc.docType !== documentType);
-            return [...docs, ...sortedDocs];
+            return [...docs, ...docsWithPositions];
         });
     };
 
@@ -305,7 +304,7 @@ const DocumentSelectStage = ({
         resetErrors();
     };
 
-    const DocumentRow = (
+    const getDocumentRow = (
         document: UploadDocument | ReviewUploadDocument,
         index: number,
     ): JSX.Element => {
@@ -576,7 +575,7 @@ const DocumentSelectStage = ({
                         </Table.Head>
 
                         <Table.Body>
-                            {documents.map((document, index) => DocumentRow(document, index))}
+                            {documents.map((document, index) => getDocumentRow(document, index))}
                         </Table.Body>
                     </Table>
                     {multifile && (

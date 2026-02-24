@@ -38,6 +38,10 @@
         "previewUploadTitle": "Preview this electronic health record",
         "uploadFilesExtraParagraph": "",
         "reviewDocumentTitle": "Electronic health record",
-        "skipDocumentLinkText": "Continue without uploading EHR notes"
+        "skipDocumentLinkText": "Continue without uploading EHR notes",
+        "choosePagesToRemoveTitle": "",
+        "choosePagesToRemoveWarning": "",
+        "addFilesLinkLabel": "",
+        "reassignPagesLinkLabel": ""
     }
 }

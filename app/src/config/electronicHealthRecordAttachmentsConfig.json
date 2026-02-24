@@ -38,6 +38,10 @@
         "addMoreFilesRadioNoText": "",
         "addMoreFilesRadioYesText": "",
         "reviewAssessmentPageTitle": "",
-        "stitchedPreviewFirstParagraph": ""
+        "stitchedPreviewFirstParagraph": "",
+        "choosePagesToRemoveTitle": "",
+        "choosePagesToRemoveWarning": "",
+        "addFilesLinkLabel": "",
+        "reassignPagesLinkLabel": ""
     }
 }

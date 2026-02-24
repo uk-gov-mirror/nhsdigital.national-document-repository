@@ -30,6 +30,7 @@ import DocumentUploadPage from '../pages/documentUploadPage/DocumentUploadPage';
 import AdminRoutesPage from '../pages/adminRoutesPage/AdminRoutesPage';
 import DownloadCompletePage from '../pages/downloadCompletePage/DownloadCompletePage';
 import CookiePolicyPage from '../pages/cookiePolicyPage/CookiePolicyPage';
+import DocumentCorrectPage from '../pages/documentCorrectPage/DocumentCorrectPage';
 
 const {
     START,
@@ -63,6 +64,8 @@ const {
     DOWNLOAD_COMPLETE,
     COOKIES_POLICY,
     COOKIES_POLICY_WILDCARD,
+    DOCUMENT_REASSIGN_PAGES,
+    DOCUMENT_REASSIGN_PAGES_WILDCARD,
 } = routes;
 
 type Routes = {
@@ -165,6 +168,10 @@ export const childRoutes = [
     {
         route: routeChildren.COOKIES_POLICY_UPDATED,
         parent: COOKIES_POLICY,
+    },
+    {
+        route: routeChildren.DOCUMENT_REASSIGN_SELECT_PAGES,
+        parent: DOCUMENT_REASSIGN_PAGES,
     },
 ];
 
@@ -306,6 +313,14 @@ export const routeMap: Routes = {
     [COOKIES_POLICY_WILDCARD]: {
         page: <CookiePolicyPage />,
         type: ROUTE_TYPE.PUBLIC,
+    },
+    [DOCUMENT_REASSIGN_PAGES]: {
+        page: <DocumentCorrectPage />,
+        type: ROUTE_TYPE.PATIENT,
+    },
+    [DOCUMENT_REASSIGN_PAGES_WILDCARD]: {
+        page: <DocumentCorrectPage />,
+        type: ROUTE_TYPE.PATIENT,
     },
 };
 

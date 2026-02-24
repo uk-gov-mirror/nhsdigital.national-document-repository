@@ -33,9 +33,9 @@ import { useForm } from 'react-hook-form';
 import { AxiosError } from 'axios';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
 import waitForSeconds from '../../../../helpers/utils/waitForSeconds';
-import DocumentUploadLloydGeorgePreview from '../../_documentUpload/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
 import { CreatedByCard } from '../../../generic/createdBy/createdBy';
+import DocumentUploadLloydGeorgePreview from '../../_documentManagement/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 
 export type ReviewsDetailsStageProps = {
     reviewData: ReviewDetails;

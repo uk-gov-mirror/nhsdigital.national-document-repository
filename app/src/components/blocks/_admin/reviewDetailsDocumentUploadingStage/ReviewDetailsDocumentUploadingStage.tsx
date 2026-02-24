@@ -31,8 +31,8 @@ import {
     UploadDocumentType,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import Spinner from '../../../generic/spinner/Spinner';
-import DocumentUploadingStage from '../../_documentUpload/documentUploadingStage/DocumentUploadingStage';
 import { getUploadSession, startIntervalTimer } from '../../../../helpers/utils/documentUpload';
+import DocumentUploadingStage from '../../_documentManagement/documentUploadingStage/DocumentUploadingStage';
 
 type Props = {
     reviewData: ReviewDetails | null;

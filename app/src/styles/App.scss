@@ -1304,11 +1304,16 @@ progress:not(.continuous-progress-bar) {
     max-width: 960px !important;
 }
 
+.placeholder-text {
+    color: #757575;
+}
+
 @import '../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults.scss';
-@import '../components/blocks/_documentUpload/documentUploadCompleteStage/DocumentUploadCompleteStage.scss';
+@import '../components/blocks/_documentManagement/documentUploadCompleteStage/DocumentUploadCompleteStage.scss';
 @import '../components/blocks/_admin/reviewsPage/ReviewsPage.scss';
 @import '../components/generic/paginationV2/Pagination.scss';
 @import '../components/generic/spinnerV2/SpinnerV2.scss';
 @import '../components/blocks/_admin/reviewDetailsNoFilesChoiceStage/ReviewDetailsNoFilesChoiceStage.scss';
 @import '../components/blocks/_admin/reviewDetailsDownloadChoiceStage/ReviewDetailsDownloadChoiceStage.scss';
-@import '../components/blocks/_documentUpload/documentSelectStage/DocumentSelectStage.scss';
+@import '../components/blocks/_documentManagement/documentSelectStage/DocumentSelectStage.scss';
+@import '../components/blocks/_patientDocuments/documentView/DocumentView.scss';
