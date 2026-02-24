@@ -130,6 +130,8 @@ PDF_STITCHING_SQS_URL = (
     "https://sqs.us-east-1.amazonaws.com/977715257439/MyPdfStitchingQueue"
 )
 
+HEALTHCARE_WORKER_API_URL = "https://hcwapi.com"
+
 TEST_BASE_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -252,6 +254,7 @@ def set_env(monkeypatch):
     monkeypatch.setenv("METADATA_SQS_QUEUE_URL", MOCK_LG_METADATA_SQS_QUEUE)
     monkeypatch.setenv("EDGE_REFERENCE_TABLE", MOCK_EDGE_REFERENCE_TABLE)
     monkeypatch.setenv("REVIEW_SQS_QUEUE_URL", REVIEW_SQS_QUEUE_URL)
+    monkeypatch.setenv("HEALTHCARE_WORKER_API_URL", HEALTHCARE_WORKER_API_URL)
 
 
 EXPECTED_PARSED_PATIENT_BASE_CASE = PatientDetails(

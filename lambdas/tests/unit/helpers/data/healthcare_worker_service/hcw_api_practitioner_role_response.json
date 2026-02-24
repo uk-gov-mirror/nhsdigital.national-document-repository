@@ -1,0 +1,443 @@
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 10,
+  "entry": [
+    {
+      "search": { "mode": "match" },
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "323456789033",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/sds-role-profile-id",
+            "value": "323456789033"
+          }
+        ],
+        "active": true,
+        "practitioner": {
+          "reference": "Practitioner/223456789022",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/sds-user-id",
+            "value": "223456789022"
+          },
+          "display": "Mr Carl Testuser"
+        },
+        "organization": {
+          "reference": "Organization/H85686",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "H85686"
+          },
+          "display": "THE GROVE ROAD PRACTICE"
+        },
+        "period": { "start": "2023-10-20" },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
+                "code": "S8000:G8000:R8000",
+                "display": "\"Clinical\":\"Clinical Provision\":\"Clinical Practitioner Access Role\""
+              }
+            ]
+          }
+        ]
+      },
+      "fullUrl": "https://int.api.service.nhs.uk/healthcare-workerPractitionerRole/323456789033"
+    },
+    {
+      "search": { "mode": "match" },
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "023456789000",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/sds-role-profile-id",
+            "value": "023456789000"
+          }
+        ],
+        "active": true,
+        "practitioner": {
+          "reference": "Practitioner/223456789022",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/sds-user-id",
+            "value": "223456789022"
+          },
+          "display": "Mr Carl Testuser"
+        },
+        "organization": {
+          "reference": "Organization/X4S4L",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "X4S4L"
+          },
+          "display": "PRIMARY CARE SUPPORT ENGLAND - HJIS"
+        },
+        "period": { "start": "2024-03-14" },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
+                "code": "S8002:G8003:R8010",
+                "display": "\"Admin and Clerical\":\"Admin and Clerical\":\"Clerical Access Role\""
+              }
+            ]
+          }
+        ]
+      },
+      "fullUrl": "https://int.api.service.nhs.uk/healthcare-workerPractitionerRole/023456789000"
+    },
+    {
+      "search": { "mode": "match" },
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "113456789011",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/sds-role-profile-id",
+            "value": "113456789011"
+          }
+        ],
+        "active": true,
+        "practitioner": {
+          "reference": "Practitioner/223456789022",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/sds-user-id",
+            "value": "223456789022"
+          },
+          "display": "Mr Carl Testuser"
+        },
+        "organization": {
+          "reference": "Organization/H81109",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "H81109"
+          },
+          "display": "CAPELFIELD SURGERY"
+        },
+        "period": { "start": "2023-10-20" },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
+                "code": "S8000:G8000:R8000",
+                "display": "\"Clinical\":\"Clinical Provision\":\"Clinical Practitioner Access Role\""
+              }
+            ]
+          }
+        ]
+      },
+      "fullUrl": "https://int.api.service.nhs.uk/healthcare-workerPractitionerRole/113456789011"
+    },
+    {
+      "search": { "mode": "match" },
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "123456789012",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/sds-role-profile-id",
+            "value": "123456789012"
+          }
+        ],
+        "active": true,
+        "practitioner": {
+          "reference": "Practitioner/223456789022",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/sds-user-id",
+            "value": "223456789022"
+          },
+          "display": "Mr Carl Testuser"
+        },
+        "organization": {
+          "reference": "Organization/H81109",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "H81109"
+          },
+          "display": "CAPELFIELD SURGERY"
+        },
+        "period": { "start": "2024-03-14" },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
+                "code": "S8002:G8003:R8010",
+                "display": "\"Admin and Clerical\":\"Admin and Clerical\":\"Clerical Access Role\""
+              }
+            ]
+          }
+        ]
+      },
+      "fullUrl": "https://int.api.service.nhs.uk/healthcare-workerPractitionerRole/123456789012"
+    },
+    {
+      "search": { "mode": "match" },
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "423456789044",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/sds-role-profile-id",
+            "value": "423456789044"
+          }
+        ],
+        "active": true,
+        "practitioner": {
+          "reference": "Practitioner/223456789022",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/sds-user-id",
+            "value": "223456789022"
+          },
+          "display": "Mr Carl Testuser"
+        },
+        "organization": {
+          "reference": "Organization/H81109",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "H81109"
+          },
+          "display": "CAPELFIELD SURGERY"
+        },
+        "period": { "start": "2023-10-20" },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
+                "code": "S8002:G8003:R8013",
+                "display": "\"Admin and Clerical\":\"Admin and Clerical\":\"Health Records Manager Access Role\""
+              }
+            ]
+          }
+        ]
+      },
+      "fullUrl": "https://int.api.service.nhs.uk/healthcare-workerPractitionerRole/423456789044"
+    },
+    {
+      "search": { "mode": "match" },
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "523456789055",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/sds-role-profile-id",
+            "value": "523456789055"
+          }
+        ],
+        "active": true,
+        "practitioner": {
+          "reference": "Practitioner/223456789022",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/sds-user-id",
+            "value": "223456789022"
+          },
+          "display": "Mr Carl Testuser"
+        },
+        "organization": {
+          "reference": "Organization/N82668",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "N82668"
+          },
+          "display": "WALTON VILLAGE R"
+        },
+        "period": { "start": "2024-03-14" },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
+                "code": "S8002:G8003:R8010",
+                "display": "\"Admin and Clerical\":\"Admin and Clerical\":\"Clerical Access Role\""
+              }
+            ]
+          }
+        ]
+      },
+      "fullUrl": "https://int.api.service.nhs.uk/healthcare-workerPractitionerRole/523456789055"
+    },
+    {
+      "search": { "mode": "match" },
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "623456789066",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/sds-role-profile-id",
+            "value": "623456789066"
+          }
+        ],
+        "active": true,
+        "practitioner": {
+          "reference": "Practitioner/223456789022",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/sds-user-id",
+            "value": "223456789022"
+          },
+          "display": "Mr Carl Testuser"
+        },
+        "organization": {
+          "reference": "Organization/H85686",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "H85686"
+          },
+          "display": "THE GROVE ROAD PRACTICE"
+        },
+        "period": { "start": "2023-10-20" },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
+                "code": "S8002:G8003:R8013",
+                "display": "\"Admin and Clerical\":\"Admin and Clerical\":\"Health Records Manager Access Role\""
+              }
+            ]
+          }
+        ]
+      },
+      "fullUrl": "https://int.api.service.nhs.uk/healthcare-workerPractitionerRole/623456789066"
+    },
+    {
+      "search": { "mode": "match" },
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "723456789077",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/sds-role-profile-id",
+            "value": "723456789077"
+          }
+        ],
+        "active": true,
+        "practitioner": {
+          "reference": "Practitioner/223456789022",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/sds-user-id",
+            "value": "223456789022"
+          },
+          "display": "Mr Carl Testuser"
+        },
+        "organization": {
+          "reference": "Organization/T1430",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "T1430"
+          },
+          "display": "THE HEALTH AND SOCIAL CARE INFORMATION CENTRE"
+        },
+        "period": { "start": "2024-03-19" },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
+                "code": "S0080:G0440:R0008",
+                "display": "\"Admin and Clerical\":\"Admin\":\"Demographic Supervisor\""
+              }
+            ]
+          }
+        ]
+      },
+      "fullUrl": "https://int.api.service.nhs.uk/healthcare-workerPractitionerRole/723456789077"
+    },
+    {
+      "search": { "mode": "match" },
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "823456789088",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/sds-role-profile-id",
+            "value": "823456789088"
+          }
+        ],
+        "active": true,
+        "practitioner": {
+          "reference": "Practitioner/223456789022",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/sds-user-id",
+            "value": "223456789022"
+          },
+          "display": "Mr Carl Testuser"
+        },
+        "organization": {
+          "reference": "Organization/H81109",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "H81109"
+          },
+          "display": "CAPELFIELD SURGERY"
+        },
+        "period": { "start": "2023-10-20" },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
+                "code": "S8001:G8002:R8008",
+                "display": "\"Support\":\"Support\":\"Admin/Clinical Support Access Role\""
+              }
+            ]
+          }
+        ]
+      },
+      "fullUrl": "https://int.api.service.nhs.uk/healthcare-workerPractitionerRole/823456789088"
+    },
+    {
+      "search": { "mode": "match" },
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "923456789099",
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/Id/sds-role-profile-id",
+            "value": "923456789099"
+          }
+        ],
+        "active": true,
+        "practitioner": {
+          "reference": "Practitioner/223456789022",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/sds-user-id",
+            "value": "223456789022"
+          },
+          "display": "Mr Carl Testuser"
+        },
+        "organization": {
+          "reference": "Organization/X4S4L",
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "X4S4L"
+          },
+          "display": "PRIMARY CARE SUPPORT ENGLAND - HJIS"
+        },
+        "period": { "start": "2023-10-19" },
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
+                "code": "S8001:G8005:R8015",
+                "display": "\"Support\":\"Systems Support\":\"Systems Support Access Role\""
+              }
+            ]
+          }
+        ]
+      },
+      "fullUrl": "https://int.api.service.nhs.uk/healthcare-workerPractitionerRole/923456789099"
+    }
+  ],
+  "link": [
+    {
+      "relation": "self",
+      "url": "https://https://int.api.service.nhs.uk/healthcare-worker/PractitionerRole"
+    }
+  ]
+}

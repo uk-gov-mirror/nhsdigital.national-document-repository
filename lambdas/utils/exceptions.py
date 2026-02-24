@@ -192,6 +192,29 @@ class InvalidFileTypeException(Exception):
     pass
 
 
+class HealthcareWorkerAPIException(Exception):
+    def __init__(self, status_code: int):
+        super().__init__()
+        self.message = self.get_err_message(status_code)
+        self.status_code = status_code
+
+    def to_dict(self):
+        return {"message": self.message, "status_code": self.status_code}
+
+    def get_err_message(self, status_code: int = None) -> str:
+        err_messages = {
+            500: "Healthcare Worker API returned internal server error",
+            404: "Healthcare Worker API unable to find practitioner",
+            401: "Healthcare Worker API returned unauthenticated",
+            403: "Healthcare Worker API returned unauthorized",
+        }
+        return err_messages.get(status_code, "Healthcare Worker API search failed.")
+
+
+class HealthcareWorkerPractitionerModelException(Exception):
+    pass
+
+
 class MigrationUnrecoverableException(Exception):
     def __init__(self, message: str, item_id: str):
         super().__init__(message)
