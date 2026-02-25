@@ -1,0 +1,2 @@
+MOCK_TOKEN = "thisisamocktoken"
+MOCK_IDENTIFIER = "123456789012"

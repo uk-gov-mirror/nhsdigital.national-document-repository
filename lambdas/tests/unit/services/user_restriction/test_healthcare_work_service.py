@@ -1,21 +1,20 @@
-import json
-
 import pytest
 from pydantic import ValidationError
 from requests import Response
 
 from models.user_restrictions.practitioner import Practitioner
+from services.mock_data.user_restrictions.build_mock_data import (
+    build_mock_response_and_practitioner,
+)
 from services.user_restrictions.healthcare_worker_service import (
     HealthCareWorkerApiService,
 )
 from tests.unit.conftest import HEALTHCARE_WORKER_API_URL, TEST_UUID
+from tests.unit.services.user_restriction.conftest import MOCK_IDENTIFIER, MOCK_TOKEN
 from utils.exceptions import (
     HealthcareWorkerAPIException,
     HealthcareWorkerPractitionerModelException,
 )
-
-MOCK_TOKEN = "thisisamocktoken"
-MOCK_IDENTIFIER = "123456789012"
 
 
 @pytest.fixture
@@ -32,21 +31,6 @@ def mock_service(set_env, mocker):
     yield service
 
 
-def build_test_response_and_practitioner():
-    with open(
-        "tests/unit/helpers/data/healthcare_worker_service/hcw_api_practitioner_response.json",
-    ) as file:
-        mock_json = file.read()
-        mock_response = json.loads(mock_json)
-
-    test_practitioner = Practitioner(
-        last_name=mock_response["entry"][0]["resource"]["name"][0]["family"],
-        first_name=mock_response["entry"][0]["resource"]["name"][0]["given"][0],
-        smartcard_id=mock_response["entry"][0]["resource"]["id"],
-    )
-    return mock_json, mock_response, test_practitioner
-
-
 def test_get_practitioner_calls_endpoint_with_correct_args(
     mock_service,
     mock_get,
@@ -54,7 +38,7 @@ def test_get_practitioner_calls_endpoint_with_correct_args(
     mock_uuid,
 ):
     mock_service.oauth_service.get_active_access_token.return_value = MOCK_TOKEN
-    _, _, practitioner = build_test_response_and_practitioner()
+    _, _, practitioner = build_mock_response_and_practitioner(MOCK_IDENTIFIER)
 
     mocker.patch.object(
         HealthCareWorkerApiService,
@@ -80,7 +64,9 @@ def test_get_practitioner_calls_endpoint_with_correct_args(
 def test_get_practitioner_200_response_returns_practitioner(mock_service, mock_get):
     mock_service.oauth_service.get_active_access_token.return_value = MOCK_TOKEN
 
-    mock_json, mock_response, expected = build_test_response_and_practitioner()
+    mock_json, mock_response, expected = build_mock_response_and_practitioner(
+        MOCK_IDENTIFIER,
+    )
 
     response = Response()
     response.status_code = 200
@@ -115,7 +101,7 @@ def test_get_practitioner_handles_404_response(mock_service, mock_get):
     mock_service.oauth_service.get_active_access_token.return_value = MOCK_TOKEN
 
     with open(
-        "tests/unit/helpers/data/healthcare_worker_service/hcw_api_practitioner_404_response_body.json",
+        "services/mock_data/user_restrictions/healthcare_worker_api/hcw_api_practitioner_404_response_body.json",
     ) as file:
         mock_json = file.read()
 
@@ -181,7 +167,7 @@ def test_service_calls_ssm_for_token_each_call_to_api(mock_service):
 
 
 def test_build_practitioner_returns_practitioner_model_instance(mock_service):
-    _, mock_response, expected = build_test_response_and_practitioner()
+    _, mock_response, expected = build_mock_response_and_practitioner(MOCK_IDENTIFIER)
 
     actual = mock_service.build_practitioner(mock_response)
 
