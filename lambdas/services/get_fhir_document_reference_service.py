@@ -63,7 +63,7 @@ class GetFhirDocumentReferenceService:
         self,
         document_id: str,
         table,
-    ) -> DocumentReference:
+    ) -> DocumentReference | None:
         return self.document_service.get_item(
             document_id=document_id,
             table_name=table,

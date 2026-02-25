@@ -1,27 +1,25 @@
 import uuid
-from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
-from lambdas.models import document_reference
 import pytest
 from botocore.exceptions import ClientError
+
 from enums.document_retention import DocumentRetentionDays
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCodes
-from models.document_reference import DocumentReference, Identifier
+from models.document_reference import DocumentReference
 from services.delete_fhir_document_reference_service import (
     DeleteFhirDocumentReferenceService,
 )
 from tests.unit.conftest import TEST_NHS_NUMBER
 from tests.unit.helpers.data.dynamo.dynamo_responses import MOCK_SEARCH_RESPONSE
-from utils.common_query_filters import NotDeleted
 from utils.lambda_exceptions import (
     DocumentRefException,
 )
 
 MOCK_DOCUMENT_REFERENCE = DocumentReference.model_validate(
-    MOCK_SEARCH_RESPONSE["Items"][0]
+    MOCK_SEARCH_RESPONSE["Items"][0],
 )
 
 TEST_DOCUMENT_ID = "3d8683b9-1665-40d2-8499-6e8302d507ff"
@@ -73,7 +71,7 @@ MOCK_MTLS_VALID_EVENT_WITH_INVALID_QUERY_PARAM = {
     "httpMethod": "DELETE",
     "headers": {},
     "queryStringParameters": {
-        "foo": f"https://fhir.nhs.uk/Id/nhs-number|{TEST_NHS_NUMBER}"
+        "foo": f"https://fhir.nhs.uk/Id/nhs-number|{TEST_NHS_NUMBER}",
     },
     "body": None,
 }
@@ -99,7 +97,7 @@ MOCK_MTLS_INVALID_EVENT_PATH_AND_QUERY = {
     "httpMethod": "DELETE",
     "headers": {},
     "queryStringParameters": {
-        "subject:identifier": f"https://fhir.nhs.uk/Id/nhs-number|{TEST_NHS_NUMBER}"
+        "subject:identifier": f"https://fhir.nhs.uk/Id/nhs-number|{TEST_NHS_NUMBER}",
     },
     "pathParameters": {"id": f"{TEST_DOCUMENT_ID}"},
     "body": None,
@@ -125,7 +123,7 @@ def test_none(service):
 
 def test_extract_path_parameter_no_path_param_exists_for_id(service):
     identifier = service.extract_document_path_parameters(
-        MOCK_MTLS_VALID_EVENT_BY_NHS_ID
+        MOCK_MTLS_VALID_EVENT_BY_NHS_ID,
     )
     assert identifier is None
 
@@ -134,21 +132,21 @@ def test_extract_path_parameter_no_path_param_exists_for_id_but_pathParameters_e
     service,
 ):
     identifier = service.extract_document_path_parameters(
-        MOCK_MTLS_VALID_EVENT_WITH_INVALID_PATH_PARAM
+        MOCK_MTLS_VALID_EVENT_WITH_INVALID_PATH_PARAM,
     )
     assert identifier is None
 
 
 def test_extract_path_parameter_path_param_exists_for_id(service):
     identifier = service.extract_document_path_parameters(
-        MOCK_MTLS_VALID_EVENT_WITH_VALID_PATH_PARAM_NO_QUERY_PARAM
+        MOCK_MTLS_VALID_EVENT_WITH_VALID_PATH_PARAM_NO_QUERY_PARAM,
     )
     assert identifier is TEST_DOCUMENT_ID
 
 
 def test_extract_query_parameter_for_id_and_nhsnumber(service):
     identifiers = service.extract_document_query_parameters(
-        MOCK_MTLS_VALID_EVENT_BY_NHS_ID["queryStringParameters"]
+        MOCK_MTLS_VALID_EVENT_BY_NHS_ID["queryStringParameters"],
     )
     assert identifiers[0] == TEST_NHS_NUMBER
     assert identifiers[1] == TEST_DOCUMENT_ID
@@ -156,21 +154,21 @@ def test_extract_query_parameter_for_id_and_nhsnumber(service):
 
 def test_extract_query_parameter_with_invalid_query_parameter(service):
     identifiers = service.extract_document_query_parameters(
-        MOCK_MTLS_VALID_EVENT_WITH_INVALID_QUERY_PARAM["queryStringParameters"]
+        MOCK_MTLS_VALID_EVENT_WITH_INVALID_QUERY_PARAM["queryStringParameters"],
     )
     assert identifiers == (None, None)
 
 
 def test_extract_query_parameter_when_non_existent(service):
     identifiers = service.extract_document_query_parameters(
-        MOCK_MTLS_VALID_EVENT_WITH_VALID_PATH_PARAM_NO_QUERY_PARAM
+        MOCK_MTLS_VALID_EVENT_WITH_VALID_PATH_PARAM_NO_QUERY_PARAM,
     )
     assert identifiers == (None, None)
 
 
 def test_extract_query_parameter_with_too_many(service):
     identifiers = service.extract_document_query_parameters(
-        MOCK_MTLS_VALID_EVENT_WITH_INVALID_QUERY_PARAM_AND_VALID_QUERY_PARAMS
+        MOCK_MTLS_VALID_EVENT_WITH_INVALID_QUERY_PARAM_AND_VALID_QUERY_PARAMS,
     )
     assert identifiers == (None, None)
 
@@ -190,7 +188,7 @@ def test_extract_parameters_when_no_query_and_no_path(service):
 
 def test_doc_type_by_common_name_pdm(service):
     doc_type = service._determine_document_type_based_on_common_name(
-        MtlsCommonNames.PDM
+        MtlsCommonNames.PDM,
     )
     assert doc_type.code == SnomedCodes.PATIENT_DATA.value.code
 
@@ -201,7 +199,6 @@ def test_doc_type_by_common_name_None(service):
 
 
 def test_delete_fhir_document_references_by_nhs_id_and_doc_id_happy_path(service):
-    nhs_number = "9000000009"
     doc_type = MagicMock()
     doc_type.value = "test-doc-type"
 
@@ -213,15 +210,14 @@ def test_delete_fhir_document_references_by_nhs_id_and_doc_id_happy_path(service
     service.delete_document_reference = MagicMock()
 
     with patch(
-        "services.delete_fhir_document_reference_service.DocumentService"
+        "services.delete_fhir_document_reference_service.DocumentService",
     ) as mock_document_service_cls:
 
         mock_document_service = MagicMock()
         mock_document_service.get_item_agnostic.return_value = mock_document
         mock_document_service_cls.return_value = mock_document_service
 
-        result = service.delete_fhir_document_reference_by_nhs_id_and_doc_id(
-            nhs_number=nhs_number,
+        result = service.delete_fhir_document_reference_by_doc_id(
             doc_id=TEST_DOCUMENT_ID,
             doc_type=doc_type,
         )
@@ -231,8 +227,7 @@ def test_delete_fhir_document_references_by_nhs_id_and_doc_id_happy_path(service
     service._get_dynamo_table_for_doc_type.assert_called_once_with(doc_type)
 
     mock_document_service.get_item_agnostic.assert_called_once_with(
-        partion_key={DocumentReferenceMetadataFields.NHS_NUMBER.value: nhs_number},
-        sort_key={DocumentReferenceMetadataFields.ID.value: TEST_DOCUMENT_ID},
+        partition_key={DocumentReferenceMetadataFields.ID.value: TEST_DOCUMENT_ID},
         table_name=dynamo_table,
     )
 
@@ -241,7 +236,6 @@ def test_delete_fhir_document_references_by_nhs_id_and_doc_id_happy_path(service
         document_reference=mock_document,
         document_ttl_days=DocumentRetentionDays.SOFT_DELETE,
         key_pair={
-            DocumentReferenceMetadataFields.NHS_NUMBER.value: nhs_number,
             DocumentReferenceMetadataFields.ID.value: TEST_DOCUMENT_ID,
         },
     )
@@ -253,15 +247,14 @@ def test_delete_fhir_document_references_by_nhs_id_no_documents(service):
     service.delete_document_reference = MagicMock()
 
     with patch(
-        "services.delete_fhir_document_reference_service.DocumentService"
+        "services.delete_fhir_document_reference_service.DocumentService",
     ) as mock_document_service_cls:
 
         mock_document_service = MagicMock()
         mock_document_service.get_item_agnostic.return_value = []
         mock_document_service_cls.return_value = mock_document_service
 
-        result = service.delete_fhir_document_reference_by_nhs_id_and_doc_id(
-            nhs_number="9000000009",
+        result = service.delete_fhir_document_reference_by_doc_id(
             doc_id=TEST_DOCUMENT_ID,
             doc_type=MagicMock(),
         )
@@ -274,12 +267,13 @@ def test_delete_fhir_document_references_by_nhs_id_propagates_client_error(servi
     service._get_dynamo_table_for_doc_type = MagicMock(return_value="mock-table")
 
     with patch(
-        "services.delete_fhir_document_reference_service.DocumentService"
+        "services.delete_fhir_document_reference_service.DocumentService",
     ) as mock_document_service_cls:
 
         mock_document_service = MagicMock()
         mock_document_service.get_item_agnostic.side_effect = ClientError(
-            error_response={}, operation_name="Query"
+            error_response={},
+            operation_name="Query",
         )
         mock_document_service_cls.return_value = mock_document_service
 
@@ -289,42 +283,6 @@ def test_delete_fhir_document_references_by_nhs_id_propagates_client_error(servi
                 doc_id=TEST_DOCUMENT_ID,
                 doc_type=MagicMock(),
             )
-
-
-def test_process_calls_delete_by_nhs_id_for_pdm(service):
-    event = {"requestContext": {}}
-    deletion_identifiers = [TEST_DOCUMENT_ID, "9000000009"]
-
-    with patch(
-        "services.delete_fhir_document_reference_service.validate_common_name_in_mtls",
-        return_value="CN",
-    ), patch.object(
-        service,
-        "extract_parameters",
-        return_value=deletion_identifiers,
-    ), patch.object(
-        service,
-        "_determine_document_type_based_on_common_name",
-        return_value=SnomedCodes.PATIENT_DATA.value,
-    ), patch.object(
-        service,
-        "is_uuid",
-        return_value=True,
-    ), patch.object(
-        service,
-        "delete_fhir_document_reference_by_nhs_id_and_doc_id",
-        return_value=MOCK_DOCUMENT_REFERENCE,
-    ) as mock_delete:
-
-        result = service.process_fhir_document_reference(event)
-
-    assert result == MOCK_DOCUMENT_REFERENCE
-
-    mock_delete.assert_called_once_with(
-        nhs_number=deletion_identifiers[1],
-        doc_id=deletion_identifiers[0],
-        doc_type=SnomedCodes.PATIENT_DATA.value,
-    )
 
 
 def test_process_returns_none_when_only_one_identifier(service):

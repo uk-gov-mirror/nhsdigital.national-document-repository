@@ -255,7 +255,7 @@ class DocumentReferenceInfo(BaseModel):
 
         fhir_doc_ref = DocumentReference(
             resourceType="DocumentReference",
-            id=f"{self.snomed_code_doc_type.code}~{document.id}",
+            id=document.id,
             docStatus=document.doc_status,
             type=CodeableConcept(
                 coding=self._create_snomed_coding(self.snomed_code_doc_type),

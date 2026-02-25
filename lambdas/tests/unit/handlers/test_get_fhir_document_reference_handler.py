@@ -2,11 +2,12 @@ import json
 from copy import deepcopy
 
 import pytest
+
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
 from handlers.get_fhir_document_reference_handler import (
     extract_document_parameters,
-    get_id_and_snomed_from_path_parameters,
+    get_id_from_path_parameters,
     lambda_handler,
     verify_user_authorisation,
 )
@@ -40,7 +41,7 @@ MOCK_EVENT_APPLICATION = deepcopy(MOCK_CIS2_VALID_EVENT)
 MOCK_EVENT_APPLICATION["headers"] = {"Authorization": f"Bearer {TEST_UUID}"}
 
 MOCK_DOCUMENT_REFERENCE = DocumentReference.model_validate(
-    MOCK_SEARCH_RESPONSE["Items"][0]
+    MOCK_SEARCH_RESPONSE["Items"][0],
 )
 
 
@@ -58,7 +59,7 @@ def mock_oidc_service(mocker):
 @pytest.fixture
 def mock_config_service(mocker):
     mock_config = mocker.patch(
-        "handlers.get_fhir_document_reference_handler.DynamicConfigurationService"
+        "handlers.get_fhir_document_reference_handler.DynamicConfigurationService",
     )
     mock_config_instance = mock_config.return_value
     return mock_config_instance
@@ -67,7 +68,7 @@ def mock_config_service(mocker):
 @pytest.fixture
 def mock_document_service(mocker):
     mock_service = mocker.patch(
-        "handlers.get_fhir_document_reference_handler.GetFhirDocumentReferenceService"
+        "handlers.get_fhir_document_reference_handler.GetFhirDocumentReferenceService",
     )
     mock_service_instance = mock_service.return_value
     mock_service_instance.handle_get_document_reference_request.return_value = (
@@ -79,7 +80,7 @@ def mock_document_service(mocker):
 @pytest.fixture
 def mock_search_patient_service(mocker):
     mock_service = mocker.patch(
-        "handlers.get_fhir_document_reference_handler.SearchPatientDetailsService"
+        "handlers.get_fhir_document_reference_handler.SearchPatientDetailsService",
     )
     mock_service_instance = mock_service.return_value
     return mock_service_instance
@@ -106,13 +107,15 @@ def test_lambda_handler_happy_path_with_cis2_login(
     mock_oidc_service.fetch_user_org_code.assert_called_once()
     mock_oidc_service.fetch_user_role_code.assert_called_once()
     mock_document_service.handle_get_document_reference_request.assert_called_once_with(
-        SNOMED_CODE, TEST_UUID
+        SNOMED_CODE,
+        TEST_UUID,
     )
     mock_search_patient_service.handle_search_patient_request.assert_called_once_with(
-        "9000000009", False
+        "9000000009",
+        False,
     )
     mock_document_service.create_document_reference_fhir_response.assert_called_once_with(
-        MOCK_DOCUMENT_REFERENCE
+        MOCK_DOCUMENT_REFERENCE,
     )
 
 
@@ -137,11 +140,12 @@ def test_lambda_handler_happy_path_with_application_login(
     mock_oidc_service.fetch_user_org_code.assert_not_called()
     mock_oidc_service.fetch_user_role_code.assert_not_called()
     mock_document_service.handle_get_document_reference_request.assert_called_once_with(
-        SNOMED_CODE, TEST_UUID
+        SNOMED_CODE,
+        TEST_UUID,
     )
     mock_search_patient_service.handle_search_patient_request.assert_not_called()
     mock_document_service.create_document_reference_fhir_response.assert_called_once_with(
-        MOCK_DOCUMENT_REFERENCE
+        MOCK_DOCUMENT_REFERENCE,
     )
 
 
@@ -161,20 +165,19 @@ def test_extract_missing_bearer_token(context):
 
 
 def test_extract_document_parameters_valid():
-    document_id, snomed_code = extract_document_parameters(MOCK_CIS2_VALID_EVENT)
+    document_id = extract_document_parameters(MOCK_CIS2_VALID_EVENT)
     assert document_id == TEST_UUID
-    assert snomed_code == SNOMED_CODE
 
 
 def test_extract_document_parameters_invalid():
-    with pytest.raises(GetFhirDocumentReferenceException) as e:
-        extract_document_parameters(MOCK_INVALID_EVENT_ID_MALFORMED)
-    assert e.value.status_code == 400
-    assert e.value.error == LambdaError.DocumentReferenceMissingParameters
+    document_id = extract_document_parameters(MOCK_INVALID_EVENT_ID_MALFORMED)
+    assert document_id == TEST_UUID
 
 
 def test_verify_user_authorisation(
-    mock_oidc_service, mock_config_service, mock_search_patient_service
+    mock_oidc_service,
+    mock_config_service,
+    mock_search_patient_service,
 ):
     try:
         verify_user_authorisation(f"Bearer {TEST_UUID}", TEST_UUID, "9000000009")
@@ -183,7 +186,9 @@ def test_verify_user_authorisation(
 
 
 def test_verify_user_authorization_raise_oidc_error(
-    mock_oidc_service, mock_config_service, mock_search_patient_service
+    mock_oidc_service,
+    mock_config_service,
+    mock_search_patient_service,
 ):
     mock_oidc_service.fetch_userinfo.side_effect = OidcApiException("OIDC error")
     with pytest.raises(GetFhirDocumentReferenceException) as excinfo:
@@ -193,7 +198,9 @@ def test_verify_user_authorization_raise_oidc_error(
 
 
 def test_verify_user_authorization_raise_search_patient_error(
-    mock_oidc_service, mock_config_service, mock_search_patient_service
+    mock_oidc_service,
+    mock_config_service,
+    mock_search_patient_service,
 ):
     mock_search_patient_service.handle_search_patient_request.side_effect = (
         SearchPatientException(403, LambdaError.MockError)
@@ -205,7 +212,11 @@ def test_verify_user_authorization_raise_search_patient_error(
 
 
 def test_lambda_handler_missing_auth(
-    set_env, mock_oidc_service, mock_config_service, mock_document_service, context
+    set_env,
+    mock_oidc_service,
+    mock_config_service,
+    mock_document_service,
+    context,
 ):
     event_without_auth = deepcopy(MOCK_CIS2_VALID_EVENT)
     event_without_auth["headers"] = {}
@@ -215,16 +226,12 @@ def test_lambda_handler_missing_auth(
     mock_document_service.handle_get_document_reference_request.assert_not_called()
 
 
-def test_lambda_handler_id_malformed(
-    set_env, mock_oidc_service, mock_config_service, mock_document_service, context
-):
-    response = lambda_handler(MOCK_INVALID_EVENT_ID_MALFORMED, context)
-    assert response["statusCode"] == 400
-    mock_document_service.handle_get_document_reference_request.assert_not_called()
-
-
 def test_lambda_handler_oidc_error(
-    set_env, mock_config_service, mock_document_service, context, mocker
+    set_env,
+    mock_config_service,
+    mock_document_service,
+    context,
+    mocker,
 ):
     mocker.patch(
         "handlers.get_fhir_document_reference_handler.OidcService.set_up_oidc_parameters",
@@ -238,7 +245,11 @@ def test_lambda_handler_oidc_error(
 
 
 def test_lambda_handler_invalid_path_parameters(
-    set_env, mock_oidc_service, mock_config_service, mock_document_service, context
+    set_env,
+    mock_oidc_service,
+    mock_config_service,
+    mock_document_service,
+    context,
 ):
     event_with_invalid_path = deepcopy(MOCK_CIS2_VALID_EVENT)
     event_with_invalid_path["pathParameters"] = {"id": "invalid_format_no_tilde"}
@@ -312,34 +323,37 @@ def test_lambda_handler_search_service_errors(
         == LambdaError.MockError.value.get("fhir_coding").display
     )
     assert response_body["issue"][0]["diagnostics"] == LambdaError.MockError.value.get(
-        "message"
+        "message",
     )
 
 
-def test_get_id_and_snomed_from_path_parameters():
-    path_parameter = f"{SNOMED_CODE}~{TEST_UUID}"
-
-    document_id, snomed = get_id_and_snomed_from_path_parameters(path_parameter)
+@pytest.mark.parametrize(
+    "path_parameter",
+    [
+        (f"{SNOMED_CODE}~{TEST_UUID}"),
+        (f"~{TEST_UUID}"),
+        (f"{TEST_UUID}"),
+    ],
+)
+def test_get_id_from_path_parameters(path_parameter):
+    document_id = get_id_from_path_parameters(path_parameter)
     assert document_id == TEST_UUID
-    assert snomed == SNOMED_CODE
 
 
-def test_get_id_and_snomed_from_path_parameters_no_tilde():
-    document_id, snomed = get_id_and_snomed_from_path_parameters("notildePresent")
+@pytest.mark.parametrize(
+    "path_parameter",
+    [
+        ("notauuid"),
+        (f"{SNOMED_CODE}~{TEST_UUID}~extra"),
+    ],
+)
+def test_get_id_from_path_parameters_raises_error(path_parameter):
+    with pytest.raises(GetFhirDocumentReferenceException) as excinfo:
+        get_id_from_path_parameters(path_parameter)
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.error == LambdaError.DocRefInvalidFiles
+
+
+def test_get_id_from_path_parameters_empty():
+    document_id = get_id_from_path_parameters("")
     assert document_id is None
-    assert snomed is None
-
-
-def test_get_id_and_snomed_from_path_parameters_extra_tildes():
-    # Test with extra tildes
-    path_parameter = f"{SNOMED_CODE}~{TEST_UUID}~extra"
-
-    document_id, snomed = get_id_and_snomed_from_path_parameters(path_parameter)
-    assert document_id is None
-    assert snomed is None
-
-
-def test_get_id_and_snomed_from_path_parameters_empty():
-    document_id, snomed = get_id_and_snomed_from_path_parameters("")
-    assert document_id is None
-    assert snomed is None

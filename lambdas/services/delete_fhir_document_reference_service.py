@@ -17,7 +17,6 @@ from services.fhir_document_reference_service_base import (
     FhirDocumentReferenceServiceBase,
 )
 from utils.audit_logging_setup import LoggingService
-from utils.common_query_filters import NotDeleted
 from utils.exceptions import DynamoServiceException, InvalidNhsNumberException
 from utils.lambda_exceptions import (
     DocumentDeletionServiceException,
@@ -167,39 +166,6 @@ class DeleteFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
                 {"Result": "Successful deletion"},
             )
             return document
-        except (ClientError, DynamoServiceException) as e:
-            logger.error(
-                f"{LambdaError.DocDelClient.to_str()}: {str(e)}",
-                {"Results": "Failed to delete documents"},
-            )
-            raise DocumentDeletionServiceException(500, LambdaError.DocDelClient)
-
-    def delete_fhir_document_references_by_nhs_id(
-        self,
-        nhs_number: str,
-        doc_type: SnomedCode,
-    ) -> list[DocumentReference] | None:
-        dynamo_table = self._get_dynamo_table_for_doc_type(doc_type)
-        document_service = DocumentService()
-        documents = document_service.fetch_documents_from_table(
-            search_condition=nhs_number,
-            search_key="NhsNumber",
-            table_name=dynamo_table,
-            query_filter=NotDeleted,
-        )
-        if not documents:
-            return None
-        try:
-            document_service.delete_document_references(
-                table_name=dynamo_table,
-                document_references=documents,
-                document_ttl_days=DocumentRetentionDays.SOFT_DELETE,
-            )
-            logger.info(
-                f"Deleted document of type {doc_type.display_name}",
-                {"Result": "Successful deletion"},
-            )
-            return documents
         except (ClientError, DynamoServiceException) as e:
             logger.error(
                 f"{LambdaError.DocDelClient.to_str()}: {str(e)}",

@@ -206,11 +206,7 @@ class FhirDocumentReferenceServiceBase:
             attachment_url = presigned_url
         else:
             attachment_url = (
-                DOCUMENT_RETRIEVE_ENDPOINT
-                + "/"
-                + document_reference_ndr.document_snomed_code_type
-                + "~"
-                + document_reference_ndr.id
+                DOCUMENT_RETRIEVE_ENDPOINT + "/" + document_reference_ndr.id
             )
         document_details = Attachment(
             title=document_reference_ndr.file_name,

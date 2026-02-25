@@ -593,7 +593,7 @@ def test_create_fhir_response_without_presigned_url(set_env, mock_service, mocke
 
     result_json = json.loads(result)
     assert result_json["resourceType"] == "DocumentReference"
-    expected_url = f"{APIM_API_URL}/DocumentReference/{SnomedCodes.LLOYD_GEORGE.value.code}~{document_ref.id}"
+    expected_url = f"{APIM_API_URL}/DocumentReference/{document_ref.id}"
     assert result_json["content"][0]["attachment"]["url"] == expected_url
 
 

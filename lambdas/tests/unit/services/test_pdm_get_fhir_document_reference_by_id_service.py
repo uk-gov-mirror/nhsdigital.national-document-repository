@@ -1,4 +1,5 @@
 import pytest
+
 from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCode, SnomedCodes
@@ -6,7 +7,6 @@ from services.get_fhir_document_reference_service import GetFhirDocumentReferenc
 from tests.unit.conftest import MOCK_PDM_TABLE_NAME
 from tests.unit.helpers.data.test_documents import create_test_doc_store_refs
 from utils.lambda_exceptions import (
-    GetFhirDocumentReferenceException,
     InvalidDocTypeException,
 )
 
@@ -24,11 +24,10 @@ def patched_service(mocker, set_env, context):
 
 def test_get_document_reference_service(patched_service):
     documents = create_test_doc_store_refs()
-    patched_service.document_service.fetch_documents_from_table.return_value = documents
+    patched_service.document_service.get_item.return_value = documents[0]
 
     actual = patched_service.get_core_document_references(
         document_id="3d8683b9-1665-40d2-8499-6e8302d507ff",
-        snomed_code=SnomedCodes.PATIENT_DATA.value.code,
         table=MOCK_PDM_TABLE_NAME,
     )
     assert actual == documents[0]
@@ -40,11 +39,14 @@ def test_handle_get_document_reference_request(patched_service, mocker, set_env)
     expected = documents[0]
     mock_document_ref = documents[0]
     mocker.patch.object(
-        patched_service, "get_core_document_references", return_value=mock_document_ref
+        patched_service,
+        "get_core_document_references",
+        return_value=mock_document_ref,
     )
 
     actual = patched_service.handle_get_document_reference_request(
-        SnomedCodes.PATIENT_DATA.value.code, "test-id"
+        SnomedCodes.PATIENT_DATA.value.code,
+        "test-id",
     )
 
     assert expected == actual
@@ -84,14 +86,10 @@ def test_get_dynamo_table_for_lloyd_george_doc_type(patched_service):
 
 def test_get_document_references_empty_result(patched_service):
     # Test when no documents are found
-    patched_service.document_service.fetch_documents_from_table.return_value = []
+    patched_service.document_service.get_item.return_value = None
 
-    with pytest.raises(GetFhirDocumentReferenceException) as exc_info:
-        patched_service.get_core_document_references(
-            document_id="test-id",
-            snomed_code=SnomedCodes.PATIENT_DATA.value.code,
-            table=MOCK_PDM_TABLE_NAME,
-        )
-
-    assert exc_info.value.error == LambdaError.DocumentReferenceNotFound
-    assert exc_info.value.status_code == 404
+    result = patched_service.get_core_document_references(
+        document_id="test-id",
+        table=MOCK_PDM_TABLE_NAME,
+    )
+    assert result is None

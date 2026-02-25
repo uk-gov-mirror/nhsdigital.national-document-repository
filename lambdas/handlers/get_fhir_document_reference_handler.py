@@ -1,3 +1,5 @@
+import uuid
+
 from oauthlib.oauth2 import WebApplicationClient
 
 from enums.lambda_error import LambdaError
@@ -46,7 +48,7 @@ def lambda_handler(event, context):
 
         get_document_service = GetFhirDocumentReferenceService()
         document_reference = get_document_service.handle_get_document_reference_request(
-            snomed_code,
+            snomed_code.code,
             document_id,
         )
 
@@ -86,7 +88,7 @@ def lambda_handler(event, context):
 def extract_document_parameters(event):
     """Extract document ID and SNOMED code from path parameters"""
     path_params = event.get("pathParameters", {}).get("id", None)
-    document_id = get_id_and_snomed_from_path_parameters(path_params)
+    document_id = get_id_from_path_parameters(path_params)
 
     if not document_id:
         logger.error("Missing document id or snomed code in request path parameters.")
@@ -133,7 +135,7 @@ def verify_user_authorisation(bearer_token, selected_role_id, nhs_number):
         raise GetFhirDocumentReferenceException(e.status_code, e.error)
 
 
-def get_id_and_snomed_from_path_parameters(path_parameters):
+def get_id_from_path_parameters(path_parameters):
     """Extract uuid from path parameters.
 
     Accepts:
@@ -143,7 +145,21 @@ def get_id_and_snomed_from_path_parameters(path_parameters):
     if not path_parameters:
         return None
 
-    return path_parameters.split("~")[-1]
+    id = path_parameters.split("~")[-1]
+    if not is_uuid(id):
+        raise GetFhirDocumentReferenceException(
+            400,
+            LambdaError.DocRefInvalidFiles,
+        )
+    return id
+
+
+def is_uuid(value: str) -> bool:
+    try:
+        uuid.UUID(value)
+        return True
+    except (ValueError, TypeError):
+        return False
 
 
 def _determine_document_type(common_name: MtlsCommonNames | None) -> SnomedCode:
