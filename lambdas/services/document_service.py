@@ -123,7 +123,7 @@ class DocumentService:
 
     def get_item_agnostic(
         self,
-        partion_key: dict,
+        partition_key: dict,
         sort_key: dict | None = None,
         table_name: str | None = None,
         model_class: type[BaseModel] | None = None,
@@ -133,7 +133,7 @@ class DocumentService:
 
         return self._get_item(
             table_name=table_name,
-            key=(partion_key or {}) | (sort_key or {}),
+            key=(partition_key or {}) | (sort_key or {}),
             model_class=model_class,
         )
 

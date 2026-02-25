@@ -24,7 +24,7 @@ class GetFhirDocumentReferenceService:
         get_document_presign_url_aws_role_arn = os.getenv("PRESIGNED_ASSUME_ROLE")
         self.cloudfront_url = os.environ.get("CLOUDFRONT_URL")
         self.s3_service = S3Service(
-            custom_aws_role=get_document_presign_url_aws_role_arn
+            custom_aws_role=get_document_presign_url_aws_role_arn,
         )
         self.ssm_service = SSMService()
         self.document_service = DocumentService()
@@ -37,7 +37,8 @@ class GetFhirDocumentReferenceService:
             document_reference = self.get_document_references(document_id, dynamo_table)
         else:
             document_reference = self.get_core_document_references(
-                document_id=document_id, snomed_code=snomed_code, table=dynamo_table
+                document_id=document_id,
+                table=dynamo_table,
             )
 
         return document_reference
@@ -47,26 +48,25 @@ class GetFhirDocumentReferenceService:
             return self.doc_router.resolve(doc_type)
         except KeyError:
             logger.error(
-                f"SNOMED code {doc_type.code} - {doc_type.display_name} is not supported"
+                f"SNOMED code {doc_type.code} - {doc_type.display_name} is not supported",
             )
             raise GetFhirDocumentReferenceException(400, LambdaError.DocTypeInvalid)
 
     def get_document_references(self, document_id: str, table) -> DocumentReference:
         return self.fetch_documents(
-            search_key="ID", search_condition=document_id, table=table
+            search_key="ID",
+            search_condition=document_id,
+            table=table,
         )
 
     def get_core_document_references(
-        self, document_id: str, snomed_code: str, table
+        self,
+        document_id: str,
+        table,
     ) -> DocumentReference:
-        index_name = "idx_gsi_snomed_code"
-        search_key = ["DocumentSnomedCodeType", "ID"]
-        search_condition = [snomed_code, document_id]
-        return self.fetch_documents(
-            search_key=search_key,
-            search_condition=search_condition,
-            index_name=index_name,
-            table=table,
+        return self.document_service.get_item(
+            document_id=document_id,
+            table_name=table,
         )
 
     def fetch_documents(
@@ -86,10 +86,10 @@ class GetFhirDocumentReferenceService:
         if len(documents) > 0:
             logger.info("Document found for given id")
             return documents[0]
-        else:
-            raise GetFhirDocumentReferenceException(
-                404, LambdaError.DocumentReferenceNotFound
-            )
+        raise GetFhirDocumentReferenceException(
+            404,
+            LambdaError.DocumentReferenceNotFound,
+        )
 
     def get_presigned_url(self, bucket_name, file_location):
         """
@@ -109,7 +109,8 @@ class GetFhirDocumentReferenceService:
         return presign_url_response
 
     def create_document_reference_fhir_response(
-        self, document_reference: DocumentReference
+        self,
+        document_reference: DocumentReference,
     ) -> str:
         """
         Creates a FHIR-compliant DocumentReference response for a given document.
@@ -161,7 +162,7 @@ class GetFhirDocumentReferenceService:
                 custodian=document_reference.current_gp_ods,
                 attachment=document_details,
                 snomed_code_doc_type=SnomedCodes.find_by_code(
-                    document_reference.document_snomed_code_type
+                    document_reference.document_snomed_code_type,
                 ),
             )
             .create_fhir_document_reference_object(document_reference)

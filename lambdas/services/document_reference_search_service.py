@@ -108,6 +108,7 @@ class DocumentReferenceSearchService(DocumentService):
             documents = self.fetch_documents_from_table(
                 search_condition=nhs_number,
                 search_key="NhsNumber",
+                index_name="idx_gsi_nhs_number",
                 table_name=table_name,
                 query_filter=filter_expression,
             )
