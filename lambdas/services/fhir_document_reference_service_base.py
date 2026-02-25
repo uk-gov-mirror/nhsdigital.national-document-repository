@@ -227,7 +227,7 @@ class FhirDocumentReferenceServiceBase:
             .model_dump_json(exclude_none=True)
         )
 
-        document_id = f"{document_reference_ndr.document_snomed_code_type}~{document_reference_ndr.id}"
+        document_id = f"{document_reference_ndr.id}"
 
         return fhir_document_reference, document_id
 

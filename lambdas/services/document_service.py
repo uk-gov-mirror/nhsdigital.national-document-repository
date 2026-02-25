@@ -114,7 +114,7 @@ class DocumentService:
                 return None
 
             if not return_deleted:
-                deleted = response.get("Item").get("deleted", None)
+                deleted = response.get("Item").get("Deleted", None)
                 if deleted in (None, ""):
                     document = model_class.model_validate(response["Item"])
                     return document
