@@ -8,15 +8,18 @@ from random import shuffle
 from unittest.mock import call
 
 import pytest
+from freezegun.api import freeze_time
+from pypdf import PdfReader, PdfWriter
+
+import lambdas.services.pdf_stitching_service as pdf_service_mod
 from enums.lambda_error import LambdaError
 from enums.nrl_sqs_upload import NrlActionTypes
 from enums.snomed_codes import SnomedCodes
 from enums.supported_document_types import SupportedDocumentTypes
-from freezegun.api import freeze_time
+from lambdas.services.pdf_stitching_service import PdfStitchingService
 from models.fhir.R4.fhir_document_reference import Attachment
 from models.sqs.nrl_sqs_message import NrlSqsMessage
 from models.sqs.pdf_stitching_sqs_message import PdfStitchingSqsMessage
-from pypdf import PdfReader, PdfWriter
 from tests.unit.conftest import (
     MOCK_CLIENT_ERROR,
     MOCK_LG_BUCKET,
@@ -33,9 +36,6 @@ from tests.unit.helpers.data.test_documents import (
     create_test_lloyd_george_doc_store_refs,
 )
 from utils.lambda_exceptions import PdfStitchingException
-
-import lambdas.services.pdf_stitching_service as pdf_service_mod
-from lambdas.services.pdf_stitching_service import PdfStitchingService
 
 TEST_DOCUMENT_REFERENCES = create_test_lloyd_george_doc_store_refs()
 TEST_1_OF_1_DOCUMENT_REFERENCE = create_singular_test_lloyd_george_doc_store_ref()
@@ -817,6 +817,25 @@ def test_retrieve_multipart_references_returns_empty_if_any_1of1_present_for_lg(
         doc_type=SupportedDocumentTypes.LG,
     )
     assert actual == []
+
+
+def test_retrieve_multipart_references_does_not_treat_1of10_as_stitched_for_lg(
+    mock_service,
+):
+    mixed = copy.deepcopy(TEST_DOCUMENT_REFERENCES)
+    mixed[0].file_name = "1of10_part.pdf"
+    mixed[1].file_name = "2of10_part.pdf"
+    mixed[2].file_name = "10of10_part.pdf"
+
+    mock_service.document_service.fetch_available_document_references_by_type.return_value = (
+        mixed
+    )
+
+    actual = mock_service.retrieve_multipart_references(
+        nhs_number=TEST_NHS_NUMBER,
+        doc_type=SupportedDocumentTypes.LG,
+    )
+    assert actual == mixed
 
 
 def test_process_stitching_raises_pdf_stitching_exception_on_s3_client_error(

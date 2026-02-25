@@ -4,10 +4,11 @@ from typing import Optional
 
 from boto3.dynamodb.conditions import Attr, ConditionBase
 from botocore.exceptions import ClientError
+from pydantic import BaseModel, ValidationError
+
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.supported_document_types import SupportedDocumentTypes
 from models.document_reference import DocumentReference
-from pydantic import BaseModel, ValidationError
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
@@ -172,10 +173,17 @@ class DocumentService:
     ) -> list[str]:
         """Get unique NHS numbers for patients with given ODS code."""
         table_name = table_name or self.table_name
-        filter_expression = Attr("Author").eq(ods_code) & Attr("FileName").begins_with(
-            "2of",
-        )
         projection_expression = "NhsNumber"
+        if ods_code == "ALL":
+            filter_expression = Attr("FileName").begins_with(
+                "2of",
+            )
+        else:
+            filter_expression = Attr("Author").eq(ods_code) & Attr(
+                "FileName",
+            ).begins_with(
+                "2of",
+            )
 
         logger.info("Starting scan of table for NHS numbers based on ODS code...")
         results = self.dynamo_service.scan_whole_table(

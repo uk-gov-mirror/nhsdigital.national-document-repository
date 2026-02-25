@@ -8,17 +8,18 @@ from io import BytesIO
 from math import ceil
 
 from botocore.exceptions import ClientError
+from inflection import underscore
+from pypdf import PdfReader, PdfWriter
+
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.nrl_sqs_upload import NrlActionTypes
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from enums.supported_document_types import SupportedDocumentTypes
-from inflection import underscore
 from models.document_reference import DocumentReference
 from models.fhir.R4.fhir_document_reference import Attachment
 from models.sqs.nrl_sqs_message import NrlSqsMessage
 from models.sqs.pdf_stitching_sqs_message import PdfStitchingSqsMessage
-from pypdf import PdfReader, PdfWriter
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from services.base.sqs_service import SQSService
@@ -38,7 +39,7 @@ class PdfStitchingService:
         self.target_dynamo_table = ""
         self.target_bucket = ""
         self.unstitched_lloyd_george_table_name = os.environ.get(
-            "UNSTITCHED_LLOYD_GEORGE_DYNAMODB_NAME"
+            "UNSTITCHED_LLOYD_GEORGE_DYNAMODB_NAME",
         )
         self.dynamo_service = DynamoDBService()
         self.s3_service = S3Service()
@@ -48,7 +49,9 @@ class PdfStitchingService:
         self.stitched_reference: DocumentReference | None = None
 
     def retrieve_multipart_references(
-        self, nhs_number: str, doc_type: SupportedDocumentTypes
+        self,
+        nhs_number: str,
+        doc_type: SupportedDocumentTypes,
     ) -> list[DocumentReference]:
         document_references = (
             self.document_service.fetch_available_document_references_by_type(
@@ -59,9 +62,9 @@ class PdfStitchingService:
         )
 
         if doc_type == SupportedDocumentTypes.LG:
-            if any("1of1" in result.file_name for result in document_references):
+            if any("1of1_" in result.file_name for result in document_references):
                 logger.error(
-                    "There is already a stitched LG document reference present in DynamoDb"
+                    "There is already a stitched LG document reference present in DynamoDb",
                 )
                 return []
 
@@ -83,7 +86,8 @@ class PdfStitchingService:
         self.target_bucket = doc_type.get_s3_bucket_name()
 
         self.multipart_references = self.retrieve_multipart_references(
-            nhs_number=stitching_message.nhs_number, doc_type=doc_type
+            nhs_number=stitching_message.nhs_number,
+            doc_type=doc_type,
         )
 
         if not self.multipart_references:
@@ -94,7 +98,7 @@ class PdfStitchingService:
 
             sorted_multipart_keys = self.sort_multipart_object_keys()
             stitching_data_stream = self.process_stitching(
-                s3_object_keys=sorted_multipart_keys
+                s3_object_keys=sorted_multipart_keys,
             )
             self.create_stitched_reference(
                 document_reference=self.multipart_references[0],
@@ -105,7 +109,7 @@ class PdfStitchingService:
             self.migrate_multipart_references()
             self.write_stitching_reference()
             self.publish_nrl_message(
-                snomed_code_doc_type=stitching_message.snomed_code_doc_type
+                snomed_code_doc_type=stitching_message.snomed_code_doc_type,
             )
         except Exception as e:
             self.rollback_stitching_process()
@@ -132,7 +136,9 @@ class PdfStitchingService:
         return min(parsed).strftime(DATE_FORMAT)
 
     def create_stitched_reference(
-        self, document_reference: DocumentReference, stitch_file_size: int
+        self,
+        document_reference: DocumentReference,
+        stitch_file_size: int,
     ):
 
         created_date = self.calculate_created_date()
@@ -154,7 +160,8 @@ class PdfStitchingService:
 
     def update_stitched_reference_with_version_id(self):
         self.stitched_reference.s3_version_id = self.s3_service.get_head_object(
-            self.target_bucket, self.stitched_reference.s3_file_key
+            self.target_bucket,
+            self.stitched_reference.s3_file_key,
         ).get("VersionId")
 
     def process_stitching(self, s3_object_keys: list[str]) -> BytesIO:
@@ -164,7 +171,9 @@ class PdfStitchingService:
             try:
                 data_stream = BytesIO()
                 self.s3_service.client.download_fileobj(
-                    Bucket=self.target_bucket, Key=key, Fileobj=data_stream
+                    Bucket=self.target_bucket,
+                    Key=key,
+                    Fileobj=data_stream,
                 )
                 data_stream.seek(0)
 
@@ -200,7 +209,9 @@ class PdfStitchingService:
                     by_alias=True,
                     exclude_none=True,
                     exclude={
-                        underscore(DocumentReferenceMetadataFields.CURRENT_GP_ODS.value)
+                        underscore(
+                            DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
+                        ),
                     },
                 )
                 self.dynamo_service.create_item(
@@ -226,7 +237,8 @@ class PdfStitchingService:
             self.dynamo_service.create_item(
                 table_name=self.target_dynamo_table,
                 item=self.stitched_reference.model_dump(
-                    by_alias=True, exclude_none=True
+                    by_alias=True,
+                    exclude_none=True,
                 ),
             )
         except ClientError as e:
@@ -264,11 +276,11 @@ class PdfStitchingService:
     def sort_multipart_object_keys(self) -> list[str]:
         try:
             self.multipart_references.sort(
-                key=lambda x: int(re.search(r"(\d+)of(\d+)", x.file_name).group(1))
+                key=lambda x: int(re.search(r"^(\d+)of(\d+)_", x.file_name).group(1)),
             )
         except AttributeError as e:
             logger.error(
-                f"Failed to sort multipart file names from Patient's Document References: {e}"
+                f"Failed to sort multipart file names from Patient's Document References: {e}",
             )
             raise PdfStitchingException(400, LambdaError.MultipartError)
 
@@ -299,7 +311,7 @@ class PdfStitchingService:
                 self.dynamo_service.delete_item(
                     table_name=self.target_dynamo_table,
                     key={
-                        DocumentReferenceMetadataFields.ID.value: self.stitched_reference.id
+                        DocumentReferenceMetadataFields.ID.value: self.stitched_reference.id,
                     },
                 )
                 self.s3_service.delete_object(
@@ -317,7 +329,7 @@ class PdfStitchingService:
                 original_references = self.dynamo_service.get_item(
                     table_name=self.target_dynamo_table,
                     key={
-                        DocumentReferenceMetadataFields.ID.value: document_reference.id
+                        DocumentReferenceMetadataFields.ID.value: document_reference.id,
                     },
                 )
                 if not original_references.get("Item"):
@@ -325,14 +337,15 @@ class PdfStitchingService:
                     self.dynamo_service.create_item(
                         table_name=self.target_dynamo_table,
                         item=document_reference.model_dump(
-                            by_alias=True, exclude_none=True
+                            by_alias=True,
+                            exclude_none=True,
                         ),
                     )
 
                 unstitched_references = self.dynamo_service.get_item(
                     table_name=self.unstitched_lloyd_george_table_name,
                     key={
-                        DocumentReferenceMetadataFields.ID.value: document_reference.id
+                        DocumentReferenceMetadataFields.ID.value: document_reference.id,
                     },
                 )
                 if unstitched_references.get("Item"):
@@ -340,7 +353,7 @@ class PdfStitchingService:
                     self.dynamo_service.delete_item(
                         table_name=self.unstitched_lloyd_george_table_name,
                         key={
-                            DocumentReferenceMetadataFields.ID.value: document_reference.id
+                            DocumentReferenceMetadataFields.ID.value: document_reference.id,
                         },
                     )
             logger.info("Successfully reverted migrated multipart references")
@@ -353,7 +366,7 @@ class PdfStitchingService:
         batch_size = 10
         base_delay = 150
         nhs_numbers = self.document_service.get_nhs_numbers_based_on_ods_code(
-            ods_code=ods_code
+            ods_code=ods_code,
         )
 
         if not nhs_numbers:
@@ -363,7 +376,7 @@ class PdfStitchingService:
         sqs_service = SQSService()
         total_batches = ceil(len(nhs_numbers) / batch_size)
         logger.info(
-            f"total batches is {total_batches} batches for ODS code: {ods_code}"
+            f"total batches is {total_batches} batches for ODS code: {ods_code}",
         )
 
         for batch_index, chunk in enumerate(batch(nhs_numbers, batch_size), start=1):
@@ -377,10 +390,12 @@ class PdfStitchingService:
                 messages.append(message)
             try:
                 logger.info(
-                    f"sending batch_index = {batch_index} containing the following nhs numbers: {', '.join(chunk)}"
+                    f"sending batch_index = {batch_index} containing the following nhs numbers: {', '.join(chunk)}",
                 )
                 response = sqs_service.send_message_batch_standard(
-                    queue_url, messages, base_delay
+                    queue_url,
+                    messages,
+                    base_delay,
                 )
                 if response.get("Failed"):
                     failed_ids = [f["Id"] for f in response["Failed"]]

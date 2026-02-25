@@ -4,11 +4,12 @@ from unittest.mock import call
 import pytest
 from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
+
 from enums.document_retention import DocumentRetentionDays
 from enums.dynamo_filter import AttributeOperator
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.supported_document_types import SupportedDocumentTypes
-from freezegun import freeze_time
 from models.document_reference import DocumentReference
 from models.document_review import DocumentUploadReviewReference
 from services.document_service import DocumentService
@@ -437,7 +438,7 @@ def test_delete_document_object_fails_to_delete_s3_object(mock_service, caplog):
     assert expected_err_msg == str(e.value)
 
 
-def test_get_nhs_numbers_based_on_ods_code(mock_service, mocker):
+def test_get_nhs_numbers_based_on_ods_code_specific_ods(mock_service, mocker):
     ods_code = "Y12345"
     expected_nhs_number = "9000000009"
 
@@ -458,6 +459,49 @@ def test_get_nhs_numbers_based_on_ods_code(mock_service, mocker):
         filter_expression=Attr("Author").eq(ods_code)
         & Attr("FileName").begins_with("2of"),
     )
+
+
+def test_get_nhs_numbers_based_on_ods_code_all_ods(mock_service, mocker):
+    ods_code = "ALL"
+    expected_nhs_number = "9000000009"
+
+    mock_scan_results = [{"NhsNumber": expected_nhs_number}]
+
+    mock_service.dynamo_service.scan_whole_table.return_value = mock_scan_results
+
+    result = mock_service.get_nhs_numbers_based_on_ods_code(
+        ods_code,
+        MOCK_LG_TABLE_NAME,
+    )
+
+    assert result == [expected_nhs_number]
+
+    mock_service.dynamo_service.scan_whole_table.assert_called_once_with(
+        table_name=MOCK_LG_TABLE_NAME,
+        project_expression="NhsNumber",
+        filter_expression=Attr("FileName").begins_with("2of"),
+    )
+
+
+def test_get_nhs_numbers_based_on_ods_code_uniqueness(mock_service, mocker):
+    ods_code = "Y12345"
+    nhs_number = "9000000009"
+
+    mock_scan_results = [
+        {"NhsNumber": nhs_number},
+        {"NhsNumber": nhs_number},
+        {"NhsNumber": "8000000008"},
+    ]
+
+    mock_service.dynamo_service.scan_whole_table.return_value = mock_scan_results
+
+    result = mock_service.get_nhs_numbers_based_on_ods_code(
+        ods_code,
+        MOCK_LG_TABLE_NAME,
+    )
+
+    assert len(result) == 2
+    assert set(result) == {nhs_number, "8000000008"}
 
 
 def test_get_batch_document_references_by_id_success(mock_service):
