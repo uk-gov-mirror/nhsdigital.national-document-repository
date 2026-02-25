@@ -105,7 +105,7 @@ def get_pdm_document_reference(
     endpoint_override=None,
 ):
     if not endpoint_override:
-        url = f"https://{MTLS_ENDPOINT}/{resource_type}/{pdm_snomed}~{record_id}"
+        url = f"https://{MTLS_ENDPOINT}/{resource_type}/{record_id}"
     else:
         url = f"https://{MTLS_ENDPOINT}/{resource_type}/{endpoint_override}"
     headers = {

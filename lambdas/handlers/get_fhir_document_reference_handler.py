@@ -5,7 +5,6 @@ from oauthlib.oauth2 import WebApplicationClient
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
 from enums.snomed_codes import SnomedCode, SnomedCodes
-from lambdas.utils.lambda_header_utils import validate_common_name_in_mtls
 from services.base.ssm_service import SSMService
 from services.dynamic_configuration_service import DynamicConfigurationService
 from services.get_fhir_document_reference_service import GetFhirDocumentReferenceService
@@ -21,6 +20,7 @@ from utils.lambda_exceptions import (
     SearchPatientException,
 )
 from utils.lambda_handler_utils import extract_bearer_token
+from utils.lambda_header_utils import validate_common_name_in_mtls
 from utils.lambda_response import ApiGatewayResponse
 
 logger = LoggingService(__name__)

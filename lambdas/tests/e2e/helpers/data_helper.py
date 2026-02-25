@@ -219,13 +219,13 @@ class PdmDataHelper(DataHelper):
     def retrieve_document_reference(self, record):
         return self.dynamo_service.get_item(
             table_name=self.dynamo_table,
-            key={"NhsNumber": record["nhs_number"], "ID": record["id"]},
+            key={"ID": record["id"]},
         )
 
     def tidyup(self, record):
         self.dynamo_service.delete_item(
             table_name=self.dynamo_table,
-            key={"NhsNumber": record["nhs_number"], "ID": record["id"]},
+            key={"ID": record["id"]},
         )
         self.s3_service.delete_object(
             self.s3_bucket,
