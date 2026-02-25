@@ -7,6 +7,7 @@ from services.get_fhir_document_reference_service import GetFhirDocumentReferenc
 from tests.unit.conftest import MOCK_PDM_TABLE_NAME
 from tests.unit.helpers.data.test_documents import create_test_doc_store_refs
 from utils.lambda_exceptions import (
+    GetFhirDocumentReferenceException,
     InvalidDocTypeException,
 )
 
@@ -88,8 +89,10 @@ def test_get_document_references_empty_result(patched_service):
     # Test when no documents are found
     patched_service.document_service.get_item.return_value = None
 
-    result = patched_service.get_core_document_references(
-        document_id="test-id",
-        table=MOCK_PDM_TABLE_NAME,
-    )
-    assert result is None
+    with pytest.raises(GetFhirDocumentReferenceException) as excinfo:
+        patched_service.get_core_document_references(
+            document_id="test-id",
+            table=MOCK_PDM_TABLE_NAME,
+        )
+    assert excinfo.value.status_code == 404
+    assert excinfo.value.error == LambdaError.DocumentReferenceNotFound
