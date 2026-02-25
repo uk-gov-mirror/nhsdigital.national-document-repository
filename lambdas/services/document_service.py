@@ -106,11 +106,19 @@ class DocumentService:
                 continue
         return documents
 
-    def _get_item(self, table_name, key, model_class):
+    def _get_item(self, table_name, key, model_class, return_deleted=False):
         try:
             response = self.dynamo_service.get_item(table_name=table_name, key=key)
             if "Item" not in response:
                 logger.info("No document found")
+                return None
+
+            if not return_deleted:
+                deleted = response.get("Item").get("deleted", None)
+                if deleted in (None, ""):
+                    document = model_class.model_validate(response["Item"])
+                    return document
+
                 return None
 
             document = model_class.model_validate(response["Item"])
@@ -143,6 +151,7 @@ class DocumentService:
         sort_key: dict | None = None,
         table_name: str = None,
         model_class: type[BaseModel] = None,
+        return_deleted: bool = False,
     ) -> Optional[BaseModel]:
         """Fetch a single document by ID from a specified or configured table.
 
@@ -164,6 +173,7 @@ class DocumentService:
             table_name=table_to_use,
             key=document_key,
             model_class=model_to_use,
+            return_deleted=return_deleted,
         )
 
     def get_nhs_numbers_based_on_ods_code(
