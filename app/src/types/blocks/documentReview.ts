@@ -17,7 +17,6 @@ export type DocumentReviewStatusDto = {
     id: string;
     reviewStatus: string;
     version: string;
-    reviewReason: string;
 };
 
 export enum DocumentReviewStatus {

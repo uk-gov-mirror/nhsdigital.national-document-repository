@@ -211,7 +211,7 @@ export const handleDocReviewStatusResult = (
 
                 default:
                     updatedDoc.state = DOCUMENT_UPLOAD_STATE.ERROR;
-                    updatedDoc.errorCode = result.reviewReason;
+                    updatedDoc.errorCode = 'UC_4006';
                     break;
             }
 

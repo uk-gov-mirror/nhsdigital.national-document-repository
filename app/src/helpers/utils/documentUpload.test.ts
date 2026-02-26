@@ -586,17 +586,16 @@ describe('documentUpload', () => {
             expect(mockSetDocuments).toHaveBeenCalledTimes(1);
         });
 
-        it('should update document state to ERROR and set errorCode for unknown status', () => {
+        it('should update document state to ERROR and set errorCode to UC_4006', () => {
             const reviewStatusDto = {
                 id: 'doc1',
                 reviewStatus: 'unknown',
-                reviewReason: 'Some error reason',
             };
 
             mockSetDocuments.mockImplementation((updateFn) => {
                 const result = updateFn([baseDoc]);
                 expect(result[0].state).toBe(DOCUMENT_UPLOAD_STATE.ERROR);
-                expect(result[0].errorCode).toBe('Some error reason');
+                expect(result[0].errorCode).toBe('UC_4006');
             });
 
             handleDocReviewStatusResult(reviewStatusDto as any, mockSetDocuments);

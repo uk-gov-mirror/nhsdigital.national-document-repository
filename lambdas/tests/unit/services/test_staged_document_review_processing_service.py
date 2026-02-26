@@ -1,5 +1,6 @@
 import pytest
 from botocore.exceptions import ClientError
+
 from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.virus_scan_result import VirusScanResult
@@ -21,26 +22,40 @@ from tests.unit.conftest import (
 @pytest.fixture
 def mock_service(set_env, mocker):
     mocker.patch(
-        "services.staged_document_review_processing_service.DocumentUploadReviewService"
+        "services.staged_document_review_processing_service.DocumentUploadReviewService",
     )
     mocker.patch(
-        "services.staged_document_review_processing_service.get_virus_scan_service"
+        "services.staged_document_review_processing_service.get_virus_scan_service",
     )
     mocker.patch("services.staged_document_review_processing_service.S3Service")
+    mocker.patch(
+        "services.staged_document_review_processing_service.io.BytesIO",
+    )
     service = StagedDocumentReviewProcessingService()
     yield service
 
 
 @pytest.fixture
+def mock_check_file_service(mocker):
+    yield mocker.patch(
+        "services.staged_document_review_processing_service.check_file_locked_or_corrupt",
+        return_value=False,
+    )
+
+
+@pytest.fixture
 def mock_review_document_service(mocker, mock_service):
     mocker.patch.object(
-        mock_service.review_document_service, "fetch_documents_from_table"
+        mock_service.review_document_service,
+        "fetch_documents_from_table",
     )
     mocker.patch.object(
-        mock_service.review_document_service, "update_document_review_status"
+        mock_service.review_document_service,
+        "update_document_review_status",
     )
     mocker.patch.object(
-        mock_service.review_document_service, "build_review_dynamo_filter"
+        mock_service.review_document_service,
+        "build_review_dynamo_filter",
     )
     yield mock_service.review_document_service
 
@@ -71,7 +86,7 @@ def sample_document_reference():
             DocumentReviewFileDetails(
                 file_name="test-document.pdf",
                 file_location=f"s3://{MOCK_STAGING_STORE_BUCKET}/test-upload-id/test-document.pdf",
-            )
+            ),
         ],
         nhs_number=TEST_NHS_NUMBER,
     )
@@ -86,7 +101,7 @@ def test_handle_upload_document_reference_request_with_clean_virus_scan(
 ):
     object_key = "test-upload-id/test-document.pdf"
     mock_review_document_service.fetch_documents_from_table.return_value = [
-        sample_document_reference
+        sample_document_reference,
     ]
     mock_virus_scan_service.scan_file.return_value = VirusScanResult.CLEAN.value
     mock_review_document_service.build_review_dynamo_filter.return_value = {}
@@ -94,11 +109,13 @@ def test_handle_upload_document_reference_request_with_clean_virus_scan(
     mock_service.handle_upload_document_reference_request(object_key)
 
     mock_virus_scan_service.scan_file.assert_called_once_with(
-        object_key, nhs_number=TEST_NHS_NUMBER
+        object_key,
+        nhs_number=TEST_NHS_NUMBER,
     )
     mock_s3_service.copy_across_bucket.assert_called_once()
     mock_s3_service.delete_object.assert_called_once_with(
-        MOCK_STAGING_STORE_BUCKET, object_key
+        MOCK_STAGING_STORE_BUCKET,
+        object_key,
     )
     mock_review_document_service.update_document_review_status.assert_called_once()
     assert (
@@ -115,7 +132,7 @@ def test_handle_upload_document_reference_request_with_infected_file(
 ):
     object_key = "test-upload-id/test-document.pdf"
     mock_review_document_service.fetch_documents_from_table.return_value = [
-        sample_document_reference
+        sample_document_reference,
     ]
     mock_virus_scan_service.scan_file.return_value = VirusScanResult.INFECTED.value
 
@@ -150,7 +167,7 @@ def test_handle_upload_document_reference_request_with_other_status(
     object_key = "test-upload-id/test-document.pdf"
     sample_document_reference.review_status = DocumentReviewStatus.PENDING_REVIEW
     mock_review_document_service.fetch_documents_from_table.return_value = [
-        sample_document_reference
+        sample_document_reference,
     ]
 
     mock_service.handle_upload_document_reference_request(object_key)
@@ -158,7 +175,8 @@ def test_handle_upload_document_reference_request_with_other_status(
     mock_virus_scan_service.scan_file.assert_not_called()
     mock_s3_service.copy_across_bucket.assert_not_called()
     mock_s3_service.delete_object.assert_called_once_with(
-        MOCK_STAGING_STORE_BUCKET, object_key
+        MOCK_STAGING_STORE_BUCKET,
+        object_key,
     )
 
 
@@ -196,7 +214,7 @@ def test_handle_upload_document_reference_request_with_client_errors(
 ):
     object_key = "test-upload-id/test-document.pdf"
     mock_review_document_service.fetch_documents_from_table.return_value = [
-        sample_document_reference
+        sample_document_reference,
     ]
     mock_virus_scan_service.scan_file.return_value = VirusScanResult.CLEAN.value
     mock_review_document_service.build_review_dynamo_filter.return_value = {}
@@ -224,10 +242,10 @@ def test_handle_upload_document_reference_request_with_unexpected_error(
 ):
     object_key = "test-upload-id/test-document.pdf"
     mock_review_document_service.fetch_documents_from_table.return_value = [
-        sample_document_reference
+        sample_document_reference,
     ]
     mock_review_document_service.fetch_documents_from_table.side_effect = Exception(
-        "Unexpected error"
+        "Unexpected error",
     )
 
     with pytest.raises(Exception):
@@ -241,14 +259,15 @@ def test_fetch_document_reference_by_id(
 ):
     document_key = "test-upload-id"
     mock_review_document_service.fetch_documents_from_table.return_value = [
-        sample_document_reference
+        sample_document_reference,
     ]
 
     result = mock_service._fetch_document_reference_by_id(document_key)
 
     assert result == sample_document_reference
     mock_review_document_service.fetch_documents_from_table.assert_called_once_with(
-        search_key="ID", search_condition=document_key
+        search_key="ID",
+        search_condition=document_key,
     )
 
 
@@ -261,7 +280,7 @@ def test_handle_upload_document_reference_request_with_mismatched_object_key_and
     object_key = "test-upload-id/test-document.pdf"
     sample_document_reference.files[0].file_location = "s3://other-bucket/other-key.pdf"
     mock_review_document_service.fetch_documents_from_table.return_value = [
-        sample_document_reference
+        sample_document_reference,
     ]
     mock_virus_scan_service.scan_file.return_value = VirusScanResult.CLEAN.value
     mock_service.handle_upload_document_reference_request(object_key)
@@ -306,7 +325,8 @@ def test_perform_virus_scan(
 
     assert result == VirusScanResult.CLEAN.value
     mock_virus_scan_service.scan_file.assert_called_once_with(
-        object_key, nhs_number=TEST_NHS_NUMBER
+        object_key,
+        nhs_number=TEST_NHS_NUMBER,
     )
 
 
@@ -320,13 +340,15 @@ def test_process_review_document_reference(
     mock_review_document_service.build_review_dynamo_filter.return_value = {}
 
     mock_service._process_review_document_reference(
-        sample_document_reference, object_key
+        sample_document_reference,
+        object_key,
     )
 
     mock_s3_service.copy_across_bucket.assert_called_once()
     mock_review_document_service.update_document_review_status.assert_called_once()
     mock_s3_service.delete_object.assert_called_once_with(
-        MOCK_STAGING_STORE_BUCKET, object_key
+        MOCK_STAGING_STORE_BUCKET,
+        object_key,
     )
 
 
@@ -344,7 +366,8 @@ def test_copy_files_from_staging_bucket(
     )
 
     mock_service.copy_files_from_staging_bucket(
-        sample_document_reference, source_file_key
+        sample_document_reference,
+        source_file_key,
     )
 
     mock_s3_service.copy_across_bucket.assert_called_once_with(
@@ -374,7 +397,8 @@ def test_copy_files_from_staging_bucket_with_error(
 
     with pytest.raises(ClientError):
         mock_service.copy_files_from_staging_bucket(
-            sample_document_reference, source_file_key
+            sample_document_reference,
+            source_file_key,
         )
 
 
@@ -394,7 +418,8 @@ def test_copy_files_from_staging_bucket_with_412_error(
     mock_s3_service.copy_across_bucket.side_effect = error
     try:
         mock_service.copy_files_from_staging_bucket(
-            sample_document_reference, source_file_key
+            sample_document_reference,
+            source_file_key,
         )
     except ClientError:
         assert False, "Exception should not be raised"
@@ -417,7 +442,8 @@ def test_delete_file_from_staging_bucket(
     mock_service.delete_file_from_staging_bucket(source_file_key)
 
     mock_s3_service.delete_object.assert_called_once_with(
-        MOCK_STAGING_STORE_BUCKET, source_file_key
+        MOCK_STAGING_STORE_BUCKET,
+        source_file_key,
     )
 
 
@@ -427,9 +453,30 @@ def test_delete_file_from_staging_bucket_with_error(
 ):
     source_file_key = "test-upload-id/test-document.pdf"
     error = ClientError(
-        {"Error": {"Code": "AccessDenied", "Message": "Access denied"}}, "delete_object"
+        {"Error": {"Code": "AccessDenied", "Message": "Access denied"}},
+        "delete_object",
     )
     mock_s3_service.delete_object.side_effect = error
 
     with pytest.raises(ClientError):
         mock_service.delete_file_from_staging_bucket(source_file_key)
+
+
+def test_process_document_if_ready_sets_review_status_to_upload_failed_when_file_is_protected(
+    mock_service,
+    mock_review_document_service,
+    mock_virus_scan_service,
+    mock_s3_service,
+    sample_document_reference,
+    mock_check_file_service,
+):
+    object_key = "test-upload-id/test-document.pdf"
+    mock_review_document_service.fetch_documents_from_table.return_value = [
+        sample_document_reference,
+    ]
+    mock_virus_scan_service.scan_file.return_value = VirusScanResult.CLEAN.value
+    mock_check_file_service.return_value = True
+
+    mock_service._process_document_if_ready(sample_document_reference, object_key)
+
+    assert sample_document_reference.review_status == DocumentReviewStatus.UPLOAD_FAILED
