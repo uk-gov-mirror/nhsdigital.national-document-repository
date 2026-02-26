@@ -1,11 +1,13 @@
 import base64
 
 import pytest
+
 from tests.e2e.api.fhir.conftest import (
     PDM_S3_BUCKET,
+    PDM_SNOMED,
+    TEST_NHS_NUMBER,
     create_and_store_pdm_record,
     get_pdm_document_reference,
-    PDM_SNOMED,
 )
 from tests.e2e.helpers.data_helper import PdmDataHelper
 
@@ -15,7 +17,7 @@ pdm_data_helper = PdmDataHelper()
 def assert_returned_document_reference(pdm_record, response):
     assert response.get("resourceType") == "DocumentReference"
     assert response["type"]["coding"][0]["code"] == PDM_SNOMED
-    assert response["subject"]["identifier"]["value"] == "9912003071"
+    assert response["subject"]["identifier"]["value"] == TEST_NHS_NUMBER
 
 
 @pytest.mark.parametrize(
@@ -34,7 +36,9 @@ def assert_returned_document_reference(pdm_record, response):
     ],
 )
 def test_successful_retrieval_of_document_reference(
-    test_data, doc_status, response_status
+    test_data,
+    doc_status,
+    response_status,
 ):
     pdm_record = create_and_store_pdm_record(test_data, doc_status=doc_status)
 
@@ -50,7 +54,8 @@ def test_successful_retrieval_of_document_reference(
 def test_file_retrieval(test_data, file_size):
     """Test retrieval for small and large files."""
     pdm_record = create_and_store_pdm_record(
-        test_data, size=file_size if file_size else None
+        test_data,
+        size=file_size if file_size else None,
     )
     response = get_pdm_document_reference(pdm_record["id"])
     assert response.status_code == 200

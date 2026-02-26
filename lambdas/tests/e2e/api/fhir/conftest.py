@@ -6,6 +6,7 @@ import time
 
 import pytest
 import requests
+
 from tests.e2e.helpers.data_helper import PdmDataHelper
 
 pdm_data_helper = PdmDataHelper()
@@ -16,6 +17,8 @@ PDM_S3_BUCKET = pdm_data_helper.s3_bucket
 MTLS_ENDPOINT = pdm_data_helper.mtls_endpoint
 CLIENT_CERT_PATH = os.environ.get("CLIENT_CERT_PATH")
 CLIENT_KEY_PATH = os.environ.get("CLIENT_KEY_PATH")
+TEST_NHS_NUMBER = "9730136912"
+UNKNOWN_TEST_NHS_NUMBER = "9730136939"
 
 
 @pytest.fixture
@@ -27,7 +30,12 @@ def test_data():
 
 
 def fetch_with_retry_mtls(
-    session, url, headers, condition_func=None, max_retries=5, delay=10
+    session,
+    url,
+    headers,
+    condition_func=None,
+    max_retries=5,
+    delay=10,
 ):
     retries = 0
     while retries < max_retries:
@@ -47,7 +55,8 @@ def fetch_with_retry_mtls(
 
 
 def create_mtls_session(
-    client_cert_path=CLIENT_CERT_PATH, client_key_path=CLIENT_KEY_PATH
+    client_cert_path=CLIENT_CERT_PATH,
+    client_key_path=CLIENT_KEY_PATH,
 ):
     session = requests.Session()
     session.cert = (client_cert_path, client_key_path)
@@ -131,14 +140,16 @@ def delete_document_reference(endpoint, client_cert_path=None, client_key_path=N
 
 def create_and_store_pdm_record(
     test_data,
-    nhs_number: str = "9912003071",
+    nhs_number: str = TEST_NHS_NUMBER,
     doc_status: str | None = None,
     size: int | None = None,
     **dynamo_kwargs,
 ):
     """Helper to create metadata and resource for a record."""
     record = pdm_data_helper.build_record(
-        nhs_number=nhs_number, doc_status=doc_status, size=size
+        nhs_number=nhs_number,
+        doc_status=doc_status,
+        size=size,
     )
     test_data.append(record)
     pdm_data_helper.create_metadata(record, **dynamo_kwargs)

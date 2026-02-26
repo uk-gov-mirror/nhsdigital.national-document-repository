@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
 
 import pytest
+
 from enums.document_retention import DocumentRetentionDays
 from tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
     PDM_SNOMED,
+    TEST_NHS_NUMBER,
+    UNKNOWN_TEST_NHS_NUMBER,
     create_and_store_pdm_record,
     create_mtls_session,
 )
@@ -36,7 +39,7 @@ def search_document_reference(
 
 
 def test_search_nonexistent_document_references_for_patient_details():
-    response = search_document_reference("9449305943")
+    response = search_document_reference(UNKNOWN_TEST_NHS_NUMBER)
     assert response.status_code == 200
 
     bundle = response.json()
@@ -51,7 +54,7 @@ def test_search_patient_details(test_data):
     created_record = create_and_store_pdm_record(test_data)
     expected_record_id = created_record["id"]
 
-    response = search_document_reference("9912003071")
+    response = search_document_reference(TEST_NHS_NUMBER)
     assert response.status_code == 200
 
     bundle = response.json()
@@ -82,7 +85,7 @@ def test_multiple_cancelled_search_patient_details(test_data):
         for _ in range(2)
     ]
 
-    response = search_document_reference("9912003071")
+    response = search_document_reference(TEST_NHS_NUMBER)
     assert response.status_code == 200
 
     bundle = response.json()
@@ -135,7 +138,7 @@ def test_search_patient_unauthorized_mtls(test_data, temp_cert_and_key):
     cert_path, key_path = temp_cert_and_key
 
     response = search_document_reference(
-        "9912003071",
+        TEST_NHS_NUMBER,
         client_cert_path=cert_path,
         client_key_path=key_path,
     )
@@ -148,7 +151,7 @@ def test_search_patient_unauthorized_mtls(test_data, temp_cert_and_key):
 def test_search_invalid_resource_type(test_data):
     create_and_store_pdm_record(test_data)
 
-    response = search_document_reference("9912003071", resource_type="FooBar")
+    response = search_document_reference(TEST_NHS_NUMBER, resource_type="FooBar")
     assert response.status_code == 400
 
 
@@ -168,7 +171,7 @@ def test_search_patient_details_deleted_are_not_returned(test_data):
     )
     expected_record_id_2 = created_record_2["id"]
 
-    response = search_document_reference("9912003071")
+    response = search_document_reference(TEST_NHS_NUMBER)
     assert response.status_code == 200
 
     bundle = response.json()

@@ -8,6 +8,7 @@ import requests
 
 from tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
+    TEST_NHS_NUMBER,
     retrieve_document_with_retry,
     upload_document,
 )
@@ -20,7 +21,7 @@ pdm_data_helper = PdmDataHelper()
 def test_create_document_presign_fails():
     record = {
         "ods": "H81109",
-        "nhs_number": "9912003071",
+        "nhs_number": TEST_NHS_NUMBER,
     }
 
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "big-dummy.pdf")
@@ -121,7 +122,7 @@ def test_search_edge_cases(
 def test_forbidden_with_invalid_cert(temp_cert_and_key):
     record = {
         "ods": "H81109",
-        "nhs_number": "9912003071",
+        "nhs_number": TEST_NHS_NUMBER,
     }
 
     sample_pdf_bytes = b"Sample PDF Content"
@@ -153,7 +154,7 @@ def test_forbidden_with_invalid_cert(temp_cert_and_key):
 def test_create_document_with_invalid_author_returns_error(test_data, author_payload):
     record = {
         "ods": "H81109",
-        "nhs_number": "9912003071",
+        "nhs_number": TEST_NHS_NUMBER,
     }
 
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
@@ -176,7 +177,7 @@ def test_create_document_with_invalid_author_returns_error(test_data, author_pay
 def test_upload_invalid_resource_type(test_data):
     record = {
         "ods": "H81109",
-        "nhs_number": "9912003071",
+        "nhs_number": TEST_NHS_NUMBER,
     }
 
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")

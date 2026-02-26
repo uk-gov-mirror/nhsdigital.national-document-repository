@@ -5,9 +5,12 @@ import os
 import uuid
 
 import boto3
+
 from enums.snomed_codes import SnomedCodes
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
+
+TEST_NHS_NUMBER = "9730136912"
 
 
 class DataHelper:
@@ -63,7 +66,7 @@ class DataHelper:
 
     def build_record(
         self,
-        nhs_number="9912003071",
+        nhs_number=TEST_NHS_NUMBER,
         data=None,
         doc_status=None,
         size=None,

@@ -5,6 +5,7 @@ import os
 
 from tests.e2e.api.fhir.conftest import (
     PDM_SNOMED,
+    TEST_NHS_NUMBER,
     retrieve_document_with_retry,
     upload_document,
 )
@@ -17,7 +18,7 @@ pdm_data_helper = PdmDataHelper()
 def test_create_document_base64(test_data):
     record = {
         "ods": "H81109",
-        "nhs_number": "9912003071",
+        "nhs_number": TEST_NHS_NUMBER,
     }
 
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
@@ -60,7 +61,7 @@ def test_create_document_base64(test_data):
 def test_create_document_saves_raw(test_data):
     record = {
         "ods": "H81109",
-        "nhs_number": "9912003071",
+        "nhs_number": TEST_NHS_NUMBER,
     }
 
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
@@ -89,7 +90,7 @@ def test_create_document_saves_raw(test_data):
 def test_create_document_without_author_or_type(test_data):
     record = {
         "ods": "H81109",
-        "nhs_number": "9912003071",
+        "nhs_number": TEST_NHS_NUMBER,
     }
 
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
@@ -125,7 +126,7 @@ def test_create_document_without_author_or_type(test_data):
 def test_create_document_without_title(test_data):
     record = {
         "ods": "H81109",
-        "nhs_number": "9912003071",
+        "nhs_number": TEST_NHS_NUMBER,
     }
 
     sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
