@@ -16,6 +16,7 @@
         "addFilesSelectTitle": "",
         "uploadFilesSelectTitle": "Choose electronic health record attachment files to upload",
         "uploadFilesBulletPoints": [
+            "There is no maximum number or size of files you can upload",
             "You can upload files in any format except .zip and .exe files",
             "If you add more than one attachment, we'll automatically zip them when you upload",
             "Remove any passwords from the files",
