@@ -54,7 +54,7 @@ def test_create_document_virus(test_data):
     test_data.append(record)
 
     assert "Location" in raw_upload_response.headers
-    expected_location = f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{upload_response['id']}"
+    expected_location = f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{record['id']}"
     assert raw_upload_response.headers["Location"] == expected_location
 
     # Poll until processing/scan completes

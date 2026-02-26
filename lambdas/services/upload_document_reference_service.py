@@ -3,6 +3,7 @@ import os
 from typing import Optional
 
 from botocore.exceptions import ClientError
+
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
@@ -56,14 +57,10 @@ class UploadDocumentReferenceService:
         try:
             object_parts = object_key.split("/")
             document_key = object_parts[-1]
-            nhs_number = None
-            if len(object_parts) > 1:
-                nhs_number = object_parts[-2]
             self._get_infrastructure_for_document_key(object_parts)
 
             preliminary_document_reference = self._fetch_preliminary_document_reference(
                 document_key,
-                nhs_number,
             )
             if not preliminary_document_reference:
                 return
@@ -100,22 +97,11 @@ class UploadDocumentReferenceService:
     def _fetch_preliminary_document_reference(
         self,
         document_key: str,
-        nhs_number: str | None = None,
     ) -> Optional[DocumentReference]:
         """Fetch document reference from the database"""
         try:
-            if self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
-                search_key = "ID"
-                search_condition = document_key
-            else:
-                if not nhs_number:
-                    logger.error(
-                        f"Failed to process object key with ID: {document_key}",
-                    )
-                    raise FileProcessingException(400, LambdaError.DocRefInvalidFiles)
-
-                search_key = ["NhsNumber", "ID"]
-                search_condition = [nhs_number, document_key]
+            search_key = "ID"
+            search_condition = document_key
 
             documents = self.document_service.fetch_documents_from_table(
                 search_key=search_key,
