@@ -29,11 +29,9 @@ Tasks for all changes:
 - [ ] 3. I have added and/or updated relevant tests.
 - [ ] 4. I have updated relevant documentation.
 - [ ] 5. I have considered the cross-team impact (and have PR approval from both Core & Demographics if necessary).
-- [ ] 6. I have successfully deployed this change to a sandbox and witnessed unit and e2e tests passing:
+- [ ] 6. I have successfully deployed this change to a sandbox and witnessed unit, e2e and smoke tests passing:
   - [ ] 6a. [`Deploy - Sandbox`](https://github.com/NHSDigital/national-document-repository-infrastructure/actions/workflows/deploy-sandbox.yml) - [workflow run - TBC](https://github.com/NHSDigital/national-document-repository-infrastructure/actions/runs/XXX)
   - [ ] 6b. [`SANDBOX Full- Deploy feature branch to sandbox`](https://github.com/NHSDigital/national-document-repository/actions/workflows/full-deploy-to-sandbox.yml) - [workflow run - TBC](https://github.com/NHSDigital/national-document-repository/actions/runs/XXX)
-- [ ] 7. I have run the UI Smoke Tests against the deployed sandbox and witnessed it passing:
-  - [ ] 7a. [`SANDBOX - UI Smoke Test`](https://github.com/NHSDigital/national-document-repository/actions/workflows/ui-smoketest.yml) - [workflow run - TBC](https://github.com/NHSDigital/national-document-repository/actions/runs/XXX)
 
 Additional tasks for UI changes (delete if not applicable):
 

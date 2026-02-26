@@ -1,6 +1,6 @@
 name: "SANDBOX Full- Deploy feature branch to sandbox"
 
-run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.environment }} | ${{ github.event.inputs.bulk_upload }} | ${{ github.event.inputs.disable_pds }} | ${{ github.event.inputs.mock_login_enabled }}"
+run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.environment }} | ${{ github.event.inputs.bulk_upload }} | ${{ github.event.inputs.enable_pds }} | ${{ github.event.inputs.mock_login_enabled }}"
 
 on:
   workflow_dispatch:
@@ -33,11 +33,11 @@ on:
           - "Bulk upload metadata"
           - "NEW bulk metadata processor"
         default: "Bulk upload metadata"
-      disable_pds:
-        description: "Do you want to disable the PDS stub?"
+      enable_pds:
+        description: "Do you want to enable the PDS stub? (expect some tests to fail if this is enabled)"
         required: true
         type: boolean
-        default: true
+        default: false
       mock_login_enabled:
         description: "Do you want to deploy with mock login enabled?"
         required: true
@@ -116,7 +116,7 @@ jobs:
 
   disable_fhir_stub:
     name: "Disable PDS stub"
-    if: ${{ inputs.disable_pds || inputs.bulk_upload }}
+    if: ${{ !inputs.enable_pds || inputs.bulk_upload }}
     uses: "./.github/workflows/base-run-disable-pds-stub.yml"
     needs: ["deploy_all_lambdas"]
     with:
@@ -180,3 +180,16 @@ jobs:
       lambda_type: ${{ inputs.lambda_type == 'NEW bulk metadata processor' && 'BulkUploadMetadataProcessor' || 'BulkUploadMetadataLambda' }}
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  run_smoketest:
+    name: "Run UI Smoke Tests"
+    uses: ./.github/workflows/base-cypress-smoketest.yml
+    needs: ["deploy_ui", "deploy_all_lambdas", "disable_fhir_stub"]
+    with:
+      build_branch: ${{ inputs.build_branch }}
+      environment: ${{ inputs.environment }}
+      sandbox: ${{ inputs.sandbox }}
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+      CYPRESS_ODSCODE: ${{ secrets.CYPRESS_ODSCODE }}
+      CYPRESS_KEY: ${{ secrets.CYPRESS_KEY }}
