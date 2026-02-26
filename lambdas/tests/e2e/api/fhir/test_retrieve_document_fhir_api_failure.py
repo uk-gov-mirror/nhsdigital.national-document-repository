@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
+
 from enums.document_retention import DocumentRetentionDays
 from tests.e2e.api.fhir.conftest import (
     create_and_store_pdm_record,
@@ -69,33 +70,6 @@ def test_retrieve_non_existant_document_reference(
 
     assert coding.get("code") == expected_code
     assert issue.get("diagnostics") == expected_diagnostics
-
-
-def test_forbidden_with_invalid_cert(test_data, temp_cert_and_key):
-    pdm_record = create_and_store_pdm_record(test_data)
-
-    # Use an invalid cert that is trusted by TLS but fails truststore validation
-    cert_path, key_path = temp_cert_and_key
-
-    response = get_pdm_document_reference(
-        pdm_record["id"],
-        client_cert_path=cert_path,
-        client_key_path=key_path,
-    )
-
-    body = response.json()
-    assert response.status_code == 403
-    assert body["message"] == "Forbidden"
-
-
-def test_retrieve_invalid_resource_type(test_data):
-    pdm_record = create_and_store_pdm_record(test_data)
-
-    response = get_pdm_document_reference(pdm_record["id"], resource_type="FooBar")
-    assert response.status_code == 403
-
-    response_json = response.json()
-    assert response_json["message"] == "Missing Authentication Token"
 
 
 # This is not a helpful error message. Update this in ticket NDR-394

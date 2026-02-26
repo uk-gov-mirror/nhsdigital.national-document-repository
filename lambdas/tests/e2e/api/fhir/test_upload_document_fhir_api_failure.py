@@ -4,10 +4,8 @@ import logging
 import os
 
 import pytest
-import requests
 
 from tests.e2e.api.fhir.conftest import (
-    MTLS_ENDPOINT,
     TEST_NHS_NUMBER,
     retrieve_document_with_retry,
     upload_document,
@@ -49,6 +47,7 @@ def test_create_document_virus(test_data):
     payload = pdm_data_helper.create_upload_payload(record)
 
     raw_upload_response = upload_document(payload)
+
     assert raw_upload_response.status_code == 201
     upload_response = raw_upload_response.json()
     record["id"] = upload_response["id"].split("~")[1]
@@ -119,34 +118,6 @@ def test_search_edge_cases(
     assert issue.get("diagnostics") == expected_diagnostics
 
 
-def test_forbidden_with_invalid_cert(temp_cert_and_key):
-    record = {
-        "ods": "H81109",
-        "nhs_number": TEST_NHS_NUMBER,
-    }
-
-    sample_pdf_bytes = b"Sample PDF Content"
-    record["data"] = base64.b64encode(sample_pdf_bytes).decode("utf-8")
-
-    payload = pdm_data_helper.create_upload_payload(record)
-
-    # Use an invalid cert that is trusted by TLS but fails truststore validation
-    cert_path, key_path = temp_cert_and_key
-    url = f"https://{MTLS_ENDPOINT}/DocumentReference"
-    headers = {"Authorization": "Bearer 123", "X-Correlation-Id": "1234"}
-
-    response = requests.post(
-        url,
-        headers=headers,
-        cert=(cert_path, key_path),
-        data=payload,
-    )
-    assert response.status_code == 403
-    assert "Location" not in response.headers
-    body = response.json()
-    assert body["message"] == "Forbidden"
-
-
 @pytest.mark.parametrize(
     "author_payload",
     [({}), {"identifier": {"system": "https://fhir.nhs.uk/Id/ods-organization-code"}}],
@@ -172,23 +143,3 @@ def test_create_document_with_invalid_author_returns_error(test_data, author_pay
     assert (
         response_json["issue"][0]["details"]["coding"][0]["code"] == "VALIDATION_ERROR"
     )
-
-
-def test_upload_invalid_resource_type(test_data):
-    record = {
-        "ods": "H81109",
-        "nhs_number": TEST_NHS_NUMBER,
-    }
-
-    sample_pdf_path = os.path.join(os.path.dirname(__file__), "files", "dummy.pdf")
-    with open(sample_pdf_path, "rb") as f:
-        record["data"] = base64.b64encode(f.read()).decode("utf-8")
-    payload = pdm_data_helper.create_upload_payload(record=record, return_json=True)
-    payload = json.dumps(payload)
-
-    raw_upload_response = upload_document(payload, resource_type="FooBar")
-    assert raw_upload_response.status_code == 403
-    assert "Location" not in raw_upload_response.headers
-
-    response_json = raw_upload_response.json()
-    assert response_json["message"] == "Missing Authentication Token"

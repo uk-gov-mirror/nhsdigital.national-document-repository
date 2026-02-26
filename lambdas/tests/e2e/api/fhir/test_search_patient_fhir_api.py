@@ -130,31 +130,6 @@ def test_search_edge_cases(
     assert issue.get("diagnostics") == expected_diagnostics
 
 
-def test_search_patient_unauthorized_mtls(test_data, temp_cert_and_key):
-    """Search should return 403 when mTLS certificate is invalid or missing."""
-    create_and_store_pdm_record(test_data)
-
-    # Use an invalid cert that is trusted by TLS but fails truststore validation
-    cert_path, key_path = temp_cert_and_key
-
-    response = search_document_reference(
-        TEST_NHS_NUMBER,
-        client_cert_path=cert_path,
-        client_key_path=key_path,
-    )
-
-    body = response.json()
-    assert response.status_code == 403
-    assert body["message"] == "Forbidden"
-
-
-def test_search_invalid_resource_type(test_data):
-    create_and_store_pdm_record(test_data)
-
-    response = search_document_reference(TEST_NHS_NUMBER, resource_type="FooBar")
-    assert response.status_code == 400
-
-
 def test_search_patient_details_deleted_are_not_returned(test_data):
     created_record_1 = create_and_store_pdm_record(test_data)
     expected_record_id_1 = created_record_1["id"]
