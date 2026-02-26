@@ -95,7 +95,7 @@ def test_create_document_base64(test_data, snapshot_json):
 
     retrieve_response = requests.post(url, headers=headers, data=payload)
     upload_response = retrieve_response.json()
-    lloyd_george_record["id"] = upload_response["id"].split("~")[1]
+    lloyd_george_record["id"] = upload_response["id"]
     test_data.append(lloyd_george_record)
 
     retrieve_url = (

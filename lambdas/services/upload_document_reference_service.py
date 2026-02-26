@@ -464,7 +464,6 @@ class UploadDocumentReferenceService:
             if self.doc_type.code == SnomedCodes.PATIENT_DATA.value.code:
                 update_fields.add("s3_file_key")
                 update_key = {
-                    DocumentReferenceMetadataFields.NHS_NUMBER.value: document.nhs_number,
                     DocumentReferenceMetadataFields.ID.value: document.id,
                 }
 
