@@ -111,7 +111,7 @@ def test_create_document_base64(test_data, snapshot_json):
 
     attachment_url = upload_response["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{LLOYD_GEORGE_SNOMED}~"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{lloyd_george_record['id']}"
         in attachment_url
     )
 
