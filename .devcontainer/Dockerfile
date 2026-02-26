@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/python:3.11
+FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/python:3.11-bookworm
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
   git \
