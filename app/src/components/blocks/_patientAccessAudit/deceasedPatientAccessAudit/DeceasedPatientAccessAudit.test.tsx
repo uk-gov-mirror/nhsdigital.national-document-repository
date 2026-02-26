@@ -20,6 +20,7 @@ import PatientDetailsProvider from '../../../../providers/patientProvider/Patien
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
+import postPatientAccessAudit from '../../../../helpers/requests/postPatientAccessAudit';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('react-router-dom', async () => ({
@@ -31,16 +32,16 @@ vi.mock('../../../../helpers/hooks/useRole');
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
 vi.mock('../../../../helpers/hooks/usePatient');
-vi.mock('../../../../helpers/requests/postPatientAccessAudit', () => ({
-    default: vi.fn().mockReturnValue({ response: { status: 200 } }),
-}));
+vi.mock('../../../../helpers/requests/postPatientAccessAudit');
 
 const mockedUseRole = useRole as Mock;
 const mockedUsePatient = usePatient as Mock;
+const mockedPostPatientAccessAudit = postPatientAccessAudit as Mock;
 
 describe('DeceasedPatientAccessAudit', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
+        mockedPostPatientAccessAudit.mockResolvedValue({ response: { status: 200 } });
     });
 
     describe('Rendering', () => {
@@ -176,6 +177,43 @@ describe('DeceasedPatientAccessAudit', () => {
 
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith(routes.LLOYD_GEORGE);
+            });
+        });
+
+        it('should navigate to session expired page when user session has expired', async () => {
+            const mockPatientDetails = buildPatientDetails();
+            mockedUsePatient.mockReturnValue(mockPatientDetails);
+            mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
+            vi.mocked(postPatientAccessAudit).mockRejectedValueOnce({ response: { status: 403 } });
+
+            renderDeceasedPatientAccessAudit();
+
+            await userEvent.click(
+                screen.getByTestId(`reason-checkbox-${DeceasedAccessAuditReasons.familyRequest}`),
+            );
+            await userEvent.click(screen.getByTestId('form-submit-button'));
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
+            });
+        });
+
+        it('should navigate to server error page when server returns an error', async () => {
+            const mockPatientDetails = buildPatientDetails();
+            mockedUsePatient.mockReturnValue(mockPatientDetails);
+            mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
+            vi.mocked(postPatientAccessAudit).mockRejectedValueOnce({ response: { status: 500 } });
+            renderDeceasedPatientAccessAudit();
+
+            await userEvent.click(
+                screen.getByTestId(`reason-checkbox-${DeceasedAccessAuditReasons.familyRequest}`),
+            );
+            await userEvent.click(screen.getByTestId('form-submit-button'));
+
+            await waitFor(() => {
+                expect(mockedUseNavigate).toHaveBeenCalledWith(
+                    expect.stringContaining(routes.SERVER_ERROR),
+                );
             });
         });
     });

@@ -159,7 +159,7 @@ const DeceasedPatientAccessAudit = (): React.JSX.Element => {
 
             if (isMock(error)) {
                 handleSuccess(accessAuditData);
-            } else if (error.code === '403') {
+            } else if (error.response?.status === 403) {
                 navigate(routes.SESSION_EXPIRED);
             } else {
                 navigate(routes.SERVER_ERROR + errorToParams(error));

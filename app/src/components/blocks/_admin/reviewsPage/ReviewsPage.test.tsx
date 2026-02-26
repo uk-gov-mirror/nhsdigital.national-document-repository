@@ -637,7 +637,7 @@ describe('ReviewsPage', () => {
 
     describe('Error Handling', () => {
         it('navigates to session expired when search returns 403', async () => {
-            mockGetReviews.mockRejectedValueOnce({ code: '403' });
+            mockGetReviews.mockRejectedValueOnce({ response: { status: 403 } });
             renderComponent();
 
             await waitFor(() => {

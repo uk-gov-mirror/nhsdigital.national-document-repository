@@ -85,7 +85,7 @@ const ReviewDetailsCompleteStage = ({
             setLoading(false);
         } catch (e) {
             const error = e as AxiosError;
-            if (error.code === '403') {
+            if (error.response?.status === 403) {
                 navigate(routes.SESSION_EXPIRED);
             } else {
                 navigate(routes.SERVER_ERROR + errorToParams(error));

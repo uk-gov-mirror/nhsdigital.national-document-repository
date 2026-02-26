@@ -890,7 +890,7 @@ describe('ReviewDetailsAssessmentStage', () => {
         it('navigates to SESSION_EXPIRED when getReviewById returns 403', async () => {
             const user = userEvent.setup();
             const mockGetReviewById = vi.spyOn(getReviewsModule, 'getReviewById');
-            mockGetReviewById.mockRejectedValue({ code: '403' });
+            mockGetReviewById.mockRejectedValue({ response: { status: 403 } });
 
             render(
                 <ReviewDetailsAssessmentStage

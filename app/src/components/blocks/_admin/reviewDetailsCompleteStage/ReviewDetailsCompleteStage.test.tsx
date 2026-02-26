@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 import ReviewDetailsCompleteStage from './ReviewDetailsCompleteStage';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import { CompleteState } from '../../../../pages/adminRoutesPage/AdminRoutesPage';
-import { routeChildren } from '../../../../types/generic/routes';
+import { routeChildren, routes } from '../../../../types/generic/routes';
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 import {
@@ -731,6 +731,66 @@ describe('ReviewDetailsCompletePage', () => {
                 reviewData.nhsNumber,
                 expectedRequest,
             );
+        });
+
+        it('should navigate to session expired page if patchReview throws 403', async () => {
+            vi.mocked(mockPatchReview).mockRejectedValueOnce({ response: { status: 403 } });
+
+            const reviewData = new ReviewDetails(
+                'test-review-id',
+                DOCUMENT_TYPE.LLOYD_GEORGE,
+                '2023-10-01T00:00:00Z',
+                'test',
+                '2023-10-01T00:00:00Z',
+                'rejected',
+                '1',
+                mockPatientDetails.nhsNumber,
+            );
+            mockReviewUploadDocuments[0].ref = 'doc-ref-id';
+
+            render(
+                <ReviewDetailsCompleteStage
+                    completeState={CompleteState.PATIENT_MATCHED}
+                    reviewData={reviewData}
+                    reviewUploadDocuments={mockReviewUploadDocuments}
+                />,
+            );
+
+            await waitFor(() => {
+                expect(mockPatchReview).toHaveBeenCalled();
+                expect(mockNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
+            });
+        });
+
+        it('should navigate to server error page if patchReview throws 500', async () => {
+            vi.mocked(mockPatchReview).mockRejectedValueOnce({ response: { status: 500 } });
+
+            const reviewData = new ReviewDetails(
+                'test-review-id',
+                DOCUMENT_TYPE.LLOYD_GEORGE,
+                '2023-10-01T00:00:00Z',
+                'test',
+                '2023-10-01T00:00:00Z',
+                'rejected',
+                '1',
+                mockPatientDetails.nhsNumber,
+            );
+            mockReviewUploadDocuments[0].ref = 'doc-ref-id';
+
+            render(
+                <ReviewDetailsCompleteStage
+                    completeState={CompleteState.PATIENT_MATCHED}
+                    reviewData={reviewData}
+                    reviewUploadDocuments={mockReviewUploadDocuments}
+                />,
+            );
+
+            await waitFor(() => {
+                expect(mockPatchReview).toHaveBeenCalled();
+                expect(mockNavigate).toHaveBeenCalledWith(
+                    expect.stringContaining(routes.SERVER_ERROR),
+                );
+            });
         });
     });
 });

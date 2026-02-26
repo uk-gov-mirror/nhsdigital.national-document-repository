@@ -65,6 +65,7 @@ const ReviewsDetailsStage = ({
     const [session] = useSessionContext();
     const [showError, setShowError] = useState(false);
     const errorSummaryRef = useRef<HTMLDivElement>(null);
+    const fetchingPatientDetailsRef = useRef(false);
     const isFetchingReviewDetailsRef = useRef(false);
 
     const baseUrl = useBaseAPIUrl();
@@ -152,9 +153,9 @@ const ReviewsDetailsStage = ({
             setisLoadingPatientDetails(false);
             return;
         }
+
         const getPatientDetails = async (): Promise<void> => {
-            if (!isFetchingReviewDetailsRef.current) {
-                isFetchingReviewDetailsRef.current = true;
+            try {
                 await handlePatientSearch({
                     nhsNumber: reviewData.nhsNumber,
                     setSearchingState: () => {},
@@ -169,16 +170,27 @@ const ReviewsDetailsStage = ({
                     featureFlags: config.featureFlags,
                 });
                 setisLoadingPatientDetails(false);
+            } catch (error) {
+                const err = error as AxiosError;
+                if (err.response?.status === 403) {
+                    navigate(routes.SESSION_EXPIRED);
+                } else {
+                    navigate(routes.SERVER_ERROR + errorToParams(err));
+                }
             }
         };
-        getPatientDetails();
+
+        if (!fetchingPatientDetailsRef.current) {
+            fetchingPatientDetailsRef.current = true;
+            getPatientDetails();
+        }
     }, [reviewId]);
 
     useEffect(() => {
         const loadData = async (): Promise<void> => {
             let retryCount = 0;
-            const maxRetries = 5;
-            const retryDelayMs = 1000;
+            const maxRetries = 10;
+            const retryDelayMs = 3;
 
             while (retryCount < maxRetries) {
                 try {
@@ -199,7 +211,7 @@ const ReviewsDetailsStage = ({
                         await waitForSeconds(retryDelayMs);
                     } else {
                         const error = e as AxiosError;
-                        if (error.code === '403') {
+                        if (error.response?.status === 403) {
                             navigate(routes.SESSION_EXPIRED);
                             return;
                         }
@@ -209,7 +221,11 @@ const ReviewsDetailsStage = ({
                 }
             }
         };
-        loadData();
+
+        if (!isFetchingReviewDetailsRef.current) {
+            isFetchingReviewDetailsRef.current = true;
+            loadData();
+        }
     }, [patientDetails, setPatientDetails]);
 
     const { register, handleSubmit } = useForm<FormData>({

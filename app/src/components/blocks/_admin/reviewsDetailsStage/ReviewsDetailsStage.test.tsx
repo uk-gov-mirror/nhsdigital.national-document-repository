@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import ReviewsDetailsPageComponent from './ReviewsDetailsStage';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
@@ -16,27 +16,24 @@ import {
     DOCUMENT_UPLOAD_STATE,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
-
-const mockNavigate = vi.fn();
-const mockSetPatientDetails = vi.fn();
-const mockUsePatientDetailsContext = vi.fn();
-const mockUseSessionContext = vi.fn();
+import * as handlePatientSearchModule from '../../../../helpers/utils/handlePatientSearch';
+import { routes } from '../../../../types/generic/routes';
 
 vi.mock('react-router-dom', async (): Promise<unknown> => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
-        useNavigate: () => mockNavigate,
+        useNavigate: (): Mock => mockNavigate,
         useParams: (): { reviewId: string } => ({ reviewId: 'test-review-123' }),
     };
 });
 
 vi.mock('../../../../providers/patientProvider/PatientProvider', () => ({
-    usePatientDetailsContext: (): unknown => mockUsePatientDetailsContext(),
+    usePatientDetailsContext: (): Mock => mockUsePatientDetailsContext(),
 }));
 
 vi.mock('../../../../providers/sessionProvider/SessionProvider', () => ({
-    useSessionContext: (): unknown => mockUseSessionContext(),
+    useSessionContext: (): Mock => mockUseSessionContext(),
 }));
 
 vi.mock('../../../../helpers/hooks/useRole', () => ({
@@ -69,13 +66,16 @@ vi.mock('../../../../helpers/requests/getReviews', () => ({
     }),
 }));
 
-vi.mock('../../../../helpers/utils/handlePatientSearch', () => ({
-    handleSearch: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock('../../../../helpers/utils/handlePatientSearch');
 
 vi.mock('../../../../helpers/utils/waitForSeconds', () => ({
     default: vi.fn().mockResolvedValue(undefined),
 }));
+
+const mockNavigate = vi.fn();
+const mockSetPatientDetails = vi.fn();
+const mockUsePatientDetailsContext = vi.fn();
+const mockUseSessionContext = vi.fn();
 
 const renderComponent = (reviewData?: ReviewDetails, reviewSnoMed?: DOCUMENT_TYPE): void => {
     const currentReviewData =
@@ -751,7 +751,7 @@ describe('ReviewDetailsStage', () => {
         });
 
         it('navigates to SESSION_EXPIRED on 403 error', async () => {
-            const mockLoadReviewData = vi.fn().mockRejectedValue({ code: '403' });
+            const mockLoadReviewData = vi.fn().mockRejectedValue({ response: { status: 403 } });
 
             render(
                 <ReviewsDetailsPageComponent
@@ -1163,6 +1163,32 @@ describe('ReviewDetailsStage', () => {
 
             await waitFor(() => {
                 expect(screen.getByText("Van Der Berg, O'Brien")).toBeInTheDocument();
+            });
+        });
+
+        it('navigates to session expired page when patient search returns 403', async () => {
+            vi.spyOn(handlePatientSearchModule, 'handleSearch').mockRejectedValueOnce({
+                response: { status: 403 },
+            });
+
+            renderComponent(mockReviewData);
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
+            });
+        });
+
+        it('navigates to server error page when patient search returns 500', async () => {
+            vi.spyOn(handlePatientSearchModule, 'handleSearch').mockRejectedValueOnce({
+                response: { status: 500 },
+            });
+
+            renderComponent(mockReviewData);
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(
+                    expect.stringContaining(routes.SERVER_ERROR),
+                );
             });
         });
     });

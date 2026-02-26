@@ -122,7 +122,7 @@ const ReviewDetailsAssessmentStage = ({
             );
         } catch (e) {
             const error = e as AxiosError;
-            if (error.code === '403') {
+            if (error.response?.status === 403) {
                 navigate(routes.SESSION_EXPIRED);
                 return;
             } else {

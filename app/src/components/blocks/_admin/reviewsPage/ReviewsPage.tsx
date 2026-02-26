@@ -162,7 +162,7 @@ export const ReviewsPage = ({ setReviewData }: ReviewsPageProps): React.JSX.Elem
             }
         } catch (e) {
             const error = e as AxiosError;
-            if (error.code === '403') {
+            if (error.response?.status === 403) {
                 navigate(routes.SESSION_EXPIRED);
                 return;
             }
