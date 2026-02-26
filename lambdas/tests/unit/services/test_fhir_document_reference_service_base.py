@@ -565,7 +565,7 @@ def test_create_fhir_response_with_presigned_url(mock_service, mocker):
     result_json = json.loads(result)
     assert result_json["resourceType"] == "DocumentReference"
     assert result_json["content"][0]["attachment"]["url"] == presigned_url
-    assert document_id == f"{SnomedCodes.LLOYD_GEORGE.value.code}~test-id"
+    assert document_id == "test-id"
 
 
 def test_create_fhir_response_without_presigned_url(set_env, mock_service, mocker):

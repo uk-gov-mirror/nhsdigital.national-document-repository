@@ -4,7 +4,6 @@ import logging
 import os
 
 from tests.e2e.api.fhir.conftest import (
-    PDM_SNOMED,
     TEST_NHS_NUMBER,
     retrieve_document_with_retry,
     upload_document,

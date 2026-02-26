@@ -5,7 +5,6 @@ import pytest
 from enums.document_retention import DocumentRetentionDays
 from tests.e2e.api.fhir.conftest import (
     MTLS_ENDPOINT,
-    PDM_SNOMED,
     TEST_NHS_NUMBER,
     UNKNOWN_TEST_NHS_NUMBER,
     create_and_store_pdm_record,

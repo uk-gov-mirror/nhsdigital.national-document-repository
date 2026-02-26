@@ -182,7 +182,7 @@ def test_process_fhir_document_reference_with_presigned_url(
         )
     )
     expected_pre_sign_url = mock_presigned_url_response
-    expected_document_id = f"{SnomedCodes.LLOYD_GEORGE.value.code}~{TEST_UUID}"
+    expected_document_id = TEST_UUID
 
     assert isinstance(json_result, str)
     result_json = json.loads(json_result)
@@ -207,7 +207,7 @@ def test_process_fhir_document_reference_with_binary(
             valid_fhir_doc_with_binary,
         )
     )
-    expected_document_id = f"{SnomedCodes.LLOYD_GEORGE.value.code}~{TEST_UUID}"
+    expected_document_id = TEST_UUID
 
     assert isinstance(json_result, str)
     result_json = json.loads(json_result)

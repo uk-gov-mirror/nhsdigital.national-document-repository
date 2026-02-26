@@ -443,7 +443,7 @@ def test_process_mtls_fhir_document_reference_with_binary(
             valid_mtls_request_context,
         )
     )
-    expected_document_id = f"{SnomedCodes.PATIENT_DATA.value.code}~{TEST_UUID}"
+    expected_document_id = TEST_UUID
 
     assert isinstance(json_result, str)
     result_json = json.loads(json_result)
