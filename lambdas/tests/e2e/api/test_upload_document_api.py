@@ -137,7 +137,7 @@ def test_create_document_presign(test_data, snapshot_json):
 
     retrieve_response = requests.post(url, headers=headers, data=payload)
     upload_response = retrieve_response.json()
-    lloyd_george_record["id"] = upload_response["id"].split("~")[1]
+    lloyd_george_record["id"] = upload_response["id"]
     test_data.append(lloyd_george_record)
     presign_uri = upload_response["content"][0]["attachment"]["url"]
     del upload_response["content"][0]["attachment"]["url"]
@@ -193,7 +193,7 @@ def test_create_document_virus(test_data, snapshot_json):
 
     retrieve_response = requests.post(url, headers=headers, data=payload)
     upload_response = retrieve_response.json()
-    lloyd_george_record["id"] = upload_response["id"].split("~")[1]
+    lloyd_george_record["id"] = upload_response["id"]
     test_data.append(lloyd_george_record)
 
     retrieve_url = (
@@ -233,7 +233,7 @@ def test_create_document_does_not_save_raw(test_data):
     retrieve_response = requests.post(url, headers=headers, data=payload)
     json_response = retrieve_response.json()
 
-    lloyd_george_record["id"] = json_response.get("id").split("~")[1]
+    lloyd_george_record["id"] = json_response.get("id")
     test_data.append(lloyd_george_record)
     doc_ref = data_helper.retrieve_document_reference(record=lloyd_george_record)
     assert "Item" in doc_ref
