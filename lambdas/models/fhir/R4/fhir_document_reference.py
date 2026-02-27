@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Literal, Optional
 
+from pydantic import BaseModel, Field
+
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from models.document_reference import DocumentReference as NdrDocumentReference
@@ -7,11 +9,11 @@ from models.fhir.R4.base_models import (
     CodeableConcept,
     Coding,
     Extension,
+    Identifier,
     Meta,
     Period,
     Reference,
 )
-from pydantic import BaseModel, Field
 from utils.exceptions import FhirDocumentReferenceException
 from utils.ods_utils import PCSE_ODS_CODE
 
@@ -64,7 +66,7 @@ class ContentStabilityExtensionValueCodeableConcept(CodeableConcept):
     """CodeableConcept for content stability."""
 
     coding: List[ContentStabilityExtensionCoding] = Field(
-        default_factory=lambda: [ContentStabilityExtensionCoding()]
+        default_factory=lambda: [ContentStabilityExtensionCoding()],
     )
 
 
@@ -73,7 +75,7 @@ class ContentStabilityExtension(Extension):
 
     url: Literal[CONTENT_STABILITY_URL] = CONTENT_STABILITY_URL
     valueCodeableConcept: ContentStabilityExtensionValueCodeableConcept = Field(
-        default_factory=ContentStabilityExtensionValueCodeableConcept
+        default_factory=ContentStabilityExtensionValueCodeableConcept,
     )
 
 
@@ -136,8 +138,7 @@ class DocumentReference(BaseModel):
             and self.subject.identifier.system == "https://fhir.nhs.uk/Id/nhs-number"
         ):
             return self.subject.identifier.value
-        else:
-            raise FhirDocumentReferenceException("NHS number was not found")
+        raise FhirDocumentReferenceException("NHS number was not found")
 
 
 class DocumentReferenceInfo(BaseModel):
@@ -167,7 +168,7 @@ class DocumentReferenceInfo(BaseModel):
             "identifier": {
                 "system": f"{FHIR_BASE_URL}/{system_suffix}",
                 "value": value,
-            }
+            },
         }
 
     def _create_snomed_coding(self, snomed_code: SnomedCode) -> List[Dict[str, str]]:
@@ -184,7 +185,7 @@ class DocumentReferenceInfo(BaseModel):
                 "system": SNOMED_URL,
                 "code": snomed_code.code,
                 "display": snomed_code.display_name,
-            }
+            },
         ]
 
     def create_nrl_fhir_document_reference_object(self) -> DocumentReference:
@@ -204,25 +205,27 @@ class DocumentReferenceInfo(BaseModel):
             subject=Reference(**self._create_identifier("nhs-number", self.nhs_number)),
             content=[DocumentReferenceContent(attachment=self.attachment)],
             custodian=Reference(
-                **self._create_identifier("ods-organization-code", self.custodian)
+                **self._create_identifier("ods-organization-code", self.custodian),
             ),
             type=CodeableConcept(
-                coding=self._create_snomed_coding(self.snomed_code_doc_type)
+                coding=self._create_snomed_coding(self.snomed_code_doc_type),
             ),
             category=[
                 CodeableConcept(
-                    coding=self._create_snomed_coding(self.snomed_code_category)
-                )
+                    coding=self._create_snomed_coding(self.snomed_code_category),
+                ),
             ],
             author=[
                 Reference(
-                    **self._create_identifier("ods-organization-code", self.custodian)
-                )
+                    **self._create_identifier("ods-organization-code", self.custodian),
+                ),
             ],
             context=DocumentReferenceContext(
                 practiceSetting=CodeableConcept(
-                    coding=self._create_snomed_coding(self.snomed_code_practice_setting)
-                )
+                    coding=self._create_snomed_coding(
+                        self.snomed_code_practice_setting,
+                    ),
+                ),
             ),
         )
 
@@ -233,58 +236,75 @@ class DocumentReferenceInfo(BaseModel):
         return fhir_document_ref
 
     def create_fhir_document_reference_object(
-        self, document: NdrDocumentReference
+        self,
+        document: NdrDocumentReference,
     ) -> DocumentReference:
         """Create a FHIR DocumentReference .
 
         Returns:
             DocumentReference: A FHIR DocumentReference resource
         """
-        if document.custodian in PatientOdsInactiveStatus.list():
-            document.custodian = PCSE_ODS_CODE
+        author_ods = document.author or None
+        custodian_ods = document.custodian or None
+        if self.snomed_code_doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
+            if document.custodian in PatientOdsInactiveStatus.list():
+                document.custodian = PCSE_ODS_CODE
 
-        return DocumentReference(
+            author_ods = document.author or self.custodian
+            custodian_ods = document.custodian or self.custodian
+
+        fhir_doc_ref = DocumentReference(
             resourceType="DocumentReference",
             id=f"{self.snomed_code_doc_type.code}~{document.id}",
             docStatus=document.doc_status,
             type=CodeableConcept(
-                coding=self._create_snomed_coding(self.snomed_code_doc_type)
+                coding=self._create_snomed_coding(self.snomed_code_doc_type),
             ),
             subject=Reference(**self._create_identifier("nhs-number", self.nhs_number)),
             content=[DocumentReferenceContent(attachment=self.attachment)],
             date=document.created,
-            author=[
-                Reference(
-                    **self._create_identifier(
-                        "ods-organization-code", document.author or self.custodian
-                    )
-                )
-            ],
-            custodian=Reference(
-                **self._create_identifier(
-                    "ods-organization-code", document.custodian or self.custodian
-                )
-            ),
             meta=Meta(versionId=document.version),
         )
 
+        if author_ods:
+            fhir_doc_ref.author = [
+                Reference(
+                    identifier=Identifier(
+                        system=f"{FHIR_BASE_URL}/ods-organization-code",
+                        value=author_ods,
+                    ),
+                ),
+            ]
+        if custodian_ods:
+            fhir_doc_ref.custodian = Reference(
+                identifier=Identifier(
+                    system=f"{FHIR_BASE_URL}/ods-organization-code",
+                    value=custodian_ods,
+                ),
+            )
+
+        return fhir_doc_ref
+
     def create_fhir_document_reference_object_basic(
-        self, original_id: str, original_version
+        self,
+        original_id: str,
+        original_version,
     ) -> DocumentReference:
         return DocumentReference(
             resourceType="DocumentReference",
             id=f"{original_id}",
             type=CodeableConcept(
-                coding=self._create_snomed_coding(self.snomed_code_doc_type)
+                coding=self._create_snomed_coding(self.snomed_code_doc_type),
             ),
             subject=Reference(**self._create_identifier("nhs-number", self.nhs_number)),
             content=[DocumentReferenceContent(attachment=self.attachment)],
             author=[
                 Reference(
                     **self._create_identifier(
-                        "ods-organization-code", self.author or self.custodian
-                    )
-                )
+                        "ods-organization-code",
+                        self.author or self.custodian,
+                    ),
+                ),
             ],
             meta=Meta(versionId=original_version),
         )

@@ -70,3 +70,38 @@ def test_file_retrieval(test_data, file_size):
     else:
         expected_presign_uri = f"https://{PDM_S3_BUCKET}.s3.eu-west-2.amazonaws.com/{pdm_record['nhs_number']}/{pdm_record['id']}"
         assert expected_presign_uri in json["content"][0]["attachment"]["url"]
+
+
+@pytest.mark.parametrize(
+    "author, custodian",
+    [
+        ("", ""),
+        ("foobar", "foobar"),
+    ],
+)
+def test_successful_retrieval_of_document_reference_with_and_without_author_and_custodian(
+    test_data,
+    author,
+    custodian,
+):
+    pdm_record = create_and_store_pdm_record(
+        test_data,
+        Author=author,
+        Custodian=custodian,
+    )
+
+    response = get_pdm_document_reference(record_id=pdm_record["id"])
+    assert response.status_code == 200
+
+    response_json = response.json()
+    assert_returned_document_reference(pdm_record, response_json)
+    if author:
+        author_res = response_json.get("author", None)
+        assert author_res[0]["identifier"]["value"] == author
+    else:
+        assert "author" not in response_json
+    if custodian:
+        cust_res = response_json.get("custodian", None)
+        assert cust_res["identifier"]["value"] == custodian
+    else:
+        assert "custodian" not in response_json
