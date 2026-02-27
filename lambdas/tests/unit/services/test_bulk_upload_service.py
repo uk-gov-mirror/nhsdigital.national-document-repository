@@ -3,11 +3,12 @@ from copy import copy
 
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
+
 from enums.document_review_reason import DocumentReviewReason
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.upload_status import UploadStatus
 from enums.virus_scan_result import SCAN_RESULT_TAG_KEY, VirusScanResult
-from freezegun import freeze_time
 from models.pds_models import Patient
 from repositories.bulk_upload.bulk_upload_s3_repository import BulkUploadS3Repository
 from repositories.bulk_upload.bulk_upload_sqs_repository import BulkUploadSqsRepository
@@ -74,10 +75,13 @@ def repo_with_review_enabled(set_env, mocker):
     mocker.patch("services.bulk_upload_service.BulkUploadSqsRepository")
     mocker.patch("services.bulk_upload_service.BulkUploadS3Repository")
     mocker.patch(
-        "services.bulk_upload_service.allowed_to_ingest_ods_code", return_value=True
+        "services.bulk_upload_service.allowed_to_ingest_ods_code",
+        return_value=True,
     )
     service = BulkUploadService(
-        strict_mode=True, bypass_pds=False, send_to_review_enabled=True
+        strict_mode=True,
+        bypass_pds=False,
+        send_to_review_enabled=True,
     )
     yield service
 
@@ -163,13 +167,15 @@ def mock_back_to_queue(mocker):
 
 
 def build_resolved_file_names_cache(
-    file_path_in_metadata: list[str], file_path_in_s3: list[str]
+    file_path_in_metadata: list[str],
+    file_path_in_s3: list[str],
 ) -> dict:
     return dict(zip(file_path_in_metadata, file_path_in_s3))
 
 
 def test_lambda_handler_process_each_sqs_message_one_by_one(
-    set_env, mock_handle_sqs_message
+    set_env,
+    mock_handle_sqs_message,
 ):
     service = BulkUploadService(True)
 
@@ -181,7 +187,8 @@ def test_lambda_handler_process_each_sqs_message_one_by_one(
 
 
 def test_lambda_handler_continue_process_next_message_after_handled_error(
-    set_env, mock_handle_sqs_message
+    set_env,
+    mock_handle_sqs_message,
 ):
     # emulate that unexpected error happen at 2nd message
     mock_handle_sqs_message.side_effect = [
@@ -197,7 +204,9 @@ def test_lambda_handler_continue_process_next_message_after_handled_error(
 
 
 def test_lambda_handler_handle_pds_too_many_requests_exception(
-    set_env, mock_handle_sqs_message, mock_back_to_queue
+    set_env,
+    mock_handle_sqs_message,
+    mock_back_to_queue,
 ):
     # emulate that unexpected error happen at 7th message
     mock_handle_sqs_message.side_effect = (
@@ -232,10 +241,12 @@ def test_handle_sqs_message_happy_path(
     TEST_STAGING_METADATA.retries = 0
 
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_report_upload_complete = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
         repo_under_test.bulk_upload_s3_repository,
@@ -245,7 +256,8 @@ def test_handle_sqs_message_happy_path(
 
     repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
     mock_create_lg_records_and_copy_files.assert_called_with(
-        TEST_STAGING_METADATA, TEST_CURRENT_GP_ODS
+        TEST_STAGING_METADATA,
+        TEST_CURRENT_GP_ODS,
     )
     mock_pds_validation_strict.assert_called()
     mock_report_upload_complete.assert_called()
@@ -265,11 +277,13 @@ def test_handle_sqs_message_happy_path_single_file(
 ):
     TEST_STAGING_METADATA.retries = 0
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_create_lg_records_and_copy_files.return_value = TEST_DOCUMENT_REFERENCE
     mock_report_upload_complete = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
         repo_under_test.bulk_upload_s3_repository,
@@ -280,7 +294,8 @@ def test_handle_sqs_message_happy_path_single_file(
     repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE_SINGLE_FILE)
 
     mock_create_lg_records_and_copy_files.assert_called_with(
-        TEST_STAGING_METADATA_SINGLE_FILE, TEST_CURRENT_GP_ODS
+        TEST_STAGING_METADATA_SINGLE_FILE,
+        TEST_CURRENT_GP_ODS,
     )
     mock_report_upload_complete.assert_called()
     mock_remove_ingested_file_from_source_bucket.assert_called()
@@ -288,13 +303,15 @@ def test_handle_sqs_message_happy_path_single_file(
 
 
 def set_up_mocks_for_non_ascii_files(
-    service: BulkUploadService, mocker, patient_name_on_s3: str
+    service: BulkUploadService,
+    mocker,
+    patient_name_on_s3: str,
 ):
     service.s3_service = mocker.MagicMock()
     service.dynamo_repository = mocker.MagicMock()
 
     expected_s3_file_paths = make_s3_file_paths(
-        make_valid_lg_file_names(total_number=3, patient_name=patient_name_on_s3)
+        make_valid_lg_file_names(total_number=3, patient_name=patient_name_on_s3),
     )
 
     def mock_file_exist_on_s3(file_key: str) -> bool:
@@ -309,11 +326,14 @@ def set_up_mocks_for_non_ascii_files(
             return VirusScanResult.CLEAN
 
         raise RuntimeError(
-            "Unexpected S3 tag calls during non-ascii file name test case."
+            "Unexpected S3 tag calls during non-ascii file name test case.",
         )
 
     def mock_copy_across_bucket(
-        source_bucket: str, source_file_key: str, dest_bucket: str, **_kwargs
+        source_bucket: str,
+        source_file_key: str,
+        dest_bucket: str,
+        **_kwargs,
     ):
         if (
             source_bucket == MOCK_STAGING_STORE_BUCKET
@@ -354,7 +374,7 @@ def test_handle_sqs_message_happy_path_with_non_ascii_filenames(
     repo_under_test.bulk_upload_s3_repository.lg_bucket_name = MOCK_LG_BUCKET
     set_up_mocks_for_non_ascii_files(repo_under_test, mocker, patient_name_on_s3)
     test_staging_metadata = build_test_staging_metadata_from_patient_name(
-        patient_name_in_metadata_file
+        patient_name_in_metadata_file,
     )
     test_sqs_message = build_test_sqs_message(test_staging_metadata)
 
@@ -377,17 +397,19 @@ def test_handle_sqs_message_calls_report_upload_failure_when_patient_record_alre
     TEST_STAGING_METADATA.retries = 0
 
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
         repo_under_test.bulk_upload_s3_repository,
         "remove_ingested_file_from_source_bucket",
     )
     mock_report_upload_failure = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mocked_error = PatientRecordAlreadyExistException(
-        "Lloyd George already exists for patient, upload cancelled."
+        "Lloyd George already exists for patient, upload cancelled.",
     )
     mock_validate_files.side_effect = mocked_error
 
@@ -396,7 +418,10 @@ def test_handle_sqs_message_calls_report_upload_failure_when_patient_record_alre
     mock_create_lg_records_and_copy_files.assert_not_called()
     mock_remove_ingested_file_from_source_bucket.assert_not_called()
     mock_report_upload_failure.assert_called_with(
-        TEST_STAGING_METADATA, UploadStatus.FAILED, str(mocked_error), "Y12345"
+        TEST_STAGING_METADATA,
+        UploadStatus.FAILED,
+        str(mocked_error),
+        "Y12345",
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
@@ -412,17 +437,19 @@ def test_handle_sqs_message_calls_report_upload_failure_when_lg_file_name_invali
 ):
     TEST_STAGING_METADATA.retries = 0
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
         repo_under_test.bulk_upload_s3_repository,
         "remove_ingested_file_from_source_bucket",
     )
     mock_report_upload_failure = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mocked_error = LGInvalidFilesException(
-        "One or more of the files do not match naming convention"
+        "One or more of the files do not match naming convention",
     )
     mock_validate_files.side_effect = mocked_error
 
@@ -452,10 +479,12 @@ def test_handle_sqs_message_report_failure_when_document_is_infected(
 ):
     TEST_STAGING_METADATA.retries = 0
     mock_report_upload_failure = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
         repo_under_test.bulk_upload_s3_repository,
@@ -494,7 +523,8 @@ def test_handle_sqs_message_report_failure_when_document_not_exist(
         S3FileNotFoundException
     )
     mock_report_upload_failure = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
 
     repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
@@ -520,7 +550,8 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_is_forma
     mock_ods_validation,
 ):
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_remove_ingested_file_from_source_bucket = (
         repo_under_test.bulk_upload_s3_repository.remove_ingested_file_from_source_bucket
@@ -557,7 +588,8 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_is_infor
     mock_ods_validation,
 ):
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_pds_validation_strict.return_value = True
     mock_remove_ingested_file_from_source_bucket = (
@@ -594,7 +626,8 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_has_hist
     mock_ods_validation,
 ):
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_pds_validation_strict.return_value = True
     mock_remove_ingested_file_from_source_bucket = (
@@ -631,7 +664,8 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_is_infor
     mock_ods_validation,
 ):
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_pds_validation_strict.return_value = False
     mock_remove_ingested_file_from_source_bucket = (
@@ -672,17 +706,20 @@ def test_handle_sqs_message_put_staging_metadata_back_to_queue_when_virus_scan_r
         VirusScanNoResultException
     )
     mock_report_upload_failure = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
         repo_under_test.bulk_upload_s3_repository,
         "remove_ingested_file_from_source_bucket",
     )
     mock_put_staging_metadata_back_to_queue = mocker.patch.object(
-        repo_under_test.sqs_repository, "put_staging_metadata_back_to_queue"
+        repo_under_test.sqs_repository,
+        "put_staging_metadata_back_to_queue",
     )
 
     repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
@@ -710,13 +747,16 @@ def test_handle_sqs_message_rollback_transaction_when_validation_pass_but_file_t
 
     TEST_STAGING_METADATA.retries = 0
     mock_rollback_transaction_s3 = mocker.patch.object(
-        repo_under_test.bulk_upload_s3_repository, "rollback_transaction"
+        repo_under_test.bulk_upload_s3_repository,
+        "rollback_transaction",
     )
     mock_rollback_transaction_dynamo = mocker.patch.object(
-        repo_under_test.dynamo_repository, "rollback_transaction"
+        repo_under_test.dynamo_repository,
+        "rollback_transaction",
     )
     mock_report_upload_failure = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
         repo_under_test.bulk_upload_s3_repository,
@@ -752,11 +792,14 @@ def test_handle_sqs_message_rollback_transaction_when_validation_pass_but_file_t
 
 
 def test_handle_sqs_message_raise_InvalidMessageException_when_failed_to_extract_data_from_message(
-    repo_under_test, set_env, mocker
+    repo_under_test,
+    set_env,
+    mocker,
 ):
     invalid_message = {"body": "invalid content"}
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
 
     with pytest.raises(InvalidMessageException):
@@ -766,11 +809,13 @@ def test_handle_sqs_message_raise_InvalidMessageException_when_failed_to_extract
 
 
 def test_validate_files_raise_LGInvalidFilesException_when_file_names_invalid(
-    repo_under_test, set_env, mock_validate_files
+    repo_under_test,
+    set_env,
+    mock_validate_files,
 ):
     TEST_STAGING_METADATA.retries = 0
     invalid_file_name_metadata_as_json = json.dumps(
-        TEST_STAGING_METADATA_WITH_INVALID_FILENAME.model_dump()
+        TEST_STAGING_METADATA_WITH_INVALID_FILENAME.model_dump(),
     )
     mock_validate_files.side_effect = LGInvalidFilesException
 
@@ -781,7 +826,11 @@ def test_validate_files_raise_LGInvalidFilesException_when_file_names_invalid(
 
 @freeze_time("2023-10-2 13:00:00")
 def test_reports_failure_when_max_retries_reached(
-    set_env, mocker, mock_uuid, repo_under_test, mock_validate_files
+    set_env,
+    mocker,
+    mock_uuid,
+    repo_under_test,
+    mock_validate_files,
 ):
     mocker.patch("uuid.uuid4", return_value="123412342")
 
@@ -795,7 +844,8 @@ def test_reports_failure_when_max_retries_reached(
 
 
 def test_resolve_source_file_path_when_filenames_dont_have_accented_chars(
-    set_env, repo_under_test
+    set_env,
+    repo_under_test,
 ):
     expected = {
         file.file_path: file.file_path.lstrip("/")
@@ -819,7 +869,11 @@ def test_resolve_source_file_path_when_filenames_dont_have_accented_chars(
     ids=["NFC --> NFC", "NFC --> NFD", "NFD --> NFC", "NFD --> NFD"],
 )
 def test_resolve_source_file_path_when_filenames_have_accented_chars(
-    set_env, mocker, patient_name_on_s3, patient_name_in_metadata_file, repo_under_test
+    set_env,
+    mocker,
+    patient_name_on_s3,
+    patient_name_in_metadata_file,
+    repo_under_test,
 ):
     patient_name = "Évèlynêë François Ågāřdñ"
     expected_cache = {}
@@ -833,7 +887,7 @@ def test_resolve_source_file_path_when_filenames_have_accented_chars(
 
     set_up_mocks_for_non_ascii_files(repo_under_test, mocker, patient_name_on_s3)
     test_staging_metadata = build_test_staging_metadata_from_patient_name(
-        patient_name_in_metadata_file
+        patient_name_in_metadata_file,
     )
     repo_under_test.resolve_source_file_path(test_staging_metadata)
     actual = repo_under_test.file_path_cache
@@ -842,7 +896,9 @@ def test_resolve_source_file_path_when_filenames_have_accented_chars(
 
 
 def test_resolves_source_file_path_raise_S3FileNotFoundException_if_filename_cant_match(
-    set_env, mocker, repo_under_test
+    set_env,
+    mocker,
+    repo_under_test,
 ):
     patient_name_on_s3 = "Some Name That Not Matching Metadata File"
     patient_name_in_metadata_file = NAME_WITH_ACCENT_NFC_FORM
@@ -852,7 +908,7 @@ def test_resolves_source_file_path_raise_S3FileNotFoundException_if_filename_can
 
     set_up_mocks_for_non_ascii_files(repo_under_test, mocker, patient_name_on_s3)
     test_staging_metadata = build_test_staging_metadata_from_patient_name(
-        patient_name_in_metadata_file
+        patient_name_in_metadata_file,
     )
 
     with pytest.raises(S3FileNotFoundException):
@@ -862,16 +918,17 @@ def test_resolves_source_file_path_raise_S3FileNotFoundException_if_filename_can
 def test_create_lg_records_and_copy_files(set_env, mocker, mock_uuid, repo_under_test):
     test_document_reference = copy(TEST_DOCUMENT_REFERENCE)
     repo_under_test.convert_to_document_reference = mocker.MagicMock(
-        return_value=test_document_reference
+        return_value=test_document_reference,
     )
     repo_under_test.bulk_upload_s3_repository.copy_to_lg_bucket = mocker.MagicMock(
-        return_value=MOCK_COPY_OBJECT_RESPONSE
+        return_value=MOCK_COPY_OBJECT_RESPONSE,
     )
     TEST_STAGING_METADATA.retries = 0
     repo_under_test.resolve_source_file_path(TEST_STAGING_METADATA)
 
     repo_under_test.create_lg_records_and_copy_files(
-        TEST_STAGING_METADATA, TEST_CURRENT_GP_ODS
+        TEST_STAGING_METADATA,
+        TEST_CURRENT_GP_ODS,
     )
 
     nhs_number = TEST_STAGING_METADATA.nhs_number
@@ -890,7 +947,7 @@ def test_create_lg_records_and_copy_files(set_env, mocker, mock_uuid, repo_under
         )
     assert repo_under_test.bulk_upload_s3_repository.copy_to_lg_bucket.call_count == 3
     repo_under_test.dynamo_repository.create_record_in_lg_dynamo_table.assert_any_call(
-        test_document_reference
+        test_document_reference,
     )
     assert (
         repo_under_test.dynamo_repository.create_record_in_lg_dynamo_table.call_count
@@ -916,24 +973,32 @@ def test_convert_to_document_reference(set_env, mock_uuid, repo_under_test):
 
 @freeze_time("2024-01-01 12:00:00")
 def test_reject_document_reference_if_missing_scan_date(
-    set_env, mock_uuid, repo_under_test, mocker
+    set_env,
+    mock_uuid,
+    mock_pds_service,
+    repo_under_test,
+    mocker,
 ):
     TEST_STAGING_METADATA.retries = 0
     modify_test_sqs_message = json.loads(TEST_SQS_MESSAGE.get("body"))
     modify_test_sqs_message["files"][0]["scan_date"] = ""
     TEST_STAGING_METADATA.files[0].scan_date = ""
     mock_report_upload_failure = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
 
     repo_under_test.handle_sqs_message(
-        message={"body": json.dumps(modify_test_sqs_message)}
+        message={"body": json.dumps(modify_test_sqs_message)},
     )
 
     repo_under_test.dynamo_repository.write_report_upload_to_dynamo.assert_called()
 
     mock_report_upload_failure.assert_called_with(
-        TEST_STAGING_METADATA, UploadStatus.FAILED, "Invalid scan date format", ""
+        TEST_STAGING_METADATA,
+        UploadStatus.FAILED,
+        "Invalid scan date format",
+        "Y12345",
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
@@ -948,7 +1013,8 @@ def test_raise_client_error_from_ssm_with_pds_service(
     mock_pds_validation_strict,
 ):
     mock_client_error = ClientError(
-        {"Error": {"Code": "500", "Message": "test error"}}, "testing"
+        {"Error": {"Code": "500", "Message": "test error"}},
+        "testing",
     )
     mock_ods_validation.side_effect = mock_client_error
     with pytest.raises(ClientError):
@@ -989,10 +1055,12 @@ def test_create_lg_records_and_copy_files_client_error(
 ):
     TEST_STAGING_METADATA.retries = 0
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        repo_under_test, "create_lg_records_and_copy_files"
+        repo_under_test,
+        "create_lg_records_and_copy_files",
     )
     mock_rollback_transaction = mocker.patch.object(
-        repo_under_test, "rollback_transaction"
+        repo_under_test,
+        "rollback_transaction",
     )
     mock_client_error = ClientError(
         {"Error": {"Code": "AccessDenied", "Message": "Access Denied"}},
@@ -1025,10 +1093,12 @@ def test_handle_sqs_message_happy_path_historical_name(
 ):
     TEST_STAGING_METADATA.retries = 0
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_report_upload_complete = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
         repo_under_test.bulk_upload_s3_repository,
@@ -1040,7 +1110,8 @@ def test_handle_sqs_message_happy_path_historical_name(
     repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
 
     mock_create_lg_records_and_copy_files.assert_called_with(
-        TEST_STAGING_METADATA, TEST_CURRENT_GP_ODS
+        TEST_STAGING_METADATA,
+        TEST_CURRENT_GP_ODS,
     )
     mock_report_upload_complete.assert_called()
     mock_report_upload_complete.assert_called_with(
@@ -1068,19 +1139,23 @@ def test_handle_sqs_message_lenient_mode_happy_path(
     mocker.patch.object(service, "sqs_repository")
     mocker.patch.object(service, "bulk_upload_s3_repository")
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_report_upload_complete = mocker.patch.object(
-        service.dynamo_repository, "write_report_upload_to_dynamo"
+        service.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
-        service.bulk_upload_s3_repository, "remove_ingested_file_from_source_bucket"
+        service.bulk_upload_s3_repository,
+        "remove_ingested_file_from_source_bucket",
     )
     mocker.patch.object(service.bulk_upload_s3_repository, "check_virus_result")
 
     service.handle_sqs_message(message=TEST_SQS_MESSAGE)
     mock_create_lg_records_and_copy_files.assert_called_with(
-        TEST_STAGING_METADATA, TEST_CURRENT_GP_ODS
+        TEST_STAGING_METADATA,
+        TEST_CURRENT_GP_ODS,
     )
     mock_pds_validation_lenient.assert_called()
     mock_pds_validation_strict.assert_not_called()
@@ -1092,18 +1167,22 @@ def test_concatenate_acceptance_reason(repo_under_test):
     accepted_reason = None
     test_reason = "test_reason_1"
     actual_reason = repo_under_test.concatenate_acceptance_reason(
-        accepted_reason, test_reason
+        accepted_reason,
+        test_reason,
     )
     assert actual_reason == test_reason
     another_test_reason = "test_reason_2"
     another_actual_reason = repo_under_test.concatenate_acceptance_reason(
-        actual_reason, another_test_reason
+        actual_reason,
+        another_test_reason,
     )
     assert another_actual_reason == test_reason + ", " + another_test_reason
 
 
 def test_patient_not_found_is_caught_and_written_to_dynamo(
-    repo_under_test, mock_validate_files, mocker
+    repo_under_test,
+    mock_validate_files,
+    mocker,
 ):
     expected_error_message = "Could not find the given patient on PDS"
     mocker.patch(
@@ -1167,7 +1246,8 @@ def test_check_file_tag_status_returns_empty_string_when_tag_missing(repo, file_
 @pytest.mark.parametrize("fragment", ["AccessDenied", "NoSuchKey"])
 def test_wraps_access_errors_as_s3_not_found(repo, file_key, fragment):
     repo.s3_repository.get_tag_value.side_effect = ClientError(
-        {"Error": {"Code": "S3Error", "Message": fragment}}, "GetObject"
+        {"Error": {"Code": "S3Error", "Message": fragment}},
+        "GetObject",
     )
 
     with pytest.raises(S3FileNotFoundException):
@@ -1197,10 +1277,12 @@ def test_handle_sqs_message_report_failure_when_pdf_is_corrupt(
 ):
     TEST_STAGING_METADATA.retries = 0
     mock_report_upload_failure = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
         repo_under_test.bulk_upload_s3_repository,
@@ -1236,10 +1318,12 @@ def test_handle_sqs_message_report_failure_when_pdf_integrity_check_file_not_fou
 ):
     TEST_STAGING_METADATA.retries = 0
     mock_report_upload_failure = mocker.patch.object(
-        repo_under_test.dynamo_repository, "write_report_upload_to_dynamo"
+        repo_under_test.dynamo_repository,
+        "write_report_upload_to_dynamo",
     )
     mock_create_lg_records_and_copy_files = mocker.patch.object(
-        BulkUploadService, "create_lg_records_and_copy_files"
+        BulkUploadService,
+        "create_lg_records_and_copy_files",
     )
     mock_remove_ingested_file_from_source_bucket = mocker.patch.object(
         repo_under_test.bulk_upload_s3_repository,
@@ -1280,7 +1364,9 @@ def test_sends_demographic_error_when_flag_enabled(set_env, repo_with_review_ena
 
 
 def test_sends_to_review_queue_when_patient_not_found(
-    repo_with_review_enabled, mock_validate_files, mocker
+    repo_with_review_enabled,
+    mock_validate_files,
+    mocker,
 ):
     expected_error_message = "Could not find the given patient on PDS"
     mocker.patch(
@@ -1304,10 +1390,13 @@ def test_sends_to_review_queue_when_patient_not_found(
 
 
 def test_sends_to_review_queue_when_invalid_files(
-    repo_with_review_enabled, mock_validate_files, mock_pds_service, mocker
+    repo_with_review_enabled,
+    mock_validate_files,
+    mock_pds_service,
+    mocker,
 ):
     mocked_error = LGInvalidFilesException(
-        "One or more of the files do not match naming convention"
+        "One or more of the files do not match naming convention",
     )
     mock_validate_files.side_effect = mocked_error
 
@@ -1321,7 +1410,10 @@ def test_sends_to_review_queue_when_invalid_files(
 
 
 def test_does_not_send_to_review_queue_when_virus_scan_fails(
-    repo_with_review_enabled, mock_validate_files, mock_pds_service, mocker
+    repo_with_review_enabled,
+    mock_validate_files,
+    mock_pds_service,
+    mocker,
 ):
     mocker.patch.object(
         repo_with_review_enabled.bulk_upload_s3_repository,
@@ -1335,10 +1427,14 @@ def test_does_not_send_to_review_queue_when_virus_scan_fails(
 
 
 def test_does_not_send_to_review_queue_when_file_corrupted(
-    repo_with_review_enabled, mock_validate_files, mock_pds_service, mocker
+    repo_with_review_enabled,
+    mock_validate_files,
+    mock_pds_service,
+    mocker,
 ):
     mocker.patch.object(
-        repo_with_review_enabled.bulk_upload_s3_repository, "check_virus_result"
+        repo_with_review_enabled.bulk_upload_s3_repository,
+        "check_virus_result",
     )
     mocker.patch.object(
         repo_with_review_enabled.bulk_upload_s3_repository,
@@ -1352,7 +1448,10 @@ def test_does_not_send_to_review_queue_when_file_corrupted(
 
 
 def test_does_not_send_to_review_queue_when_s3_file_not_found(
-    repo_with_review_enabled, mock_validate_files, mock_pds_service, mocker
+    repo_with_review_enabled,
+    mock_validate_files,
+    mock_pds_service,
+    mocker,
 ):
     mocker.patch.object(
         repo_with_review_enabled.bulk_upload_s3_repository,

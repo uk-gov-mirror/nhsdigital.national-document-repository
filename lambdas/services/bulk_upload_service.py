@@ -4,6 +4,7 @@ import uuid
 
 import pydantic
 from botocore.exceptions import ClientError
+
 from enums.document_review_reason import DocumentReviewReason
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.snomed_codes import SnomedCodes
@@ -138,6 +139,15 @@ class BulkUploadService:
         logger.info("SQS event is valid. Validating NHS number and file names")
 
         try:
+            validate_nhs_number(staging_metadata.nhs_number)
+            request_context.patient_nhs_no = staging_metadata.nhs_number
+            pds_patient_details = getting_patient_info_from_pds(
+                staging_metadata.nhs_number,
+            )
+            patient_ods_code = (
+                pds_patient_details.get_ods_code_or_inactive_status_for_gp()
+            )
+
             file_names = []
             for file_metadata in staging_metadata.files:
                 file_names.append(os.path.basename(file_metadata.stored_file_name))
@@ -145,15 +155,6 @@ class BulkUploadService:
                 file_metadata.file_path = self.strip_leading_slash(
                     file_metadata.file_path,
                 )
-            request_context.patient_nhs_no = staging_metadata.nhs_number
-            validate_nhs_number(staging_metadata.nhs_number)
-            pds_patient_details = getting_patient_info_from_pds(
-                staging_metadata.nhs_number,
-            )
-
-            patient_ods_code = (
-                pds_patient_details.get_ods_code_or_inactive_status_for_gp()
-            )
 
             validate_lg_file_names(file_names, staging_metadata.nhs_number)
 
