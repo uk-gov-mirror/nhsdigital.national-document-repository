@@ -251,6 +251,9 @@ describe('DocumentSelectOrderStage', () => {
             );
 
             const positionSelect = screen.getByTestId('1');
+            await waitFor(() => {
+                expect(positionSelect).not.toBeDisabled();
+            });
             await user.selectOptions(positionSelect, '2');
 
             expect(mockSetDocuments).toHaveBeenCalled();

@@ -27,6 +27,7 @@ import { DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 import { CreatedByText } from '../../../generic/createdBy/createdBy';
 import { getFormattedDateTimeFromString } from '../../../../helpers/utils/formatDate';
 import { ReviewDetails } from '../../../../types/generic/reviews';
+import SpinnerV2 from '../../../generic/spinnerV2/SpinnerV2';
 
 type Props = {
     documents: UploadDocument[] | ReviewUploadDocument[];
@@ -118,7 +119,6 @@ const DocumentSelectOrderStage = ({
             },
             onChange: updateDocumentPositions,
         });
-
         const hasErr = !!formState.errors[key];
         const ariaDescribedBy = hasErr ? `${key}-error` : undefined;
         const document = documents.find((doc) => doc.id === documentId)!;
@@ -141,6 +141,7 @@ const DocumentSelectOrderStage = ({
                             aria-describedby={ariaDescribedBy}
                             aria-invalid={hasErr}
                             aria-label="Select document position"
+                            disabled={!stitchedBlobLoaded}
                             className="nhsuk-select"
                             data-testid={key}
                             id={`${key}-select`}
@@ -160,6 +161,7 @@ const DocumentSelectOrderStage = ({
                             })}
                         </Select>
                     </span>
+                    {!stitchedBlobLoaded && <SpinnerV2 status="Stitching PDF" />}
                 </fieldset>
             </div>
         );
@@ -289,7 +291,7 @@ const DocumentSelectOrderStage = ({
                         <button
                             type="button"
                             aria-label={`Remove ${document.file.name} from selection`}
-                            className="link-button"
+                            className={`link-button ${stitchedBlobLoaded ? '' : 'nhsuk-button--disabled'}`}
                             onClick={(): void => {
                                 onRemove(index);
                             }}
