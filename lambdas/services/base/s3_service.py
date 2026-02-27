@@ -7,6 +7,7 @@ from typing import Any, Mapping
 import boto3
 from botocore.client import Config as BotoConfig
 from botocore.exceptions import ClientError
+
 from services.base.iam_service import IAMService
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import TagNotFoundException
@@ -304,3 +305,22 @@ class S3Service:
                 keys.append(obj["Key"])
 
         return keys
+
+    def get_object_tags_versioned(
+        self,
+        bucket: str,
+        key: str,
+        version_id: str | None,
+    ) -> list[dict[str, str]]:
+        try:
+            params = {"Bucket": bucket, "Key": key}
+            if version_id:
+                params["VersionId"] = version_id
+            response = self.client.get_object_tagging(**params)
+            return response.get("TagSet", [])
+        except ClientError as e:
+            logger.error(
+                f"Failed to get object tags for s3://{bucket}/{key} with this version_id {version_id}",
+            )
+            logger.error(f"Got the following exception :{e}")
+            return []

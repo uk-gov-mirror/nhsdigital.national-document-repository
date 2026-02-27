@@ -866,3 +866,17 @@ jobs:
       lambda_layer_names: "core_lambda_layer"
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  deploy_report_s3_content_lambda:
+    name: Deploy Report S3 Content Lambda
+    uses: ./.github/workflows/base-lambdas-reusable-deploy.yml
+    with:
+      environment: ${{ inputs.environment }}
+      python_version: ${{ inputs.python_version }}
+      build_branch: ${{ inputs.build_branch }}
+      sandbox: ${{ inputs.sandbox }}
+      lambda_handler_name: report_s3_content_handler
+      lambda_aws_name: ReportS3Content
+      lambda_layer_names: "core_lambda_layer"
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
