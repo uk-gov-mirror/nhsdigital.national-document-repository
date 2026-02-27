@@ -65,4 +65,30 @@ describe('DownloadReportCompleteStage', () => {
             `${routes.REPORT_DOWNLOAD}?reportType=${report.reportType}`,
         );
     });
+
+    it('should display "for:" in heading when report type is PATIENT', () => {
+        const report = {
+            title: 'Lloyd George summary report',
+            reportType: REPORT_TYPE.ODS_PATIENT_SUMMARY,
+        } as ReportData;
+
+        render(<DownloadReportCompleteStage report={report} />);
+
+        const heading = screen.getByTestId('report-download-complete-header');
+        expect(heading.textContent).toBe(
+            'You have downloaded the Lloyd George summary report for:',
+        );
+    });
+
+    it('should display "to review" in heading when report type is REVIEW', () => {
+        const report = {
+            title: 'Documents review summary report',
+            reportType: REPORT_TYPE.ODS_REVIEW_SUMMARY,
+        } as ReportData;
+
+        render(<DownloadReportCompleteStage report={report} />);
+
+        const heading = screen.getByTestId('report-download-complete-header');
+        expect(heading.textContent).toBe('You have downloaded the report on documents to review');
+    });
 });

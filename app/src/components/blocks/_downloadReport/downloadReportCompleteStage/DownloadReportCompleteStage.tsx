@@ -22,7 +22,9 @@ const DownloadReportCompleteStage = (props: Props): JSX.Element => {
                         data-testid="report-download-complete-header"
                         headingLevel="h1"
                     >
-                        You have downloaded the {props.report.title} for:
+                        {props.report.reportType === 'PATIENT'
+                            ? `You have downloaded the ${props.report.title} for:`
+                            : `You have downloaded the report on documents to review`}
                     </Card.Heading>
                     <Card.Description
                         className="report_download-complete_details-content_description"
