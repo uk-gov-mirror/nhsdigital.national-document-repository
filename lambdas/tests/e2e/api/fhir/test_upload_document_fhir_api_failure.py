@@ -143,3 +143,55 @@ def test_create_document_with_invalid_author_returns_error(test_data, author_pay
     assert (
         response_json["issue"][0]["details"]["coding"][0]["code"] == "VALIDATION_ERROR"
     )
+
+
+def test_create_document_password_protected_docx(test_data):
+    record = {
+        "ods": "H81109",
+        "nhs_number": "9730241708",
+    }
+
+    sample_docx_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "files",
+            "password-protected.docx",
+        ),
+    )
+    if not os.path.exists(sample_docx_path):
+        pytest.skip("Password-protected DOCX fixture not found.")
+
+    with open(sample_docx_path, "rb") as f:
+        record["data"] = base64.b64encode(f.read()).decode("utf-8")
+
+    payload = pdm_data_helper.create_upload_payload(
+        record,
+        content_type=(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ),
+        title=(
+            "1of1_Lloyd_George_Record_[Paula Esme VESEY]_[9730154261]_[22-01-1960].docx"
+        ),
+    )
+
+    raw_upload_response = upload_document(payload)
+    assert raw_upload_response.status_code == 201
+    upload_response = raw_upload_response.json()
+    record["id"] = upload_response["id"].split("~")[1]
+    test_data.append(record)
+
+    def condition(response_json):
+        logging.info(response_json)
+        return response_json.get("docStatus") in (
+            "cancelled",
+            "final",
+        )
+
+    raw_retrieve_response = retrieve_document_with_retry(
+        upload_response["id"],
+        condition,
+    )
+    retrieve_response = raw_retrieve_response.json()
+
+    assert retrieve_response["docStatus"] == "cancelled"

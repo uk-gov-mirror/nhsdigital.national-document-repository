@@ -3,8 +3,10 @@ import json
 import logging
 import os
 
+import pytest
 import requests
 from syrupy.filters import paths
+
 from tests.e2e.conftest import (
     API_ENDPOINT,
     API_KEY,
@@ -18,7 +20,12 @@ from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 data_helper = LloydGeorgeDataHelper()
 
 
-def create_upload_payload(lloyd_george_record, exclude: list[str] | None = None):
+def create_upload_payload(
+    lloyd_george_record,
+    exclude: list[str] | None = None,
+    content_type: str = "application/pdf",
+    title: str = "1of1_Lloyd_George_Record_[Paula Esme VESEY]_[9730153973]_[22-01-1960].pdf",
+):
     sample_payload = {
         "resourceType": "DocumentReference",
         "type": {
@@ -54,9 +61,9 @@ def create_upload_payload(lloyd_george_record, exclude: list[str] | None = None)
             {
                 "attachment": {
                     "creation": "2023-01-01",
-                    "contentType": "application/pdf",
+                    "contentType": content_type,
                     "language": "en-GB",
-                    "title": "1of1_Lloyd_George_Record_[Paula Esme VESEY]_[9730153973]_[22-01-1960].pdf",
+                    "title": title,
                 },
             },
         ],
@@ -256,4 +263,116 @@ def test_create_document_without_title_raises_error(test_data):
     assert (
         json_response["issue"][0]["diagnostics"]
         == "Failed to parse document upload request data"
+    )
+
+
+def test_create_document_password_protected_docx(test_data, snapshot_json):
+    lloyd_george_record = {}
+    lloyd_george_record["ods"] = "H81109"
+    lloyd_george_record["nhs_number"] = "9730154783"
+
+    sample_docx_path = os.path.join(
+        os.path.dirname(__file__),
+        "files",
+        "password-protected.docx",
+    )
+    if not os.path.exists(sample_docx_path):
+        pytest.skip("Password-protected DOCX fixture not found.")
+
+    with open(sample_docx_path, "rb") as f:
+        lloyd_george_record["data"] = base64.b64encode(f.read()).decode("utf-8")
+
+    payload = create_upload_payload(
+        lloyd_george_record,
+        content_type=(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ),
+        title=(
+            "1of1_Lloyd_George_Record_[Paula Esme VESEY]_[9730154261]_[22-01-1960].docx"
+        ),
+    )
+    url = f"https://{API_ENDPOINT}/FhirDocumentReference"
+    headers = {"Authorization": "Bearer 123", "X-Api-Key": API_KEY}
+
+    retrieve_response = requests.post(url, headers=headers, data=payload)
+    upload_response = retrieve_response.json()
+    lloyd_george_record["id"] = upload_response["id"].split("~")[1]
+    test_data.append(lloyd_george_record)
+
+    retrieve_url = (
+        f"https://{API_ENDPOINT}/FhirDocumentReference/{upload_response['id']}"
+    )
+
+    def condition(response_json):
+        logging.info(response_json)
+        return response_json.get("docStatus") in (
+            "cancelled",
+            "final",
+        )
+
+    raw_retrieve_response = fetch_with_retry(retrieve_url, condition)
+    retrieve_response = raw_retrieve_response.json()
+
+    assert upload_response == snapshot_json(
+        exclude=paths("id", "date", "content.0.attachment.url"),
+    )
+    assert retrieve_response == snapshot_json(exclude=paths("id", "date"))
+
+
+def test_create_document_corrupted_png_returns_error(test_data, snapshot_json):
+    lloyd_george_record = {}
+    lloyd_george_record["ods"] = "H81109"
+    lloyd_george_record["nhs_number"] = "9730153868"
+
+    payload = create_upload_payload(
+        lloyd_george_record,
+        content_type="image/png",
+        title=(
+            "1of1_Lloyd_George_Record_[Paula Esme VESEY]_[9730154261]_[22-01-1960].png"
+        ),
+    )
+    url = f"https://{API_ENDPOINT}/FhirDocumentReference"
+    headers = {"Authorization": "Bearer 123", "X-Api-Key": API_KEY}
+
+    retrieve_response = requests.post(url, headers=headers, data=payload)
+    upload_response = retrieve_response.json()
+    lloyd_george_record["id"] = upload_response["id"].split("~")[1]
+    test_data.append(lloyd_george_record)
+    presign_uri = upload_response["content"][0]["attachment"]["url"]
+    del upload_response["content"][0]["attachment"]["url"]
+
+    sample_corrupt_path = os.path.join(
+        os.path.dirname(__file__),
+        "files",
+        "corrupted-image.png",
+    )
+    with open(sample_corrupt_path, "rb") as f:
+        files = {"file": f}
+        presign_response = requests.put(presign_uri, files=files)
+        assert presign_response.status_code == 200
+
+    retrieve_url = (
+        f"https://{API_ENDPOINT}/FhirDocumentReference/{upload_response['id']}"
+    )
+
+    def condition(response_json):
+        logging.info(response_json)
+        return response_json.get("docStatus") in (
+            "cancelled",
+            "final",
+        )
+
+    raw_retrieve_response = fetch_with_retry(retrieve_url, condition)
+    retrieve_response = raw_retrieve_response.json()
+
+    assert retrieve_response["docStatus"] == "cancelled"
+
+    assert upload_response == snapshot_json(exclude=paths("id", "date"))
+    assert retrieve_response == snapshot_json(
+        exclude=paths(
+            "id",
+            "date",
+            "content.0.attachment.url",
+            "content.0.attachment.size",
+        ),
     )

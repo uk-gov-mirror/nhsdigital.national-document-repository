@@ -121,7 +121,14 @@ class DataHelper:
             key={"ID": record["id"]},
         )
 
-    def create_upload_payload(self, record, exclude=[], return_json=False):
+    def create_upload_payload(
+        self,
+        record,
+        exclude=None,
+        return_json=False,
+        content_type=None,
+        title=None,
+    ):
         """Helper to build DocumentReference payload."""
         payload = {
             "resourceType": "DocumentReference",
@@ -165,6 +172,14 @@ class DataHelper:
                 },
             ],
         }
+
+        if content_type:
+            payload["content"][0]["attachment"]["contentType"] = content_type
+        if title:
+            payload["content"][0]["attachment"]["title"] = title
+
+        if exclude is None:
+            exclude = []
 
         for field in exclude:
             if field == "title":
