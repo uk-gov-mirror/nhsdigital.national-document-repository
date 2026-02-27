@@ -30,7 +30,7 @@
         ],
         "confirmFilesTitle": "Check files are for the correct patient",
         "confirmFilesTableTitle": "Attachments to this EHR to upload",
-        "confirmFilesTableParagraph": "You can upload files in any format but you can only view PDF files in this service.",
+        "confirmFilesTableParagraph": "You can upload files in any format, except .zip and .exe, but you can only view PDF files in this service.",
         "beforeYouUploadTitle": "Before you upload",
         "previewUploadTitle": "Preview electronic health record attachment",
         "uploadFilesExtraParagraph": "",

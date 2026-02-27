@@ -82,7 +82,7 @@ const DocumentList = ({
                                     <Table.Cell>
                                         {document.file.type === 'application/pdf' ? (
                                             <button
-                                                className="govuk-link"
+                                                className="link-button"
                                                 rel="view"
                                                 data-testid={`preview-${document.id}-button`}
                                                 onClick={(e): void => {
@@ -100,7 +100,7 @@ const DocumentList = ({
                                 {onRemoveFile && (
                                     <Table.Cell>
                                         <button
-                                            className="govuk-link"
+                                            className="link-button"
                                             rel="remove"
                                             data-testid={`remove-${document.id}-button`}
                                             onClick={(e): void => {
