@@ -1,3 +1,5 @@
+import json
+
 from botocore.exceptions import ClientError
 from pydantic import ValidationError
 
@@ -164,11 +166,15 @@ class PostFhirDocumentReferenceService(FhirDocumentReferenceServiceBase):
             logger.error("FHIR document validation error: attachment.title missing")
             raise DocumentRefException(400, LambdaError.DocRefNoParse)
 
-        sub_folder, raw_request = (
-            ("user_upload", None)
-            if doc_type != SnomedCodes.PATIENT_DATA.value
-            else (f"fhir_upload/{doc_type.code}", raw_fhir_doc)
-        )
+        if doc_type != SnomedCodes.PATIENT_DATA.value:
+            sub_folder, raw_request = "user_upload", None
+        else:
+            raw_request_dict = json.loads(raw_fhir_doc)
+            for content_item in raw_request_dict.get("content", []):
+                attachment = content_item.get("attachment", {})
+                attachment.pop("data", None)
+            sub_folder = f"fhir_upload/{doc_type.code}"
+            raw_request = json.dumps(raw_request_dict)
 
         document_reference = DocumentReference(
             id=document_id,

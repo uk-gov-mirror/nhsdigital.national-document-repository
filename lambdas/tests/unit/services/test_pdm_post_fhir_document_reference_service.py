@@ -567,6 +567,74 @@ def test_create_pdm_document_reference_with_raw_request(
     assert result.author == "B67890"  # Verify author is set
 
 
+def test_create_pdm_document_reference_strips_data_from_raw_request(
+    mock_fhir_doc_ref_base_service,
+    mock_post_fhir_doc_ref_service,
+    mocker,
+):
+    """Test _create_document_reference strips attachment.data from raw_request."""
+
+    fhir_doc = mocker.MagicMock(spec=FhirDocumentReference)
+    fhir_doc.content = [
+        DocumentReferenceContent(
+            attachment=Attachment(
+                contentType="application/pdf",
+                title="test-file.pdf",
+                creation="2023-01-01T12:00:00Z",
+            ),
+        ),
+    ]
+    fhir_doc.custodian = Reference(
+        identifier=Identifier(
+            system="https://fhir.nhs.uk/Id/ods-organization-code",
+            value="A12345",
+        ),
+    )
+    fhir_doc.author = [
+        Reference(
+            identifier=Identifier(
+                system="https://fhir.nhs.uk/Id/ods-organization-code",
+                value="B67890",
+            ),
+        ),
+    ]
+
+    raw_fhir_doc_with_data = json.dumps(
+        {
+            "resourceType": "DocumentReference",
+            "content": [
+                {
+                    "attachment": {
+                        "contentType": "application/pdf",
+                        "title": "test-file.pdf",
+                        "data": "dGVzdCBiYXNlNjQgZGF0YQ==",
+                    },
+                },
+            ],
+        },
+    )
+
+    doc_type = SnomedCodes.PATIENT_DATA.value
+
+    result = mock_post_fhir_doc_ref_service._create_document_reference(
+        nhs_number="9000000009",
+        author="B67890",
+        doc_type=doc_type,
+        fhir_doc=fhir_doc,
+        current_gp_ods="C13579",
+        raw_fhir_doc=raw_fhir_doc_with_data,
+    )
+
+    raw_request_parsed = json.loads(result.raw_request)
+    assert "data" not in raw_request_parsed["content"][0]["attachment"]
+    assert (
+        raw_request_parsed["content"][0]["attachment"]["contentType"]
+        == "application/pdf"
+    )
+    assert raw_request_parsed["content"][0]["attachment"]["title"] == "test-file.pdf"
+    assert raw_request_parsed["resourceType"] == "DocumentReference"
+
+
 def test_create_lg_document_reference_with_raw_request(
     mock_fhir_doc_ref_base_service,
     mock_post_fhir_doc_ref_service,
