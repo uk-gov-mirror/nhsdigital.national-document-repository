@@ -75,6 +75,7 @@ export enum routeChildren {
     ADMIN_REVIEW_COMPLETE = '/admin/reviews/:reviewId/complete',
     ADMIN_REVIEW_COMPLETE_PATIENT_MATCH = '/admin/reviews/:reviewId/complete/patient-matched',
     ADMIN_REVIEW_DONT_KNOW_NHS_NUMBER = '/admin/reviews/:reviewId/dont-know-nhs-number',
+    ADMIN_REVIEW_DONT_KNOW_NHS_NUMBER_CONFIRM = '/admin/reviews/:reviewId/dont-know-nhs-number-confirm',
     ADMIN_REVIEW_DONT_KNOW_NHS_NUMBER_PATIENT_VERIFY = '/admin/reviews/:reviewId/dont-know-nhs-number/patient/verify',
     ADMIN_REVIEW_COMPLETE_PATIENT_UNKNOWN = '/admin/reviews/:reviewId/complete/patient-unknown',
     ADMIN_REVIEW_COMPLETE_NO_FILES_CHOICE = '/admin/reviews/:reviewId/complete/no-files-choice',

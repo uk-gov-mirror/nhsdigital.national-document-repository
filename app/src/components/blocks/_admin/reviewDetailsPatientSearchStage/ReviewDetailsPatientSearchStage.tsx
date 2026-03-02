@@ -1,7 +1,7 @@
 import { Button, TextInput } from 'nhsuk-react-components';
 import { JSX, useState } from 'react';
 import { FieldValues, useForm } from 'react-hook-form';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { NHS_NUMBER_PATTERN } from '../../../../helpers/constants/regex';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
@@ -32,6 +32,7 @@ import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import { ReviewUploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
 import { getFormattedDateTimeFromString } from '../../../../helpers/utils/formatDate';
 import { CreatedByCard } from '../../../generic/createdBy/createdBy';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 export const incorrectFormatMessage =
     "Enter a valid patient NHS number. If you keep getting this message, select 'I don't know the NHS number'.";
@@ -48,7 +49,7 @@ const ReviewDetailsPatientSearchStage = ({
     setNewPatientDetails,
 }: ReviewDetailsPatientSearchPageProps): JSX.Element => {
     const navigate = useNavigate();
-    const { reviewId } = useParams<{ reviewId: string }>();
+    const reviewId = useReviewId();
     const [submissionState, setSubmissionState] = useState<PATIENT_SEARCH_STATES>(
         PATIENT_SEARCH_STATES.IDLE,
     );

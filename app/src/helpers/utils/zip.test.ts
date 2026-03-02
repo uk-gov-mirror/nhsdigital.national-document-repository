@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { zipFiles } from './zip';
-import { UploadDocument } from '../../types/pages/UploadDocumentsPage/types';
 
 const mockedAdd = vi.fn();
 const mockedClose = vi.fn();
@@ -25,9 +24,9 @@ describe('zipFiles', () => {
         const mockBlob = new Blob(['zip content']);
         mockedClose.mockResolvedValue(mockBlob);
 
-        const documents: UploadDocument[] = [
-            { file: new File(['content1'], 'file1.txt') } as UploadDocument,
-            { file: new File(['content2'], 'file2.txt') } as UploadDocument,
+        const documents: File[] = [
+            new File(['content1'], 'file1.txt'),
+            new File(['content2'], 'file2.txt'),
         ];
 
         const result = await zipFiles(documents);
@@ -54,9 +53,7 @@ describe('zipFiles', () => {
         const mockBlob = new Blob(['single file zip']);
         mockedClose.mockResolvedValue(mockBlob);
 
-        const documents: UploadDocument[] = [
-            { file: new File(['content'], 'single.pdf') } as UploadDocument,
-        ];
+        const documents: File[] = [new File(['content'], 'single.pdf')];
 
         const result = await zipFiles(documents);
 

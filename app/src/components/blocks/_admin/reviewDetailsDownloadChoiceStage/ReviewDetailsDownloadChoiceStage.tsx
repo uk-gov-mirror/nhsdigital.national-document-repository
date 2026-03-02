@@ -1,6 +1,6 @@
 import { Button } from 'nhsuk-react-components';
 import React, { useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import '../../../../helpers/utils/string-extensions';
 import { ReviewDetails } from '../../../../types/generic/reviews';
@@ -11,6 +11,7 @@ import {
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import BackButton from '../../../generic/backButton/BackButton';
 import Spinner from '../../../generic/spinner/Spinner';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 type ReviewDetailsDownloadChoiceProps = {
     reviewData: ReviewDetails | null;
@@ -22,7 +23,7 @@ const ReviewDetailsDownloadChoiceStage: React.FC<ReviewDetailsDownloadChoiceProp
     documents,
 }) => {
     const navigate = useNavigate();
-    const { reviewId } = useParams<{ reviewId: string }>();
+    const reviewId = useReviewId();
 
     const unselectedFiles = documents.filter(
         (doc) => doc.state === DOCUMENT_UPLOAD_STATE.UNSELECTED,

@@ -6,9 +6,11 @@ import * as documentTypeModule from '../../../../helpers/utils/documentType';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import ReviewDetailsAddMoreChoiceStage from './ReviewDetailsAddMoreChoiceStage';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 const mockNavigate = vi.fn();
 const mockReviewId = 'test-review-123';
+const mockUseReviewId = useReviewId as Mock;
 const testData = {
     yesText: 'Yes, I have more scanned paper notes to add for this patient',
     noText: "No, I don't have anymore scanned paper notes to add for this patient",
@@ -19,9 +21,9 @@ vi.mock('react-router-dom', async (): Promise<unknown> => {
     return {
         ...actual,
         useNavigate: (): Mock => mockNavigate,
-        useParams: (): { reviewId: string } => ({ reviewId: mockReviewId }),
     };
 });
+vi.mock('../../../../helpers/hooks/useReviewId');
 
 describe('ReviewDetailsAddMoreChoiceStage', () => {
     const mockReviewData = {
@@ -40,6 +42,7 @@ describe('ReviewDetailsAddMoreChoiceStage', () => {
                 addMoreFilesRadioYesText: testData.yesText,
             },
         } as any);
+        mockUseReviewId.mockReturnValue(mockReviewId);
     });
 
     afterEach(() => {

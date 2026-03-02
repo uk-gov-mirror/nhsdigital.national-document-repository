@@ -10,9 +10,11 @@ import {
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 const mockNavigate = vi.fn();
 let mockReviewId: string | undefined = 'test-review-123';
+const mockUseReviewId = useReviewId as Mock;
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -20,7 +22,6 @@ vi.mock('react-router-dom', async () => {
         ...actual,
         Link: (props: any): React.JSX.Element => <a {...props} role="link" href={props.to} />,
         useNavigate: (): Mock => mockNavigate,
-        useParams: (): { reviewId?: string } => ({ reviewId: mockReviewId }),
     };
 });
 
@@ -43,6 +44,7 @@ vi.mock('../../../../helpers/utils/documentType', async () => {
         getConfigForDocType: vi.fn(() => ({ displayName: 'electronic health record' }) as any),
     };
 });
+vi.mock('../../../../helpers/hooks/useReviewId');
 
 const buildDoc = (fileName: string, state: DOCUMENT_UPLOAD_STATE): ReviewUploadDocument => {
     const blob = new Blob(['test'], { type: 'application/pdf' });
@@ -69,6 +71,7 @@ describe('ReviewDetailsDownloadChoiceStage', () => {
             writable: true,
             value: vi.fn().mockReturnValue('blob:http://localhost/test'),
         });
+        mockUseReviewId.mockReturnValue(mockReviewId);
     });
 
     afterEach(() => {
@@ -189,20 +192,5 @@ describe('ReviewDetailsDownloadChoiceStage', () => {
             mockReviewId!,
         );
         expect(mockNavigate).toHaveBeenCalledWith(expectedPath, undefined);
-    });
-
-    it('does not navigate on Continue when reviewId is missing', async () => {
-        const user = userEvent.setup();
-        mockReviewId = undefined;
-
-        render(
-            <ReviewDetailsDownloadChoiceStage
-                reviewData={buildReviewData()}
-                documents={[buildDoc('a.pdf', DOCUMENT_UPLOAD_STATE.UNSELECTED)]}
-            />,
-        );
-
-        await user.click(screen.getByRole('button', { name: 'Continue' }));
-        expect(mockNavigate).not.toHaveBeenCalled();
     });
 });

@@ -1,7 +1,12 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { endpoints } from '../../types/generic/endpoints';
-import { GetDocumentReviewDto, ReviewDetails, ReviewsResponse } from '../../types/generic/reviews';
+import {
+    GetDocumentReviewDto,
+    ReviewDetails,
+    ReviewFileDto,
+    ReviewsResponse,
+} from '../../types/generic/reviews';
 import {
     DOCUMENT_UPLOAD_STATE,
     ReviewUploadDocument,
@@ -85,16 +90,18 @@ export const getReviewById = async (
             uploadDate: '1765539858673',
             documentSnomedCodeType:
                 mockReview?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
-            files: [
-                {
-                    fileName: 'document_1.pdf',
-                    presignedUrl: '/dev/testFile.pdf',
-                },
-                {
-                    fileName: 'document_2.pdf',
-                    presignedUrl: '/dev/testFile.pdf',
-                },
-            ],
+            files: ((): ReviewFileDto[] => {
+                const filename = 'document_files_{idx}.pdf';
+                const docs: ReviewFileDto[] = [];
+                const url = `/dev/testFile.pdf`;
+                for (let idx = 1; idx <= 2; idx++) {
+                    docs.push({
+                        fileName: filename.replace('{idx}', idx.toString()),
+                        presignedUrl: url,
+                    });
+                }
+                return docs;
+            })(),
         };
     }
 

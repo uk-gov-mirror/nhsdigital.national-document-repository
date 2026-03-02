@@ -1,6 +1,6 @@
 import { Button, ErrorSummary, Fieldset, Radios } from 'nhsuk-react-components';
 import { Dispatch, JSX, SetStateAction, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useConfig from '../../../../helpers/hooks/useConfig';
@@ -36,6 +36,7 @@ import waitForSeconds from '../../../../helpers/utils/waitForSeconds';
 import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
 import { CreatedByCard } from '../../../generic/createdBy/createdBy';
 import DocumentUploadLloydGeorgePreview from '../../_documentManagement/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 export type ReviewsDetailsStageProps = {
     reviewData: ReviewDetails;
@@ -58,7 +59,7 @@ const ReviewsDetailsStage = ({
     uploadDocuments,
 }: ReviewsDetailsStageProps): JSX.Element => {
     useTitle({ pageTitle: 'Admin - Review Details' });
-    const { reviewId } = useParams<{ reviewId: string }>();
+    const reviewId = useReviewId();
     const [isLoadingPatientDetails, setisLoadingPatientDetails] = useState(true);
 
     const [patientDetails, setPatientDetails] = usePatientDetailsContext();

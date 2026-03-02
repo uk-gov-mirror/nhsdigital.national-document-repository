@@ -9,19 +9,21 @@ import * as navigateUtils from '../../../../types/generic/routes';
 import { JSX } from 'react';
 import '../../../../helpers/utils/string-extensions';
 import { ReviewDetails } from '../../../../types/generic/reviews';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 vi.mock('../../../../helpers/utils/documentType');
 vi.mock('../../../../helpers/utils/string-extensions');
+vi.mock('../../../../helpers/hooks/useReviewId');
 
 const mockNavigate = vi.fn();
 const mockReviewId = 'test-review-456';
+const mockUseReviewId = useReviewId as Mock;
 
 vi.mock('react-router-dom', async (): Promise<unknown> => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
         useNavigate: (): Mock => mockNavigate,
-        useParams: (): { reviewId: string } => ({ reviewId: mockReviewId }),
         Link: ({
             children,
             onClick,
@@ -63,6 +65,7 @@ describe('ReviewDetailsNoFilesChoicePage', () => {
         vi.clearAllMocks();
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockGetConfigForDocType.mockReturnValue(mockConfig);
+        mockUseReviewId.mockReturnValue(mockReviewId);
     });
 
     afterEach(() => {

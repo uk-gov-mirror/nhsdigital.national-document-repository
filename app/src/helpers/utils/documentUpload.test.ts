@@ -141,7 +141,7 @@ describe('documentUpload', () => {
                 `${documentConfig.zippedFilename}_(${mockDocuments.length}).zip`,
             );
             expect(result[0].file.type).toBe('application/zip');
-            expect(zipFiles).toHaveBeenCalledWith(mockDocuments);
+            expect(zipFiles).toHaveBeenCalledWith(mockDocuments.map((doc) => doc.file));
         });
 
         it('should return original documents when neither stitched nor multifileZipped is true', async () => {

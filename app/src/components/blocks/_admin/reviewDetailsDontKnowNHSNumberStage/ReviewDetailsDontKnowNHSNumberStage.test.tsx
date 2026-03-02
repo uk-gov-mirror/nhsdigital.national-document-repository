@@ -5,16 +5,25 @@ import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import ReviewDetailsDontKnowNHSNumberStage from './ReviewDetailsDontKnowNHSNumberStage';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
+
+vi.mock('../../../../helpers/utils/zip', () => ({
+    zipFiles: vi.fn().mockResolvedValue(new Blob()),
+}));
+
+vi.mock('../../../../helpers/utils/downloadFile', () => ({
+    downloadFile: vi.fn(),
+}));
 
 const mockNavigate = vi.fn();
 const mockReviewId = 'test-review-123';
+const mockUseReviewId = useReviewId as Mock;
 
 vi.mock('react-router-dom', async (): Promise<unknown> => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
         useNavigate: (): Mock => mockNavigate,
-        useParams: (): { reviewId: string } => ({ reviewId: mockReviewId }),
         Link: ({ children, to, ...props }: any) => (
             <a href={to} {...props}>
                 {children}
@@ -22,6 +31,7 @@ vi.mock('react-router-dom', async (): Promise<unknown> => {
         ),
     };
 });
+vi.mock('../../../../helpers/hooks/useReviewId');
 
 describe('ReviewDetailsDontKnowNHSNumberPage', () => {
     const testReviewData = new ReviewDetails(
@@ -38,6 +48,7 @@ describe('ReviewDetailsDontKnowNHSNumberPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
+        mockUseReviewId.mockReturnValue(mockReviewId);
     });
 
     afterEach(() => {
@@ -50,7 +61,7 @@ describe('ReviewDetailsDontKnowNHSNumberPage', () => {
                 <ReviewDetailsDontKnowNHSNumberStage reviewData={testReviewData} documents={[]} />,
             );
 
-            const link = screen.getByRole('link', { name: 'Primary Care Support England' });
+            const link = screen.getByRole('link', { name: 'process for record transfers' });
             expect(link).toBeInTheDocument();
             expect(link).toHaveAttribute(
                 'href',
@@ -60,22 +71,12 @@ describe('ReviewDetailsDontKnowNHSNumberPage', () => {
             expect(link).toHaveAttribute('rel', 'noopener noreferrer');
         });
 
-        it('renders the download link', () => {
+        it('renders the download button', () => {
             render(
                 <ReviewDetailsDontKnowNHSNumberStage reviewData={testReviewData} documents={[]} />,
             );
 
-            const downloadLink = screen.getByRole('link', { name: 'Download all records' });
-            expect(downloadLink).toBeInTheDocument();
-            expect(downloadLink).toHaveAttribute('href', '#');
-        });
-
-        it('renders the finish reviewing button', () => {
-            render(
-                <ReviewDetailsDontKnowNHSNumberStage reviewData={testReviewData} documents={[]} />,
-            );
-
-            const button = screen.getByRole('button', { name: 'Finish reviewing this document' });
+            const button = screen.getByRole('button', { name: 'Download this document' });
             expect(button).toBeInTheDocument();
             expect(button).toHaveAttribute('id', 'finish-review-button');
             expect(button).toHaveAttribute('type', 'submit');
@@ -87,7 +88,7 @@ describe('ReviewDetailsDontKnowNHSNumberPage', () => {
             );
 
             expect(
-                screen.getByText(/following their process for record transfers/i),
+                screen.getByRole('link', { name: 'process for record transfers' }),
             ).toBeInTheDocument();
         });
 
@@ -103,20 +104,16 @@ describe('ReviewDetailsDontKnowNHSNumberPage', () => {
     });
 
     describe('User Interactions', () => {
-        it('download link can be clicked without error', async () => {
-            // TODO Review test in PRMP-827
+        it('download button can be clicked', async () => {
             const user = userEvent.setup({ delay: null });
             render(
                 <ReviewDetailsDontKnowNHSNumberStage reviewData={testReviewData} documents={[]} />,
             );
 
-            const downloadLink = screen.getByRole('link', { name: 'Download all records' });
+            await user.click(screen.getByRole('button', { name: 'Download this document' }));
 
-            await user.click(downloadLink);
-
-            // Component should still be rendered after click
             expect(
-                screen.getByRole('heading', { name: 'Download this document' }),
+                screen.getByRole('button', { name: 'Download this document' }),
             ).toBeInTheDocument();
         });
     });
@@ -146,25 +143,16 @@ describe('ReviewDetailsDontKnowNHSNumberPage', () => {
                 <ReviewDetailsDontKnowNHSNumberStage reviewData={testReviewData} documents={[]} />,
             );
 
-            const link = screen.getByRole('link', { name: 'Primary Care Support England' });
+            const link = screen.getByRole('link', { name: 'process for record transfers' });
             expect(link).toHaveClass('nhsuk-link');
         });
 
-        it('download link has proper accessibility class', () => {
+        it('download button has proper type attribute for form submission', () => {
             render(
                 <ReviewDetailsDontKnowNHSNumberStage reviewData={testReviewData} documents={[]} />,
             );
 
-            const downloadLink = screen.getByRole('link', { name: 'Download all records' });
-            expect(downloadLink).toHaveClass('nhsuk-link');
-        });
-
-        it('finish button has proper type attribute for form submission', () => {
-            render(
-                <ReviewDetailsDontKnowNHSNumberStage reviewData={testReviewData} documents={[]} />,
-            );
-
-            const button = screen.getByRole('button', { name: 'Finish reviewing this document' });
+            const button = screen.getByRole('button', { name: 'Download this document' });
             expect(button).toHaveAttribute('type', 'submit');
         });
     });
@@ -232,7 +220,7 @@ describe('ReviewDetailsDontKnowNHSNumberPage', () => {
             const heading = screen.getByRole('heading', { name: 'Download this document' });
             expect(heading).toHaveClass('nhsuk-heading-l');
 
-            const button = screen.getByRole('button', { name: 'Finish reviewing this document' });
+            const button = screen.getByRole('button', { name: 'Download this document' });
             expect(button).toHaveClass('mt-9');
         });
     });
@@ -244,10 +232,10 @@ describe('ReviewDetailsDontKnowNHSNumberPage', () => {
                 <ReviewDetailsDontKnowNHSNumberStage reviewData={testReviewData} documents={[]} />,
             );
 
-            const finishButton = screen.getByRole('button', {
-                name: 'Finish reviewing this document',
+            const downloadButton = screen.getByRole('button', {
+                name: 'Download this document',
             });
-            await user.click(finishButton);
+            await user.click(downloadButton);
 
             expect(mockNavigate).toHaveBeenCalledWith(
                 expect.stringContaining(`/reviews/${mockReviewId}/`),

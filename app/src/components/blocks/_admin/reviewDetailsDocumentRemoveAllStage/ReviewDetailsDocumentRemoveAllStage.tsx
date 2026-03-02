@@ -1,5 +1,5 @@
 import React, { Dispatch, JSX, SetStateAction } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { navigateUrlParam, routeChildren } from '../../../../types/generic/routes';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import {
@@ -9,6 +9,7 @@ import {
 import Spinner from '../../../generic/spinner/Spinner';
 import DocumentUploadRemoveFilesStage from '../../_documentManagement/documentUploadRemoveFilesStage/DocumentUploadRemoveFilesStage';
 import BackButton from '../../../generic/backButton/BackButton';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 type ReviewDetailsDocumentRemoveAllStageProps = {
     reviewData: ReviewDetails | null;
@@ -22,7 +23,7 @@ const ReviewDetailsDocumentRemoveAllStage = ({
     setDocuments,
 }: ReviewDetailsDocumentRemoveAllStageProps): JSX.Element => {
     const navigate = useNavigate();
-    const { reviewId } = useParams<{ reviewId: string }>();
+    const reviewId = useReviewId();
 
     if (!reviewData) {
         return <Spinner status={'Loading'} />;

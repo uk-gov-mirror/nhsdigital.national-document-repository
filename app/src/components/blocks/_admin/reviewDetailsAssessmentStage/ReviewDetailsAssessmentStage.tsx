@@ -1,6 +1,6 @@
 import { Button, ErrorSummary, Fieldset, Radios, Table } from 'nhsuk-react-components';
 import { Dispatch, JSX, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { getPdfObjectUrl } from '../../../../helpers/utils/getPdfObjectUrl';
@@ -32,6 +32,7 @@ import { AxiosError } from 'axios';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
 import { CreatedByText } from '../../../generic/createdBy/createdBy';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 type FileAction = 'add-all' | 'choose-files' | 'duplicate' | 'accept' | 'reject' | '';
 
@@ -55,7 +56,7 @@ const ReviewDetailsAssessmentStage = ({
     hasExistingRecordInStorage,
 }: ReviewDetailsAssessmentStageProps): JSX.Element => {
     useTitle({ pageTitle: 'Admin - Review Assessment' });
-    const { reviewId } = useParams<{ reviewId: string }>();
+    const reviewId = useReviewId();
     const navigate = useNavigate();
 
     const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Button, Fieldset, HintText, Radios } from 'nhsuk-react-components';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { navigateUrlParam, routeChildren } from '../../../../types/generic/routes';
 import BackButton from '../../../generic/backButton/BackButton';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 type ReviewDetailsAddMoreChoicePageProps = {
     reviewData: ReviewDetails | null;
@@ -18,7 +19,7 @@ const ReviewDetailsAddMoreChoiceStage: React.FC<ReviewDetailsAddMoreChoicePagePr
     const navigate = useNavigate();
     const [addMoreChoice, setAddMoreChoice] = useState<AddMoreChoice>('');
     const [showError, setShowError] = useState(false);
-    const { reviewId } = useParams<{ reviewId: string }>();
+    const reviewId = useReviewId();
 
     if (!reviewData) {
         navigate(routeChildren.ADMIN_REVIEW);

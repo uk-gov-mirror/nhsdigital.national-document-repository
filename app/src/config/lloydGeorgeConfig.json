@@ -2,6 +2,7 @@
     "snomedCode": "16521000000101",
     "displayName": "scanned paper notes",
     "filenameOverride": "Scanned paper notes.pdf",
+    "reviewDocumentsFileNamePrefix": "Lloyd George - Scanned paper notes",
     "canBeUpdated": true,
     "associatedSnomed": "",
     "multifileUpload": true,

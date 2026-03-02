@@ -12,6 +12,7 @@ import { ReviewDetails } from '../../../../types/generic/reviews';
 import * as getReviewsModule from '../../../../helpers/requests/getReviews';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 const mockedUseNavigate = vi.fn();
 const mockSetPatientDetails = vi.fn();
@@ -96,9 +97,11 @@ vi.mock(
 vi.mock('../../../../providers/patientProvider/PatientProvider', () => ({
     usePatientDetailsContext: (): unknown => mockUsePatientDetailsContext(),
 }));
+vi.mock('../../../../helpers/hooks/useReviewId');
 
 const mockSetReviewData = vi.fn();
 const mockSetDownloadStage = vi.fn();
+const mockUseReviewId = useReviewId as Mock;
 
 const createMockReviewData = (
     canBeUpdated = true,
@@ -179,6 +182,7 @@ describe('ReviewDetailsAssessmentStage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockUsePatientDetailsContext.mockReturnValue([null, mockSetPatientDetails]);
+        mockUseReviewId.mockReturnValue('test-review-id.v1');
     });
 
     describe('Rendering', () => {

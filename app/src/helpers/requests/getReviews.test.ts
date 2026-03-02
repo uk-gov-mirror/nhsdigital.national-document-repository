@@ -1381,7 +1381,7 @@ describe('getReviews.ts', () => {
                 expect(result.id).toBe(reviewId);
                 expect(result.documentSnomedCodeType).toBe(DOCUMENT_TYPE.LLOYD_GEORGE);
                 expect(result.files).toHaveLength(2);
-                expect(result.files[0].fileName).toBe('document_1.pdf');
+                expect(result.files[0].fileName).toBe('document_files_1.pdf');
                 expect(result.files[0].presignedUrl).toBe('/dev/testFile.pdf');
                 expect(mockedAxios.get).not.toHaveBeenCalled();
 

@@ -59,7 +59,7 @@ export const reduceDocumentsForUpload = async (
     if (documentConfig.multifileZipped) {
         const filename = `${documentConfig.zippedFilename}_(${documents.length}).zip`;
 
-        const zip = await zipFiles(documents);
+        const zip = await zipFiles(documents.map((doc) => doc.file));
 
         documents = [
             {

@@ -1,6 +1,6 @@
 import { Button, Checkboxes, ErrorSummary, Fieldset, Table } from 'nhsuk-react-components';
 import { JSX, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { ReviewDetails } from '../../../../types/generic/reviews';
@@ -15,6 +15,7 @@ import {
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
 import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 export type ReviewDetailsFileSelectStageProps = {
     reviewData: ReviewDetails | null;
@@ -28,7 +29,7 @@ const ReviewDetailsFileSelectStage = ({
     setUploadDocuments,
 }: ReviewDetailsFileSelectStageProps): JSX.Element => {
     useTitle({ pageTitle: 'Admin - Review File Selection' });
-    const { reviewId } = useParams<{ reviewId: string }>();
+    const reviewId = useReviewId();
     const navigate = useNavigate();
 
     const [selectedFile, setSelectedFile] = useState<string>('');

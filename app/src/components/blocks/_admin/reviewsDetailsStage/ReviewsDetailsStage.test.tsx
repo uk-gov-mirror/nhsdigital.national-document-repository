@@ -18,13 +18,13 @@ import {
 import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
 import * as handlePatientSearchModule from '../../../../helpers/utils/handlePatientSearch';
 import { routes } from '../../../../types/generic/routes';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 vi.mock('react-router-dom', async (): Promise<unknown> => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
         useNavigate: (): Mock => mockNavigate,
-        useParams: (): { reviewId: string } => ({ reviewId: 'test-review-123' }),
     };
 });
 
@@ -72,16 +72,21 @@ vi.mock('../../../../helpers/utils/waitForSeconds', () => ({
     default: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('../../../../helpers/hooks/useReviewId');
+
 const mockNavigate = vi.fn();
 const mockSetPatientDetails = vi.fn();
 const mockUsePatientDetailsContext = vi.fn();
 const mockUseSessionContext = vi.fn();
+const mockUseReviewId = useReviewId as Mock;
+
+const mockReviewId = 'test-review-123';
 
 const renderComponent = (reviewData?: ReviewDetails, reviewSnoMed?: DOCUMENT_TYPE): void => {
     const currentReviewData =
         reviewData ??
         new ReviewDetails(
-            'test-review-123',
+            mockReviewId,
             (reviewSnoMed ?? ('16521000000101' as DOCUMENT_TYPE)) as DOCUMENT_TYPE,
             '2023-01-01T00:00:00Z',
             'test.uploader@example.com',
@@ -117,7 +122,7 @@ describe('ReviewDetailsStage', () => {
     });
 
     const mockReviewData = new ReviewDetails(
-        'test-review-123',
+        mockReviewId,
         testReviewSnomed,
         '2023-01-01T00:00:00Z',
         'M85143',
@@ -146,6 +151,8 @@ describe('ReviewDetailsStage', () => {
                 return Promise.resolve(123);
             },
         );
+
+        mockUseReviewId.mockReturnValue(mockReviewId);
     });
 
     describe('Loading States', () => {
@@ -670,7 +677,7 @@ describe('ReviewDetailsStage', () => {
             const mockLoadReviewData = vi.fn().mockResolvedValue(undefined);
 
             const unknownNhsNumberReviewData = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 testReviewSnomed,
                 '2023-01-01T00:00:00Z',
                 'M85143',
@@ -814,7 +821,7 @@ describe('ReviewDetailsStage', () => {
                 <ReviewsDetailsPageComponent
                     reviewData={
                         new ReviewDetails(
-                            'test-review-123',
+                            mockReviewId,
                             '16521000000101' as DOCUMENT_TYPE,
                             '2023-01-01T00:00:00Z',
                             'test.uploader@example.com',
@@ -845,7 +852,7 @@ describe('ReviewDetailsStage', () => {
                 <ReviewsDetailsPageComponent
                     reviewData={
                         new ReviewDetails(
-                            'test-review-123',
+                            mockReviewId,
                             '16521000000101' as DOCUMENT_TYPE,
                             '2023-01-01T00:00:00Z',
                             'test.uploader@example.com',
@@ -878,7 +885,7 @@ describe('ReviewDetailsStage', () => {
                 <ReviewsDetailsPageComponent
                     reviewData={
                         new ReviewDetails(
-                            'test-review-123',
+                            mockReviewId,
                             '16521000000101' as DOCUMENT_TYPE,
                             '2023-01-01T00:00:00Z',
                             'test.uploader@example.com',
@@ -1064,7 +1071,7 @@ describe('ReviewDetailsStage', () => {
         it('handles EHR document type correctly', async () => {
             vi.spyOn(isLocalModule, 'isLocal', 'get').mockReturnValue(true);
             const ehrReviewData = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 DOCUMENT_TYPE.EHR,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1086,7 +1093,7 @@ describe('ReviewDetailsStage', () => {
         it('handles EHR attachments document type', async () => {
             vi.spyOn(isLocalModule, 'isLocal', 'get').mockReturnValue(true);
             const attachmentsReviewData = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 DOCUMENT_TYPE.EHR_ATTACHMENTS,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1197,7 +1204,7 @@ describe('ReviewDetailsStage', () => {
         it('renders with review reason', async () => {
             vi.spyOn(isLocalModule, 'isLocal', 'get').mockReturnValue(true);
             const reviewWithReason = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 testReviewSnomed,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1219,7 +1226,7 @@ describe('ReviewDetailsStage', () => {
         it('renders with null files array', async () => {
             vi.spyOn(isLocalModule, 'isLocal', 'get').mockReturnValue(true);
             const reviewWithNullFiles = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 testReviewSnomed,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1316,7 +1323,7 @@ describe('ReviewDetailsStage', () => {
 
             // Mock EHR document type which has multifileReview enabled
             const ehrReviewData = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 DOCUMENT_TYPE.EHR,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1360,7 +1367,7 @@ describe('ReviewDetailsStage', () => {
 
             // LLOYD_GEORGE has canBeDiscarded: false
             const lloydReviewData = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1441,7 +1448,7 @@ describe('ReviewDetailsStage', () => {
             await user.click(screen.getByRole('button', { name: 'Continue' }));
 
             expect(mockNavigate).toHaveBeenCalledWith(
-                '/admin/reviews/test-review-123/assess',
+                `/admin/reviews/${mockReviewId}/assess`,
                 undefined,
             );
         });
@@ -1517,7 +1524,7 @@ describe('ReviewDetailsStage', () => {
                 <ReviewsDetailsPageComponent
                     reviewData={
                         new ReviewDetails(
-                            'test-review-123',
+                            mockReviewId,
                             DOCUMENT_TYPE.LLOYD_GEORGE,
                             '2023-01-01T00:00:00Z',
                             'test.uploader@example.com',
@@ -1571,7 +1578,7 @@ describe('ReviewDetailsStage', () => {
             vi.spyOn(isLocalModule, 'isLocal', 'get').mockReturnValue(true);
 
             const ehrReviewData = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 DOCUMENT_TYPE.EHR_ATTACHMENTS,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1611,7 +1618,7 @@ describe('ReviewDetailsStage', () => {
             vi.spyOn(isLocalModule, 'isLocal', 'get').mockReturnValue(true);
 
             const ehrReviewData = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 DOCUMENT_TYPE.EHR_ATTACHMENTS,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1773,7 +1780,7 @@ describe('ReviewDetailsStage', () => {
 
         it('navigates to ASSESS_FILES when multifileReview disabled for default config', async () => {
             const ehrReviewData = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 '16521000000101' as DOCUMENT_TYPE,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1798,7 +1805,7 @@ describe('ReviewDetailsStage', () => {
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(
-                    '/admin/reviews/test-review-123/assess',
+                    `/admin/reviews/${mockReviewId}/assess`,
                     undefined,
                 );
             });
@@ -1806,7 +1813,7 @@ describe('ReviewDetailsStage', () => {
 
         it('navigates to ADD_MORE_CHOICE for Lloyd George multifile review with single document', async () => {
             const lgReview = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1850,7 +1857,7 @@ describe('ReviewDetailsStage', () => {
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(
-                    '/admin/reviews/test-review-123/add-more-choice',
+                    `/admin/reviews/${mockReviewId}/add-more-choice`,
                     undefined,
                 );
             });
@@ -1864,7 +1871,7 @@ describe('ReviewDetailsStage', () => {
 
         it('validates multifile zipped config requires zip file', async () => {
             const multifileZippedReview = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 '16521000000101' as DOCUMENT_TYPE,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1913,7 +1920,7 @@ describe('ReviewDetailsStage', () => {
 
         it('successfully validates and proceeds when zip file is present for multifileZipped', async () => {
             const multifileZippedReview = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -1966,7 +1973,7 @@ describe('ReviewDetailsStage', () => {
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(
-                    '/admin/reviews/test-review-123/add-more-choice',
+                    `/admin/reviews/${mockReviewId}/add-more-choice`,
                     undefined,
                 );
             });
@@ -1974,7 +1981,7 @@ describe('ReviewDetailsStage', () => {
 
         it('handles case-insensitive zip file detection', async () => {
             const multifileZippedReview = new ReviewDetails(
-                'test-review-123',
+                mockReviewId,
                 '16521000000101' as DOCUMENT_TYPE,
                 '2023-01-01T00:00:00Z',
                 'test.uploader@example.com',
@@ -2027,7 +2034,7 @@ describe('ReviewDetailsStage', () => {
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(
-                    '/admin/reviews/test-review-123/upload',
+                    `/admin/reviews/${mockReviewId}/upload`,
                     undefined,
                 );
             });

@@ -46,6 +46,7 @@ export type DOCUMENT_TYPE_CONFIG = {
     content: IndividualDocumentTypeContent;
     displayName: string;
     filenameOverride?: string;
+    reviewDocumentsFileNamePrefix?: string;
     multifileReview: boolean;
     multifileUpload: boolean;
     multifileZipped: boolean;

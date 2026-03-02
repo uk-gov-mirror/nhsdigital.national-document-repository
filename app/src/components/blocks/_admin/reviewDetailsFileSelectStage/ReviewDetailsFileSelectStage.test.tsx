@@ -12,6 +12,7 @@ import {
 import { routeChildren } from '../../../../types/generic/routes';
 import '../../../../helpers/utils/string-extensions';
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 vi.mock('../../../../helpers/utils/documentType');
 vi.mock('../../../../helpers/hooks/useTitle', () => ({
@@ -32,13 +33,15 @@ vi.mock('react-router-dom', async (): Promise<unknown> => {
     return {
         ...actual,
         useNavigate: (): Mock => mockNavigate,
-        useParams: (): { reviewId: string | undefined } => ({ reviewId: currentReviewId }),
     };
 });
 
 vi.mock('../../../../providers/patientProvider/PatientProvider', () => ({
     usePatientDetailsContext: (): unknown => mockUsePatientDetailsContext(),
 }));
+
+vi.mock('../../../../helpers/hooks/useReviewId');
+const mockUseReviewId = useReviewId as Mock;
 
 const mockGetConfigForDocType = getConfigForDocType as Mock;
 
@@ -107,6 +110,7 @@ describe('ReviewDetailsFileSelectStage', () => {
 
         (globalThis.URL as any).createObjectURL = vi.fn(() => 'blob:mock-url');
         (HTMLElement.prototype as any).scrollIntoView = vi.fn();
+        mockUseReviewId.mockReturnValue(currentReviewId);
     });
 
     it('renders a spinner when reviewData is null', () => {

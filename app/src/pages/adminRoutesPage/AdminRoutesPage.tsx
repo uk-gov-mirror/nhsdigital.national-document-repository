@@ -13,6 +13,7 @@ import ReviewDetailsFileSelectStage from '../../components/blocks/_admin/reviewD
 import ReviewDetailsNoFilesChoiceStage from '../../components/blocks/_admin/reviewDetailsNoFilesChoiceStage/ReviewDetailsNoFilesChoiceStage';
 import ReviewsDetailsStage from '../../components/blocks/_admin/reviewsDetailsStage/ReviewsDetailsStage';
 import ReviewDetailsPatientSearchStage from '../../components/blocks/_admin/reviewDetailsPatientSearchStage/ReviewDetailsPatientSearchStage';
+import ReviewDetailsDontKnowNHSNumberConfirmStage from '../../components/blocks/_admin/reviewDetailsDontKnowNHSNumberConfirmStage/ReviewDetailsDontKnowNHSNumberConfirmStage';
 import { ReviewsPage } from '../../components/blocks/_admin/reviewsPage/ReviewsPage';
 import PatientVerifyPage from '../../components/blocks/generic/patientVerifyPage/PatientVerifyPage';
 import DocumentSelectFileErrorsPage from '../../components/blocks/_documentManagement/documentSelectFileErrorsPage/DocumentSelectFileErrorsPage';
@@ -217,6 +218,10 @@ const AdminRoutesPage = (): JSX.Element => {
                         reviewPatientDetails={newPatientDetails}
                     />
                 }
+            />
+            <Route
+                path="reviews/:reviewId/dont-know-nhs-number-confirm"
+                element={<ReviewDetailsDontKnowNHSNumberConfirmStage />}
             />
             <Route
                 path="reviews/:reviewId/dont-know-nhs-number"

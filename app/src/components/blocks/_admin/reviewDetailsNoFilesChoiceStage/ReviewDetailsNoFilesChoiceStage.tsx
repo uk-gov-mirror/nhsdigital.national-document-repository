@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Button, Checkboxes, WarningCallout } from 'nhsuk-react-components';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { navigateUrlParam, routeChildren } from '../../../../types/generic/routes';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import BackButton from '../../../generic/backButton/BackButton';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import Spinner from '../../../generic/spinner/Spinner';
+import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 type ReviewDetailsNoFilesChoiceStageProps = {
     reviewData: ReviewDetails | null;
@@ -17,7 +18,7 @@ const ReviewDetailsNoFilesChoiceStage: React.FC<ReviewDetailsNoFilesChoiceStageP
     const navigate = useNavigate();
     const [confirmed, setConfirmed] = useState(false);
     const [showError, setShowError] = useState(false);
-    const { reviewId } = useParams<{ reviewId: string }>();
+    const reviewId = useReviewId();
 
     if (!reviewData) {
         return <Spinner status={'Loading'} />;
