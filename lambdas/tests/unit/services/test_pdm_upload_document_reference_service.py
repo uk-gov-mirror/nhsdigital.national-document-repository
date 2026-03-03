@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from botocore.exceptions import ClientError
@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 from enums.infrastructure import DynamoTables
 from enums.virus_scan_result import VirusScanResult
 from lambdas.enums.snomed_codes import SnomedCodes
+from lambdas.services.document_service import DocumentService
 from models.document_reference import DocumentReference
 from services.mock_virus_scan_service import MockVirusScanService
 from services.upload_document_reference_service import UploadDocumentReferenceService
@@ -14,8 +15,8 @@ from tests.unit.conftest import (
     MOCK_PDM_BUCKET,
     MOCK_PDM_TABLE_NAME,
     MOCK_STAGING_STORE_BUCKET,
+    WORKSPACE,
 )
-from utils.common_query_filters import PreliminaryStatus
 from utils.exceptions import DocumentServiceException, FileProcessingException
 from utils.lambda_exceptions import InvalidDocTypeException
 
@@ -85,102 +86,133 @@ def mock_pdm_document_reference():
 
 
 @pytest.fixture
+def dynamo_item_dict():
+    return {
+        "Item": {
+            "id": "test-doc-id",
+            "nhs_number": "9000000001",
+            "s3_file_key": f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000001/test-doc-id",
+            "s3_bucket_name": "test-staging-bucket",
+            "file_size": 1234567890,
+            "doc_status": "preliminary",
+            "status": "current",
+            "file_name": None,
+        },
+    }
+
+
+@pytest.fixture
+def pdm_document_reference():
+    return DocumentReference(
+        id="test-doc-id",
+        nhs_number="9000000001",
+        s3_file_key=f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000001/test-doc-id",
+        s3_bucket_name="test-staging-bucket",
+        file_size=1234567890,
+        doc_status="preliminary",
+        status="current",
+        file_name=None,
+        author=None,
+        content_type="application/pdf",
+        created="2026-03-03T16:10:10.165878Z",
+        document_scan_creation="2026-03-03",
+        document_snomed_code_type="16521000000101",
+        file_location="s3://test-staging-bucket/9000000001/test-doc-id",
+        last_updated=1772554210,
+        raw_request=None,
+        s3_version_id=None,
+        s3_upload_key="9000000001/test-doc-id",
+        ttl=None,
+        version="1",
+    )
+
+
+@pytest.fixture
 def pdm_service(set_env, mock_virus_scan_service):
-    with patch.multiple(
-        "services.upload_document_reference_service",
-        DocumentService=Mock(),
-        DynamoDBService=Mock(),
-        S3Service=Mock(),
-    ):
-        service = UploadDocumentReferenceService()
-        service.document_service = Mock()
-        service.dynamo_service = Mock()
-        service.virus_scan_service = MockVirusScanService()
-        service.s3_service = Mock()
-        service.table_name = MOCK_PDM_TABLE_NAME
-        service.destination_bucket_name = MOCK_PDM_BUCKET
-        service.doc_type = SnomedCodes.PATIENT_DATA.value
-        return service
+    service = UploadDocumentReferenceService()
+    service.dynamo_service = MagicMock()
+    service.virus_scan_service = MockVirusScanService()
+    service.s3_service = MagicMock()
+    service.table_name = "dev_COREDocumentMetadata"
+    service.destination_bucket_name = MOCK_PDM_BUCKET
+    service.doc_type = SnomedCodes.PATIENT_DATA.value
+    service.document_service = DocumentService()
+    service.document_service.dynamo_service = service.dynamo_service
+    return service
 
 
 def test_handle_upload_document_reference_request_with_empty_object_key(pdm_service):
     """Test handling of an empty object key"""
-    pdm_service.handle_upload_document_reference_request("", 122)
-
-    pdm_service.document_service.fetch_documents_from_table.assert_not_called()
+    result = pdm_service.handle_upload_document_reference_request("", 122)
+    assert result is None
 
 
 def test_handle_upload_document_reference_request_with_none_object_key(pdm_service):
     """Test handling of a None object key"""
-    pdm_service.handle_upload_document_reference_request(None, 122)
-
-    pdm_service.document_service.fetch_documents_from_table.assert_not_called()
+    result = pdm_service.handle_upload_document_reference_request(None, 122)
+    assert result is None
 
 
 def test_handle_upload_document_reference_request_success(
-    service,
-    mock_pdm_document_reference,
+    pdm_service,
+    dynamo_item_dict,
     mocker,
 ):
     """Test successful handling of the upload document reference request"""
     object_key = (
         f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000001/test-doc-id"
     )
-    object_size = 1111
+    object_size = dynamo_item_dict["Item"]["file_size"]
 
-    service.document_service.fetch_documents_from_table.side_effect = [
-        [mock_pdm_document_reference],
-    ]
-    service.virus_scan_service.scan_file = mocker.MagicMock(
+    pdm_service.dynamo_service.get_item.return_value = {
+        "Item": dynamo_item_dict["Item"],
+    }
+    pdm_service.virus_scan_service.scan_file = mocker.MagicMock(
         return_value=VirusScanResult.CLEAN,
     )
 
-    service.handle_upload_document_reference_request(object_key, object_size)
-
-    service.document_service.fetch_documents_from_table.assert_called_once()
-    service.s3_service.copy_across_bucket.assert_called_once()
-    service.s3_service.delete_object.assert_called_once()
-    service.virus_scan_service.scan_file.assert_called_once()
+    pdm_service.handle_upload_document_reference_request(object_key, object_size)
+    pdm_service.s3_service.copy_across_bucket.assert_called_once()
+    pdm_service.s3_service.delete_object.assert_called_once()
+    pdm_service.virus_scan_service.scan_file.assert_called_once()
 
 
-def test_handle_upload_document_reference_request_with_exception(pdm_service):
-    """Test handling of exceptions during processing"""
-    object_key = "staging/test-doc-id"
-
-    pdm_service.document_service.fetch_documents_from_table.side_effect = Exception(
-        "Test error",
-    )
-
-    pdm_service.handle_upload_document_reference_request(object_key)
+def test_handle_upload_document_reference_with_no_object_key(pdm_service):
+    object_key = ""
+    result = pdm_service.handle_upload_document_reference_request(object_key=object_key)
+    assert result is None
 
 
 def test_fetch_preliminary_document_reference_success(
     pdm_service,
-    mock_pdm_document_reference,
+    dynamo_item_dict,
+    pdm_document_reference,
+    mocker,
 ):
     """Test successful document reference fetching"""
-    document_key = "test-doc-id"
-    pdm_service.document_service.fetch_documents_from_table.return_value = [
-        mock_pdm_document_reference,
-    ]
+    spy = mocker.spy(pdm_service.document_service, "get_item")
+    document_key = dynamo_item_dict["Item"]["id"]
+    pdm_service.dynamo_service.get_item.return_value = {
+        "Item": dynamo_item_dict["Item"],
+    }
 
     result = pdm_service._fetch_preliminary_document_reference(
         document_key=document_key,
     )
-
-    assert result == mock_pdm_document_reference
-    pdm_service.document_service.fetch_documents_from_table.assert_called_once_with(
-        table_name=MOCK_PDM_TABLE_NAME,
-        search_condition=document_key,
-        search_key="ID",
-        query_filter=PreliminaryStatus,
+    assert isinstance(result, DocumentReference)
+    assert result.id == pdm_document_reference.id
+    spy.assert_called_once_with(
+        document_id=document_key,
+        table_name=f"dev_{MOCK_PDM_TABLE_NAME}",
+        return_deleted=False,
+        filters=[{"doc_status": "preliminary"}],
     )
 
 
 def test_fetch_preliminary_document_reference_no_documents_found(pdm_service):
     """Test handling when no documents are found"""
     document_key = "test-doc-id"
-    pdm_service.document_service.fetch_documents_from_table.return_value = []
+    pdm_service.dynamo_service.get_item.return_value = {}
 
     result = pdm_service._fetch_preliminary_document_reference(
         document_key=document_key,
@@ -189,29 +221,10 @@ def test_fetch_preliminary_document_reference_no_documents_found(pdm_service):
     assert result is None
 
 
-def test_fetch_preliminary_document_reference_multiple_documents_warning(
-    pdm_service,
-    mock_document_reference,
-):
-    """Test handling when multiple documents are found"""
-    document_key = "test-doc-id"
-    mock_doc_2 = Mock(spec=DocumentReference)
-    pdm_service.document_service.fetch_documents_from_table.return_value = [
-        mock_document_reference,
-        mock_doc_2,
-    ]
-
-    result = pdm_service._fetch_preliminary_document_reference(
-        document_key=document_key,
-    )
-
-    assert result == mock_document_reference
-
-
-def test_fetch_preliminary_document_reference_exception(pdm_service):
+def test_fetch_preliminary_document_reference_exception(pdm_service, dynamo_item_dict):
     """Test handling of exceptions during document fetching"""
-    document_key = "test-doc-id"
-    pdm_service.document_service.fetch_documents_from_table.side_effect = (
+    document_key = dynamo_item_dict["Item"]["id"]
+    pdm_service.dynamo_service.get_item.side_effect = (
         ClientError({"error": "test error message"}, "test"),
     )
 
@@ -257,7 +270,7 @@ def test__process_preliminary_document_reference_clean_virus_scan(
 
 def test__process_preliminary_document_reference_infected_virus_scan(
     pdm_service,
-    mock_document_reference,
+    mock_pdm_document_reference,
     mocker,
 ):
     """Test processing document reference with an infected virus scan"""
@@ -273,7 +286,7 @@ def test__process_preliminary_document_reference_infected_virus_scan(
     mock_process_clean = mocker.patch.object(pdm_service, "_process_clean_document")
     mock_update_dynamo = mocker.patch.object(pdm_service, "_update_dynamo_table")
     pdm_service._process_preliminary_document_reference(
-        mock_document_reference,
+        mock_pdm_document_reference,
         object_key,
         1222,
     )
@@ -285,11 +298,11 @@ def test__process_preliminary_document_reference_infected_virus_scan(
 
 def test_perform_virus_scan_returns_clean_hardcoded(
     pdm_service,
-    mock_document_reference,
+    mock_pdm_document_reference,
 ):
     """Test virus scan returns hardcoded CLEAN result"""
     object_key = "staging/test-doc-id"
-    result = pdm_service._perform_virus_scan(mock_document_reference, object_key)
+    result = pdm_service._perform_virus_scan(mock_pdm_document_reference, object_key)
     assert result == VirusScanResult.CLEAN
 
 
@@ -444,12 +457,13 @@ def test_delete_file_from_staging_bucket_client_error(pdm_service):
 def test_update_dynamo_table_clean_scan_result(
     pdm_service,
     mock_pdm_document_reference,
+    mocker,
 ):
+    spy = mocker.spy(pdm_service.document_service, "update_document")
     """Test updating DynamoDB table with a clean scan result"""
     pdm_service._update_dynamo_table(mock_pdm_document_reference)
-
-    pdm_service.document_service.update_document.assert_called_once_with(
-        table_name=MOCK_PDM_TABLE_NAME,
+    spy.assert_called_once_with(
+        table_name=f"{WORKSPACE}_{MOCK_PDM_TABLE_NAME}",
         key_pair={"ID": "test-doc-id"},
         document=mock_pdm_document_reference,
         update_fields_name={
@@ -464,14 +478,19 @@ def test_update_dynamo_table_clean_scan_result(
     )
 
 
-def test_update_dynamo_table_infected_scan_result(pdm_service, mock_document_reference):
+def test_update_dynamo_table_infected_scan_result(
+    pdm_service,
+    mock_document_reference,
+    mocker,
+):
     """Test updating DynamoDB table with an infected scan result"""
+    spy = mocker.spy(pdm_service.document_service, "update_document")
     pdm_service._update_dynamo_table(mock_document_reference)
 
-    pdm_service.document_service.update_document.assert_called_once()
+    spy.assert_called_once()
 
 
-def test_update_dynamo_table_client_error(pdm_service, mock_document_reference):
+def test_update_dynamo_table_client_error(pdm_service, pdm_document_reference, mocker):
     """Test handling of ClientError during DynamoDB update"""
     client_error = ClientError(
         error_response={
@@ -482,10 +501,11 @@ def test_update_dynamo_table_client_error(pdm_service, mock_document_reference):
         },
         operation_name="UpdateItem",
     )
+    pdm_service.document_service = MagicMock()
     pdm_service.document_service.update_document.side_effect = client_error
 
     with pytest.raises(DocumentServiceException):
-        pdm_service._update_dynamo_table(mock_document_reference)
+        pdm_service._update_dynamo_table(pdm_document_reference)
 
 
 def test_handle_upload_document_reference_request_no_document_found(pdm_service):
@@ -493,14 +513,14 @@ def test_handle_upload_document_reference_request_no_document_found(pdm_service)
     object_key = "staging/test-doc-id"
     object_size = 1234
 
-    pdm_service.document_service.fetch_documents_from_table.return_value = []
+    pdm_service.dynamo_service.get_item.return_value = {}
 
-    pdm_service.handle_upload_document_reference_request(object_key, object_size)
+    result = pdm_service.handle_upload_document_reference_request(
+        object_key,
+        object_size,
+    )
 
-    # Should fetch but not proceed with processing
-    pdm_service.document_service.fetch_documents_from_table.assert_called_once()
-    pdm_service.s3_service.copy_across_bucket.assert_not_called()
-    pdm_service.document_service.update_document.assert_not_called()
+    assert result is None
 
 
 def test_process_preliminary_document_reference_exception_during_processing(
@@ -631,44 +651,19 @@ def test_document_type_extraction_from_object_key(
     assert service.doc_type.code == expected_doctype.code
 
 
-def test_handle_upload_pdm_document_reference_request_success(
-    service,
-    mock_document_reference,
-    mocker,
-):
-    """Test successful handling of the upload document reference request"""
-    pdm_snomed = SnomedCodes.PATIENT_DATA.value
-    object_key = f"fhir_upload/{pdm_snomed.code}/staging/test-doc-id"
-    object_size = 1111
-    service.document_service.fetch_documents_from_table.return_value = [
-        mock_document_reference,
-    ]
-    service.virus_scan_service.scan_file = mocker.MagicMock(
-        return_value=VirusScanResult.CLEAN,
-    )
-
-    service.handle_upload_document_reference_request(object_key, object_size)
-
-    service.document_service.fetch_documents_from_table.assert_called_once()
-    service.document_service.update_document.assert_called_once()
-    service.s3_service.copy_across_bucket.assert_called_once()
-    service.s3_service.delete_object.assert_called_once()
-    service.virus_scan_service.scan_file.assert_called_once()
-
-
 def test_copy_files_from_staging_bucket_to_pdm_success(
     pdm_service,
-    mock_pdm_document_reference,
+    dynamo_item_dict,
+    pdm_document_reference,
+    mocker,
 ):
     """Test successful file copying from staging bucket"""
-    source_file_key = (
-        f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/staging/test-doc-id"
-    )
+    source_file_key = dynamo_item_dict["Item"]["s3_file_key"]
     expected_dest_key = (
-        f"{mock_pdm_document_reference.nhs_number}/{mock_pdm_document_reference.id}"
+        f"{pdm_document_reference.nhs_number}/{pdm_document_reference.id}"
     )
     pdm_service.copy_files_from_staging_bucket(
-        mock_pdm_document_reference,
+        pdm_document_reference,
         source_file_key,
     )
     pdm_service.s3_service.copy_across_bucket.assert_called_once_with(
@@ -678,5 +673,5 @@ def test_copy_files_from_staging_bucket_to_pdm_success(
         dest_file_key=expected_dest_key,
     )
 
-    assert mock_pdm_document_reference.s3_file_key == expected_dest_key
-    assert mock_pdm_document_reference.s3_bucket_name == MOCK_PDM_BUCKET
+    assert pdm_document_reference.s3_file_key == expected_dest_key
+    assert pdm_document_reference.s3_bucket_name == MOCK_PDM_BUCKET

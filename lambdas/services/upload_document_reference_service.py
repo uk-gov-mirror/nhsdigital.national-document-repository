@@ -100,29 +100,44 @@ class UploadDocumentReferenceService:
     ) -> Optional[DocumentReference]:
         """Fetch document reference from the database"""
         try:
-            search_key = "ID"
-            search_condition = document_key
+            if self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
+                search_key = "ID"
+                search_condition = document_key
+                documents = self.document_service.fetch_documents_from_table(
+                    search_key=search_key,
+                    search_condition=search_condition,
+                    table_name=self.table_name,
+                    query_filter=PreliminaryStatus,
+                )
+                if not documents:
+                    logger.error(
+                        f"No document with the following key found in {self.table_name} table: {document_key}",
+                    )
+                    logger.info("Skipping this object")
+                    return None
 
-            documents = self.document_service.fetch_documents_from_table(
-                search_key=search_key,
-                search_condition=search_condition,
+                if len(documents) > 1:
+                    logger.warning(
+                        f"Multiple documents found for key {document_key}, using first one",
+                    )
+
+                return documents[0]
+
+            document = self.document_service.get_item(
+                document_id=document_key,
                 table_name=self.table_name,
-                query_filter=PreliminaryStatus,
+                return_deleted=False,
+                filters=[{"doc_status": "preliminary"}],
             )
 
-            if not documents:
+            if not document:
                 logger.error(
                     f"No document with the following key found in {self.table_name} table: {document_key}",
                 )
                 logger.info("Skipping this object")
                 return None
 
-            if len(documents) > 1:
-                logger.warning(
-                    f"Multiple documents found for key {document_key}, using first one",
-                )
-
-            return documents[0]
+            return document
 
         except ClientError as e:
             logger.error(
