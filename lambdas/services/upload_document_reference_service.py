@@ -127,7 +127,7 @@ class UploadDocumentReferenceService:
                 document_id=document_key,
                 table_name=self.table_name,
                 return_deleted=False,
-                filters=[{"doc_status": "preliminary"}],
+                filters=[{"DocStatus": "preliminary"}],
             )
 
             if not document:

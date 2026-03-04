@@ -131,7 +131,7 @@ def test_search_patient_details_deleted_are_not_returned(test_data):
     document_reference_ttl = int(deletion_date.timestamp() + ttl_seconds)
     created_record_2 = create_and_store_pdm_record(
         test_data,
-        doc_status="deprecated",
+        DocStatus="deprecated",
         Deleted=deletion_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         ttl=document_reference_ttl,
     )

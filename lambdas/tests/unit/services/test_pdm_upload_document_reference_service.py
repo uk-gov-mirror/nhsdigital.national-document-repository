@@ -94,7 +94,7 @@ def dynamo_item_dict():
             "s3_file_key": f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000001/test-doc-id",
             "s3_bucket_name": "test-staging-bucket",
             "file_size": 1234567890,
-            "doc_status": "preliminary",
+            "DocStatus": "preliminary",
             "status": "current",
             "file_name": None,
         },
@@ -205,7 +205,7 @@ def test_fetch_preliminary_document_reference_success(
         document_id=document_key,
         table_name=f"dev_{MOCK_PDM_TABLE_NAME}",
         return_deleted=False,
-        filters=[{"doc_status": "preliminary"}],
+        filters=[{"DocStatus": "preliminary"}],
     )
 
 
