@@ -16,7 +16,7 @@ def preliminary_dynamo_item_dict():
             "s3_file_key": f"fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000001/test-doc-id",
             "s3_bucket_name": "test-staging-bucket",
             "file_size": 1234567890,
-            "doc_status": "preliminary",
+            "DocStatus": "preliminary",
             "status": "current",
             "file_name": None,
         },
@@ -39,23 +39,23 @@ def service():
             True,
         ),
         (
-            [{"doc_status": "preliminary"}],
+            [{"DocStatus": "preliminary"}],
             True,
         ),
         (
-            [{"doc_status": "preliminary"}, {"status": "current"}],
+            [{"DocStatus": "preliminary"}, {"status": "current"}],
             True,
         ),
         (
-            [{"doc_status": "final"}],
+            [{"DocStatus": "final"}],
             False,
         ),
         (
-            [{"doc_status": "final"}, {"status": "foobar"}],
+            [{"DocStatus": "final"}, {"status": "foobar"}],
             False,
         ),
         (
-            [{"doc_status": "preliminary"}, {"status": "foobar"}],
+            [{"DocStatus": "preliminary"}, {"status": "foobar"}],
             False,
         ),
     ],
