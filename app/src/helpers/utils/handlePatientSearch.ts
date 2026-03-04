@@ -2,7 +2,6 @@ import { AxiosError } from 'axios';
 import { Dispatch, SetStateAction } from 'react';
 import { LocalFlags } from '../../providers/configProvider/ConfigProvider';
 import { AuthHeaders } from '../../types/blocks/authHeaders';
-import { FeatureFlags } from '../../types/generic/featureFlags';
 import { PatientDetails } from '../../types/generic/patientDetails';
 import { routes } from '../../types/generic/routes';
 import getPatientDetails from '../requests/getPatientDetails';
@@ -24,10 +23,7 @@ export type HandleSearchArgs = {
     handleSuccess: (patientDetails: PatientDetails) => void;
     baseUrl: string;
     baseHeaders: AuthHeaders;
-    userIsGPAdmin: boolean;
-    userIsGPClinical: boolean;
     mockLocal: LocalFlags;
-    featureFlags: FeatureFlags;
 };
 
 type handleSearchReturnType = [
@@ -42,10 +38,7 @@ export const handleSearch = async ({
     handleSuccess,
     baseUrl,
     baseHeaders,
-    userIsGPAdmin,
-    userIsGPClinical,
     mockLocal,
-    featureFlags,
 }: HandleSearchArgs): Promise<handleSearchReturnType | undefined> => {
     setSearchingState(PATIENT_SEARCH_STATES.SEARCHING);
 
@@ -57,16 +50,6 @@ export const handleSearch = async ({
             baseUrl,
             baseHeaders,
         });
-
-        if (!patientDetails.active && !patientDetails.deceased) {
-            if (
-                userIsGPClinical ||
-                (userIsGPAdmin &&
-                    (!featureFlags.uploadArfWorkflowEnabled || !featureFlags.uploadLambdaEnabled))
-            ) {
-                return [errorCodes['SP_4003'], 404, undefined];
-            }
-        }
 
         handleSuccess(patientDetails);
     } catch (e) {

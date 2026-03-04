@@ -104,10 +104,7 @@ const ReviewDetailsPatientSearchStage = ({
             handleSuccess,
             baseUrl,
             baseHeaders,
-            userIsGPAdmin: false,
-            userIsGPClinical: false,
             mockLocal: config.mockLocal,
-            featureFlags: config.featureFlags,
         };
 
         const result = await handleSearch(args);

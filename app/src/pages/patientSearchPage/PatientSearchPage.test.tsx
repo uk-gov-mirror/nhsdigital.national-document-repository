@@ -134,32 +134,6 @@ describe('PatientSearchPage', () => {
             ).toHaveLength(2);
         });
 
-        it('returns an input error when user does not have access to patient data', async () => {
-            const errorResponse = {
-                response: {
-                    status: 404,
-                    message: '404 Not found.',
-                    data: {
-                        err_code: 'SP_4003',
-                    },
-                },
-            };
-
-            mockedAxios.get.mockImplementation(() => Promise.reject(errorResponse));
-
-            renderPatientSearchPage();
-            await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
-                '0987654321',
-            );
-            await userEvent.click(screen.getByRole('button', { name: 'Search' }));
-            expect(
-                await screen.findAllByText(
-                    "You cannot access this patient's record because they are not registered at your practice. The patient's current practice can access this record if it's stored in this service.",
-                ),
-            ).toHaveLength(2);
-        });
-
         it('returns patient info when patient is inactive and deceased', async () => {
             const patientDetails = buildPatientDetails({
                 active: false,
@@ -178,30 +152,6 @@ describe('PatientSearchPage', () => {
             await waitFor(() => {
                 expect(mockedUseNavigate).toHaveBeenCalledWith(routes.VERIFY_PATIENT);
             });
-        });
-
-        it('returns an error when patient is inactive and not deceased and user is clinical', async () => {
-            const patientDetails = buildPatientDetails({
-                active: false,
-                deceased: false,
-            });
-
-            mockedAxios.get.mockImplementation(() => Promise.resolve({ data: patientDetails }));
-
-            mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_CLINICAL);
-
-            renderPatientSearchPage();
-            await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
-                '9000000000',
-            );
-            await userEvent.click(screen.getByRole('button', { name: 'Search' }));
-
-            expect(
-                await screen.findAllByText(
-                    "You cannot access this patient's record because they are not registered at your practice. The patient's current practice can access this record if it's stored in this service.",
-                ),
-            ).toHaveLength(2);
         });
 
         it('returns a service error when service is down', async () => {
@@ -341,26 +291,6 @@ describe('PatientSearchPage', () => {
                     routes.SERVER_ERROR + '?encodedError=WyJ0ZXN0IiwiMTU3NzgzNjgwMCJd',
                 );
             });
-        });
-
-        it('display input error when patient is inactive and upload feature is disabled', async () => {
-            const role = REPOSITORY_ROLE.GP_ADMIN;
-            mockedUseRole.mockReturnValue(role);
-            mockedAxios.get.mockImplementation(() =>
-                Promise.resolve({ data: { ...buildPatientDetails(), active: false } }),
-            );
-
-            renderPatientSearchPage();
-            await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
-                '0987654321',
-            );
-            await userEvent.click(screen.getByRole('button', { name: 'Search' }));
-            expect(
-                await screen.findAllByText(
-                    "You cannot access this patient's record because they are not registered at your practice. The patient's current practice can access this record if it's stored in this service.",
-                ),
-            ).toHaveLength(2);
         });
 
         it('navigates to home page when Go to home link is clicked', async () => {

@@ -165,10 +165,7 @@ const ReviewsDetailsStage = ({
                     },
                     baseUrl,
                     baseHeaders,
-                    userIsGPAdmin: role === 'GP_ADMIN',
-                    userIsGPClinical: role === 'GP_CLINICAL',
                     mockLocal: config.mockLocal,
-                    featureFlags: config.featureFlags,
                 });
                 setisLoadingPatientDetails(false);
             } catch (error) {

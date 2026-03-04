@@ -43,10 +43,7 @@ describe('handleSearch', () => {
             handleSuccess,
             baseUrl,
             baseHeaders,
-            userIsGPAdmin: false,
-            userIsGPClinical: true,
             mockLocal: { patientIsActive: true, patientIsDeceased: false } as any,
-            featureFlags: { uploadArfWorkflowEnabled: true, uploadLambdaEnabled: true } as any,
         });
 
         expect(setSearchingState).toHaveBeenCalledWith(PATIENT_SEARCH_STATES.SEARCHING);
@@ -61,10 +58,7 @@ describe('handleSearch', () => {
             handleSuccess,
             baseUrl,
             baseHeaders,
-            userIsGPAdmin: false,
-            userIsGPClinical: true,
             mockLocal: { patientIsActive: true, patientIsDeceased: false } as any,
-            featureFlags: { uploadArfWorkflowEnabled: true, uploadLambdaEnabled: true } as any,
         });
 
         expect(mockGetPatientDetails).toHaveBeenCalledWith({
@@ -74,42 +68,34 @@ describe('handleSearch', () => {
         });
     });
 
-    it('returns SP_4003 for inactive non-deceased patient when user is clinical', async () => {
+    it('allow inactive non-deceased patient when user is clinical', async () => {
         mockGetPatientDetails.mockResolvedValueOnce({ active: false, deceased: false } as any);
 
-        const result = await handleSearch({
+        await handleSearch({
             nhsNumber: '1234567890',
             setSearchingState,
             handleSuccess,
             baseUrl,
             baseHeaders,
-            userIsGPAdmin: false,
-            userIsGPClinical: true,
             mockLocal: { patientIsActive: true, patientIsDeceased: false } as any,
-            featureFlags: { uploadArfWorkflowEnabled: true, uploadLambdaEnabled: true } as any,
         });
 
-        expect(handleSuccess).not.toHaveBeenCalled();
-        expect(result).toEqual([errorCodes['SP_4003'], 404, undefined]);
+        expect(handleSuccess).toHaveBeenCalled();
     });
 
-    it('returns SP_4003 for inactive non-deceased patient when user is admin and either flag is disabled', async () => {
+    it('allow inactive non-deceased patient when user is admin and either flag is disabled', async () => {
         mockGetPatientDetails.mockResolvedValueOnce({ active: false, deceased: false } as any);
 
-        const result = await handleSearch({
+        await handleSearch({
             nhsNumber: '1234567890',
             setSearchingState,
             handleSuccess,
             baseUrl,
             baseHeaders,
-            userIsGPAdmin: true,
-            userIsGPClinical: false,
             mockLocal: { patientIsActive: true, patientIsDeceased: false } as any,
-            featureFlags: { uploadArfWorkflowEnabled: false, uploadLambdaEnabled: true } as any,
         });
 
-        expect(handleSuccess).not.toHaveBeenCalled();
-        expect(result).toEqual([errorCodes['SP_4003'], 404, undefined]);
+        expect(handleSuccess).toHaveBeenCalled();
     });
 
     it('allows inactive non-deceased patient when user is admin and both flags are enabled', async () => {
@@ -122,10 +108,7 @@ describe('handleSearch', () => {
             handleSuccess,
             baseUrl,
             baseHeaders,
-            userIsGPAdmin: true,
-            userIsGPClinical: false,
             mockLocal: { patientIsActive: true, patientIsDeceased: false } as any,
-            featureFlags: { uploadArfWorkflowEnabled: true, uploadLambdaEnabled: true } as any,
         });
 
         expect(result).toBeUndefined();
@@ -142,10 +125,7 @@ describe('handleSearch', () => {
             handleSuccess,
             baseUrl,
             baseHeaders,
-            userIsGPAdmin: false,
-            userIsGPClinical: true,
             mockLocal: { patientIsActive: false, patientIsDeceased: true } as any,
-            featureFlags: { uploadArfWorkflowEnabled: true, uploadLambdaEnabled: true } as any,
         });
 
         expect(result).toBeUndefined();
@@ -167,10 +147,7 @@ describe('handleSearch', () => {
             handleSuccess,
             baseUrl,
             baseHeaders,
-            userIsGPAdmin: false,
-            userIsGPClinical: true,
             mockLocal: { patientIsActive: true, patientIsDeceased: false } as any,
-            featureFlags: { uploadArfWorkflowEnabled: true, uploadLambdaEnabled: true } as any,
         });
 
         expect(result).toEqual(['Enter a valid patient NHS number.', 400, error]);
@@ -186,10 +163,7 @@ describe('handleSearch', () => {
             handleSuccess,
             baseUrl,
             baseHeaders,
-            userIsGPAdmin: false,
-            userIsGPClinical: true,
             mockLocal: { patientIsActive: true, patientIsDeceased: false } as any,
-            featureFlags: { uploadArfWorkflowEnabled: true, uploadLambdaEnabled: true } as any,
         });
 
         expect(result).toEqual([null, 403, error]);
@@ -205,10 +179,7 @@ describe('handleSearch', () => {
             handleSuccess,
             baseUrl,
             baseHeaders,
-            userIsGPAdmin: false,
-            userIsGPClinical: true,
             mockLocal: { patientIsActive: true, patientIsDeceased: false } as any,
-            featureFlags: { uploadArfWorkflowEnabled: true, uploadLambdaEnabled: true } as any,
         });
 
         expect(result).toEqual([errorCodes['SP_4003'], 404, error]);

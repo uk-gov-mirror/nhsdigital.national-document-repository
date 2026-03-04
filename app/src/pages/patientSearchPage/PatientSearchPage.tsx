@@ -21,8 +21,6 @@ import useTitle from '../../helpers/hooks/useTitle';
 import useConfig from '../../helpers/hooks/useConfig';
 import { ErrorResponse } from '../../types/generic/errorResponse';
 import errorCodes from '../../helpers/utils/errorCodes';
-import useRole from '../../helpers/hooks/useRole';
-import { REPOSITORY_ROLE } from '../../types/generic/authRole';
 
 export const incorrectFormatMessage = "Enter patient's 10 digit NHS number";
 
@@ -32,9 +30,6 @@ const PatientSearchPage = (): JSX.Element => {
     const [statusCode, setStatusCode] = useState<null | number>(null);
     const [inputError, setInputError] = useState<null | string>(null);
     const { mockLocal, featureFlags } = useConfig();
-    const role = useRole();
-    const userIsGPAdmin = role === REPOSITORY_ROLE.GP_ADMIN;
-    const userIsGPClinical = role === REPOSITORY_ROLE.GP_CLINICAL;
     const { register, handleSubmit } = useForm({
         reValidateMode: 'onSubmit',
     });
@@ -75,19 +70,6 @@ const PatientSearchPage = (): JSX.Element => {
                 baseUrl,
                 baseHeaders,
             });
-
-            if (!patientDetails.active && !patientDetails.deceased) {
-                if (
-                    userIsGPClinical ||
-                    (userIsGPAdmin &&
-                        (!featureFlags.uploadArfWorkflowEnabled ||
-                            !featureFlags.uploadLambdaEnabled))
-                ) {
-                    setInputError(errorCodes['SP_4003']);
-                    setFailedSubmitState(404);
-                    return;
-                }
-            }
 
             handleSuccess(patientDetails);
         } catch (e) {

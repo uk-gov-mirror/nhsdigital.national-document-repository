@@ -118,7 +118,7 @@ describe('GP Workflow: Patient search and verify', () => {
         );
 
         it(
-            'Does not show verify patient view when the user does not have access to the patient',
+            'Does not show verify patient view when the patient is not found on PDS',
             { tags: 'regression' },
             () => {
                 setup(role);
@@ -148,63 +148,6 @@ describe('GP Workflow: Patient search and verify', () => {
         );
     });
 
-    it(
-        'Does not show the upload documents page when upload patient is verified and inactive as a GP_Clinical',
-        { tags: 'regression' },
-        () => {
-            setup(Roles.GP_CLINICAL);
-
-            cy.intercept('GET', '/SearchPatient*', {
-                statusCode: 200,
-                body: patient,
-            }).as('search');
-
-            cy.get('#nhs-number-input').click();
-            cy.get('#nhs-number-input').type(testPatient);
-
-            cy.get('#search-submit').click();
-            cy.wait('@search');
-
-            cy.get('#nhs-number-input--error-message').should('be.visible');
-            cy.get('#nhs-number-input--error-message').should(
-                'include.text',
-                "Error: You cannot access this patient's record",
-            );
-            cy.get('#error-box-summary').should('be.visible');
-            cy.get('#error-box-summary').should('have.text', 'There is a problem');
-        },
-    );
-
-    it(
-        'Does not show the upload documents page when upload patient is disabled and patient is inactive as a GP_ADMIN',
-        { tags: 'regression' },
-        () => {
-            setup(Roles.GP_ADMIN, {
-                uploadArfWorkflowEnabled: false,
-            });
-
-            cy.intercept('GET', '/SearchPatient*', (req) => {
-                req.reply({
-                    statusCode: 200,
-                    body: patient,
-                });
-            }).as('search');
-
-            cy.get('#nhs-number-input').click();
-            cy.get('#nhs-number-input').type(testPatient);
-
-            cy.get('#search-submit').click();
-            cy.wait('@search');
-
-            cy.get('#nhs-number-input--error-message').should('be.visible');
-            cy.get('#nhs-number-input--error-message').should(
-                'include.text',
-                "Error: You cannot access this patient's record",
-            );
-            cy.get('#error-box-summary').should('be.visible');
-            cy.get('#error-box-summary').should('have.text', 'There is a problem');
-        },
-    );
 });
 
 function setup(role, featureFlags) {

@@ -402,17 +402,17 @@ describe('handleSearch', () => {
     });
 
     describe('Inactive Patient Handling', () => {
-        it('returns error for inactive patient when user is GP Clinical', async () => {
+        it('allows inactive patient when user is GP Clinical', async () => {
             const inactivePatient = buildPatientDetails({ active: false, deceased: false });
             mockGetPatientDetails.mockResolvedValue(inactivePatient);
 
             const result = await handleSearch({ ...defaultArgs, userIsGPClinical: true } as any);
 
-            expect(result).toEqual([expect.any(String), 404, undefined]);
-            expect(mockHandleSuccess).not.toHaveBeenCalled();
+            expect(mockHandleSuccess).toHaveBeenCalledWith(inactivePatient);
+            expect(result).toBeUndefined();
         });
 
-        it('returns error for inactive patient when user is GP Admin with disabled features', async () => {
+        it('allows inactive  patient when user is GP Admin with disabled features', async () => {
             const inactivePatient = buildPatientDetails({ active: false, deceased: false });
             mockGetPatientDetails.mockResolvedValue(inactivePatient);
 
@@ -422,8 +422,8 @@ describe('handleSearch', () => {
                 featureFlags: { uploadArfWorkflowEnabled: false, uploadLambdaEnabled: false },
             } as any);
 
-            expect(result).toEqual([expect.any(String), 404, undefined]);
-            expect(mockHandleSuccess).not.toHaveBeenCalled();
+            expect(mockHandleSuccess).toHaveBeenCalledWith(inactivePatient);
+            expect(result).toBeUndefined();
         });
 
         it('allows inactive patient for GP Admin with enabled features', async () => {
