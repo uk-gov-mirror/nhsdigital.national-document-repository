@@ -812,7 +812,6 @@ def test_filters_on_get_item(
         },
     }
 
-    print(filters)
     result = mock_service.filter_item(response=mock_dynamo_response, filters=filters)
     if filters[0].get("DocStatus") == "preliminary":
         assert result is True
