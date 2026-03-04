@@ -296,7 +296,7 @@ def test_create_document_password_protected_docx(test_data, snapshot_json):
 
     retrieve_response = requests.post(url, headers=headers, data=payload)
     upload_response = retrieve_response.json()
-    lloyd_george_record["id"] = upload_response["id"].split("~")[1]
+    lloyd_george_record["id"] = upload_response["id"]
     test_data.append(lloyd_george_record)
 
     retrieve_url = (
@@ -336,7 +336,7 @@ def test_create_document_corrupted_png_returns_error(test_data, snapshot_json):
 
     retrieve_response = requests.post(url, headers=headers, data=payload)
     upload_response = retrieve_response.json()
-    lloyd_george_record["id"] = upload_response["id"].split("~")[1]
+    lloyd_george_record["id"] = upload_response["id"]
     test_data.append(lloyd_george_record)
     presign_uri = upload_response["content"][0]["attachment"]["url"]
     del upload_response["content"][0]["attachment"]["url"]

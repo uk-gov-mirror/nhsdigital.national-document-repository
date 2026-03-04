@@ -86,7 +86,7 @@ def test_create_document_base64_medium_file(test_data):
     raw_upload_response = upload_document(payload)
     assert raw_upload_response.status_code == 201
     upload_response = raw_upload_response.json()
-    record["id"] = upload_response["id"].split("~")[1]
+    record["id"] = upload_response["id"]
     test_data.append(record)
 
     assert "Location" in raw_upload_response.headers
@@ -95,7 +95,7 @@ def test_create_document_base64_medium_file(test_data):
 
     attachment_url = upload_response["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{upload_response['id']}"
         in attachment_url
     )
 
