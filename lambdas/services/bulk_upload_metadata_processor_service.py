@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pydantic
 from botocore.exceptions import ClientError
+
 from enums.document_review_reason import DocumentReviewReason
 from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
 from enums.upload_status import UploadStatus
@@ -86,7 +87,7 @@ class BulkUploadMetadataProcessorService:
         local_file_path = f"{self.temp_download_dir}/{self.file_key.split('/')[-1]}"
 
         logger.info(
-            f"Fetching {local_file_path} from bucket {self.staging_bucket_name}"
+            f"Fetching {local_file_path} from bucket {self.staging_bucket_name}",
         )
 
         try:
@@ -97,7 +98,7 @@ class BulkUploadMetadataProcessorService:
             )
         except ClientError:
             raise BulkUploadMetadataException(
-                f"Could not retrieve the following metadata file: {self.file_key}"
+                f"Could not retrieve the following metadata file: {self.file_key}",
             )
         return local_file_path
 
@@ -144,12 +145,15 @@ class BulkUploadMetadataProcessorService:
         )
 
         with open(
-            csv_file_path, mode="r", encoding="utf-8-sig", errors="replace"
+            csv_file_path,
+            mode="r",
+            encoding="utf-8-sig",
+            errors="replace",
         ) as csv_file:
             csv_reader = csv.DictReader(csv_file)
             if csv_reader.fieldnames is None:
                 raise BulkUploadMetadataException(
-                    "Metadata file is empty or missing headers."
+                    "Metadata file is empty or missing headers.",
                 )
 
             headers = [h.strip() for h in csv_reader.fieldnames]
@@ -160,7 +164,9 @@ class BulkUploadMetadataProcessorService:
 
         validated_rows, rejected_rows, rejected_reasons = (
             self.metadata_mapping_validator_service.validate_and_normalize_metadata(
-                records, self.fixed_values, self.metadata_heading_remap
+                records,
+                self.fixed_values,
+                self.metadata_heading_remap,
             )
         )
         if rejected_reasons:
@@ -168,12 +174,12 @@ class BulkUploadMetadataProcessorService:
                 logger.warning(f"Rejected due to: {reason['REASON']}")
 
         logger.info(
-            f"There are {len(validated_rows)} valid rows, and {len(rejected_rows)} rejected rows"
+            f"There are {len(validated_rows)} valid rows, and {len(rejected_rows)} rejected rows",
         )
 
         if not validated_rows:
             raise BulkUploadMetadataException(
-                "No valid metadata rows found after alias validation."
+                "No valid metadata rows found after alias validation.",
             )
 
         for row in validated_rows:
@@ -183,7 +189,7 @@ class BulkUploadMetadataProcessorService:
             self.send_failed_files_to_review_queue(failed_files)
         else:
             logger.info(
-                f"Send to review is disabled. Skipping review queue for {len(failed_files)} failed file"
+                f"Send to review is disabled. Skipping review queue for {len(failed_files)} failed file",
             )
 
         return [
@@ -209,7 +215,11 @@ class BulkUploadMetadataProcessorService:
             correct_file_name = self.validate_and_correct_filename(file_metadata)
         except InvalidFileNameException as error:
             self.handle_invalid_filename(
-                file_metadata, error, nhs_number, ods_code, failed_files
+                file_metadata,
+                error,
+                nhs_number,
+                ods_code,
+                failed_files,
             )
             return
 
@@ -231,18 +241,20 @@ class BulkUploadMetadataProcessorService:
         for field_name, fixed_value in self.fixed_values.items():
             metadata_dict[field_name] = fixed_value
             logger.info(
-                f"Applied fixed value for field '{field_name}': '{fixed_value}'"
+                f"Applied fixed value for field '{field_name}': '{fixed_value}'",
             )
 
         return MetadataFile.model_validate(metadata_dict)
 
     @staticmethod
     def convert_to_sqs_metadata(
-        file: MetadataFile, stored_file_name: str
+        file: MetadataFile,
+        stored_file_name: str,
     ) -> BulkUploadQueueMetadata:
         """Convert a MetadataFile into BulkUploadQueueMetadata."""
         return BulkUploadQueueMetadata(
-            **file.model_dump(), stored_file_name=stored_file_name
+            **file.model_dump(),
+            stored_file_name=stored_file_name,
         )
 
     def create_expedite_sqs_metadata(self, key) -> StagingSqsMetadata:
@@ -256,7 +268,7 @@ class BulkUploadMetadataProcessorService:
                     stored_file_name=file_path,
                     gp_practice_code=ods_code,
                     scan_date=scan_date,
-                )
+                ),
             ],
         )
 
@@ -272,7 +284,8 @@ class BulkUploadMetadataProcessorService:
             return file_metadata.file_path
         except LGInvalidFilesException:
             return self.metadata_formatter_service.validate_record_filename(
-                file_metadata.file_path, file_metadata.nhs_number
+                file_metadata.file_path,
+                file_metadata.nhs_number,
             )
 
     def validate_expedite_file(self, s3_object_key: str):
@@ -281,7 +294,7 @@ class BulkUploadMetadataProcessorService:
         the key fields required to build SQS metadata."""
         file_path = os.path.basename(s3_object_key)
 
-        if not file_path.startswith("1of1"):
+        if not file_path.startswith("1of1_"):
             failure_msg = (
                 "Failed processing expedite event due to file not being a 1of1"
             )
@@ -290,7 +303,7 @@ class BulkUploadMetadataProcessorService:
 
         nhs_number = extract_nhs_number_from_bulk_upload_file_name(file_path)[0]
         file_name = self.metadata_formatter_service.validate_record_filename(
-            s3_object_key
+            s3_object_key,
         )
         ods_code = Path(s3_object_key).parent.name
         scan_date = datetime.now().strftime("%Y-%m-%d")
@@ -302,7 +315,8 @@ class BulkUploadMetadataProcessorService:
         try:
             unparsed_s3_object_key = event["detail"]["object"]["key"]
             s3_object_key = urllib.parse.unquote_plus(
-                unparsed_s3_object_key, encoding="utf-8"
+                unparsed_s3_object_key,
+                encoding="utf-8",
             )
 
             if s3_object_key.startswith("expedite/"):
@@ -334,26 +348,30 @@ class BulkUploadMetadataProcessorService:
     ) -> None:
         """Handle invalid filenames by logging, storing failure in Dynamo, and tracking for review."""
         logger.error(
-            f"Failed to process {file_metadata.file_path} due to error: {error}"
+            f"Failed to process {file_metadata.file_path} due to error: {error}",
         )
         failed_file = self.convert_to_sqs_metadata(
-            file_metadata, file_metadata.file_path
+            file_metadata,
+            file_metadata.file_path,
         )
         failed_file.file_path = self.add_directory_path_to_file_path(file_metadata)
         failed_files[(nhs_number, ods_code)].append(failed_file)
 
         failed_entry = StagingSqsMetadata(nhs_number=nhs_number, files=[failed_file])
         self.dynamo_repository.write_report_upload_to_dynamo(
-            failed_entry, UploadStatus.FAILED, str(error)
+            failed_entry,
+            UploadStatus.FAILED,
+            str(error),
         )
 
     def send_failed_files_to_review_queue(
-        self, failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]]
+        self,
+        failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]],
     ) -> None:
         for (nhs_number, ods_code), files in failed_files.items():
             staging_metadata = StagingSqsMetadata(nhs_number=nhs_number, files=files)
             logger.info(
-                f"Sending {len(files)} failed file(s) to review queue for NHS number: {nhs_number}"
+                f"Sending {len(files)} failed file(s) to review queue for NHS number: {nhs_number}",
             )
             self.sqs_repository.send_message_to_review_queue(
                 staging_metadata=staging_metadata,
@@ -362,7 +380,8 @@ class BulkUploadMetadataProcessorService:
             )
 
     def send_metadata_to_fifo_sqs(
-        self, staging_sqs_metadata_list: list[StagingSqsMetadata]
+        self,
+        staging_sqs_metadata_list: list[StagingSqsMetadata],
     ) -> None:
         """Send validated metadata entries to SQS FIFO queue."""
         for staging_sqs_metadata in staging_sqs_metadata_list:
@@ -377,7 +396,8 @@ class BulkUploadMetadataProcessorService:
         logger.info("Sent bulk upload metadata to sqs queue")
 
     def send_metadata_to_expedite_sqs(
-        self, staging_sqs_metadata: StagingSqsMetadata
+        self,
+        staging_sqs_metadata: StagingSqsMetadata,
     ) -> None:
         """Send validated metadata entries to SQS expedite queue."""
         sqs_group_id = f"bulk_upload_{uuid.uuid4()}"
@@ -415,12 +435,12 @@ class BulkUploadMetadataProcessorService:
         if scan_result != VirusScanResult.CLEAN:
             logger.info(f"Found an issue with the file {file_key}.")
             raise VirusScanFailedException(
-                f"Encountered an issue when scanning the file {file_key}, scan result was {scan_result}"
+                f"Encountered an issue when scanning the file {file_key}, scan result was {scan_result}",
             )
 
     def enforce_virus_scanner(self, file_key: str):
         logger.info(
-            f"Checking virus scan result for file: {file_key} in {self.staging_bucket_name}"
+            f"Checking virus scan result for file: {file_key} in {self.staging_bucket_name}",
         )
 
         try:
@@ -436,7 +456,7 @@ class BulkUploadMetadataProcessorService:
             if "NoSuchKey" in error_message or "AccessDenied" in error_message:
                 logger.error(f"S3 access error when checking tag for {file_key}.")
                 raise BulkUploadMetadataException(
-                    f"Failed to access S3 file {file_key} during tag check."
+                    f"Failed to access S3 file {file_key} during tag check.",
                 )
             else:
                 raise
@@ -448,11 +468,11 @@ def get_formatter_service(raw_pre_format_type):
         if pre_format_type == LloydGeorgePreProcessFormat.GENERAL:
             logger.info("Using general preFormatType")
             return MetadataGeneralPreprocessor
-        elif pre_format_type == LloydGeorgePreProcessFormat.USB:
+        if pre_format_type == LloydGeorgePreProcessFormat.USB:
             logger.info("Using usb preFormatType")
             return MetadataUsbPreprocessorService
     except ValueError:
         logger.warning(
-            f"Invalid preFormatType: '{raw_pre_format_type}', defaulting to {LloydGeorgePreProcessFormat.GENERAL}."
+            f"Invalid preFormatType: '{raw_pre_format_type}', defaulting to {LloydGeorgePreProcessFormat.GENERAL}.",
         )
         return MetadataGeneralPreprocessor
