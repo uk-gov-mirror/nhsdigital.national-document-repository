@@ -44,7 +44,7 @@ jobs:
           ref: ${{ inputs.build_branch }}
 
       - name: Download the build folder
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: build
           path: ./app/build
@@ -74,13 +74,13 @@ jobs:
         env:
           CYPRESS_BASE_URL: ${{ inputs.cypress_base_url }}
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: cypress-screenshots-${{ inputs.cypress_browser}}
           path: /home/runner/work/national-document-repository/national-document-repository/app/cypress/screenshots
           if-no-files-found: ignore
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: cypress-videos-${{ inputs.cypress_browser}}

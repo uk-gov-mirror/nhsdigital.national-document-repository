@@ -259,7 +259,7 @@ clean-install:
 
 install-pdfjs:
 	mkdir -p ./app/public/pdfjs
-	wget https://github.com/mozilla/pdf.js/releases/download/v5.4.624/pdfjs-5.4.624-dist.zip -O ./app/public/pdfjs/pdfjs.zip
+	wget https://github.com/mozilla/pdf.js/releases/download/v5.5.207/pdfjs-5.5.207-dist.zip -O ./app/public/pdfjs/pdfjs.zip
 	unzip -o -d ./app/public/pdfjs ./app/public/pdfjs/pdfjs.zip
 	rm ./app/public/pdfjs/pdfjs.zip
 

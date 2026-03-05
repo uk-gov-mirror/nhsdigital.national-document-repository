@@ -71,7 +71,7 @@ RUN wget https://github.com/mikefarah/yq/releases/download/v4.52.4/yq_linux_amd6
 RUN wget https://github.com/asdf-vm/asdf/releases/download/v0.18.0/asdf-v0.18.0-linux-amd64.tar.gz -O - | tar xz && sudo mv asdf /usr/local/bin/asdf
 
 # Install Cypress globally
-RUN npm install -g cypress@15.10.0
+RUN npm install -g cypress@15.11.0
 
 # Installing ASDF
 USER vscode
