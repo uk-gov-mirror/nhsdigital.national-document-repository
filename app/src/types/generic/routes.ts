@@ -64,6 +64,7 @@ export enum routeChildren {
     DOCUMENT_UPLOAD_FILE_ERRORS = '/patient/document-upload/file-errors',
 
     DOCUMENT_REASSIGN_SELECT_PAGES = '/patient/document-reassign-pages/select-pages',
+    DOCUMENT_REASSIGN_CONFIRM_REMOVED_PAGES = '/patient/document-reassign-pages/confirm-removed-pages',
 
     DOCUMENT_VIEW = '/patient/documents/view',
     DOCUMENT_DELETE = '/patient/documents/delete',

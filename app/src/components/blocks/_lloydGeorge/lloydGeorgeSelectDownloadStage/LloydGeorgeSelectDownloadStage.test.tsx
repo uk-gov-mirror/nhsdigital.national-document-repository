@@ -19,6 +19,11 @@ const mockSetDownloadStage = vi.fn();
 vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
 vi.mock('axios');
+vi.mock('../../../../helpers/utils/isLocal', () => ({
+    isLocal: false,
+    isRunningInCypress: vi.fn(() => false),
+    isMock: vi.fn(() => false),
+}));
 
 vi.mock('react-router-dom', async () => ({
     ...(await vi.importActual('react-router-dom')),
@@ -37,7 +42,7 @@ const searchResults = [
     buildSearchResult({ fileName: '1of1_test.pdf', id: 'test-id-3' }),
 ];
 
-describe.skip('LloydGeorgeSelectDownloadStage', () => {
+describe('LloydGeorgeSelectDownloadStage', () => {
     beforeEach(() => {
         // temp solution to satisfy the pathname check within useEffect block
         // in the future, consider to replace window.location call with useLocation
@@ -53,7 +58,6 @@ describe.skip('LloydGeorgeSelectDownloadStage', () => {
             initialIndex: 0,
         });
 
-        import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockedUsePatient.mockReturnValue(mockPatient);
     });
     afterEach(() => {
@@ -76,7 +80,7 @@ describe.skip('LloydGeorgeSelectDownloadStage', () => {
     });
 
     it('renders list of files in record when axios get request is successful', async () => {
-        mockAxios.get.mockReturnValue(Promise.resolve({ data: searchResults }));
+        mockAxios.get.mockReturnValue(Promise.resolve({ data: { references: searchResults } }));
 
         act(() => {
             renderComponent(history);
