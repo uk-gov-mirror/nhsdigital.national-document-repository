@@ -5,16 +5,17 @@ import usePatient from '../../../helpers/hooks/usePatient';
 
 type Props = {
     children: ReactNode;
+    navigationPath?: string;
 };
 
-const PatientGuard = ({ children }: Props): React.JSX.Element => {
+const PatientGuard = ({ children, navigationPath }: Props): React.JSX.Element => {
     const patient = usePatient();
     const navigate = useNavigate();
     useEffect(() => {
         if (!patient) {
-            navigate(routes.SEARCH_PATIENT);
+            navigate(navigationPath || routes.SEARCH_PATIENT);
         }
-    }, [patient, navigate]);
+    }, [patient, navigate, navigationPath]);
     return <>{children}</>;
 };
 

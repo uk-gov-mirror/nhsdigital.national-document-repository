@@ -355,7 +355,7 @@ const DocumentSearchResultsPageIndex = ({
                         This patient has documents waiting to be reviewed. Go to{' '}
                         <Link
                             data-testid="review-link"
-                            to={routeChildren.ADMIN_REVIEW}
+                            to={routes.REVIEWS}
                             aria-label="Link to Review search page"
                         >
                             documents to review

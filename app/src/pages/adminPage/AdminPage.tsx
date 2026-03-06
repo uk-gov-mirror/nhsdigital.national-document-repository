@@ -2,7 +2,7 @@ import { Card } from 'nhsuk-react-components';
 import { JSX } from 'react';
 import useTitle from '../../helpers/hooks/useTitle';
 import { ReactComponent as RightCircleIcon } from '../../styles/right-chevron-circle.svg';
-import { routeChildren, routes } from '../../types/generic/routes';
+import { routes } from '../../types/generic/routes';
 import { REPORT_TYPE } from '../../types/generic/reports';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,7 +22,7 @@ export const AdminPage = (): JSX.Element => {
                                     data-testid="admin-reviews-btn"
                                     href="#"
                                     onClick={(): void => {
-                                        navigate(routeChildren.ADMIN_REVIEW);
+                                        navigate(routes.REVIEWS);
                                     }}
                                 >
                                     Review documents

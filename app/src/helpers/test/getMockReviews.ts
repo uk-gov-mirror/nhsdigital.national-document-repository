@@ -1,10 +1,18 @@
-import { ReviewsResponse, ReviewListItemDto } from '../../types/generic/reviews';
-import { DOCUMENT_TYPE } from '../utils/documentType';
+import {
+    ReviewsResponse,
+    ReviewListItemDto,
+    GetDocumentReviewDto,
+    ReviewFileDto,
+} from '../../types/generic/reviews';
+import { DOCUMENT_TYPE, getConfigForDocType } from '../utils/documentType';
 import { isLocal } from '../utils/isLocal';
 
 let getMockResponses: ((params: URLSearchParams) => Promise<ReviewsResponse>) | undefined;
 let setupMockRequest:
     | ((params: URLSearchParams, simulateDataAddition?: boolean) => void)
+    | undefined;
+let getSingleReviewMockResponse:
+    | ((reviewId: string, versionNumber: string) => Promise<GetDocumentReviewDto>)
     | undefined;
 
 if (isLocal) {
@@ -59,6 +67,74 @@ if (isLocal) {
             documentReviewReferences: paginatedReviews,
             nextPageToken: nextPageToken,
             count: paginatedReviews.length,
+        };
+    };
+
+    getSingleReviewMockResponse = async (
+        reviewId: string,
+        versionNumber: string,
+    ): Promise<GetDocumentReviewDto> => {
+        const mockReviewsResponse = await getMockResponses!(new URLSearchParams());
+        const mockReview = mockReviewsResponse.documentReviewReferences.find(
+            (review) => review.id === reviewId && review.version === versionNumber,
+        );
+        const config = getConfigForDocType(
+            mockReview?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
+        );
+
+        if (
+            //prettier-ignore
+            ['2','5','6','10','11','14','15','18','19','23','24','27','28','31','33','101','103',
+                '106','42','111','55','68','81','94',].includes(reviewId)
+        ) {
+            return {
+                id: reviewId,
+                uploadDate: '1765539858673',
+                documentSnomedCodeType:
+                    mockReview?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
+                files: ((): ReviewFileDto[] => {
+                    const filename = 'document_files_{idx}.pdf';
+                    const docs: ReviewFileDto[] = [];
+                    const url = `/dev/testFile.pdf`;
+                    for (let idx = 1; idx <= 1; idx++) {
+                        docs.push({
+                            fileName: filename.replace('{idx}', idx.toString()),
+                            presignedUrl: url,
+                        });
+                    }
+                    return docs;
+                })(),
+            };
+        } else if (!config.multifileReview) {
+            return {
+                id: reviewId,
+                uploadDate: '1765539858673',
+                documentSnomedCodeType:
+                    mockReview?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
+                files: [
+                    {
+                        fileName: 'document_1.pdf',
+                        presignedUrl: '/dev/testFile.pdf',
+                    },
+                ],
+            };
+        }
+
+        return {
+            id: reviewId,
+            uploadDate: '1765539858673',
+            documentSnomedCodeType:
+                mockReview?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
+            files: [
+                {
+                    fileName: 'document_1.pdf',
+                    presignedUrl: '/dev/testFile.pdf',
+                },
+                {
+                    fileName: 'document_2.pdf',
+                    presignedUrl: '/dev/testFile.pdf',
+                },
+            ],
         };
     };
 
@@ -1103,4 +1179,4 @@ if (isLocal) {
 }
 
 export default getMockResponses;
-export { setupMockRequest };
+export { setupMockRequest, getSingleReviewMockResponse };

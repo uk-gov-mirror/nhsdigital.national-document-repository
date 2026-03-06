@@ -78,15 +78,11 @@ const HomePage = (): React.JSX.Element => {
                                         Admin hub
                                     </Card.Link>
                                 </Card.Heading>
-                                <Card.Description>
-                                    Here you can:
-                                    <ul className="mt-4">
-                                        <li>review and action pending patient documents</li>
-                                        <li>
-                                            download a report on the records stored in this service
-                                        </li>
-                                    </ul>
-                                </Card.Description>
+                                <Card.Description>Here you can:</Card.Description>
+                                <ul className="mt-4">
+                                    <li>review and action pending patient documents</li>
+                                    <li>download a report on the records stored in this service</li>
+                                </ul>
                                 <RightCircleIcon />
                             </Card.Content>
                         </Card>

@@ -27,10 +27,11 @@ import NonAuthGuard from './guards/notAuthGuard/NonAuthGuard';
 import PatientAccessAuditPage from '../pages/patientAccessAuditPage/PatientAccessAuditPage';
 import MockLoginPage from '../pages/mockLoginPage/MockLoginPage';
 import DocumentUploadPage from '../pages/documentUploadPage/DocumentUploadPage';
-import AdminRoutesPage from '../pages/adminRoutesPage/AdminRoutesPage';
+import ReviewsPage from '../pages/ReviewsPage/ReviewsPage';
 import DownloadCompletePage from '../pages/downloadCompletePage/DownloadCompletePage';
 import CookiePolicyPage from '../pages/cookiePolicyPage/CookiePolicyPage';
 import DocumentCorrectPage from '../pages/documentCorrectPage/DocumentCorrectPage';
+import { AdminPage } from '../pages/adminPage/AdminPage';
 
 const {
     START,
@@ -60,7 +61,8 @@ const {
     DOCUMENT_UPLOAD,
     DOCUMENT_UPLOAD_WILDCARD,
     ADMIN_ROUTE,
-    ADMIN_ROUTE_WILDCARD,
+    REVIEWS,
+    REVIEWS_WILDCARD,
     DOWNLOAD_COMPLETE,
     COOKIES_POLICY,
     COOKIES_POLICY_WILDCARD,
@@ -158,12 +160,76 @@ export const childRoutes = [
         parent: DOCUMENT_UPLOAD,
     },
     {
-        route: routeChildren.ADMIN_REVIEW,
-        parent: ADMIN_ROUTE,
+        route: routeChildren.REVIEW_DETAIL,
+        parent: REVIEWS,
     },
     {
-        route: routeChildren.ADMIN_REVIEW_DETAIL,
-        parent: ADMIN_ROUTE,
+        route: routeChildren.REVIEW_SEARCH_PATIENT,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_ASSESS_FILES,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_COMPLETE,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_COMPLETE_PATIENT_MATCH,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_DONT_KNOW_NHS_NUMBER,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_DONT_KNOW_NHS_NUMBER_PATIENT_VERIFY,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_COMPLETE_PATIENT_UNKNOWN,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_COMPLETE_NO_FILES_CHOICE,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_NO_FILES_CHOICE,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_ADD_MORE_CHOICE,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_CHOOSE_WHICH_FILES,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_DOWNLOAD_CHOICE,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_UPLOAD_ADDITIONAL_FILES,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_REMOVE_ALL,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_UPLOAD_FILE_ORDER,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_UPLOAD,
+        parent: REVIEWS,
+    },
+    {
+        route: routeChildren.REVIEW_FILE_ERRORS,
+        parent: REVIEWS,
     },
     {
         route: routeChildren.COOKIES_POLICY_UPDATED,
@@ -255,11 +321,15 @@ export const routeMap: Routes = {
         type: ROUTE_TYPE.PRIVATE,
     },
     [ADMIN_ROUTE]: {
-        page: <AdminRoutesPage />,
+        page: <AdminPage />,
         type: ROUTE_TYPE.PRIVATE,
     },
-    [ADMIN_ROUTE_WILDCARD]: {
-        page: <AdminRoutesPage />,
+    [REVIEWS]: {
+        page: <ReviewsPage />,
+        type: ROUTE_TYPE.PRIVATE,
+    },
+    [REVIEWS_WILDCARD]: {
+        page: <ReviewsPage />,
         type: ROUTE_TYPE.PRIVATE,
     },
 

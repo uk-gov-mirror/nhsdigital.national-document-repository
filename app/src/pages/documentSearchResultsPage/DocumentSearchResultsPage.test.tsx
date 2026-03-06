@@ -422,7 +422,7 @@ describe('<DocumentSearchResultsPage />', () => {
 
             await waitFor(() => {
                 reviewLink = screen.getByTestId('review-link');
-                expect(reviewLink).toHaveAttribute('to', routeChildren.ADMIN_REVIEW);
+                expect(reviewLink).toHaveAttribute('to', routes.REVIEWS);
             });
         });
     });

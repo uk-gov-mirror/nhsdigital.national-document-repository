@@ -6,7 +6,7 @@ const useReviewId = (): string | undefined => {
     const navigate = useNavigate();
 
     const reviewIdRegex = new RegExp(
-        /^(([\dA-Za-z]{8}-[\dA-Za-z]{4}-[\dA-Za-z]{4}-[\dA-Za-z]{4}-[\dA-Za-z]{12})|(\d+))\.\d+$/,
+        /^(([\dA-Za-z]{8}-[\dA-Za-z]{4}-[\dA-Za-z]{4}-[\dA-Za-z]{4}-[\dA-Za-z]{12})|(\d+))_\d+$/,
     );
 
     if (!reviewId || !reviewIdRegex.test(reviewId)) {

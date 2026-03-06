@@ -147,7 +147,6 @@ describe('GP Workflow: Patient search and verify', () => {
             },
         );
     });
-
 });
 
 function setup(role, featureFlags) {

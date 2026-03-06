@@ -682,7 +682,7 @@ describe('DocumentSelectStage', () => {
         });
 
         it('navigates to removeAllFilesLinkOverride when Remove all files is clicked in review mode', async () => {
-            const mockRemoveAllLink = '/admin/reviews/test-123/remove-all';
+            const mockRemoveAllLink = '/reviews/test-123/remove-all';
 
             renderApp(history, {
                 isReview: true,

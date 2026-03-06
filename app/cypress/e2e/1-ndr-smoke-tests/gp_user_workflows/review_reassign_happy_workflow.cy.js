@@ -57,7 +57,10 @@ describe('GP Workflow: Review and Reassign', () => {
                 cy.contains('This document has been matched to the correct patient').should(
                     'be.visible',
                 );
-                cy.url().should('contain', '/admin/reviews/:reviewId/complete/patient-matched');
+                cy.url().should(
+                    'contain',
+                    '/reviews/e3e4f62e-6f95-4d8c-8870-5212b6353ae9_1/complete-patient-matched',
+                );
 
                 // assert the review is no longer in our review queue
                 cy.getByTestId('review-another-btn').should('exist').click();

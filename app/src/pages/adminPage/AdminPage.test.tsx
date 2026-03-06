@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { AdminPage } from './AdminPage';
 import { runAxeTest } from '../../helpers/test/axeTestHelper';
 import { describe, expect, it, Mock } from 'vitest';
-import { routeChildren } from '../../types/generic/routes';
+import { routes } from '../../types/generic/routes';
 
 vi.mock('../../../helpers/hooks/useTitle');
 vi.mock('../../styles/right-chevron-circle.svg', () => ({
@@ -81,7 +81,7 @@ describe('AdminPage', (): void => {
             render(<AdminPage />);
             const reviewsLink = screen.getByTestId('admin-reviews-btn');
             reviewsLink.click();
-            expect(mockNavigate).toHaveBeenCalledWith(routeChildren.ADMIN_REVIEW);
+            expect(mockNavigate).toHaveBeenCalledWith(routes.REVIEWS);
         });
     });
 });

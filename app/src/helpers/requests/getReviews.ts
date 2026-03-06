@@ -1,20 +1,18 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { endpoints } from '../../types/generic/endpoints';
-import {
-    GetDocumentReviewDto,
-    ReviewDetails,
-    ReviewFileDto,
-    ReviewsResponse,
-} from '../../types/generic/reviews';
+import { GetDocumentReviewDto, ReviewDetails, ReviewsResponse } from '../../types/generic/reviews';
 import {
     DOCUMENT_UPLOAD_STATE,
     ReviewUploadDocument,
     UploadDocumentType,
 } from '../../types/pages/UploadDocumentsPage/types';
-import getMockResponses, { setupMockRequest } from '../test/getMockReviews';
+import getMockResponses, {
+    getSingleReviewMockResponse,
+    setupMockRequest,
+} from '../test/getMockReviews';
 import { isLocal } from '../utils/isLocal';
-import { DOCUMENT_TYPE, getConfigForDocType } from '../utils/documentType';
+import { getConfigForDocType } from '../utils/documentType';
 import getDocumentSearchResults, { DocumentSearchResultsArgs } from './getDocumentSearchResults';
 import getDocument from './getDocument';
 import { fileExtensionToContentType } from '../utils/fileExtensionToContentType';
@@ -62,47 +60,7 @@ export const getReviewById = async (
     });
 
     if (isLocal) {
-        const mockReviewsResponse = await getMockResponses!(new URLSearchParams());
-        const mockReview = mockReviewsResponse.documentReviewReferences.find(
-            (review) => review.id === reviewId && review.version === versionNumber,
-        );
-
-        if (
-            //prettier-ignore
-            ['2','5','6','10','11','14','15','18','19','23','24','27','28','31','33','101','103',
-             '106','42','111','55','68','81','94',].includes(reviewId)
-        ) {
-            return {
-                id: reviewId,
-                uploadDate: '1765539858673',
-                documentSnomedCodeType:
-                    mockReview?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
-                files: [
-                    {
-                        fileName: 'document_1.zip',
-                        presignedUrl: '/dev/testFile.zip',
-                    },
-                ],
-            };
-        }
-        return {
-            id: reviewId,
-            uploadDate: '1765539858673',
-            documentSnomedCodeType:
-                mockReview?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
-            files: ((): ReviewFileDto[] => {
-                const filename = 'document_files_{idx}.pdf';
-                const docs: ReviewFileDto[] = [];
-                const url = `/dev/testFile.pdf`;
-                for (let idx = 1; idx <= 2; idx++) {
-                    docs.push({
-                        fileName: filename.replace('{idx}', idx.toString()),
-                        presignedUrl: url,
-                    });
-                }
-                return docs;
-            })(),
-        };
+        return await getSingleReviewMockResponse!(reviewId, versionNumber);
     }
 
     const response = await axios.get<GetDocumentReviewDto>(gatewayUrl + `?${params.toString()}`, {

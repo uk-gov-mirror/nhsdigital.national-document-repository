@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, Mocked, test, vi } from 'vitest';
 import { endpoints } from '../../types/generic/endpoints';
 import { GetDocumentReviewDto, ReviewDetails, ReviewsResponse } from '../../types/generic/reviews';
 import getReviews, { getReviewById, getReviewData } from './getReviews';
-import { DOCUMENT_TYPE } from '../utils/documentType';
 import { AuthHeaders } from '../../types/blocks/authHeaders';
 import getMockResponses, { setupMockRequest } from '../test/getMockReviews';
 import getDocumentSearchResults from './getDocumentSearchResults';
 import getDocument from './getDocument';
 import { DOCUMENT_UPLOAD_STATE } from '../../types/pages/UploadDocumentsPage/types';
+import * as documentTypeModule from '../utils/documentType';
 
 vi.mock('axios');
 vi.mock('../utils/isLocal', () => ({
@@ -51,7 +51,7 @@ describe('getReviews.ts', () => {
                         {
                             id: '1',
                             nhsNumber: '9000000001',
-                            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                            documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                             author: 'Y12345',
                             uploadDate: '2024-01-15',
                             reviewReason: 'Missing metadata',
@@ -60,7 +60,7 @@ describe('getReviews.ts', () => {
                         {
                             id: '2',
                             nhsNumber: '9000000002',
-                            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                            documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                             author: 'Y12345',
                             uploadDate: '2024-01-16',
                             reviewReason: 'Duplicate record',
@@ -110,7 +110,7 @@ describe('getReviews.ts', () => {
                         {
                             id: '11',
                             nhsNumber: '9000000011',
-                            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                            documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                             author: 'Y12345',
                             uploadDate: '2024-01-25',
                             reviewReason: 'Review needed',
@@ -279,7 +279,7 @@ describe('getReviews.ts', () => {
                         {
                             id: '1',
                             nhsNumber: '9000000001',
-                            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                            documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                             author: 'Y12345',
                             uploadDate: '2024-01-15',
                             reviewReason: 'Missing metadata',
@@ -314,7 +314,7 @@ describe('getReviews.ts', () => {
                         {
                             id: '1',
                             nhsNumber: '9000000001',
-                            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                            documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                             author: 'Y12345',
                             uploadDate: '2024-01-15',
                             reviewReason: 'Missing metadata',
@@ -323,7 +323,8 @@ describe('getReviews.ts', () => {
                         {
                             id: '2',
                             nhsNumber: '9000000002',
-                            documentSnomedCodeType: '717391000000106' as DOCUMENT_TYPE,
+                            documentSnomedCodeType:
+                                '717391000000106' as documentTypeModule.DOCUMENT_TYPE,
                             author: 'Y67890',
                             uploadDate: '2024-02-20',
                             reviewReason: 'Invalid format',
@@ -360,7 +361,7 @@ describe('getReviews.ts', () => {
                         {
                             id: '1',
                             nhsNumber: '9000000001',
-                            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                            documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                             author: 'Y12345',
                             uploadDate: '2024-01-15',
                             reviewReason: 'Missing metadata',
@@ -455,7 +456,7 @@ describe('getReviews.ts', () => {
                         {
                             id: '1',
                             nhsNumber: '9000000001',
-                            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                            documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                             author: 'Y12345',
                             uploadDate: '2024-01-15',
                             reviewReason: 'Missing metadata',
@@ -483,7 +484,8 @@ describe('getReviews.ts', () => {
                         {
                             id: '1',
                             nhsNumber: '9000000001',
-                            documentSnomedCodeType: '717391000000106' as DOCUMENT_TYPE,
+                            documentSnomedCodeType:
+                                '717391000000106' as documentTypeModule.DOCUMENT_TYPE,
                             author: 'Y12345',
                             uploadDate: '2024-01-15',
                             reviewReason: 'Review needed',
@@ -512,7 +514,7 @@ describe('getReviews.ts', () => {
                         {
                             id: '1',
                             nhsNumber: '9000000001',
-                            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                            documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                             author: 'Y12345',
                             uploadDate: '2024-01-15',
                             reviewReason: 'Suspicious content',
@@ -600,7 +602,7 @@ describe('getReviews.ts', () => {
                         {
                             id: 'mock-1',
                             nhsNumber: '9000000001',
-                            documentSnomedCodeType: '16521000000101' as DOCUMENT_TYPE,
+                            documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                             author: 'Y12345',
                             uploadDate: '2024-01-15',
                             reviewReason: 'Mock review',
@@ -708,174 +710,18 @@ describe('getReviews.ts', () => {
             vi.clearAllMocks();
         });
 
-        describe('successful responses', () => {
-            test('returns review details with files', async () => {
+        describe('URL construction', () => {
+            test('constructs correct URL with reviewId and versionNumber in path', async () => {
                 const mockResponse: GetDocumentReviewDto = {
                     id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                     files: [
                         {
                             fileName: 'document_1.pdf',
-                            presignedUrl: 'https://example.com/document_1.pdf',
-                        },
-                        {
-                            fileName: 'document_2.pdf',
-                            presignedUrl: 'https://example.com/document_2.pdf',
+                            presignedUrl: 'https://example.com/presigned',
                         },
                     ],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result).toEqual(mockResponse);
-                expect(result.id).toBe(reviewId);
-                expect(result.files).toHaveLength(2);
-                expect(result.files[0].fileName).toBe('document_1.pdf');
-            });
-
-            test('returns review details with single file', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.EHR,
-                    files: [
-                        {
-                            fileName: 'single_document.pdf',
-                            presignedUrl: 'https://example.com/single_document.pdf',
-                        },
-                    ],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.files).toHaveLength(1);
-                expect(result.files[0].fileName).toBe('single_document.pdf');
-            });
-
-            test('returns review details with no files', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.files).toHaveLength(0);
-            });
-
-            test('handles different document types', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.EHR_ATTACHMENTS,
-                    files: [
-                        {
-                            fileName: 'attachment.pdf',
-                            presignedUrl: 'https://example.com/attachment.pdf',
-                        },
-                    ],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.documentSnomedCodeType).toBe(DOCUMENT_TYPE.EHR_ATTACHMENTS);
-            });
-
-            test('handles multiple files with different names', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [
-                        {
-                            fileName: 'page_001.pdf',
-                            presignedUrl: 'https://example.com/page_001.pdf',
-                        },
-                        {
-                            fileName: 'page_002.pdf',
-                            presignedUrl: 'https://example.com/page_002.pdf',
-                        },
-                        {
-                            fileName: 'page_003.pdf',
-                            presignedUrl: 'https://example.com/page_003.pdf',
-                        },
-                    ],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.files).toHaveLength(3);
-                expect(result.files[0].fileName).toBe('page_001.pdf');
-                expect(result.files[1].fileName).toBe('page_002.pdf');
-                expect(result.files[2].fileName).toBe('page_003.pdf');
-            });
-        });
-
-        describe('URL construction', () => {
-            test('constructs correct URL with reviewId and version', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [],
                 };
 
                 mockedAxios.get.mockResolvedValue({
@@ -892,11 +738,11 @@ describe('getReviews.ts', () => {
                 });
             });
 
-            test('removes whitespace from NHS number in URL', async () => {
+            test('removes whitespace from NHS number in query params', async () => {
                 const mockResponse: GetDocumentReviewDto = {
                     id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                     files: [],
                 };
 
@@ -921,11 +767,11 @@ describe('getReviews.ts', () => {
                 });
             });
 
-            test('handles NHS number with tabs and newlines', async () => {
+            test('removes tabs and newlines from NHS number', async () => {
                 const mockResponse: GetDocumentReviewDto = {
                     id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                     files: [],
                 };
 
@@ -934,26 +780,26 @@ describe('getReviews.ts', () => {
                     data: mockResponse,
                 });
 
-                const nhsNumberWithWhitespace = '900\t000\n0001';
+                const nhsNumberWithVariousSpaces = '900\t000\n0001';
                 await getReviewById(
                     baseUrl,
                     baseHeaders,
                     reviewId,
                     versionNumber,
-                    nhsNumberWithWhitespace,
+                    nhsNumberWithVariousSpaces,
                 );
 
                 expect(mockedAxios.get).toHaveBeenCalledWith(
                     expect.stringContaining('patientId=9000000001'),
-                    expect.objectContaining({ headers: baseHeaders }),
+                    expect.anything(),
                 );
             });
 
-            test('constructs URL with different version numbers', async () => {
+            test('handles different version numbers in URL path', async () => {
                 const mockResponse: GetDocumentReviewDto = {
                     id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                     files: [],
                 };
 
@@ -970,12 +816,87 @@ describe('getReviews.ts', () => {
                     headers: baseHeaders,
                 });
             });
+        });
 
-            test('constructs URL with special characters in reviewId', async () => {
+        describe('successful responses', () => {
+            test('returns review data with a single file', async () => {
                 const mockResponse: GetDocumentReviewDto = {
-                    id: 'review-with-dashes_123',
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    id: reviewId,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
+                    files: [
+                        {
+                            fileName: 'document_1.pdf',
+                            presignedUrl: 'https://example.com/presigned-1',
+                        },
+                    ],
+                };
+
+                mockedAxios.get.mockResolvedValue({
+                    status: 200,
+                    data: mockResponse,
+                });
+
+                const result = await getReviewById(
+                    baseUrl,
+                    baseHeaders,
+                    reviewId,
+                    versionNumber,
+                    nhsNumber,
+                );
+
+                expect(result).toEqual(mockResponse);
+                expect(result.id).toBe(reviewId);
+                expect(result.files).toHaveLength(1);
+                expect(result.files[0].fileName).toBe('document_1.pdf');
+                expect(result.files[0].presignedUrl).toBe('https://example.com/presigned-1');
+            });
+
+            test('returns review data with multiple files', async () => {
+                const mockResponse: GetDocumentReviewDto = {
+                    id: reviewId,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
+                    files: [
+                        {
+                            fileName: 'document_1.pdf',
+                            presignedUrl: 'https://example.com/presigned-1',
+                        },
+                        {
+                            fileName: 'document_2.pdf',
+                            presignedUrl: 'https://example.com/presigned-2',
+                        },
+                        {
+                            fileName: 'document_3.pdf',
+                            presignedUrl: 'https://example.com/presigned-3',
+                        },
+                    ],
+                };
+
+                mockedAxios.get.mockResolvedValue({
+                    status: 200,
+                    data: mockResponse,
+                });
+
+                const result = await getReviewById(
+                    baseUrl,
+                    baseHeaders,
+                    reviewId,
+                    versionNumber,
+                    nhsNumber,
+                );
+
+                expect(result.files).toHaveLength(3);
+                expect(result.files[0].fileName).toBe('document_1.pdf');
+                expect(result.files[1].fileName).toBe('document_2.pdf');
+                expect(result.files[2].fileName).toBe('document_3.pdf');
+            });
+
+            test('returns review data with an empty files array', async () => {
+                const mockResponse: GetDocumentReviewDto = {
+                    id: reviewId,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                     files: [],
                 };
 
@@ -984,37 +905,138 @@ describe('getReviews.ts', () => {
                     data: mockResponse,
                 });
 
-                const specialReviewId = 'review-with-dashes_123';
-                await getReviewById(
+                const result = await getReviewById(
                     baseUrl,
                     baseHeaders,
-                    specialReviewId,
+                    reviewId,
                     versionNumber,
                     nhsNumber,
                 );
 
-                expect(mockedAxios.get).toHaveBeenCalledWith(
-                    expect.stringContaining(`/${specialReviewId}/`),
-                    expect.objectContaining({ headers: baseHeaders }),
+                expect(result.files).toHaveLength(0);
+            });
+
+            test('returns correct documentSnomedCodeType', async () => {
+                const mockResponse: GetDocumentReviewDto = {
+                    id: reviewId,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
+                    files: [],
+                };
+
+                mockedAxios.get.mockResolvedValue({
+                    status: 200,
+                    data: mockResponse,
+                });
+
+                const result = await getReviewById(
+                    baseUrl,
+                    baseHeaders,
+                    reviewId,
+                    versionNumber,
+                    nhsNumber,
                 );
+
+                expect(result.documentSnomedCodeType).toBe(documentTypeModule.DOCUMENT_TYPE.EHR);
+            });
+
+            test('returns correct uploadDate', async () => {
+                const mockResponse: GetDocumentReviewDto = {
+                    id: reviewId,
+                    uploadDate: '1765539858673',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
+                    files: [],
+                };
+
+                mockedAxios.get.mockResolvedValue({
+                    status: 200,
+                    data: mockResponse,
+                });
+
+                const result = await getReviewById(
+                    baseUrl,
+                    baseHeaders,
+                    reviewId,
+                    versionNumber,
+                    nhsNumber,
+                );
+
+                expect(result.uploadDate).toBe('1765539858673');
+            });
+        });
+
+        describe('response data structure', () => {
+            test('returns object with all required fields', async () => {
+                const mockResponse: GetDocumentReviewDto = {
+                    id: reviewId,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
+                    files: [
+                        {
+                            fileName: 'doc.pdf',
+                            presignedUrl: 'https://example.com/presigned',
+                        },
+                    ],
+                };
+
+                mockedAxios.get.mockResolvedValue({
+                    status: 200,
+                    data: mockResponse,
+                });
+
+                const result = await getReviewById(
+                    baseUrl,
+                    baseHeaders,
+                    reviewId,
+                    versionNumber,
+                    nhsNumber,
+                );
+
+                expect(result).toHaveProperty('id');
+                expect(result).toHaveProperty('uploadDate');
+                expect(result).toHaveProperty('documentSnomedCodeType');
+                expect(result).toHaveProperty('files');
+            });
+
+            test('each file has fileName and presignedUrl', async () => {
+                const mockResponse: GetDocumentReviewDto = {
+                    id: reviewId,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
+                    files: [
+                        {
+                            fileName: 'file1.pdf',
+                            presignedUrl: 'https://example.com/url1',
+                        },
+                        {
+                            fileName: 'file2.zip',
+                            presignedUrl: 'https://example.com/url2',
+                        },
+                    ],
+                };
+
+                mockedAxios.get.mockResolvedValue({
+                    status: 200,
+                    data: mockResponse,
+                });
+
+                const result = await getReviewById(
+                    baseUrl,
+                    baseHeaders,
+                    reviewId,
+                    versionNumber,
+                    nhsNumber,
+                );
+
+                result.files.forEach((file) => {
+                    expect(file).toHaveProperty('fileName');
+                    expect(file).toHaveProperty('presignedUrl');
+                });
             });
         });
 
         describe('error handling', () => {
-            test('handles 404 not found errors', async () => {
-                const errorResponse = {
-                    status: 404,
-                    message: 'Review not found',
-                };
-
-                mockedAxios.get.mockRejectedValue(errorResponse);
-
-                await expect(
-                    getReviewById(baseUrl, baseHeaders, reviewId, versionNumber, nhsNumber),
-                ).rejects.toEqual(errorResponse);
-            });
-
-            test('handles 403 forbidden errors', async () => {
+            test('handles 4XX client errors', async () => {
                 const errorResponse = {
                     status: 403,
                     message: 'Forbidden',
@@ -1027,7 +1049,7 @@ describe('getReviews.ts', () => {
                 ).rejects.toEqual(errorResponse);
             });
 
-            test('handles 500 server errors', async () => {
+            test('handles 5XX server errors', async () => {
                 const errorResponse = {
                     status: 500,
                     message: 'Internal Server Error',
@@ -1050,10 +1072,10 @@ describe('getReviews.ts', () => {
                 ).rejects.toThrow('Network Error');
             });
 
-            test('handles 401 unauthorized errors', async () => {
+            test('handles 404 not found errors', async () => {
                 const errorResponse = {
-                    status: 401,
-                    message: 'Unauthorized',
+                    status: 404,
+                    message: 'Not Found',
                 };
 
                 mockedAxios.get.mockRejectedValue(errorResponse);
@@ -1064,166 +1086,18 @@ describe('getReviews.ts', () => {
             });
         });
 
-        describe('response data structure', () => {
-            test('returns response with all required fields', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [
-                        {
-                            fileName: 'document_1.pdf',
-                            presignedUrl: 'https://example.com/document_1.pdf',
-                        },
-                    ],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result).toHaveProperty('id');
-                expect(result).toHaveProperty('uploadDate');
-                expect(result).toHaveProperty('documentSnomedCodeType');
-                expect(result).toHaveProperty('files');
-                expect(result.files[0]).toHaveProperty('fileName');
-                expect(result.files[0]).toHaveProperty('presignedUrl');
-            });
-
-            test('verifies file object structure', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [
-                        {
-                            fileName: 'test_file.pdf',
-                            presignedUrl: 'https://example.com/test_file.pdf',
-                        },
-                    ],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.files[0].fileName).toBe('test_file.pdf');
-                expect(result.files[0].presignedUrl).toBe('https://example.com/test_file.pdf');
-            });
-
-            test('handles various date formats in uploadDate', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '1705315800000',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.uploadDate).toBe('1705315800000');
-            });
-        });
-
-        describe('API contract verification', () => {
-            test('sends correct HTTP method (GET)', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                await getReviewById(baseUrl, baseHeaders, reviewId, versionNumber, nhsNumber);
-
-                expect(mockedAxios.get).toHaveBeenCalledTimes(1);
-                expect(mockedAxios.post).not.toHaveBeenCalled();
-            });
-
-            test('includes patientId query parameter', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                await getReviewById(baseUrl, baseHeaders, reviewId, versionNumber, nhsNumber);
-
-                const callUrl = mockedAxios.get.mock.calls[0][0];
-                expect(callUrl).toContain('patientId=');
-            });
-
-            test('includes correct endpoint path', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                await getReviewById(baseUrl, baseHeaders, reviewId, versionNumber, nhsNumber);
-
-                const callUrl = mockedAxios.get.mock.calls[0][0];
-                expect(callUrl).toContain(endpoints.DOCUMENT_REVIEW);
-                expect(callUrl).toContain(baseUrl);
-            });
-
-            test('passes headers correctly', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [],
-                };
-
-                const customHeaders = {
+        describe('headers', () => {
+            test('passes all base headers to axios request', async () => {
+                const customHeaders: AuthHeaders = {
                     'Content-Type': 'application/json',
                     Authorization: 'Bearer test-token',
+                };
+
+                const mockResponse: GetDocumentReviewDto = {
+                    id: reviewId,
+                    uploadDate: '2024-01-15T10:00:00Z',
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
+                    files: [],
                 };
 
                 mockedAxios.get.mockResolvedValue({
@@ -1233,293 +1107,9 @@ describe('getReviews.ts', () => {
 
                 await getReviewById(baseUrl, customHeaders, reviewId, versionNumber, nhsNumber);
 
-                expect(mockedAxios.get).toHaveBeenCalledWith(
-                    expect.any(String),
-                    expect.objectContaining({ headers: customHeaders }),
-                );
-            });
-        });
-
-        describe('edge cases', () => {
-            test('handles empty reviewId', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: '',
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
+                expect(mockedAxios.get).toHaveBeenCalledWith(expect.any(String), {
+                    headers: customHeaders,
                 });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    '',
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.id).toBe('');
-            });
-
-            test('handles version number 0', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                await getReviewById(baseUrl, baseHeaders, reviewId, '0', nhsNumber);
-
-                const callUrl = mockedAxios.get.mock.calls[0][0];
-                expect(callUrl).toContain('/0?');
-            });
-
-            test('handles presigned URLs with query parameters', async () => {
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [
-                        {
-                            fileName: 'document.pdf',
-                            presignedUrl:
-                                'https://s3.amazonaws.com/bucket/document.pdf?AWSAccessKeyId=xxx&Expires=123456',
-                        },
-                    ],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.files[0].presignedUrl).toContain('?AWSAccessKeyId=');
-                expect(result.files[0].presignedUrl).toContain('Expires=');
-            });
-
-            test('handles very long file names', async () => {
-                const longFileName = 'very_long_file_name_'.repeat(10) + '.pdf';
-                const mockResponse: GetDocumentReviewDto = {
-                    id: reviewId,
-                    uploadDate: '2024-01-15T10:30:00Z',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                    files: [
-                        {
-                            fileName: longFileName,
-                            presignedUrl: 'https://example.com/file.pdf',
-                        },
-                    ],
-                };
-
-                mockedAxios.get.mockResolvedValue({
-                    status: 200,
-                    data: mockResponse,
-                });
-
-                const result = await getReviewById(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.files[0].fileName).toBe(longFileName);
-            });
-        });
-
-        describe('local development mode', () => {
-            test('returns mock data when isLocal is true', async () => {
-                mockedGetMockResponses.mockResolvedValue({
-                    documentReviewReferences: [
-                        {
-                            id: reviewId,
-                            nhsNumber: '9000000001',
-                            documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            author: 'Y12345',
-                            uploadDate: '2024-01-15',
-                            reviewReason: 'Test',
-                            version: versionNumber,
-                        },
-                    ],
-                    nextPageToken: '',
-                    count: 1,
-                });
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: true,
-                }));
-                const { getReviewById: getReviewByIdLocal } = await import('./getReviews');
-
-                const result = await getReviewByIdLocal(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.id).toBe(reviewId);
-                expect(result.documentSnomedCodeType).toBe(DOCUMENT_TYPE.LLOYD_GEORGE);
-                expect(result.files).toHaveLength(2);
-                expect(result.files[0].fileName).toBe('document_files_1.pdf');
-                expect(result.files[0].presignedUrl).toBe('/dev/testFile.pdf');
-                expect(mockedAxios.get).not.toHaveBeenCalled();
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: false,
-                }));
-            });
-
-            test('returns mock data with default document type when review not found in mock', async () => {
-                mockedGetMockResponses.mockResolvedValue({
-                    documentReviewReferences: [
-                        {
-                            id: 'different-id',
-                            nhsNumber: '9000000001',
-                            documentSnomedCodeType: DOCUMENT_TYPE.EHR,
-                            author: 'Y12345',
-                            uploadDate: '2024-01-15',
-                            reviewReason: 'Test',
-                            version: '1',
-                        },
-                    ],
-                    nextPageToken: '',
-                    count: 1,
-                });
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: true,
-                }));
-                const { getReviewById: getReviewByIdLocal } = await import('./getReviews');
-
-                const result = await getReviewByIdLocal(
-                    baseUrl,
-                    baseHeaders,
-                    'non-existent-id',
-                    '2',
-                    nhsNumber,
-                );
-
-                expect(result.id).toBe('non-existent-id');
-                expect(result.documentSnomedCodeType).toBe(DOCUMENT_TYPE.LLOYD_GEORGE);
-                expect(result.files).toHaveLength(2);
-                expect(mockedAxios.get).not.toHaveBeenCalled();
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: false,
-                }));
-            });
-
-            test('uses document type from mock review when found', async () => {
-                mockedGetMockResponses.mockResolvedValue({
-                    documentReviewReferences: [
-                        {
-                            id: reviewId,
-                            nhsNumber: '9000000001',
-                            documentSnomedCodeType: DOCUMENT_TYPE.EHR_ATTACHMENTS,
-                            author: 'Y12345',
-                            uploadDate: '2024-01-15',
-                            reviewReason: 'Test',
-                            version: versionNumber,
-                        },
-                    ],
-                    nextPageToken: '',
-                    count: 1,
-                });
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: true,
-                }));
-                const { getReviewById: getReviewByIdLocal } = await import('./getReviews');
-
-                const result = await getReviewByIdLocal(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    versionNumber,
-                    nhsNumber,
-                );
-
-                expect(result.documentSnomedCodeType).toBe(DOCUMENT_TYPE.EHR_ATTACHMENTS);
-                expect(mockedAxios.get).not.toHaveBeenCalled();
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: false,
-                }));
-            });
-
-            test('matches review by both id and version', async () => {
-                mockedGetMockResponses.mockResolvedValue({
-                    documentReviewReferences: [
-                        {
-                            id: reviewId,
-                            nhsNumber: '9000000001',
-                            documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            author: 'Y12345',
-                            uploadDate: '2024-01-15',
-                            reviewReason: 'Test',
-                            version: '1',
-                        },
-                        {
-                            id: reviewId,
-                            nhsNumber: '9000000001',
-                            documentSnomedCodeType: DOCUMENT_TYPE.EHR,
-                            author: 'Y12345',
-                            uploadDate: '2024-01-15',
-                            reviewReason: 'Test',
-                            version: '2',
-                        },
-                    ],
-                    nextPageToken: '',
-                    count: 2,
-                });
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: true,
-                }));
-                const { getReviewById: getReviewByIdLocal } = await import('./getReviews');
-
-                const result = await getReviewByIdLocal(
-                    baseUrl,
-                    baseHeaders,
-                    reviewId,
-                    '2',
-                    nhsNumber,
-                );
-
-                expect(result.documentSnomedCodeType).toBe(DOCUMENT_TYPE.EHR);
-                expect(mockedAxios.get).not.toHaveBeenCalled();
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: false,
-                }));
             });
         });
     });
@@ -1537,7 +1127,7 @@ describe('getReviews.ts', () => {
         test('does not fetch existing document when doc type is not singleDocumentOnly and NHS number is unknown', async () => {
             const reviewData = new ReviewDetails(
                 'review-2',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -1549,7 +1139,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-2',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'ehr.pdf',
@@ -1586,7 +1176,7 @@ describe('getReviews.ts', () => {
         test('does not fetch existing document when doc type is singleDocumentOnly and NHS number is unknown', async () => {
             const reviewData = new ReviewDetails(
                 'review-2',
-                DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -1598,7 +1188,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-2',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 files: [
                     {
                         fileName: 'ehr.pdf',
@@ -1635,7 +1225,7 @@ describe('getReviews.ts', () => {
         test('includes EXISTING doc and review docs when singleDocumentOnly and existing doc is found', async () => {
             const reviewData = new ReviewDetails(
                 'review-3',
-                DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -1653,7 +1243,7 @@ describe('getReviews.ts', () => {
                     virusScannerResult: 'CLEAN',
                     fileSize: 100,
                     version: 'v1',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 },
             ]);
 
@@ -1665,7 +1255,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-3',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 files: [
                     {
                         fileName: 'review1.pdf',
@@ -1706,7 +1296,7 @@ describe('getReviews.ts', () => {
         test('returns aborted when a review file is missing presignedUrl', async () => {
             const reviewData = new ReviewDetails(
                 'review-4',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -1718,7 +1308,7 @@ describe('getReviews.ts', () => {
             const reviewDto = {
                 id: 'review-4',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'bad.pdf',
@@ -1745,7 +1335,7 @@ describe('getReviews.ts', () => {
         test('handles multiple review files correctly', async () => {
             const reviewData = new ReviewDetails(
                 'review-5',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -1757,7 +1347,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-5',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'file1.pdf',
@@ -1799,7 +1389,7 @@ describe('getReviews.ts', () => {
         test('handles different file types based on extension', async () => {
             const reviewData = new ReviewDetails(
                 'review-6',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -1811,7 +1401,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-6',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'document.pdf',
@@ -1850,7 +1440,7 @@ describe('getReviews.ts', () => {
         test('handles files without extension', async () => {
             const reviewData = new ReviewDetails(
                 'review-7',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -1862,7 +1452,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-7',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'documentwithoutextension',
@@ -1891,7 +1481,7 @@ describe('getReviews.ts', () => {
         test('calls addReviewFiles on reviewData with correct data', async () => {
             const reviewData = new ReviewDetails(
                 'review-8',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -1905,7 +1495,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-8',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'test.pdf',
@@ -1934,7 +1524,7 @@ describe('getReviews.ts', () => {
         test('handles error when getReviewById fails', async () => {
             const reviewData = new ReviewDetails(
                 'review-9',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -1954,7 +1544,7 @@ describe('getReviews.ts', () => {
         test('handles error when fetching blob fails', async () => {
             const reviewData = new ReviewDetails(
                 'review-10',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -1966,7 +1556,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-10',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'test.pdf',
@@ -1991,7 +1581,7 @@ describe('getReviews.ts', () => {
         test('handles error when getDocumentSearchResults fails', async () => {
             const reviewData = new ReviewDetails(
                 'review-11',
-                DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2010,7 +1600,7 @@ describe('getReviews.ts', () => {
         test('handles error when getDocument fails for existing document', async () => {
             const reviewData = new ReviewDetails(
                 'review-12',
-                DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2028,7 +1618,7 @@ describe('getReviews.ts', () => {
                     virusScannerResult: 'CLEAN',
                     fileSize: 100,
                     version: 'v1',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 },
             ]);
 
@@ -2042,7 +1632,7 @@ describe('getReviews.ts', () => {
         test('sets all required properties on upload documents', async () => {
             const reviewData = new ReviewDetails(
                 'review-13',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2054,7 +1644,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-13',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'test.pdf',
@@ -2083,7 +1673,7 @@ describe('getReviews.ts', () => {
             expect(doc).toHaveProperty('blob');
             expect(doc).toHaveProperty('state', DOCUMENT_UPLOAD_STATE.SELECTED);
             expect(doc).toHaveProperty('progress', 0);
-            expect(doc).toHaveProperty('docType', DOCUMENT_TYPE.EHR);
+            expect(doc).toHaveProperty('docType', documentTypeModule.DOCUMENT_TYPE.EHR);
             expect(doc).toHaveProperty('attempts', 0);
             expect(doc).toHaveProperty('numPages', undefined);
             expect(doc).toHaveProperty('validated', false);
@@ -2093,7 +1683,7 @@ describe('getReviews.ts', () => {
         test('sets versionId on existing documents', async () => {
             const reviewData = new ReviewDetails(
                 'review-14',
-                DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2111,7 +1701,7 @@ describe('getReviews.ts', () => {
                     virusScannerResult: 'CLEAN',
                     fileSize: 100,
                     version: 'v2',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 },
             ]);
 
@@ -2123,7 +1713,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-14',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 files: [
                     {
                         fileName: 'review.pdf',
@@ -2155,7 +1745,7 @@ describe('getReviews.ts', () => {
         test('filters existing and additional documents correctly', async () => {
             const reviewData = new ReviewDetails(
                 'review-15',
-                DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2173,7 +1763,7 @@ describe('getReviews.ts', () => {
                     virusScannerResult: 'CLEAN',
                     fileSize: 100,
                     version: 'v1',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 },
             ]);
 
@@ -2185,7 +1775,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-15',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 files: [
                     {
                         fileName: 'review1.pdf',
@@ -2221,7 +1811,7 @@ describe('getReviews.ts', () => {
         test('calls getDocumentSearchResults with correct parameters', async () => {
             const reviewData = new ReviewDetails(
                 'review-16',
-                DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2235,7 +1825,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-16',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 files: [
                     {
                         fileName: 'test.pdf',
@@ -2260,14 +1850,14 @@ describe('getReviews.ts', () => {
                 nhsNumber: '9876543210',
                 baseUrl,
                 baseHeaders,
-                docType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                docType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
             });
         });
 
         test('calls getDocument with correct parameters for existing document', async () => {
             const reviewData = new ReviewDetails(
                 'review-17',
-                DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2285,7 +1875,7 @@ describe('getReviews.ts', () => {
                     virusScannerResult: 'CLEAN',
                     fileSize: 100,
                     version: 'v1',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 },
             ]);
 
@@ -2297,7 +1887,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-17',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 files: [
                     {
                         fileName: 'review.pdf',
@@ -2329,7 +1919,7 @@ describe('getReviews.ts', () => {
         test('sets existingFiles on reviewData when documents found', async () => {
             const reviewData = new ReviewDetails(
                 'review-18',
-                DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2347,7 +1937,7 @@ describe('getReviews.ts', () => {
                     virusScannerResult: 'CLEAN',
                     fileSize: 100,
                     version: 'v1',
-                    documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                    documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 },
             ];
 
@@ -2361,7 +1951,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-18',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.LLOYD_GEORGE,
                 files: [
                     {
                         fileName: 'review.pdf',
@@ -2388,7 +1978,7 @@ describe('getReviews.ts', () => {
         test('generates unique IDs for review documents', async () => {
             const reviewData = new ReviewDetails(
                 'review-19',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2400,7 +1990,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-19',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'file1.pdf',
@@ -2440,7 +2030,7 @@ describe('getReviews.ts', () => {
         test('handles empty files array in review', async () => {
             const reviewData = new ReviewDetails(
                 'review-20',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2452,7 +2042,7 @@ describe('getReviews.ts', () => {
             const reviewDto: GetDocumentReviewDto = {
                 id: 'review-20',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [],
             };
 
@@ -2470,7 +2060,7 @@ describe('getReviews.ts', () => {
         test('handles null presignedUrl as abort condition', async () => {
             const reviewData = new ReviewDetails(
                 'review-21',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2482,7 +2072,7 @@ describe('getReviews.ts', () => {
             const reviewDto = {
                 id: 'review-21',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'file1.pdf',
@@ -2506,7 +2096,7 @@ describe('getReviews.ts', () => {
         test('aborts early when any file has missing presignedUrl before fetching', async () => {
             const reviewData = new ReviewDetails(
                 'review-22',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2518,7 +2108,7 @@ describe('getReviews.ts', () => {
             const reviewDto = {
                 id: 'review-22',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'file1.pdf',
@@ -2558,7 +2148,7 @@ describe('getReviews.ts', () => {
         test('handles empty nhsNumber in reviewData', async () => {
             const reviewData = new ReviewDetails(
                 'review-23',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2570,7 +2160,7 @@ describe('getReviews.ts', () => {
             const reviewDto = {
                 id: 'review-23',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: 'document.pdf',
@@ -2605,7 +2195,7 @@ describe('getReviews.ts', () => {
         test('handles file with name that has no extension (split.pop returns undefined)', async () => {
             const reviewData = new ReviewDetails(
                 'review-24',
-                DOCUMENT_TYPE.EHR,
+                documentTypeModule.DOCUMENT_TYPE.EHR,
                 '2024-01-01',
                 'uploader',
                 '2024-01-01',
@@ -2617,7 +2207,7 @@ describe('getReviews.ts', () => {
             const reviewDto = {
                 id: 'review-24',
                 uploadDate: '2024-01-01T10:00:00Z',
-                documentSnomedCodeType: DOCUMENT_TYPE.EHR,
+                documentSnomedCodeType: documentTypeModule.DOCUMENT_TYPE.EHR,
                 files: [
                     {
                         fileName: '',

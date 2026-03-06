@@ -6,9 +6,13 @@ export interface EnhancedNavigate extends NavigateFunction {
 
 export type JourneyType = 'new' | 'update' | undefined;
 
-export function getLastURLPath(url: string): string | undefined {
+export const getLastURLPath = (url: string): string | undefined => {
     return url.split('/').at(-1);
-}
+};
+
+export const getChildPath = (parentRoute: string, childRoute: string): string => {
+    return childRoute.replace(parentRoute, '').substring(1);
+};
 
 export const useEnhancedNavigate = (): EnhancedNavigate => {
     const navigate = useNavigate();

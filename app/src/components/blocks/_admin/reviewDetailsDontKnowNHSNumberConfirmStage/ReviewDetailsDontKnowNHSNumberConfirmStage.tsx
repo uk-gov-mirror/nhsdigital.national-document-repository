@@ -14,11 +14,7 @@ const ReviewDetailsDontKnowNHSNumberConfirmStage = (): JSX.Element => {
             return;
         }
 
-        navigateUrlParam(
-            routeChildren.ADMIN_REVIEW_COMPLETE_PATIENT_UNKNOWN,
-            { reviewId },
-            navigate,
-        );
+        navigateUrlParam(routeChildren.REVIEW_COMPLETE_PATIENT_UNKNOWN, { reviewId }, navigate);
     };
 
     return (
@@ -46,7 +42,7 @@ const ReviewDetailsDontKnowNHSNumberConfirmStage = (): JSX.Element => {
                 </Button>
 
                 <a
-                    href={routeChildren.ADMIN_REVIEW_DONT_KNOW_NHS_NUMBER.replaceAll(
+                    href={routeChildren.REVIEW_DONT_KNOW_NHS_NUMBER.replaceAll(
                         ':reviewId',
                         reviewId!,
                     )}

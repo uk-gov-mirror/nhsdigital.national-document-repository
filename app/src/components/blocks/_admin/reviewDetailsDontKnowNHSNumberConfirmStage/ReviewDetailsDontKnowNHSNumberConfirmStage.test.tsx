@@ -76,7 +76,7 @@ describe('ReviewDetailsDontKnowNHSNumberConfirmStage', () => {
             );
 
             expect(mockNavigate).toHaveBeenCalledWith(
-                `/admin/reviews/${mockReviewId}/complete/patient-unknown`,
+                `/reviews/${mockReviewId}/complete-patient-unknown`,
                 undefined,
             );
         });

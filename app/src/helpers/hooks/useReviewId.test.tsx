@@ -1,25 +1,7 @@
-import { useNavigate, useParams } from 'react-router-dom';
-import { routes } from '../../types/generic/routes';
 import { Mock } from 'vitest';
+import { routes } from '../../types/generic/routes';
+import useReviewId from './useReviewId';
 import { v4 as uuid } from 'uuid';
-
-const useReviewId = (): string | undefined => {
-    const { reviewId } = useParams<{ reviewId: string }>();
-    const navigate = useNavigate();
-
-    const reviewIdRegex = new RegExp(
-        /^(([\dA-Za-z]{8}-[\dA-Za-z]{4}-[\dA-Za-z]{4}-[\dA-Za-z]{4}-[\dA-Za-z]{12})|(\d+))\.\d+$/,
-    );
-
-    if (!reviewId || !reviewIdRegex.test(reviewId)) {
-        navigate(routes.NOT_FOUND);
-        return;
-    }
-
-    return reviewId;
-};
-
-export default useReviewId;
 
 const mockNavigate = vi.fn();
 const mockUseParams = vi.fn();
@@ -40,7 +22,7 @@ describe('useReviewId', () => {
     });
 
     it('returns the reviewId when it is valid mock value', () => {
-        const validReviewId = '12345.12';
+        const validReviewId = '12345_12';
         mockUseParams.mockReturnValue({ reviewId: validReviewId });
 
         const result = useReviewId();
@@ -50,7 +32,7 @@ describe('useReviewId', () => {
     });
 
     it('returns the reviewId when it is valid real value', () => {
-        const validReviewId = `${uuid()}.1`;
+        const validReviewId = `${uuid()}_1`;
         mockUseParams.mockReturnValue({ reviewId: validReviewId });
 
         const result = useReviewId();
@@ -69,7 +51,7 @@ describe('useReviewId', () => {
     });
 
     it('navigates to NOT_FOUND when reviewId is invalid', () => {
-        const invalidReviewId = 'invalid-review-id';
+        const invalidReviewId = 'invalid-review-id.pdf';
         mockUseParams.mockReturnValue({ reviewId: invalidReviewId });
 
         const result = useReviewId();
