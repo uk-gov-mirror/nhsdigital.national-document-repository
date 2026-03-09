@@ -100,6 +100,11 @@ MOCK_PATIENT_SEARCHED = [
     },
 ]
 
+MOCK_USERS_ACCESSING_REVIEW = [
+    {"ods_code": "Y12345", "daily_count_users_accessing_review": "2"},
+    {"ods_code": "H81109", "daily_count_users_accessing_review": "3"},
+]
+
 MOCK_DECEASED_ACCESS = [
     {"ods_code": "Y12345", "daily_count_users_accessing_deceased": "2"},
     {"ods_code": "H81109", "daily_count_users_accessing_deceased": "13"},

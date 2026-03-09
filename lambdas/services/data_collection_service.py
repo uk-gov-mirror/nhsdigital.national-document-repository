@@ -4,6 +4,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 
 import polars as pl
+
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.supported_document_types import SupportedDocumentTypes
 from models.report.statistics import (
@@ -19,9 +20,10 @@ from utils.audit_logging_setup import LoggingService
 from utils.cloudwatch_logs_query import (
     CloudwatchLogsQueryParams,
     CountUsersAccessedDeceasedPatient,
-    CountUsersLloydGeorgeRecordsUploaded,
+    CountUsersAccessedReview,
     CountUsersLloydGeorgeRecordsReassigned,
     CountUsersLloydGeorgeRecordsReviewed,
+    CountUsersLloydGeorgeRecordsUploaded,
     LloydGeorgeRecordsDeleted,
     LloydGeorgeRecordsDownloaded,
     LloydGeorgeRecordsSearched,
@@ -61,7 +63,7 @@ class DataCollectionService:
 
     def collect_all_data_and_write_to_dynamodb(self):
         logger.info(
-            f"Collecting data for the past week: {self.start_date} to {self.end_date}."
+            f"Collecting data for the past week: {self.start_date} to {self.end_date}.",
         )
 
         all_statistic_data = self.collect_all_data()
@@ -77,7 +79,8 @@ class DataCollectionService:
 
         if dynamodb_scan_result:
             record_store_data = self.get_record_store_data(
-                dynamodb_scan_result, s3_list_objects_result
+                dynamodb_scan_result,
+                s3_list_objects_result,
             )
 
         organisation_data = []
@@ -88,7 +91,9 @@ class DataCollectionService:
             logger.info(f"Collecting data for day: {day_start} to {day_end}")
 
             organisation_data += self.get_organisation_data(
-                dynamodb_scan_result, day_start, day_end
+                dynamodb_scan_result,
+                day_start,
+                day_end,
             )
             application_data += self.get_application_data(day_start, day_end)
 
@@ -104,7 +109,8 @@ class DataCollectionService:
             item_list.append(entry.model_dump(by_alias=True))
 
         self.dynamodb_service.batch_writing(
-            table_name=self.output_table_name, item_list=item_list
+            table_name=self.output_table_name,
+            item_list=item_list,
         )
 
         logger.info("Finish writing all data to dynamodb table")
@@ -151,12 +157,13 @@ class DataCollectionService:
 
         total_and_average_file_sizes = (
             self.get_metrics_for_total_and_average_file_sizes(
-                dynamodb_scan_result, s3_list_objects_result
+                dynamodb_scan_result,
+                s3_list_objects_result,
             )
         )
 
         number_of_document_types = self.get_number_of_document_types(
-            dynamodb_scan_result
+            dynamodb_scan_result,
         )
 
         joined_query_result = self.join_results_by_ods_code(
@@ -164,7 +171,7 @@ class DataCollectionService:
                 total_number_of_records,
                 total_and_average_file_sizes,
                 number_of_document_types,
-            ]
+            ],
         )
 
         record_store_data_for_all_ods_code = [
@@ -178,45 +185,75 @@ class DataCollectionService:
         return record_store_data_for_all_ods_code
 
     def get_organisation_data(
-        self, dynamodb_scan_result: list[dict], start_date: datetime, end_date: datetime
+        self,
+        dynamodb_scan_result: list[dict],
+        start_date: datetime,
+        end_date: datetime,
     ) -> list[OrganisationData]:
 
         number_of_patients = self.get_number_of_patients(dynamodb_scan_result)
         average_records_per_patient = self.get_average_number_of_files_per_patient(
-            dynamodb_scan_result
+            dynamodb_scan_result,
         )
         daily_count_viewed = self.get_cloud_watch_query_result(
-            LloydGeorgeRecordsViewed, start_date, end_date
+            LloydGeorgeRecordsViewed,
+            start_date,
+            end_date,
         )
         daily_count_downloaded = self.get_cloud_watch_query_result(
-            LloydGeorgeRecordsDownloaded, start_date, end_date
+            LloydGeorgeRecordsDownloaded,
+            start_date,
+            end_date,
         )
         daily_count_deleted = self.get_cloud_watch_query_result(
-            LloydGeorgeRecordsDeleted, start_date, end_date
+            LloydGeorgeRecordsDeleted,
+            start_date,
+            end_date,
         )
         daily_count_uploaded = self.get_cloud_watch_query_result(
-            LloydGeorgeRecordsUploaded, start_date, end_date
+            LloydGeorgeRecordsUploaded,
+            start_date,
+            end_date,
         )
         daily_count_users_uploaded = self.get_cloud_watch_query_result(
-            CountUsersLloydGeorgeRecordsUploaded, start_date, end_date
+            CountUsersLloydGeorgeRecordsUploaded,
+            start_date,
+            end_date,
         )
         daily_count_users_reviewed = self.get_cloud_watch_query_result(
-            CountUsersLloydGeorgeRecordsReviewed, start_date, end_date
+            CountUsersLloydGeorgeRecordsReviewed,
+            start_date,
+            end_date,
         )
         daily_count_users_reassigned = self.get_cloud_watch_query_result(
-            CountUsersLloydGeorgeRecordsReassigned, start_date, end_date
+            CountUsersLloydGeorgeRecordsReassigned,
+            start_date,
+            end_date,
         )
         daily_count_searched = self.get_cloud_watch_query_result(
-            LloydGeorgeRecordsSearched, start_date, end_date
+            LloydGeorgeRecordsSearched,
+            start_date,
+            end_date,
+        )
+        daily_count_users_accessing_review = self.get_cloud_watch_query_result(
+            CountUsersAccessedReview,
+            start_date,
+            end_date,
         )
         daily_count_deceased = self.get_cloud_watch_query_result(
-            CountUsersAccessedDeceasedPatient, start_date, end_date
+            CountUsersAccessedDeceasedPatient,
+            start_date,
+            end_date,
         )
         daily_count_ods_report_requested = self.get_cloud_watch_query_result(
-            OdsReportsRequested, start_date, end_date
+            OdsReportsRequested,
+            start_date,
+            end_date,
         )
         daily_count_ods_report_created = self.get_cloud_watch_query_result(
-            OdsReportsCreated, start_date, end_date
+            OdsReportsCreated,
+            start_date,
+            end_date,
         )
         joined_query_result = self.join_results_by_ods_code(
             [
@@ -230,10 +267,11 @@ class DataCollectionService:
                 daily_count_users_reviewed,
                 daily_count_users_reassigned,
                 daily_count_searched,
+                daily_count_users_accessing_review,
                 daily_count_deceased,
                 daily_count_ods_report_requested,
                 daily_count_ods_report_created,
-            ]
+            ],
         )
 
         organisation_data_for_all_ods_code = [
@@ -247,7 +285,9 @@ class DataCollectionService:
         return organisation_data_for_all_ods_code
 
     def get_application_data(
-        self, start_date: datetime, end_date: datetime
+        self,
+        start_date: datetime,
+        end_date: datetime,
     ) -> list[ApplicationData]:
         user_id_per_ods_code = self.get_active_user_list(start_date, end_date)
         application_data_for_all_ods_code = [
@@ -261,10 +301,14 @@ class DataCollectionService:
         return application_data_for_all_ods_code
 
     def get_active_user_list(
-        self, start_date: datetime, end_date: datetime
+        self,
+        start_date: datetime,
+        end_date: datetime,
     ) -> dict[str, list]:
         query_result = self.get_cloud_watch_query_result(
-            query_params=UniqueActiveUserIds, start_time=start_date, end_time=end_date
+            query_params=UniqueActiveUserIds,
+            start_time=start_date,
+            end_time=end_date,
         )
         user_ids_per_ods_code = defaultdict(list)
         for entry in query_result:
@@ -274,7 +318,7 @@ class DataCollectionService:
             role_code = entry.get("role_code", "No role code")
             hashed_user_id = hashlib.sha256(bytes(user_id, "utf8")).hexdigest()
             user_ids_per_ods_code[ods_code].append(
-                hashed_user_id + " - " + user_role + " - " + role_code
+                hashed_user_id + " - " + user_role + " - " + role_code,
             )
         return user_ids_per_ods_code
 
@@ -291,7 +335,8 @@ class DataCollectionService:
         )
 
     def get_total_number_of_records(
-        self, dynamodb_scan_result: list[dict]
+        self,
+        dynamodb_scan_result: list[dict],
     ) -> list[dict]:
         ods_code_for_every_document = [
             item[OdsCodeFieldName] for item in dynamodb_scan_result
@@ -325,14 +370,18 @@ class DataCollectionService:
         dynamodb_df_with_file_key = dynamodb_df.with_columns(
             pl.col(FileLocationFieldName)
             .map_elements(get_file_key_from_s3_url, return_dtype=pl.String)
-            .alias("S3FileKey")
+            .alias("S3FileKey"),
         )
         joined_df = dynamodb_df_with_file_key.join(
-            s3_df, how="left", left_on="S3FileKey", right_on="Key", coalesce=True
+            s3_df,
+            how="left",
+            left_on="S3FileKey",
+            right_on="Key",
+            coalesce=True,
         )
 
         get_total_size = (pl.col("Size").sum() / 1024 / 1024).alias(
-            "TotalFileSizeForPatientInMegabytes"
+            "TotalFileSizeForPatientInMegabytes",
         )
 
         get_average_file_size_per_patient = (
@@ -358,7 +407,8 @@ class DataCollectionService:
         return result.to_dicts()
 
     def get_number_of_document_types(
-        self, dynamodb_scan_result: list[dict]
+        self,
+        dynamodb_scan_result: list[dict],
     ) -> list[dict]:
         file_types_grouped_by_ods_code = defaultdict(set)
         for item in dynamodb_scan_result:

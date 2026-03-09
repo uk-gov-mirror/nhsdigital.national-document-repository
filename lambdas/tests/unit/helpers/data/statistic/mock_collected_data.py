@@ -59,6 +59,7 @@ MOCK_ORGANISATION_DATA = [
         daily_count_users_uploaded=4,
         daily_count_users_reviewed=2,
         daily_count_users_reassigned=2,
+        daily_count_users_accessing_review=3,
         daily_count_users_accessing_deceased=13,
         daily_count_ods_report_created=13,
         daily_count_ods_report_requested=20,
@@ -77,6 +78,7 @@ MOCK_ORGANISATION_DATA = [
         daily_count_users_uploaded=2,
         daily_count_users_reviewed=1,
         daily_count_users_reassigned=1,
+        daily_count_users_accessing_review=2,
         daily_count_users_accessing_deceased=2,
         daily_count_ods_report_created=0,
         daily_count_ods_report_requested=10,
@@ -103,7 +105,7 @@ MOCK_APPLICATION_DATA = [
 
 ALL_MOCK_DATA = MOCK_RECORD_STORE_DATA + MOCK_ORGANISATION_DATA + MOCK_APPLICATION_DATA
 ALL_MOCK_DATA_AS_JSON_LIST = list(
-    map(lambda data: data.model_dump(by_alias=True), ALL_MOCK_DATA)
+    map(lambda data: data.model_dump(by_alias=True), ALL_MOCK_DATA),
 )
 
 

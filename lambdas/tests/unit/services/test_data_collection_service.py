@@ -6,6 +6,7 @@ from unittest.mock import call
 import pytest
 from freezegun import freeze_time
 from pytest_unordered import unordered
+
 from services.base.cloudwatch_service import CloudwatchService
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
@@ -45,16 +46,18 @@ from tests.unit.helpers.data.statistic.mock_logs_query_results import (
     MOCK_ODS_REPORT_REQUESTED,
     MOCK_PATIENT_SEARCHED,
     MOCK_UNIQUE_ACTIVE_USER_IDS,
-    MOCK_USERS_LG_UPLOADED,
+    MOCK_USERS_ACCESSING_REVIEW,
     MOCK_USERS_LG_REASSIGNED,
     MOCK_USERS_LG_REVIEWED,
+    MOCK_USERS_LG_UPLOADED,
 )
 from utils.cloudwatch_logs_query import (
     CloudwatchLogsQueryParams,
     CountUsersAccessedDeceasedPatient,
-    CountUsersLloydGeorgeRecordsUploaded,
+    CountUsersAccessedReview,
     CountUsersLloydGeorgeRecordsReassigned,
     CountUsersLloydGeorgeRecordsReviewed,
+    CountUsersLloydGeorgeRecordsUploaded,
     LloydGeorgeRecordsDeleted,
     LloydGeorgeRecordsDownloaded,
     LloydGeorgeRecordsSearched,
@@ -75,7 +78,8 @@ def mock_dynamo_service(mocker):
         return None
 
     patched_instance = mocker.patch(
-        "services.data_collection_service.DynamoDBService", spec=DynamoDBService
+        "services.data_collection_service.DynamoDBService",
+        spec=DynamoDBService,
     ).return_value
     patched_method = patched_instance.scan_whole_table
     patched_method.side_effect = mock_implementation
@@ -91,7 +95,8 @@ def mock_s3_list_all_objects(mocker):
         return None
 
     patched_instance = mocker.patch(
-        "services.data_collection_service.S3Service", spec=S3Service
+        "services.data_collection_service.S3Service",
+        spec=S3Service,
     ).return_value
     patched_method = patched_instance.list_all_objects
     patched_method.side_effect = mock_implementation
@@ -104,27 +109,29 @@ def mock_query_logs(mocker):
     def mock_implementation(query_params: CloudwatchLogsQueryParams, **_kwargs):
         if query_params == LloydGeorgeRecordsViewed:
             return MOCK_LG_VIEWED
-        elif query_params == LloydGeorgeRecordsDownloaded:
+        if query_params == LloydGeorgeRecordsDownloaded:
             return MOCK_LG_DOWNLOADED
-        elif query_params == LloydGeorgeRecordsDeleted:
+        if query_params == LloydGeorgeRecordsDeleted:
             return MOCK_LG_DELETED
-        elif query_params == LloydGeorgeRecordsUploaded:
+        if query_params == LloydGeorgeRecordsUploaded:
             return MOCK_LG_UPLOADED
-        elif query_params == CountUsersLloydGeorgeRecordsUploaded:
+        if query_params == CountUsersLloydGeorgeRecordsUploaded:
             return MOCK_USERS_LG_UPLOADED
-        elif query_params == CountUsersLloydGeorgeRecordsReviewed:
+        if query_params == CountUsersLloydGeorgeRecordsReviewed:
             return MOCK_USERS_LG_REVIEWED
-        elif query_params == CountUsersLloydGeorgeRecordsReassigned:
+        if query_params == CountUsersLloydGeorgeRecordsReassigned:
             return MOCK_USERS_LG_REASSIGNED
-        elif query_params == UniqueActiveUserIds:
+        if query_params == UniqueActiveUserIds:
             return MOCK_UNIQUE_ACTIVE_USER_IDS
-        elif query_params == LloydGeorgeRecordsSearched:
+        if query_params == LloydGeorgeRecordsSearched:
             return MOCK_PATIENT_SEARCHED
-        elif query_params == CountUsersAccessedDeceasedPatient:
+        if query_params == CountUsersAccessedReview:
+            return MOCK_USERS_ACCESSING_REVIEW
+        if query_params == CountUsersAccessedDeceasedPatient:
             return MOCK_DECEASED_ACCESS
-        elif query_params == OdsReportsRequested:
+        if query_params == OdsReportsRequested:
             return MOCK_ODS_REPORT_REQUESTED
-        elif query_params == OdsReportsCreated:
+        if query_params == OdsReportsCreated:
             return MOCK_ODS_REPORT_CREATED
         return []
 
@@ -140,7 +147,10 @@ def mock_query_logs(mocker):
 
 @pytest.fixture
 def mock_service(
-    set_env, mock_query_logs, mock_dynamo_service, mock_s3_list_all_objects
+    set_env,
+    mock_query_logs,
+    mock_dynamo_service,
+    mock_s3_list_all_objects,
 ):
     service = DataCollectionService()
     yield service
@@ -221,7 +231,8 @@ def test_write_to_dynamodb_table(mock_dynamo_service, mock_service):
     mock_service.write_to_dynamodb_table(mock_data)
 
     mock_dynamo_service.batch_writing.assert_called_with(
-        table_name=MOCK_STATISTICS_TABLE, item_list=ALL_MOCK_DATA_AS_JSON_LIST
+        table_name=MOCK_STATISTICS_TABLE,
+        item_list=ALL_MOCK_DATA_AS_JSON_LIST,
     )
 
 
@@ -258,7 +269,8 @@ def test_get_record_store_data(mock_uuid, mock_service):
     s3_list_objects_result = MOCK_LG_LIST_OBJECTS_RESULT
 
     actual = mock_service.get_record_store_data(
-        mock_dynamo_scan_result, s3_list_objects_result
+        mock_dynamo_scan_result,
+        s3_list_objects_result,
     )
     expected = unordered(MOCK_RECORD_STORE_DATA)
 
@@ -269,7 +281,9 @@ def test_get_organisation_data(mock_uuid, mock_service):
     mock_dynamo_scan_result = MOCK_LG_SCAN_RESULT
 
     actual = mock_service.get_organisation_data(
-        mock_dynamo_scan_result, start_date=START_DATE, end_date=END_DATE
+        mock_dynamo_scan_result,
+        start_date=START_DATE,
+        end_date=END_DATE,
     )
     expected = unordered(MOCK_ORGANISATION_DATA)
 
@@ -329,7 +343,7 @@ def test_get_total_number_of_records_larger_mock_data(mock_service, larger_mock_
         [
             {"ods_code": "H81109", "total_number_of_records": 135 + 246 + 369},
             {"ods_code": "Y12345", "total_number_of_records": 4812 + 5101},
-        ]
+        ],
     )
 
     assert actual == expected
@@ -341,7 +355,7 @@ def test_get_number_of_patients(mock_service):
         [
             {"ods_code": "Y12345", "number_of_patients": 1},
             {"ods_code": "H81109", "number_of_patients": 2},
-        ]
+        ],
     )
 
     assert actual == expected
@@ -352,7 +366,8 @@ def test_get_metrics_for_total_and_average_file_sizes(mock_service):
     mock_s3_list_objects_result = MOCK_LG_LIST_OBJECTS_RESULT
 
     actual = mock_service.get_metrics_for_total_and_average_file_sizes(
-        mock_dynamo_scan_result, mock_s3_list_objects_result
+        mock_dynamo_scan_result,
+        mock_s3_list_objects_result,
     )
 
     expected = unordered(
@@ -368,18 +383,20 @@ def test_get_metrics_for_total_and_average_file_sizes(mock_service):
                 "average_size_of_documents_per_patient_in_megabytes": TOTAL_FILE_SIZE_FOR_Y12345,
                 "total_size_of_records_in_megabytes": TOTAL_FILE_SIZE_FOR_Y12345,
             },
-        ]
+        ],
     )
 
     assert actual == expected
 
 
 def test_get_metrics_for_total_and_average_file_sizes_larger_mock_data(
-    mock_service, larger_mock_data
+    mock_service,
+    larger_mock_data,
 ):
     mock_dynamo_scan_result, mock_s3_list_objects_result = larger_mock_data
     actual = mock_service.get_metrics_for_total_and_average_file_sizes(
-        mock_dynamo_scan_result, mock_s3_list_objects_result
+        mock_dynamo_scan_result,
+        mock_s3_list_objects_result,
     )
 
     expected = unordered(
@@ -395,7 +412,7 @@ def test_get_metrics_for_total_and_average_file_sizes_larger_mock_data(
                 "average_size_of_documents_per_patient_in_megabytes": (9876 + 5432) / 2,
                 "total_size_of_records_in_megabytes": (9876 + 5432),
             },
-        ]
+        ],
     )
 
     assert actual == expected
@@ -407,7 +424,7 @@ def test_get_number_of_document_types(mock_service):
         [
             {"ods_code": "Y12345", "number_of_document_types": 2},
             {"ods_code": "H81109", "number_of_document_types": 2},
-        ]
+        ],
     )
 
     assert actual == expected
@@ -419,19 +436,20 @@ def test_get_average_number_of_file_per_patient(mock_service):
         [
             {"ods_code": "Y12345", "average_records_per_patient": 2},
             {"ods_code": "H81109", "average_records_per_patient": 3},
-        ]
+        ],
     )
 
     assert actual == expected
 
 
 def test_get_average_number_of_file_per_patient_larger_mock_data(
-    mock_service, larger_mock_data
+    mock_service,
+    larger_mock_data,
 ):
     mock_dynamo_scan_result, _ = larger_mock_data
 
     actual = mock_service.get_average_number_of_files_per_patient(
-        mock_dynamo_scan_result
+        mock_dynamo_scan_result,
     )
     expected = unordered(
         [
@@ -443,7 +461,7 @@ def test_get_average_number_of_file_per_patient_larger_mock_data(
                 "ods_code": "Y12345",
                 "average_records_per_patient": Decimal(4812 + 5101) / 2,
             },
-        ]
+        ],
     )
 
     assert actual == expected

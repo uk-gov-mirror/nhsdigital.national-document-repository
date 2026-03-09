@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import polars as pl
 import polars.selectors as column_select
 from inflection import humanize
+
 from models.report.statistics import (
     ApplicationData,
     LoadedStatisticData,
@@ -85,7 +86,7 @@ class StatisticalReportService:
                 {"Result": "Statistic data not available."},
             )
             raise StatisticDataNotFoundException(
-                f"No statistic data can be found during the period {self.report_period}"
+                f"No statistic data can be found during the period {self.report_period}",
             )
 
         return loaded_data
@@ -93,13 +94,14 @@ class StatisticalReportService:
     @staticmethod
     def load_data_to_polars(data: list[StatisticData]) -> pl.DataFrame:
         cast_decimal_to_float = column_select.by_dtype(pl.datatypes.Decimal).cast(
-            pl.Float64
+            pl.Float64,
         )
         loaded_data = pl.DataFrame(data).with_columns(cast_decimal_to_float)
         return loaded_data
 
     def summarise_record_store_data(
-        self, record_store_data: list[RecordStoreData]
+        self,
+        record_store_data: list[RecordStoreData],
     ) -> pl.DataFrame:
         logger.info("Summarising RecordStoreData...")
         if not record_store_data:
@@ -118,7 +120,8 @@ class StatisticalReportService:
         return summarised_data
 
     def summarise_organisation_data(
-        self, organisation_data: list[OrganisationData]
+        self,
+        organisation_data: list[OrganisationData],
     ) -> pl.DataFrame:
         logger.info("Summarising OrganisationData...")
         if not organisation_data:
@@ -146,7 +149,8 @@ class StatisticalReportService:
         return summarised_data
 
     def summarise_application_data(
-        self, application_data: list[ApplicationData]
+        self,
+        application_data: list[ApplicationData],
     ) -> pl.DataFrame:
         logger.info("Summarising ApplicationData...")
         if not application_data:
@@ -161,7 +165,8 @@ class StatisticalReportService:
                 .flatten()
                 .unique()
                 .map_elements(
-                    lambda col: str(col.sort().to_list()), return_dtype=pl.Utf8
+                    lambda col: str(col.sort().to_list()),
+                    return_dtype=pl.Utf8,
                 )
                 .alias("unique_active_user_ids_hashed"),
                 pl.concat_list("active_user_ids_hashed")
@@ -169,20 +174,24 @@ class StatisticalReportService:
                 .unique()
                 .len()
                 .alias("active_users_count"),
-            ]
+            ],
         )
 
         return summarised_data
 
     def join_dataframes_by_ods_code(
-        self, all_summarised_data: list[pl.DataFrame]
+        self,
+        all_summarised_data: list[pl.DataFrame],
     ) -> pl.DataFrame:
         data_to_report = [df for df in all_summarised_data if not df.is_empty()]
         joined_dataframe = data_to_report[0]
 
         for other_dataframe in data_to_report[1:]:
             joined_dataframe = joined_dataframe.join(
-                other_dataframe, on="ods_code", how="full", coalesce=True
+                other_dataframe,
+                on="ods_code",
+                how="full",
+                coalesce=True,
             )
 
         return joined_dataframe
@@ -191,14 +200,14 @@ class StatisticalReportService:
         with_date_column_updated = self.update_date_column(joined_data)
         with_columns_reordered = self.reorder_columns(with_date_column_updated)
         with_columns_renamed = with_columns_reordered.rename(
-            self.rename_snakecase_columns
+            self.rename_snakecase_columns,
         )
 
         return with_columns_renamed
 
     def update_date_column(self, joined_data: pl.DataFrame) -> pl.DataFrame:
         date_column_filled_with_report_period = joined_data.with_columns(
-            pl.lit(self.report_period).alias("date")
+            pl.lit(self.report_period).alias("date"),
         )
         return date_column_filled_with_report_period
 
@@ -211,6 +220,7 @@ class StatisticalReportService:
             "total_number_of_records",
             "weekly_count_searched",
             "weekly_count_users_accessing_deceased",
+            "weekly_count_users_accessing_review",
             "weekly_count_viewed",
             "weekly_count_downloaded",
             "weekly_count_uploaded",
@@ -227,10 +237,11 @@ class StatisticalReportService:
             col for col in columns_to_go_first if col in all_columns_names
         ]
         other_columns = sorted(
-            set(all_columns_names) - set(filter_first_columns_in_dataframe)
+            set(all_columns_names) - set(filter_first_columns_in_dataframe),
         )
         with_columns_reordered = joined_data.select(
-            *filter_first_columns_in_dataframe, *other_columns
+            *filter_first_columns_in_dataframe,
+            *other_columns,
         )
         return with_columns_reordered
 
@@ -238,8 +249,7 @@ class StatisticalReportService:
     def rename_snakecase_columns(column_name: str) -> str:
         if column_name == "ods_code":
             return "ODS code"
-        else:
-            return humanize(column_name)
+        return humanize(column_name)
 
     def store_report_to_s3(self, weekly_summary: pl.DataFrame) -> None:
         logger.info("Saving the weekly report as .csv")

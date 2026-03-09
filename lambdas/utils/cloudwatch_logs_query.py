@@ -62,6 +62,16 @@ LloydGeorgeRecordsSearched = CloudwatchLogsQueryParams(
     """,
 )
 
+CountUsersAccessedReview = CloudwatchLogsQueryParams(
+    lambda_name="GetDocumentReview",
+    query_string="""
+        fields @timestamp, Message, Authorisation.nhs_user_id AS user_id, 
+        Authorisation.selected_organisation.org_ods_code AS ods_code
+        | filter Message like /Successfully retrieved document review for document_id/
+        | stats count_distinct(user_id) AS daily_count_users_accessing_review BY ods_code
+    """,
+)
+
 CountUsersAccessedDeceasedPatient = CloudwatchLogsQueryParams(
     lambda_name="AccessAuditLambda",
     query_string="""
@@ -119,6 +129,6 @@ CountUsersLloydGeorgeRecordsReassigned = CloudwatchLogsQueryParams(
         fields @timestamp, Message, Authorisation.nhs_user_id AS user_id, 
         Authorisation.selected_organisation.org_ods_code AS ods_code
         | filter Message like /Document .* reassigned to patient .*/
-        | stats count_distinct(user_id) AS daily_count_users_reviewed BY ods_code
+        | stats count_distinct(user_id) AS daily_count_users_reassigned BY ods_code
     """,
 )

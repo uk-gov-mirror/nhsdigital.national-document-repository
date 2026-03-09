@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 import polars as pl
+
 from models.report.statistics import ApplicationData, OrganisationData, RecordStoreData
 
 MOCK_RECORD_STORE_DATA_1 = RecordStoreData(
@@ -49,7 +50,7 @@ EXPECTED_SUMMARY_RECORD_STORE_DATA = pl.DataFrame(
             "total_size_of_records_in_megabytes": 2.34,
             "average_size_of_documents_per_patient_in_megabytes": 0.6,
         },
-    ]
+    ],
 )
 
 SERIALISED_RECORD_STORE_DATA = [
@@ -94,6 +95,7 @@ MOCK_ORGANISATION_DATA_1 = OrganisationData(
     daily_count_deleted=1,
     daily_count_users_reviewed=0,
     daily_count_users_reassigned=0,
+    daily_count_users_accessing_review=3,
     daily_count_users_accessing_deceased=12,
     daily_count_ods_report_requested=10,
     daily_count_ods_report_created=0,
@@ -110,6 +112,7 @@ MOCK_ORGANISATION_DATA_2 = OrganisationData(
     daily_count_deleted=1,
     daily_count_users_reviewed=0,
     daily_count_users_reassigned=0,
+    daily_count_users_accessing_review=0,
     daily_count_users_accessing_deceased=22,
     daily_count_ods_report_requested=2,
     daily_count_ods_report_created=2,
@@ -127,6 +130,7 @@ MOCK_ORGANISATION_DATA_3 = OrganisationData(
     daily_count_users_uploaded=2,
     daily_count_users_reviewed=2,
     daily_count_users_reassigned=2,
+    daily_count_users_accessing_review=2,
     daily_count_users_accessing_deceased=9,
     daily_count_ods_report_requested=2,
     daily_count_ods_report_created=2,
@@ -144,6 +148,7 @@ EXPECTED_SUMMARY_ORGANISATION_DATA = pl.DataFrame(
             "weekly_count_users_uploaded": 0,
             "weekly_count_users_reviewed": 0,
             "weekly_count_users_reassigned": 0,
+            "weekly_count_users_accessing_review": 3,
             "weekly_count_users_accessing_deceased": 12,
             "weekly_count_ods_report_requested": 10,
             "weekly_count_ods_report_created": 0,
@@ -160,13 +165,14 @@ EXPECTED_SUMMARY_ORGANISATION_DATA = pl.DataFrame(
             "weekly_count_users_uploaded": 0 + 2,
             "weekly_count_users_reviewed": 2,
             "weekly_count_users_reassigned": 2,
+            "weekly_count_users_accessing_review": 2,
             "weekly_count_users_accessing_deceased": 31,
             "weekly_count_ods_report_requested": 4,
             "weekly_count_ods_report_created": 4,
             "average_records_per_patient": (3.51 + 2.78) / 2,
             "number_of_patients": 10,
         },
-    ]
+    ],
 )
 
 
@@ -183,6 +189,7 @@ SERIALISED_ORGANISATION_DATA = [
         "DailyCountUsersUploaded": 0,
         "DailyCountUsersReviewed": 0,
         "DailyCountUsersReassigned": 0,
+        "DailyCountUsersAccessingReview": 3,
         "DailyCountUsersAccessingDeceased": 12,
         "DailyCountOdsReportRequested": 10,
         "StatisticID": "OrganisationData#5acda4bf-8b93-4ba0-8410-789aac4fcbae",
@@ -199,6 +206,7 @@ SERIALISED_ORGANISATION_DATA = [
         "DailyCountUsersUploaded": 0,
         "DailyCountUsersReviewed": 0,
         "DailyCountUsersReassigned": 0,
+        "DailyCountUsersAccessingReview": 0,
         "DailyCountUsersAccessingDeceased": 22,
         "DailyCountOdsReportRequested": 2,
         "DailyCountOdsReportCreated": 2,
@@ -216,6 +224,7 @@ SERIALISED_ORGANISATION_DATA = [
         "DailyCountUsersUploaded": 2,
         "DailyCountUsersReviewed": 2,
         "DailyCountUsersReassigned": 2,
+        "DailyCountUsersAccessingReview": 2,
         "DailyCountUsersAccessingDeceased": 9,
         "DailyCountOdsReportRequested": 2,
         "DailyCountOdsReportCreated": 2,
@@ -284,7 +293,7 @@ EXPECTED_SUMMARY_APPLICATION_DATA = pl.DataFrame(
             "ods_code": "Z56789",
             "active_users_count": 1,
             "unique_active_user_ids_hashed": str(
-                [str(SERIALISED_APPLICATION_DATA[0]["ActiveUserIdsHashed"][0])]
+                [str(SERIALISED_APPLICATION_DATA[0]["ActiveUserIdsHashed"][0])],
             ),
         },
         {
@@ -295,7 +304,7 @@ EXPECTED_SUMMARY_APPLICATION_DATA = pl.DataFrame(
                     str(SERIALISED_APPLICATION_DATA[1]["ActiveUserIdsHashed"][0]),
                     str(SERIALISED_APPLICATION_DATA[1]["ActiveUserIdsHashed"][1]),
                     str(SERIALISED_APPLICATION_DATA[2]["ActiveUserIdsHashed"][1]),
-                ]
+                ],
             ),
         },
     ],
@@ -334,6 +343,7 @@ EXPECTED_WEEKLY_SUMMARY = pl.DataFrame(
             "Total number of records": 18,
             "Weekly count searched": 0,
             "Weekly count users accessing deceased": 12,
+            "Weekly count users accessing review": 3,
             "Weekly count viewed": 35,
             "Weekly count downloaded": 4,
             "Weekly count uploaded": 0,
@@ -345,7 +355,7 @@ EXPECTED_WEEKLY_SUMMARY = pl.DataFrame(
             "Weekly count ods report created": 0,
             "Active users count": 1,
             "Unique active user ids hashed": str(
-                [str(SERIALISED_APPLICATION_DATA[0]["ActiveUserIdsHashed"][0])]
+                [str(SERIALISED_APPLICATION_DATA[0]["ActiveUserIdsHashed"][0])],
             ),
             "Average records per patient": 4.5,
             "Average size of documents per patient in megabytes": 1.5,
@@ -359,6 +369,7 @@ EXPECTED_WEEKLY_SUMMARY = pl.DataFrame(
             "Total number of records": 20,
             "Weekly count searched": 0,
             "Weekly count users accessing deceased": 31,
+            "Weekly count users accessing review": 2,
             "Weekly count viewed": 15 + 30,
             "Weekly count downloaded": 1 + 5,
             "Weekly count uploaded": 0 + 2,
@@ -374,12 +385,12 @@ EXPECTED_WEEKLY_SUMMARY = pl.DataFrame(
                     str(SERIALISED_APPLICATION_DATA[1]["ActiveUserIdsHashed"][0]),
                     str(SERIALISED_APPLICATION_DATA[1]["ActiveUserIdsHashed"][1]),
                     str(SERIALISED_APPLICATION_DATA[2]["ActiveUserIdsHashed"][1]),
-                ]
+                ],
             ),
             "Average records per patient": (2.78 + 3.51) / 2,
             "Average size of documents per patient in megabytes": 0.6,
             "Number of document types": 2,
             "Total size of records in megabytes": 2.34,
         },
-    ]
+    ],
 )

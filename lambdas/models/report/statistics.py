@@ -9,7 +9,8 @@ from pydantic.alias_generators import to_pascal
 class StatisticData(BaseModel):
     model_config = ConfigDict(alias_generator=to_pascal, validate_by_name=True)
     statistic_id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()), alias="StatisticID"
+        default_factory=lambda: str(uuid.uuid4()),
+        alias="StatisticID",
     )
     date: str
     ods_code: str
@@ -60,6 +61,7 @@ class OrganisationData(StatisticData):
     daily_count_users_uploaded: int = 0
     daily_count_users_reviewed: int = 0
     daily_count_users_reassigned: int = 0
+    daily_count_users_accessing_review: int = 0
     daily_count_users_accessing_deceased: int = 0
     daily_count_ods_report_requested: int = 0
     daily_count_ods_report_created: int = 0
