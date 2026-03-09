@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from urllib.parse import urlencode
 
 import pytest
 import requests
@@ -143,6 +144,7 @@ def create_and_store_pdm_record(
     nhs_number: str = TEST_NHS_NUMBER,
     doc_status: str | None = None,
     size: int | None = None,
+    ods: str = "H81109",
     **dynamo_kwargs,
 ):
     """Helper to create metadata and resource for a record."""
@@ -150,6 +152,7 @@ def create_and_store_pdm_record(
         nhs_number=nhs_number,
         doc_status=doc_status,
         size=size,
+        ods=ods,
     )
     test_data.append(record)
     pdm_data_helper.create_metadata(record, **dynamo_kwargs)
@@ -175,3 +178,35 @@ def retrieve_document_with_retry(doc_id, condition):
     }
     session = create_mtls_session()
     return fetch_with_retry_mtls(session, retrieve_url, headers, condition)
+
+
+def search_document_reference(
+    nhs_number,
+    client_cert_path=None,
+    client_key_path=None,
+    resource_type="DocumentReference",
+    extra_params: dict | None = None,
+):
+    """Helper to perform search by NHS number with optional additional query params and mTLS certs."""
+    base_params = {
+        "subject:identifier": f"https://fhir.nhs.uk/Id/nhs-number|{nhs_number}",
+    }
+
+    # Merge any additional params (e.g. custodian:identifier)
+    if extra_params:
+        base_params.update(extra_params)
+
+    query = urlencode(base_params, doseq=True)
+    url = f"https://{MTLS_ENDPOINT}/{resource_type}?{query}"
+    print(f"Search URL: {url}")
+    headers = {
+        "X-Correlation-Id": "1234",
+    }
+
+    # Use provided certs if available, else defaults
+    if client_cert_path and client_key_path:
+        session = create_mtls_session(client_cert_path, client_key_path)
+    else:
+        session = create_mtls_session()
+
+    return session.get(url, headers=headers)

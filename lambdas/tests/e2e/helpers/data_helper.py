@@ -70,11 +70,12 @@ class DataHelper:
         data=None,
         doc_status=None,
         size=None,
+        ods: str = "H81109",
     ):
         record = {
             "id": str(uuid.uuid4()),
             "nhs_number": nhs_number,
-            "ods": "H81109",
+            "ods": ods,
             "data": data or io.BytesIO(b"Sample PDF Content"),
         }
         if doc_status:
@@ -88,8 +89,8 @@ class DataHelper:
             "ID": document_details["id"],
             "ContentType": "application/pdf",
             "Created": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            "CurrentGpOds": "H81109",
-            "Custodian": "H81109",
+            "CurrentGpOds": document_details.get("ods", "H81109"),
+            "Custodian": document_details.get("ods", "H81109"),
             "DocStatus": document_details.get("doc_status", "final"),
             "DocumentScanCreation": "2023-01-01",
             "DocumentSnomedCodeType": self.snomed_code,
