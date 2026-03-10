@@ -42,6 +42,7 @@
         "choosePagesToRemoveTitle": "Choose the pages you want to remove from these scanned paper notes",
         "choosePagesToRemoveWarning": "These notes may contain pages for more than one other patient that you want to remove. Only remove pages for one patient at a time.",
         "addFilesLinkLabel": "Add files to this patient's notes",
-        "reassignPagesLinkLabel": "Reassign pages in these notes to another patient"
+        "reassignPagesLinkLabel": "Reassign pages in these notes to another patient",
+        "chosenToRemovePagesSubtitle": "You have chosen to remove these pages from the scanned paper notes:"
     }
 }

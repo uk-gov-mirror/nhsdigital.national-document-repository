@@ -77,7 +77,10 @@ const DocumentSearchResults = ({
                                 >
                                     {canViewFiles && onViewDocument && (
                                         <LinkButton
-                                            onClick={(): void => onViewDocument(result)}
+                                            onClick={(e): void => {
+                                                e.preventDefault();
+                                                onViewDocument(result);
+                                            }}
                                             id={`available-files-row-${index}-view-link`}
                                             data-testid={`view-${index}-link`}
                                             href="#"

@@ -10,12 +10,13 @@ import { getLastURLPath } from '../../helpers/utils/urlManipulations';
 import { AxiosError } from 'axios';
 import { errorToParams } from '../../helpers/utils/errorToParams';
 import DocumentRemovePagesConfirmStage from '../../components/blocks/_documentManagement/documentRemovePagesConfirmStage/DocumentRemovePagesConfirmStage';
+import DocumentReassignSearchPatientStage from '../../components/blocks/_documentManagement/documentReassignSearchPatientStage/DocumentReassignSearchPatientStage';
 
 const DocumentCorrectPage = (): React.JSX.Element => {
     const location: LocationParams<DocumentCorrectLocationState> = useLocation();
     const [documentReference, setDocumentReference] = useState<DocumentReference | null>(null);
     const [documentConfig, setDocumentConfig] = useState<DOCUMENT_TYPE_CONFIG | null>(null);
-    const [pagesToRemove, setPagesToRemove] = useState<number[]>([]);
+    const [pagesToRemove, setPagesToRemove] = useState<string[]>([]);
     const [baseDocumentBlob, setBaseDocumentBlob] = useState<Blob | null>(null);
     const getDocumentRef = useRef(false);
     const navigate = useNavigate();
@@ -73,10 +74,16 @@ const DocumentCorrectPage = (): React.JSX.Element => {
                     }
                     element={
                         <DocumentRemovePagesConfirmStage
+                            documentReference={documentReference}
                             baseDocumentBlob={baseDocumentBlob}
                             pagesToRemove={pagesToRemove}
                         />
                     }
+                />
+
+                <Route
+                    path={getLastURLPath(routeChildren.DOCUMENT_REASSIGN_SEARCH_PATIENT) + '/*'}
+                    element={<DocumentReassignSearchPatientStage />}
                 />
             </Routes>
 

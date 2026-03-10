@@ -11,11 +11,12 @@ import { getDocument } from 'pdfjs-dist';
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import BackButton from '../../../generic/backButton/BackButton';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
+import { parsePageNumbersToIndices } from '../../../../helpers/utils/documentMangement/pageNumbers';
 
 export type Props = {
     baseDocumentBlob: Blob | null;
     documentConfig: DOCUMENT_TYPE_CONFIG;
-    setPagesToRemove: Dispatch<SetStateAction<number[]>>;
+    setPagesToRemove: Dispatch<SetStateAction<string[]>>;
 };
 
 const DocumentSelectPagesStage = ({
@@ -79,15 +80,8 @@ const DocumentSelectPagesStage = ({
     });
 
     const onSuccess = async (data: FormData): Promise<void> => {
-        const pageNumbers = data.pageNumbers.split(',').flatMap((part) => {
-            const trimmedPart = part.trim();
-            if (trimmedPart.includes('-')) {
-                const [start, end] = trimmedPart.split('-').map((num) => Number(num.trim()) - 1);
-                return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-            }
-            return [Number(trimmedPart) - 1];
-        });
-        const uniquePageNumbers = [...new Set(pageNumbers)].sort((a, b) => a - b);
+        const pageNumbersInput = data.pageNumbers.split(',');
+        const uniquePageNumbers = parsePageNumbersToIndices(pageNumbersInput);
 
         const buffer = await baseDocumentBlob!.arrayBuffer();
 
@@ -109,7 +103,7 @@ const DocumentSelectPagesStage = ({
             }
 
             setErrorMessage('');
-            setPagesToRemove(uniquePageNumbers);
+            setPagesToRemove(pageNumbersInput);
 
             navigate(routeChildren.DOCUMENT_REASSIGN_CONFIRM_REMOVED_PAGES);
         } catch {

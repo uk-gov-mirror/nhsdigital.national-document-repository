@@ -28,7 +28,8 @@ const HomePage = (): React.JSX.Element => {
                                         <Card.Link
                                             data-testid="search-patient-btn"
                                             href="#"
-                                            onClick={(): void => {
+                                            onClick={(e): void => {
+                                                e.preventDefault();
                                                 navigate(routes.SEARCH_PATIENT);
                                             }}
                                         >
@@ -46,7 +47,8 @@ const HomePage = (): React.JSX.Element => {
                                         <Card.Link
                                             data-testid="search-patient-btn"
                                             href="#"
-                                            onClick={(): void => {
+                                            onClick={(e): void => {
+                                                e.preventDefault();
                                                 navigate(routes.SEARCH_PATIENT);
                                             }}
                                         >
@@ -71,7 +73,8 @@ const HomePage = (): React.JSX.Element => {
                                     <Card.Link
                                         data-testid="admin-hub-btn"
                                         href="#"
-                                        onClick={(): void => {
+                                        onClick={(e): void => {
+                                            e.preventDefault();
                                             navigate(routes.ADMIN_ROUTE);
                                         }}
                                     >

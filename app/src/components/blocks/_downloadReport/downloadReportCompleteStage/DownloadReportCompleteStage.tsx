@@ -43,7 +43,8 @@ const DownloadReportCompleteStage = (props: Props): JSX.Element => {
 
             <Button
                 href="#"
-                onClick={(): void => {
+                onClick={(e: React.MouseEvent<HTMLAnchorElement>): void => {
+                    e.preventDefault();
                     navigate(routes.HOME);
                 }}
                 className="mr-6"
@@ -54,7 +55,8 @@ const DownloadReportCompleteStage = (props: Props): JSX.Element => {
             <Button
                 secondary
                 href="#"
-                onClick={(): void => {
+                onClick={(e: React.MouseEvent<HTMLAnchorElement>): void => {
+                    e.preventDefault();
                     navigate(`${routes.REPORT_DOWNLOAD}?reportType=${props.report.reportType}`);
                 }}
                 data-testid="back-to-download-page-button"

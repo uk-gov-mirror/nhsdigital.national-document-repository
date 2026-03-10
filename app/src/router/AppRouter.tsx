@@ -243,6 +243,10 @@ export const childRoutes = [
         route: routeChildren.DOCUMENT_REASSIGN_CONFIRM_REMOVED_PAGES,
         parent: DOCUMENT_REASSIGN_PAGES,
     },
+    {
+        route: routeChildren.DOCUMENT_REASSIGN_SEARCH_PATIENT,
+        parent: DOCUMENT_REASSIGN_PAGES,
+    },
 ];
 
 export const routeMap: Routes = {

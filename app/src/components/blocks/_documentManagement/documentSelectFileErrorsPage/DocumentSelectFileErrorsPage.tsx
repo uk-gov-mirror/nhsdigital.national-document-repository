@@ -65,7 +65,8 @@ const DocumentSelectFileErrorsPage = ({ documents }: Props): JSX.Element => {
                 <LinkButton
                     data-testid="go-to-home-link"
                     href="#"
-                    onClick={(): void => {
+                    onClick={(e): void => {
+                        e.preventDefault();
                         navigate(routes.HOME);
                     }}
                 >

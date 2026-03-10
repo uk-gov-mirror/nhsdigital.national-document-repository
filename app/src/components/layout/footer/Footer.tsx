@@ -43,7 +43,8 @@ const Footer = (): React.JSX.Element => {
                 </NHSFooter.ListItem>
                 <NHSFooter.ListItem
                     href="#"
-                    onClick={(): void => {
+                    onClick={(e): void => {
+                        e.preventDefault();
                         navigate(routes.COOKIES_POLICY);
                     }}
                     data-testid="cookies-policy-link"

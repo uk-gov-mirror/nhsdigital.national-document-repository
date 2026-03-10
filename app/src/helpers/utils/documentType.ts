@@ -34,7 +34,8 @@ export type ContentKey =
     | 'choosePagesToRemoveTitle'
     | 'choosePagesToRemoveWarning'
     | 'addFilesLinkLabel'
-    | 'reassignPagesLinkLabel';
+    | 'reassignPagesLinkLabel'
+    | 'chosenToRemovePagesSubtitle';
 export interface IndividualDocumentTypeContent extends Record<ContentKey, string | string[]> {}
 
 // The individual config for each document type

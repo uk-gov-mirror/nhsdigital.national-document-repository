@@ -65,6 +65,7 @@ export enum routeChildren {
 
     DOCUMENT_REASSIGN_SELECT_PAGES = '/patient/document-reassign-pages/select-pages',
     DOCUMENT_REASSIGN_CONFIRM_REMOVED_PAGES = '/patient/document-reassign-pages/confirm-removed-pages',
+    DOCUMENT_REASSIGN_SEARCH_PATIENT = '/patient/document-reassign-pages/search-patient',
 
     DOCUMENT_VIEW = '/patient/documents/view',
     DOCUMENT_DELETE = '/patient/documents/delete',

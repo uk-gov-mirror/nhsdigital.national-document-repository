@@ -302,7 +302,8 @@ const DocumentView = ({
                             data-testid="sign-out-link"
                             className="sign-out-link"
                             href="#"
-                            onClick={(): void => {
+                            onClick={(e): void => {
+                                e.preventDefault();
                                 disableFullscreen();
                                 navigate(routes.LOGOUT);
                             }}

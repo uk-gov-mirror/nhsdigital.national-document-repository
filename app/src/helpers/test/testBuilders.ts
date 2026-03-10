@@ -20,6 +20,7 @@ import {
 } from '../../types/generic/accessAudit';
 import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../utils/documentType';
 import { ReviewsResponse } from '../../types/generic/reviews';
+import { DocumentReference } from '../../types/pages/documentSearchResultsPage/types';
 
 const buildUserAuth = (userAuthOverride?: Partial<UserAuth>): UserAuth => {
     const auth: UserAuth = {
@@ -244,6 +245,15 @@ const buildMockReviewResponse = (): ReviewsResponse => {
     };
 };
 
+const buildDocumentReference = (override: Partial<DocumentReference> = {}): DocumentReference => {
+    return {
+        ...buildSearchResult(),
+        ...override,
+        isPdf: true,
+        url: '/dev/testFile.pdf',
+    };
+};
+
 export {
     buildPatientDetails,
     buildTextFile,
@@ -258,4 +268,5 @@ export {
     buildDocumentConfig,
     buildMockUploadSession,
     buildMockReviewResponse,
+    buildDocumentReference,
 };

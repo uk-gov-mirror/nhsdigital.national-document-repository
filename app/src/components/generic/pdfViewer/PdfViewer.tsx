@@ -6,9 +6,15 @@ type Props = {
     fileUrl: string;
     customClasses?: string[];
     customStyleSheet?: string;
+    viewerRef?: React.RefObject<PdfjsViewerElement | null>;
 };
 
-const PdfViewer = ({ fileUrl, customClasses, customStyleSheet }: Props): React.JSX.Element => {
+const PdfViewer = ({
+    fileUrl,
+    customClasses,
+    customStyleSheet,
+    viewerRef,
+}: Props): React.JSX.Element => {
     const intervalRef = useRef<number>(null);
     const pdfViewerRef = useRef<PdfjsViewerElement>(null);
     const [awsRum] = useAnalyticsContext();
@@ -17,11 +23,10 @@ const PdfViewer = ({ fileUrl, customClasses, customStyleSheet }: Props): React.J
         if (intervalRef.current) return;
 
         intervalRef.current = window.setInterval(() => {
-            if (pdfViewerRef.current) {
+            const viewer = viewerRef?.current || pdfViewerRef.current;
+            if (viewer) {
                 const printButton =
-                    pdfViewerRef.current.iframe?.contentWindow?.document?.getElementById(
-                        'printButton',
-                    );
+                    viewer.iframe?.contentWindow?.document?.getElementById('printButton');
                 if (printButton) {
                     window.clearInterval(intervalRef.current!);
 
@@ -41,7 +46,7 @@ const PdfViewer = ({ fileUrl, customClasses, customStyleSheet }: Props): React.J
 
     return (
         <pdfjs-viewer-element
-            ref={pdfViewerRef}
+            ref={viewerRef ?? pdfViewerRef}
             id="pdf-viewer"
             data-testid="pdf-viewer"
             src={fileUrl}

@@ -111,7 +111,8 @@ const PatientSearchPage = (): JSX.Element => {
                 data-testid="go-to-home-link"
                 asElement="a"
                 href="#"
-                onClick={(): void => {
+                onClick={(e): void => {
+                    e.preventDefault();
                     navigate(routes.HOME);
                 }}
             >

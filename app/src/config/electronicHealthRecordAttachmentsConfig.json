@@ -43,6 +43,7 @@
         "choosePagesToRemoveTitle": "",
         "choosePagesToRemoveWarning": "",
         "addFilesLinkLabel": "",
-        "reassignPagesLinkLabel": ""
+        "reassignPagesLinkLabel": "",
+        "chosenToRemovePagesSubtitle": ""
     }
 }
