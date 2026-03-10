@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
 
+from freezegun import freeze_time
+
 from services.reporting.report_s3_content_service import ReportS3ContentService
 
 
+@freeze_time("2026-01-01 00:00:00")
 def test_process_s3_content(mocker):
     service = ReportS3ContentService()
 
@@ -44,3 +47,9 @@ def test_process_s3_content(mocker):
     )
 
     service.s3_service.upload_file_obj.assert_called_once()
+
+    args, _ = service.s3_service.upload_file_obj.call_args
+    _, destination_bucket, report_key = args
+
+    assert destination_bucket == "reports-bucket"
+    assert report_key == "s3-content-report/bucket-a-inventory-2026-01-01_00-00.csv"

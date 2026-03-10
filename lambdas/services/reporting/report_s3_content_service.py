@@ -1,3 +1,4 @@
+import datetime
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
@@ -41,7 +42,7 @@ class ReportS3ContentService:
             self.s3_service.upload_file_obj(
                 BytesIO(csv_content.encode("utf-8")),
                 self.statistic_reports_bucket,
-                f"s3-content-report/{bucket}-inventory.csv",
+                f"s3-content-report/{bucket}-inventory-{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')}.csv",
             )
 
             logger.info(f"Completed report for {bucket}")
