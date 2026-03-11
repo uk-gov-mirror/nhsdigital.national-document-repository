@@ -7,19 +7,21 @@ type LoginFormData = {
     key: string;
     odsCode: string;
     repositoryRole: string;
+    smartcardId: string;
 };
 
 const MockLoginPage = (): React.JSX.Element => {
     const [key, setKey] = useState('');
     const [odsCode, setOdsCode] = useState('');
     const [repositoryRole, setRepositoryRole] = useState('gp_admin');
+    const [smartcardId, setSmartcardId] = useState('');
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
         e.preventDefault();
 
-        const formData: LoginFormData = { key, odsCode, repositoryRole };
+        const formData: LoginFormData = { key, odsCode, repositoryRole, smartcardId };
         const json = JSON.stringify(formData);
 
         const encodedData = encodeURIComponent(json);
@@ -69,6 +71,25 @@ const MockLoginPage = (): React.JSX.Element => {
                                         value={odsCode}
                                         onChange={(e): void => setOdsCode(e.target.value)}
                                         required
+                                    />
+                                </div>
+                            </div>
+                        </FormGroup>
+                        <FormGroup>
+                            <div className="form-label-group">
+                                <div className="nhsuk-form-group position-relative">
+                                    <label className="nhsuk-label" htmlFor="smartcardId">
+                                        Smartcard ID (optional 12-digit id)
+                                    </label>
+                                    <input
+                                        className="nhsuk-input"
+                                        id="smartcardId"
+                                        name="smartcardId"
+                                        type="text"
+                                        maxLength={12}
+                                        pattern="[0-9]{12}"
+                                        value={smartcardId}
+                                        onChange={(e): void => setSmartcardId(e.target.value)}
                                     />
                                 </div>
                             </div>

@@ -29,7 +29,7 @@ class MockOidcService(OidcService):
 
         if key == ssm_key:
             expiry_time = int(
-                (datetime.datetime.now() + datetime.timedelta(minutes=30)).timestamp()
+                (datetime.datetime.now() + datetime.timedelta(minutes=30)).timestamp(),
             )
             id_token_claimset = IdTokenClaimSet(
                 sub="MOCK_SUB",
@@ -39,25 +39,25 @@ class MockOidcService(OidcService):
             )
             access_token = AccessToken(auth_code)
             return access_token, id_token_claimset
-        else:
-            logger.error("Provided key does not match key stored in SSM")
-            raise OidcApiException(
-                "Failed to retrieve access token from mock_oidc_service"
-            )
+        logger.error("Provided key does not match key stored in SSM")
+        raise OidcApiException(
+            "Failed to retrieve access token from mock_oidc_service",
+        )
 
     def fetch_userinfo(self, access_token: AccessToken) -> Dict:
         decoded_access_token = unquote(access_token)
         deserialised_access_token = json.loads(decoded_access_token)
 
         try:
-            ods_code, repository_role = (
+            ods_code, repository_role, smartcard_id = (
                 deserialised_access_token["odsCode"],
                 deserialised_access_token["repositoryRole"],
+                deserialised_access_token["smartcardId"],
             )
 
             if deserialised_access_token:
                 role_code_string_list = self.ssm_service.get_ssm_parameter(
-                    f"/auth/smartcard/role/{repository_role}"
+                    f"/auth/smartcard/role/{repository_role}",
                 )
                 role_code = role_code_string_list.split(",")[0]
 
@@ -67,16 +67,19 @@ class MockOidcService(OidcService):
                             "person_roleid": "MOCK_SELECTED_ROLEID",
                             "org_code": ods_code,
                             "role_code": role_code,
-                        }
+                        },
                     ],
-                    "nhsid_useruid": str(random.randint(100000000000, 999999999999)),
+                    "nhsid_useruid": (
+                        smartcard_id
+                        if smartcard_id
+                        else str(random.randint(100000000000, 999999999999))
+                    ),
                 }
 
                 logger.info(f"User info: {user_info}")
                 return user_info
-            else:
-                logger.error("Got error response from mock_oidc_service:")
-                raise OidcApiException("Failed to retrieve userinfo")
+            logger.error("Got error response from mock_oidc_service:")
+            raise OidcApiException("Failed to retrieve userinfo")
         except KeyError as error:
             logger.error(f"Error while fetching userinfo: {error}")
             raise OidcApiException("Failed to retrieve userinfo")

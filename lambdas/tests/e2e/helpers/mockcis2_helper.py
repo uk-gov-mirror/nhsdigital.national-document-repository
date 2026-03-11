@@ -4,6 +4,7 @@ import os
 from urllib.parse import parse_qs, quote, urlparse
 
 import requests
+
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
 data_helper = LloydGeorgeDataHelper()
@@ -25,7 +26,8 @@ class MockCis2Helper:
 
     def get_state(self):
         login_response = requests.get(
-            f"https://{self.api_endpoint}/Auth/Login", allow_redirects=False
+            f"https://{self.api_endpoint}/Auth/Login",
+            allow_redirects=False,
         )
         location = login_response.headers.get("Location")
 
@@ -40,6 +42,7 @@ class MockCis2Helper:
             "key": self.mock_key,
             "odsCode": self.ods,
             "repositoryRole": self.repository_role,
+            "smartcardId": "",
         }
 
         token_request_params_json = json.dumps(token_request_param)
