@@ -183,6 +183,73 @@ describe('DocumentSelectStage', () => {
                 );
             });
         });
+
+        it('should show inline error message when skip is clicked after selecting a file', async () => {
+            const config = {
+                ...docConfig,
+                stitched: false,
+            };
+            renderApp(history, {
+                showSkipLink: true,
+                documentConfig: config,
+            });
+
+            await userEvent.upload(screen.getByTestId('button-input'), [buildLgFile(1)]);
+
+            await userEvent.click(await screen.findByTestId('skip-link'));
+
+            await waitFor(() => {
+                const inlineErrors = screen.getAllByText(
+                    'Remove files before you skip to the next step',
+                );
+                const inlineError = inlineErrors.find(
+                    (el) => el.className === 'nhsuk-error-message',
+                );
+                expect(inlineError).toBeInTheDocument();
+            });
+        });
+
+        it('should show inline error message when continue is clicked without selecting files', async () => {
+            renderApp(history);
+
+            await userEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+
+            await waitFor(() => {
+                const inlineErrors = screen.getAllByText('Select a file to upload');
+                const inlineError = inlineErrors.find(
+                    (el) => el.className === 'nhsuk-error-message',
+                );
+                expect(inlineError).toBeInTheDocument();
+            });
+        });
+
+        it('should show inline error message when too many files are dropped on single file upload', async () => {
+            const singleFileConfig = {
+                ...docConfig,
+                multifileUpload: false,
+                multifileReview: false,
+            };
+            renderApp(history, {
+                documentConfig: singleFileConfig,
+            });
+
+            const dropzone = screen.getByTestId('dropzone');
+            const files = [buildLgFile(1), buildLgFile(2)];
+
+            fireEvent.drop(dropzone, {
+                dataTransfer: { files },
+            });
+
+            await waitFor(() => {
+                const inlineErrors = screen.getAllByText(
+                    'You have selected too many files to upload',
+                );
+                const inlineError = inlineErrors.find(
+                    (el) => el.className === 'nhsuk-error-message',
+                );
+                expect(inlineError).toBeInTheDocument();
+            });
+        });
     });
 
     describe('Navigation', () => {

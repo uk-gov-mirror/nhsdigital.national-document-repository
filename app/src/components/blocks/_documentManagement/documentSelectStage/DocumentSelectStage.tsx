@@ -482,11 +482,18 @@ const DocumentSelectStage = ({
             </div>
 
             <Fieldset ref={fileInputAreaRef}>
-                <div className={`${noFilesSelected ? 'nhsuk-form-group--error' : ''}`}>
+                <div
+                    className={`${noFilesSelected || tooManyFilesAdded ? 'nhsuk-form-group--error' : ''}`}
+                >
                     <h3>{documentConfig.content.chooseFilesMessage}</h3>
                     {noFilesSelected && (
                         <p className="nhsuk-error-message">
                             {fileUploadErrorMessages.noFiles.inline}
+                        </p>
+                    )}
+                    {tooManyFilesAdded && (
+                        <p className="nhsuk-error-message">
+                            {fileUploadErrorMessages.tooManyFiles.inline}
                         </p>
                     )}
 
@@ -546,7 +553,9 @@ const DocumentSelectStage = ({
                 </div>
             </Fieldset>
             {documents && documents.length > 0 && (
-                <>
+                <div
+                    className={removeFilesToSkip ? 'nhsuk-form-group nhsuk-form-group--error' : ''}
+                >
                     <Table
                         caption={`Chosen file${documents.length === 1 ? '' : 's'}`}
                         id="selected-documents-table"
@@ -565,6 +574,13 @@ const DocumentSelectStage = ({
                                     </div>
                                 </Table.Cell>
                             </Table.Row>
+                            {removeFilesToSkip && (
+                                <Table.Row>
+                                    <p className="nhsuk-error-message">
+                                        {fileUploadErrorMessages.removeFilesToSkip.inline}
+                                    </p>
+                                </Table.Row>
+                            )}
                             <Table.Row>
                                 <Table.Cell className="word-break-keep-all">Filename</Table.Cell>
                                 <Table.Cell width="20%" className="word-break-keep-all">
@@ -594,7 +610,7 @@ const DocumentSelectStage = ({
                             Remove all files
                         </LinkButton>
                     )}
-                </>
+                </div>
             )}
             <div className="action-buttons">
                 <Button
