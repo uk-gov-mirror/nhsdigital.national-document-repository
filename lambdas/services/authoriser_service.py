@@ -95,8 +95,11 @@ class AuthoriserService:
         is_user_pcse = user_role == RepositoryRole.PCSE.value
 
         doc_ref_pattern = (
-            r"^/DocumentReference(/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-"
-            r"[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}))?(\?.*)?$"
+            r"^/DocumentReference"
+            r"(/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}))?"
+            r"(/_history)?"
+            r"(/[0-9]+)?"
+            r"(\?.*)?$"
         )
 
         match path:

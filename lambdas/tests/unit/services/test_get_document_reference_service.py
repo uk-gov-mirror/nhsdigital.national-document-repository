@@ -1,6 +1,7 @@
 import uuid
 
 import pytest
+
 from enums.dynamo_filter import AttributeOperator
 from enums.lambda_error import LambdaError
 from services.get_document_reference_service import GetDocumentReferenceService
@@ -13,7 +14,7 @@ from utils.lambda_exceptions import GetDocumentRefException
 @pytest.fixture
 def mock_service(mocker):
     mocker.patch(
-        "services.get_document_reference_service.GetFhirDocumentReferenceService"
+        "services.get_document_reference_service.GetFhirDocumentReferenceService",
     )
     service = GetDocumentReferenceService()
 
@@ -47,10 +48,12 @@ def mock_document_reference(mock_s3_bucket_name, mock_s3_file_key, mock_nhs_numb
     doc_ref.nhs_number = mock_nhs_number
     doc_ref.s3_bucket_name = mock_s3_bucket_name
     doc_ref.s3_file_key = mock_s3_file_key
+    doc_ref.version = "2"
 
     yield doc_ref
 
 
+@pytest.mark.parametrize("version", [None, "1"])
 def test_valid_input_returns_presigned_url(
     mocker,
     mock_service,
@@ -59,21 +62,25 @@ def test_valid_input_returns_presigned_url(
     mock_s3_bucket_name,
     mock_s3_file_key,
     mock_document_reference,
+    version,
 ):
     mocked_uuid = mocker.patch("services.get_document_reference_service.uuid")
     expected_uuid = uuid.uuid4()
     mocked_uuid.uuid4.return_value = expected_uuid
 
     filter_builder = DynamoQueryFilterBuilder()
-    filter_builder.add_condition("DocStatus", AttributeOperator.EQUAL, "final")
     filter_builder.add_condition("NhsNumber", AttributeOperator.EQUAL, mock_nhs_number)
+    if version is None:
+        filter_builder.add_condition("DocStatus", AttributeOperator.EQUAL, "final")
+    else:
+        filter_builder.add_condition("Version", AttributeOperator.EQUAL, version)
     mock_filter = filter_builder.build()
     mock_filter = mock_filter & NotDeleted
 
     mock_cloudfront_url = "cloudfront.com"
 
     mock_service.fhir_doc_service.document_service.fetch_documents_from_table.return_value = [
-        mock_document_reference
+        mock_document_reference,
     ]
     mock_service.fhir_doc_service.s3_service.create_download_presigned_url.return_value = (
         mock_presigned_s3_url
@@ -87,7 +94,9 @@ def test_valid_input_returns_presigned_url(
     }
 
     result = mock_service.get_document_url_by_id(
-        mock_document_reference.id, mock_nhs_number
+        mock_document_reference.id,
+        mock_nhs_number,
+        version=version,
     )
 
     mock_service.fhir_doc_service.document_service.fetch_documents_from_table.assert_called_once_with(
@@ -97,21 +106,30 @@ def test_valid_input_returns_presigned_url(
         query_filter=mock_filter,
     )
     mock_service.fhir_doc_service.s3_service.create_download_presigned_url.assert_called_once_with(
-        s3_bucket_name=mock_s3_bucket_name, file_key=mock_s3_file_key
+        s3_bucket_name=mock_s3_bucket_name,
+        file_key=mock_s3_file_key,
     )
 
     assert result == expected_result
 
 
+@pytest.mark.parametrize("version", [None, "1"])
 def test_no_document_reference_found_errors(
-    mock_service, mock_document_reference, mock_nhs_number
+    mock_service,
+    mock_document_reference,
+    mock_nhs_number,
+    version,
 ):
     mock_service.fhir_doc_service.document_service.fetch_documents_from_table.return_value = (
         []
     )
 
     with pytest.raises(GetDocumentRefException) as excinfo:
-        mock_service.get_document_url_by_id(mock_document_reference.id, mock_nhs_number)
+        mock_service.get_document_url_by_id(
+            mock_document_reference.id,
+            mock_nhs_number,
+            version=version,
+        )
 
     assert excinfo.value.status_code == 404
     assert excinfo.value.error == LambdaError.DocumentReferenceNotFound

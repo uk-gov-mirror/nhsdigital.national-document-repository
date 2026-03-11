@@ -3,6 +3,7 @@ import os
 from unittest.mock import patch
 
 import pytest
+
 from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from handlers.get_document_reference_handler import lambda_handler
@@ -14,14 +15,14 @@ from utils.lambda_response import ApiGatewayResponse
 @pytest.fixture
 def mock_feature_flag_service(mocker):
     yield mocker.patch(
-        "handlers.get_document_reference_handler.FeatureFlagService"
+        "handlers.get_document_reference_handler.FeatureFlagService",
     ).return_value
 
 
 @pytest.fixture
 def mock_get_document_service(mocker):
     yield mocker.patch(
-        "handlers.get_document_reference_handler.GetDocumentReferenceService"
+        "handlers.get_document_reference_handler.GetDocumentReferenceService",
     ).return_value
 
 
@@ -55,6 +56,7 @@ def mocked_bad_env_vars():
         yield "LLOYD_GEORGE_DYNAMODB_NAME"
 
 
+@pytest.mark.parametrize("version", ["1", None])
 def test_handler_valid_request_returns_200(
     valid_id_event_with_auth_header,
     mock_feature_flag_service,
@@ -63,19 +65,28 @@ def test_handler_valid_request_returns_200(
     context,
     set_env,
     feature_flag,
+    version,
 ):
     mock_document_id = "1"
-    valid_id_event_with_auth_header["pathParameters"] = {"id": mock_document_id}
-    valid_id_event_with_auth_header["queryStringParameters"][
-        "patientId"
-    ] = mock_valid_nhs_number
+
+    path_params = {"id": mock_document_id}
+    if version is not None:
+        path_params["version"] = version
+    valid_id_event_with_auth_header["pathParameters"] = path_params
+
+    valid_id_event_with_auth_header["queryStringParameters"] = {
+        "patientId": mock_valid_nhs_number,
+    }
+
     mock_presigned_s3_url = "https://mock.url/"
     mock_content_type = "application/pdf"
 
     expected_body = {"url": mock_presigned_s3_url, "contentType": mock_content_type}
 
     expected_result = ApiGatewayResponse(
-        status_code=200, body=json.dumps(expected_body), methods="GET"
+        status_code=200,
+        body=json.dumps(expected_body),
+        methods="GET",
     ).create_api_gateway_response()
 
     mock_get_document_service.get_document_url_by_id.return_value = expected_body
@@ -86,10 +97,124 @@ def test_handler_valid_request_returns_200(
     assert result["body"] == json.dumps(expected_body)
 
     mock_feature_flag_service.validate_feature_flag.assert_called_once_with(
-        feature_flag
+        feature_flag,
     )
     mock_get_document_service.get_document_url_by_id.assert_called_once_with(
-        mock_document_id, mock_valid_nhs_number
+        mock_document_id,
+        mock_valid_nhs_number,
+        version,
+    )
+
+
+def test_version_not_found_returns_404(
+    valid_id_event_with_auth_header,
+    mock_feature_flag_service,
+    mock_get_document_service,
+    mock_valid_nhs_number,
+    context,
+    set_env,
+    mock_interaction_id,
+    feature_flag,
+):
+    mock_document_id = "test_id"
+    version = "test_version"
+
+    valid_id_event_with_auth_header["pathParameters"] = {
+        "id": mock_document_id,
+        "version": version,
+    }
+    valid_id_event_with_auth_header["queryStringParameters"] = {
+        "patientId": mock_valid_nhs_number,
+    }
+
+    mock_feature_flag_service.get_feature_flags_by_flag.return_value = {
+        FeatureFlags.VERSION_HISTORY_ENABLED.value: True,
+    }
+
+    mock_get_document_service.get_document_url_by_id.side_effect = (
+        GetDocumentRefException(
+            404,
+            LambdaError.DocumentReferenceNotFound,
+        )
+    )
+
+    expected_error = GetDocumentRefException(
+        404,
+        LambdaError.DocumentReferenceNotFound,
+    )
+
+    expected_result = ApiGatewayResponse(
+        status_code=404,
+        body=ErrorResponse(
+            err_code=expected_error.err_code,
+            message=expected_error.message,
+            interaction_id=mock_interaction_id,
+        ).create(),
+        methods="GET",
+    ).create_api_gateway_response()
+
+    result = lambda_handler(valid_id_event_with_auth_header, context)
+
+    assert result == expected_result
+
+    mock_feature_flag_service.validate_feature_flag.assert_called_once_with(
+        feature_flag,
+    )
+    mock_get_document_service.get_document_url_by_id.assert_called_once_with(
+        mock_document_id,
+        mock_valid_nhs_number,
+        version,
+    )
+
+
+def test_version_provided_but_feature_flag_disabled_returns_400(
+    valid_id_event_with_auth_header,
+    mock_feature_flag_service,
+    mock_get_document_service,
+    mock_valid_nhs_number,
+    context,
+    set_env,
+    feature_flag,
+    mock_interaction_id,
+):
+    mock_document_id = "1"
+    version = "3"
+
+    valid_id_event_with_auth_header["pathParameters"] = {
+        "id": mock_document_id,
+        "version": version,
+    }
+    valid_id_event_with_auth_header["queryStringParameters"] = {
+        "patientId": mock_valid_nhs_number,
+    }
+
+    mock_feature_flag_service.get_feature_flags_by_flag.return_value = {
+        FeatureFlags.VERSION_HISTORY_ENABLED.value: False,
+    }
+
+    expected_error = GetDocumentRefException(
+        400,
+        LambdaError.FeatureFlagDisabled,
+    )
+
+    expected_result = ApiGatewayResponse(
+        status_code=400,
+        body=ErrorResponse(
+            err_code=expected_error.err_code,
+            message=expected_error.message,
+            interaction_id=mock_interaction_id,
+        ).create(),
+        methods="GET",
+    ).create_api_gateway_response()
+
+    result = lambda_handler(valid_id_event_with_auth_header, context)
+
+    assert result == expected_result
+
+    mock_get_document_service.get_document_url_by_id.assert_not_called()
+
+    mock_feature_flag_service.validate_feature_flag.assert_called_once_with(
+        feature_flag,
     )
 
 
@@ -129,7 +254,8 @@ def test_missing_document_id_errors(
     ] = mock_valid_nhs_number
 
     expected_error = GetDocumentRefException(
-        400, LambdaError.DocumentReferenceMissingParameters
+        400,
+        LambdaError.DocumentReferenceMissingParameters,
     )
 
     expected_result = ApiGatewayResponse(
@@ -143,7 +269,7 @@ def test_missing_document_id_errors(
     ).create_api_gateway_response()
 
     mock_feature_flag_service.get_feature_flags_by_flag.return_value = {
-        feature_flag: True
+        feature_flag: True,
     }
 
     result = lambda_handler(valid_id_event_with_auth_header, context)
@@ -152,7 +278,9 @@ def test_missing_document_id_errors(
 
 
 def test_env_vars_not_set_errors(
-    valid_id_event_with_auth_header, context, mocked_bad_env_vars
+    valid_id_event_with_auth_header,
+    context,
+    mocked_bad_env_vars,
 ):
     expected_result = ApiGatewayResponse(
         status_code=500,

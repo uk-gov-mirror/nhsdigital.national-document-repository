@@ -1,4 +1,5 @@
 import pytest
+
 from enums.repository_role import RepositoryRole
 from models.staging_metadata import NHS_NUMBER_PLACEHOLDER
 from services.authoriser_service import AuthoriserService
@@ -150,6 +151,21 @@ def test_deny_access_policy_returns_false_for_nhs_number_in_allowed(
             RepositoryRole.PCSE.value,
             True,
         ),
+        (
+            "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7/_history/1",
+            RepositoryRole.GP_ADMIN.value,
+            False,
+        ),
+        (
+            "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7/_history/1",
+            RepositoryRole.GP_CLINICAL.value,
+            False,
+        ),
+        (
+            "/DocumentReference/6b6417b5-58ed-45db-8359-bd78891e67b7/_history/1",
+            RepositoryRole.PCSE.value,
+            True,
+        ),
         (f"/DocumentReview/{TEST_UUID}/1", RepositoryRole.GP_ADMIN.value, False),
         (f"/DocumentReview/{TEST_UUID}/1", RepositoryRole.GP_CLINICAL.value, False),
         (f"/DocumentReview/{TEST_UUID}/1", RepositoryRole.PCSE.value, False),
@@ -219,20 +235,25 @@ def test_deny_document_reference_as_any_role_on_deceased_patient_returns_true_fo
         assert actual == expected
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/DocumentReference",
+        "/DocumentReference/59d2e82d-9e6a-44e5-b7ed-befc5518f376/_history/1",
+    ],
+)
 def test_deny_document_reference_as_gp_role_on_deceased_patient_returns_false_for_GET(
     mock_auth_service: AuthoriserService,
+    path,
 ):
     expected = False
 
     mock_auth_service.allowed_nhs_numbers.append("122222222")
     mock_auth_service.deceased_nhs_numbers.append("122222222")
 
-    for role in (
-        RepositoryRole.GP_CLINICAL.value,
-        RepositoryRole.GP_ADMIN.value,
-    ):
+    for role in (RepositoryRole.GP_CLINICAL.value, RepositoryRole.GP_ADMIN.value):
         actual = mock_auth_service.deny_access_policy(
-            "/DocumentReference",
+            path,
             "GET",
             role,
             "122222222",

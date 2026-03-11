@@ -25,11 +25,21 @@ class GetDocumentReferenceService:
         self.cloudfront_table_name = os.environ.get("EDGE_REFERENCE_TABLE")
         self.cloudfront_url = os.environ.get("CLOUDFRONT_URL")
 
-    def get_document_url_by_id(self, document_id: str, nhs_number: str):
-        document_reference = self.get_document_reference(document_id, nhs_number)
+    def get_document_url_by_id(
+        self,
+        document_id: str,
+        nhs_number: str,
+        version: str = None,
+    ) -> dict:
+        document_reference = self.get_document_reference(
+            document_id,
+            nhs_number,
+            version,
+        )
 
         presigned_s3_url = self.create_document_presigned_url(
-            document_reference.s3_bucket_name, document_reference.s3_file_key
+            document_reference.s3_bucket_name,
+            document_reference.s3_file_key,
         )
 
         return {"url": presigned_s3_url, "contentType": document_reference.content_type}
@@ -56,11 +66,17 @@ class GetDocumentReferenceService:
         return format_cloudfront_url(presigned_id, self.cloudfront_url)
 
     def get_document_reference(
-        self, document_id: str, nhs_number: str
+        self,
+        document_id: str,
+        nhs_number: str,
+        version: str = None,
     ) -> DocumentReference:
         filter_builder = DynamoQueryFilterBuilder()
-        filter_builder.add_condition("DocStatus", AttributeOperator.EQUAL, "final")
         filter_builder.add_condition("NhsNumber", AttributeOperator.EQUAL, nhs_number)
+        if version is None:
+            filter_builder.add_condition("DocStatus", AttributeOperator.EQUAL, "final")
+        else:
+            filter_builder.add_condition("Version", AttributeOperator.EQUAL, version)
 
         table_filter = filter_builder.build()
 
@@ -75,5 +91,4 @@ class GetDocumentReferenceService:
         if len(documents) > 0:
             logger.info("Document found for given id")
             return documents[0]
-        else:
-            raise GetDocumentRefException(404, LambdaError.DocumentReferenceNotFound)
+        raise GetDocumentRefException(404, LambdaError.DocumentReferenceNotFound)

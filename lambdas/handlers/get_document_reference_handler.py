@@ -30,7 +30,7 @@ logger = LoggingService(__name__)
         "APPCONFIG_CONFIGURATION",
         "EDGE_REFERENCE_TABLE",
         "CLOUDFRONT_URL",
-    ]
+    ],
 )
 @override_error_check
 def lambda_handler(event: dict[str, any], context):
@@ -38,7 +38,12 @@ def lambda_handler(event: dict[str, any], context):
 
     feature_flag_service = FeatureFlagService()
     feature_flag_service.validate_feature_flag(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED,
+    )
+
+    version_history_flag = FeatureFlags.VERSION_HISTORY_ENABLED.value
+    version_history_flag_object = feature_flag_service.get_feature_flags_by_flag(
+        version_history_flag,
     )
 
     logger.info("Starting document fetch by ID process")
@@ -46,15 +51,30 @@ def lambda_handler(event: dict[str, any], context):
     try:
         document_id = event["pathParameters"]["id"]
         nhs_number = event["queryStringParameters"]["patientId"]
+        version = event["pathParameters"].get("version", None)
+        if (
+            not version_history_flag_object[version_history_flag]
+            and version is not None
+        ):
+            logger.error(
+                "Version history feature flag is disabled, but version was provided in request",
+            )
+            raise GetDocumentRefException(
+                400,
+                LambdaError.FeatureFlagDisabled,
+            )
     except KeyError:
         raise GetDocumentRefException(
-            400, LambdaError.DocumentReferenceMissingParameters
+            400,
+            LambdaError.DocumentReferenceMissingParameters,
         )
 
     service = GetDocumentReferenceService()
 
-    document_info = service.get_document_url_by_id(document_id, nhs_number)
+    document_info = service.get_document_url_by_id(document_id, nhs_number, version)
 
     return ApiGatewayResponse(
-        status_code=200, body=json.dumps(document_info), methods="GET"
+        status_code=200,
+        body=json.dumps(document_info),
+        methods="GET",
     ).create_api_gateway_response()

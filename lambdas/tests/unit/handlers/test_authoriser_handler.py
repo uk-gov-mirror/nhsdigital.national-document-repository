@@ -1,4 +1,5 @@
 import pytest
+
 from handlers.authoriser_handler import lambda_handler
 from tests.unit.conftest import SSM_PARAM_JWT_TOKEN_PUBLIC_KEY, TEST_NHS_NUMBER
 from utils.exceptions import AuthorisationException
@@ -239,13 +240,26 @@ def test_deny_dr_for_deceased_patients(set_env, context, mocker, endpoint_path):
     assert response["policyDocument"] == expected_deny_policy
 
 
-def test_deny_dr_for_non_gp_admins_or_clinicians(set_env, context, mocker):
+@pytest.mark.parametrize(
+    "http_method, path",
+    [
+        ("POST", "/DocumentReference"),
+        ("PUT", "/DocumentReference/59d2e82d-9e6a-44e5-b7ed-befc5518f376"),
+    ],
+)
+def test_deny_dr_for_non_gp_admins_or_clinicians(
+    set_env,
+    context,
+    mocker,
+    http_method,
+    path,
+):
     expected_deny_policy = {
         "Statement": [
             {
                 "Action": "execute-api:Invoke",
                 "Effect": "Deny",
-                "Resource": [f"{MOCK_METHOD_ARN_PREFIX}/POST/DocumentReference"],
+                "Resource": [f"{MOCK_METHOD_ARN_PREFIX}/{http_method}{path}"],
             },
         ],
         "Version": "2012-10-17",
@@ -255,7 +269,7 @@ def test_deny_dr_for_non_gp_admins_or_clinicians(set_env, context, mocker):
     test_pcse_event = {
         "headers": {"authorization": auth_pcse_token},
         "queryStringParameters": {"patientId": TEST_NHS_NUMBER},
-        "methodArn": f"{MOCK_METHOD_ARN_PREFIX}/POST/DocumentReference",
+        "methodArn": f"{MOCK_METHOD_ARN_PREFIX}/{http_method}{path}",
     }
     mock_auth_service = mocker.patch(
         "services.authoriser_service.AuthoriserService.auth_request",
@@ -265,8 +279,8 @@ def test_deny_dr_for_non_gp_admins_or_clinicians(set_env, context, mocker):
     pcse_response = lambda_handler(test_pcse_event, context=context)
 
     mock_auth_service.assert_called_with(
-        "/DocumentReference",
-        "POST",
+        path,
+        http_method,
         SSM_PARAM_JWT_TOKEN_PUBLIC_KEY,
         auth_pcse_token,
         TEST_NHS_NUMBER,

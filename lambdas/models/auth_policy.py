@@ -29,7 +29,7 @@ class AuthPolicy(object):
     aws_account_id = ""
     principal_id = ""
     version = "2012-10-17"
-    path_regex = r"^[/.a-zA-Z0-9-*]+$"
+    path_regex = r"^[/.a-zA-Z0-9-*_]+$"
     allow_methods = []
     deny_methods = []
 
@@ -48,7 +48,7 @@ class AuthPolicy(object):
         statement can be null."""
         if verb != "*" and not hasattr(HttpVerb, verb):
             raise NameError(
-                "Invalid HTTP verb " + verb + ". Allowed verbs in HttpVerb class"
+                "Invalid HTTP verb " + verb + ". Allowed verbs in HttpVerb class",
             )
         resource_pattern = re.compile(self.path_regex)
         if not resource_pattern.match(resource):
@@ -56,7 +56,7 @@ class AuthPolicy(object):
                 "Invalid resource path: "
                 + resource
                 + ". Path should match "
-                + self.path_regex
+                + self.path_regex,
             )
 
         if resource[:1] == "/":
@@ -79,11 +79,11 @@ class AuthPolicy(object):
 
         if effect.lower() == "allow":
             self.allow_methods.append(
-                {"resourceArn": resource_arn, "conditions": conditions}
+                {"resourceArn": resource_arn, "conditions": conditions},
             )
         elif effect.lower() == "deny":
             self.deny_methods.append(
-                {"resourceArn": resource_arn, "conditions": conditions}
+                {"resourceArn": resource_arn, "conditions": conditions},
             )
 
     def _get_empty_statement(self, effect):
@@ -155,10 +155,10 @@ class AuthPolicy(object):
         }
 
         policy["policyDocument"]["Statement"].extend(
-            self._get_statement_for_effect("Allow", self.allow_methods)
+            self._get_statement_for_effect("Allow", self.allow_methods),
         )
         policy["policyDocument"]["Statement"].extend(
-            self._get_statement_for_effect("Deny", self.deny_methods)
+            self._get_statement_for_effect("Deny", self.deny_methods),
         )
 
         return policy
