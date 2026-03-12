@@ -1,4 +1,7 @@
+import boto3
 import pytest
+
+from enums.environment import Environment
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
 from utils.lambda_exceptions import InvalidDocTypeException
@@ -28,6 +31,9 @@ def test_mtls_enum_returned(common_name, expected, monkeypatch):
         "client.dev.ndr.lloydgeorge.national.nhs.uk",
         "pdm.pdm.pdm",
         "foo.bar",
+        "XXX",
+        "YyY",
+        "zzZ",
     ],
 )
 def test_mtls_enum_error_raised(common_name, monkeypatch):
@@ -40,3 +46,28 @@ def test_mtls_enum_error_raised(common_name, monkeypatch):
         MtlsCommonNames.from_common_name(common_name)
     assert excinfo.value.status_code == 400
     assert excinfo.value.error == LambdaError.DocTypeInvalid
+
+
+def test_get_mtls_common_names(monkeypatch):
+    fake_response = {"Parameter": {"Value": '{"PDM": ["aaa", "bbb"]}'}}
+
+    class MockedSSM:
+        def get_parameter(self, **kwargs):
+            return fake_response
+
+    class MockedEnv:
+        def __init__(self, value):
+            self.value = value
+
+    monkeypatch.setattr(boto3, "client", lambda service: MockedSSM())
+    monkeypatch.setattr(
+        Environment,
+        "from_env",
+        classmethod(lambda cls: MockedEnv("dev")),
+    )
+
+    MtlsCommonNames._get_mtls_common_names.cache_clear()
+
+    result = MtlsCommonNames._get_mtls_common_names()
+
+    assert result == {"PDM": ["aaa", "bbb"]}
