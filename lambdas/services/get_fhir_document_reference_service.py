@@ -64,16 +64,16 @@ class GetFhirDocumentReferenceService:
         document_id: str,
         table,
     ) -> DocumentReference | None:
-        documentreference = self.document_service.get_item(
+        document_reference = self.document_service.get_item(
             document_id=document_id,
             table_name=table,
         )
-        if not documentreference:
+        if not document_reference:
             raise GetFhirDocumentReferenceException(
                 404,
                 LambdaError.DocumentReferenceNotFound,
             )
-        return documentreference
+        return document_reference
 
     def fetch_documents(
         self,

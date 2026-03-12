@@ -66,7 +66,7 @@ def lambda_handler(event, context):
         )
 
         logger.info(
-            f"Successfully retrieved document reference for document_id: {document_id}, snomed_code: {snomed_code}",
+            f"Successfully retrieved document reference for document_id: {document_id}",
         )
 
         return ApiGatewayResponse(

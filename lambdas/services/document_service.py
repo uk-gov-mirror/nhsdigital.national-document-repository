@@ -124,12 +124,8 @@ class DocumentService:
 
             if not return_deleted:
                 deleted = response.get("Item").get("Deleted", None)
-                if deleted in (None, ""):
-                    if self.filter_item(response, filters):
-                        document = model_class.model_validate(response.get("Item"))
-                        return document
-
-                return None
+                if deleted not in (None, ""):
+                    return None
 
             if self.filter_item(response, filters):
                 document = model_class.model_validate(response.get("Item"))
