@@ -4,7 +4,6 @@ import pytest
 
 from enums.document_retention import DocumentRetentionDays
 from tests.e2e.api.fhir.conftest import (
-    PDM_SNOMED,
     TEST_NHS_NUMBER,
     UNKNOWN_TEST_NHS_NUMBER,
     create_and_store_pdm_record,
@@ -51,11 +50,7 @@ def test_search_document_reference_for_valid_patient_details(test_data):
 
     # Find the entry with the matching record_id
     matching_entry = next(
-        (
-            e
-            for e in entries
-            if e["resource"].get("id") == f"{PDM_SNOMED}~{expected_record_id}"
-        ),
+        (e for e in entries if e["resource"].get("id") == f"{expected_record_id}"),
         None,
     )
     assert matching_entry
@@ -123,8 +118,8 @@ def test_search_document_reference_filters_by_custodian(test_data):
 
     # Only records with custodian A11111 should be returned
     expected_ids = {
-        f"{PDM_SNOMED}~{rec1['id']}",
-        f"{PDM_SNOMED}~{rec2['id']}",
+        f"{rec1['id']}",
+        f"{rec2['id']}",
     }
 
     unexpected_id = f"{rec3['id']}"
