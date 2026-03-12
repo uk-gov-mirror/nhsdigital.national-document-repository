@@ -62,7 +62,7 @@ def test_search_document_reference_for_valid_patient_details(test_data):
 
     attachment_url = matching_entry["resource"]["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~{expected_record_id}"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{expected_record_id}"
         in attachment_url
     )
 
@@ -82,18 +82,14 @@ def test_search_multiple_document_references_for_valid_patient_details(test_data
     # Find the entries with the matching record_id's
     for record_id in expected_record_ids:
         matching_entry = next(
-            (
-                e
-                for e in entries
-                if e["resource"].get("id") == f"{PDM_SNOMED}~{record_id}"
-            ),
+            (e for e in entries if e["resource"].get("id") == f"{record_id}"),
             None,
         )
         assert matching_entry
 
         attachment_url = matching_entry["resource"]["content"][0]["attachment"]["url"]
         assert (
-            f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~{record_id}"
+            f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{record_id}"
             in attachment_url
         )
 
@@ -131,7 +127,7 @@ def test_search_document_reference_filters_by_custodian(test_data):
         f"{PDM_SNOMED}~{rec2['id']}",
     }
 
-    unexpected_id = f"{PDM_SNOMED}~{rec3['id']}"
+    unexpected_id = f"{rec3['id']}"
 
     assert expected_ids.issubset(returned_ids)
     assert unexpected_id not in returned_ids
@@ -187,11 +183,7 @@ def test_search_multiple_cancelled_document_references_for_valid_patient_details
     # Validate all created records exist and have status cancelled
     for record_id in record_ids:
         entry = next(
-            (
-                e
-                for e in entries
-                if e["resource"].get("id") == f"{PDM_SNOMED}~{record_id}"
-            ),
+            (e for e in entries if e["resource"].get("id") == f"{record_id}"),
             None,
         )
         assert entry
@@ -254,22 +246,14 @@ def test_search_mixed_deleted_and_not_deleted_document_references(test_data):
 
     # Assert the non-deleted record is returned
     matching_non_deleted = next(
-        (
-            e
-            for e in entries
-            if e["resource"].get("id") == f"{PDM_SNOMED}~{expected_non_deleted_id}"
-        ),
+        (e for e in entries if e["resource"].get("id") == f"{expected_non_deleted_id}"),
         None,
     )
     assert matching_non_deleted
 
     # Assert the deleted record isn't returned
     matching_deleted = next(
-        (
-            e
-            for e in entries
-            if e["resource"].get("id") == f"{PDM_SNOMED}~{deleted_record_id}"
-        ),
+        (e for e in entries if e["resource"].get("id") == f"{deleted_record_id}"),
         None,
     )
     assert matching_deleted is None
