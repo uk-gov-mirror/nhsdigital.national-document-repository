@@ -68,11 +68,11 @@ def test_get_dynamo_table_for_unsupported_doc_type(patched_service):
 
     non_lg_code = SnomedCode(code="non-lg-code", display_name="Non Lloyd George")
 
-    with pytest.raises(InvalidDocTypeException) as excinfo:
+    with pytest.raises(InvalidDocTypeException) as exc_info:
         patched_service._get_dynamo_table_for_doc_type(non_lg_code)
 
-    assert excinfo.value.status_code == 400
-    assert excinfo.value.error == LambdaError.DocTypeDB
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error == LambdaError.DocTypeDB
 
 
 # Not PDM however the code that this relates to was introduced because of PDM
@@ -89,10 +89,10 @@ def test_get_document_references_empty_result(patched_service):
     # Test when no documents are found
     patched_service.document_service.get_item.return_value = None
 
-    with pytest.raises(GetFhirDocumentReferenceException) as excinfo:
+    with pytest.raises(GetFhirDocumentReferenceException) as exc_info:
         patched_service.get_core_document_references(
             document_id="test-id",
             table=MOCK_PDM_TABLE_NAME,
         )
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.error == LambdaError.DocumentReferenceNotFound
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.error == LambdaError.DocumentReferenceNotFound
