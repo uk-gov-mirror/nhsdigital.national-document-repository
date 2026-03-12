@@ -91,7 +91,7 @@ def extract_document_parameters(event):
     document_id = get_id_from_path_parameters(path_params)
 
     if not document_id:
-        logger.error("Missing document id in request path parameters.")
+        logger.error("Missing document ID in request path parameters.")
         raise GetFhirDocumentReferenceException(
             400,
             LambdaError.DocumentReferenceMissingParameters,
