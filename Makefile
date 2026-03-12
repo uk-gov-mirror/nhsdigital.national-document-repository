@@ -124,14 +124,14 @@ download-api-certs: ## Downloads mTLS certificates (use with dev envs only). Usa
 	rm -rf ./lambdas/mtls_env_certs/$(WORKSPACE)
 	./scripts/aws/download-api-certs.sh $(WORKSPACE)
 
-test-lg-fhir-api-e2e: ## Runs LG FHIR API E2E tests. See readme for required environment variables. Usage: make test-fhir-api-e2e-lg CONTAINER=<true|false>
+test-lg-fhir-api-e2e: ## Runs LG FHIR API E2E tests. See readme for required environment variables. Usage: make test-lg-fhir-api-e2e CONTAINER=<true|false>
 ifeq ($(CONTAINER), true)
 	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/api --ignore=tests/e2e/api/fhir -vv
 else
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/api --ignore=tests/e2e/api/fhir -vv
 endif
 
-test-core-fhir-api-e2e: guard-WORKSPACE ## Runs Core FHIR API E2E tests. Usage: make test-fhir-api-e2e-core WORKSPACE=<workspace> CONTAINER=<true|false>
+test-core-fhir-api-e2e: guard-WORKSPACE ## Runs Core FHIR API E2E tests. Usage: make test-core-fhir-api-e2e WORKSPACE=<workspace> CONTAINER=<true|false>
 	./scripts/test/run-e2e-fhir-api-tests.sh --workspace $(WORKSPACE) --container $(CONTAINER)
 	rm -rf ./lambdas/mtls_env_certs/$(WORKSPACE)
 
