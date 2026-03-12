@@ -27,7 +27,7 @@ permissions:
   contents: read
 
 jobs:
-  core-fhir-e2e-test:
+  core-fhir-api-e2e-tests:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     outputs:
@@ -63,4 +63,4 @@ jobs:
           echo PATH=$PATH >> $GITHUB_ENV
 
       - name: Run Core FHIR API E2E tests
-        run: make test-fhir-api-e2e WORKSPACE=${{ inputs.sandbox }}
+        run: make test-core-fhir-api-e2e WORKSPACE=${{ inputs.sandbox }}

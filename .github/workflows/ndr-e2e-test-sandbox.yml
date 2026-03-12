@@ -1,4 +1,4 @@
-name: "SANDBOX: E2e Tests Backend"
+name: "SANDBOX: E2E Tests Backend"
 
 run-name: "${{ github.event.inputs.build_branch }} | ${{ github.event.inputs.sandbox }} | ${{ github.event.inputs.environment }}"
 
@@ -40,7 +40,8 @@ permissions:
   contents: read
 
 jobs:
-  services-e2etest:
+  lg-fhir-api-e2e-tests:
+    name: "Run LG FHIR API E2E Tests"
     uses: ./.github/workflows/base-e2e-backendtest.yml
     with:
       build_branch: ${{ inputs.build_branch }}
@@ -49,7 +50,8 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
-  services-fhir-api-e2etest:
+  core-fhir-api-e2e-tests:
+    name: "Run Core FHIR API E2E Tests"
     uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
     with:
       build_branch: ${{ inputs.build_branch }}
@@ -58,7 +60,8 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
-  services-mns-e2etest:
+  services-mns-e2e-tests:
+    name: "Run MNS E2E Tests"
     uses: ./.github/workflows/base-e2e-mns.yml
     with:
       build_branch: ${{ inputs.build_branch }}

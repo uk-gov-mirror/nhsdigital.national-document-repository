@@ -25,7 +25,7 @@ CHECK ?= false
 .PHONY: \
 	install clean help format list requirements ruff build-and-deploy-sandbox \
 	aws-login download-api-certs \
-	test-api-e2e test-fhir-api-e2e test-apim-e2e test-api-e2e-snapshots \
+	test-lg-fhir-api-e2e test-core-fhir-api-e2e test-apim-e2e test-lg-fhir-api-e2e-snapshots \
 	initiate-bulk-upload test-bulk-upload-e2e test-bulk-upload-e2e-snapshots \
 	test-unit test-unit-coverage test-unit-coverage-html test-unit-collect \
 	env github_env edge_env \
@@ -124,21 +124,21 @@ download-api-certs: ## Downloads mTLS certificates (use with dev envs only). Usa
 	rm -rf ./lambdas/mtls_env_certs/$(WORKSPACE)
 	./scripts/aws/download-api-certs.sh $(WORKSPACE)
 
-test-api-e2e: ## Runs LG FHIR API E2E tests. See readme for required environment variables. Usage: make test-api-e2e CONTAINER=<true|false>
+test-lg-fhir-api-e2e: ## Runs LG FHIR API E2E tests. See readme for required environment variables. Usage: make test-fhir-api-e2e-lg CONTAINER=<true|false>
 ifeq ($(CONTAINER), true)
 	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/api --ignore=tests/e2e/api/fhir -vv
 else
 	cd ./lambdas && ./venv/bin/python3 -m pytest tests/e2e/api --ignore=tests/e2e/api/fhir -vv
 endif
 
-test-fhir-api-e2e: guard-WORKSPACE ## Runs Core FHIR API E2E tests. Usage: make test-fhir-api-e2e WORKSPACE=<workspace> CONTAINER=<true|false>
+test-core-fhir-api-e2e: guard-WORKSPACE ## Runs Core FHIR API E2E tests. Usage: make test-fhir-api-e2e-core WORKSPACE=<workspace> CONTAINER=<true|false>
 	./scripts/test/run-e2e-fhir-api-tests.sh --workspace $(WORKSPACE) --container $(CONTAINER)
 	rm -rf ./lambdas/mtls_env_certs/$(WORKSPACE)
 
 test-apim-e2e: ## Runs APIM E2E tests for National Document Repository FHIR R4 API against ndr-dev.
 	./scripts/test/run-apim-e2e-tests.sh --container $(CONTAINER)
 
-test-api-e2e-snapshots:
+test-lg-fhir-api-e2e-snapshots:
 ifeq ($(CONTAINER), true)
 	cd ./lambdas && PYTHONPATH=. poetry run pytest tests/e2e/api --ignore=tests/e2e/api/fhir --snapshot-update
 else

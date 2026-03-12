@@ -1,4 +1,4 @@
-name: "Merge to main: E2e Tests Backend"
+name: "Merge to main: E2E Tests Backend"
 
 on:
   workflow_run:
@@ -15,7 +15,8 @@ permissions:
   contents: read # This is required for actions/checkout
 
 jobs:
-  services-e2etest:
+  lg-fhir-api-e2e-tests:
+    name: "Run LG FHIR API E2E Tests"
     uses: ./.github/workflows/base-e2e-backendtest.yml
     with:
       build_branch: main
@@ -24,7 +25,8 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
-  services-fhir-api-e2etest:
+  core-fhir-api-e2e-tests:
+    name: "Run Core FHIR API E2E Tests"
     uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
     with:
       build_branch: main
@@ -33,7 +35,8 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
-  services-mns-e2etest:
+  services-mns-e2e-tests:
+    name: "Run MNS E2E Tests"
     uses: ./.github/workflows/base-e2e-mns.yml
     with:
       build_branch: main
@@ -46,7 +49,7 @@ jobs:
     name: Notify Slack on Failure
     runs-on: ubuntu-latest
     environment: development
-    needs: [services-e2etest, services-fhir-api-e2etest, services-mns-e2etest]
+    needs: [lg-fhir-api-e2e-tests, core-fhir-api-e2e-tests, services-mns-e2e-tests]
     if: failure()
     steps:
       - name: Configure AWS Credentials
@@ -98,15 +101,15 @@ jobs:
                       "fields": [
                         {
                           "type": "mrkdwn",
-                          "text": "*services-e2etest:* ${{ needs.services-e2etest.result == 'success' && ':white_check_mark:' || ':x:' }}"
+                          "text": "*lg-fhir-api-e2e-tests:* ${{ needs.lg-fhir-api-e2e-tests.result == 'success' && ':white_check_mark:' || ':x:' }}"
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*services-fhir-api-e2etest:* ${{ needs.services-fhir-api-e2etest.result == 'success' && ':white_check_mark:' || ':x:' }}"
+                          "text": "*core-fhir-api-e2e-tests:* ${{ needs.core-fhir-api-e2e-tests.result == 'success' && ':white_check_mark:' || ':x:' }}"
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*services-mns-e2etest:* ${{ needs.services-mns-e2etest.result == 'success' && ':white_check_mark:' || ':x:' }}"
+                          "text": "*services-mns-e2e-tests:* ${{ needs.services-mns-e2e-tests.result == 'success' && ':white_check_mark:' || ':x:' }}"
                         }
                       ]
                     },
@@ -115,7 +118,7 @@ jobs:
                       "elements": [
                         {
                           "type": "mrkdwn",
-                          "text": "Environment: `${{ needs.services-fhir-api-e2etest.outputs.environment }}` | Sandbox: `${{ needs.services-fhir-api-e2etest.outputs.sandbox }}`"
+                          "text": "Environment: `${{ needs.core-fhir-api-e2e-tests.outputs.environment }}` | Sandbox: `${{ needs.core-fhir-api-e2e-tests.outputs.sandbox }}`"
                         }
                       ]
                     }

@@ -27,7 +27,7 @@ permissions:
   contents: read
 
 jobs:
-  lg-fhir-e2e-test:
+  lg-fhir-api-e2e-tests:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
@@ -84,4 +84,4 @@ jobs:
 
       - name: Run Lloyd George FHIR API E2E tests
         run: |
-          make test-api-e2e
+          make test-lg-fhir-api-e2e

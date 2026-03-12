@@ -126,7 +126,8 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
-  run_lg_e2etest:
+  run_lg_fhir_api_e2e_tests:
+    name: "Run LG FHIR API E2E Tests"
     uses: ./.github/workflows/base-e2e-backendtest.yml
     needs: ["disable_fhir_stub"]
     with:
@@ -136,7 +137,8 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
-  run_pdm_e2etest:
+  run_core_fhir_api_e2e_tests:
+    name: "Run Core FHIR API E2E Tests"
     uses: ./.github/workflows/base-e2e-fhir-backendtest.yml
     needs: ["disable_fhir_stub"]
     with:
@@ -146,7 +148,8 @@ jobs:
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
-  run_mns_e2etest:
+  run_mns_e2e_tests:
+    name: "Run MNS E2E Tests"
     uses: ./.github/workflows/base-e2e-mns.yml
     needs: ["disable_fhir_stub"]
     with:
@@ -170,7 +173,7 @@ jobs:
     name: "Run Bulk Upload"
     if: ${{ inputs.bulk_upload }}
     uses: "./.github/workflows/base-run-bulk-upload.yml"
-    needs: ["run_lg_e2etest", "run_pdm_e2etest"]
+    needs: ["run_lg_fhir_api_e2e_tests", "run_core_fhir_api_e2e_tests"]
     with:
       environment: ${{ inputs.environment }}
       sandbox: ${{ inputs.sandbox }}

@@ -65,9 +65,9 @@ All of the below make commands can be run either inside or outside the dev conta
 * If you need to work outside the dev container you **must** run `make env` first to set up your venv and any required dependencies
 
 ```bash
-make test-fhir-api-e2e WORKSPACE=<workspace> CONTIANER=true
+make test-core-fhir-api-e2e WORKSPACE=<workspace> CONTIANER=true
 
-make test-api-e2e
+make test-lg-fhir-api-e2e
 
 make test-apim-e2e
  ```
@@ -79,7 +79,7 @@ Snapshots reduce the amount of individual assertions by comparing pre and post a
 Snapshot testing is used in the non mTLS test suite only. To update snapshots you can run the following make command:
 
 ```bash
-make test-api-e2e-snapshots
+make test-lg-fhir-api-e2e-snapshots
 ```
 
 This runs pytest with the additional argument `--snapshot-update` which will update and replace the existing snapshots.
@@ -96,7 +96,7 @@ make download-api-certs WORKSPACE=<workspace>
 
 ## 🌍 Required Environment Variables
 
-In order to execute the Lloyd George API E2E tests (i.e. `make test-api-e2e`) you will need to ensure the following environment variables are set.
+In order to execute the Lloyd George API E2E tests (i.e. `make test-lg-fhir-api-e2e`) you will need to ensure the following environment variables are set.
 
 You can export them inside the subshell started by aws-vault exec - these will be scoped to your session and won’t leak to your host environment. Or equivalently, for working outside the dev container, export them in your shell configuration file (`~/.zshrc` or `~/.bashrc`). Or you can **temporarily** add them to the `conftest.py`, but do not commit these:
 

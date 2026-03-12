@@ -137,7 +137,7 @@ jobs:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
   run_fhir_api_e2e_tests:
-    name: Run FHIR API E2E Tests
+    name: Run FHIR API E2E Tests & MNS E2E Tests
     needs: ["deploy_all_lambdas"]
     uses: ./.github/workflows/ndr-e2e-test-sandbox.yml
     with:
