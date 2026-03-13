@@ -1,4 +1,5 @@
 import pytest
+
 from services.base.cloudwatch_service import CloudwatchService
 from tests.unit.conftest import WORKSPACE
 from tests.unit.helpers.data.statistic.mock_logs_query_results import (
@@ -14,7 +15,7 @@ MOCK_QUERY_ID = "mock_query_id"
 MOCK_LAMBDA_NAME = "mock-lambda"
 MOCK_QUERY_STRING = """
         fields @timestamp, Message, Authorisation.selected_organisation.org_ods_code AS ods_code 
-        | filter Message = 'User has viewed Lloyd George records' 
+        | filter Message = 'Document fetch by ID process completed' 
         | stats count() AS daily_count_viewed BY ods_code
     """
 MOCK_QUERY_PARAMS = CloudwatchLogsQueryParams(MOCK_LAMBDA_NAME, MOCK_QUERY_STRING)
@@ -83,7 +84,8 @@ def test_poll_query_result_poll_result_until_complete(mock_logs_client, mock_ser
 
 
 def test_poll_query_result_raise_error_when_exceed_max_retries(
-    mock_logs_client, mock_service
+    mock_logs_client,
+    mock_service,
 ):
     mock_logs_client.get_query_results.return_value = MOCK_RESPONSE_QUERY_IN_PROGRESS
 
@@ -93,7 +95,8 @@ def test_poll_query_result_raise_error_when_exceed_max_retries(
 
 
 def test_poll_query_result_raise_error_when_query_failed(
-    mock_logs_client, mock_service
+    mock_logs_client,
+    mock_service,
 ):
     mock_logs_client.get_query_results.side_effect = [
         MOCK_RESPONSE_QUERY_IN_PROGRESS,

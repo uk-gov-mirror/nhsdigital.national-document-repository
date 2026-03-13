@@ -73,6 +73,7 @@ def lambda_handler(event: dict[str, any], context):
 
     document_info = service.get_document_url_by_id(document_id, nhs_number, version)
 
+    logger.info("Document fetch by ID process completed")
     return ApiGatewayResponse(
         status_code=200,
         body=json.dumps(document_info),

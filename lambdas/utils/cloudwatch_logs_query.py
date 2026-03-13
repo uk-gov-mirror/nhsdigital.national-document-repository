@@ -8,10 +8,10 @@ class CloudwatchLogsQueryParams:
 
 
 LloydGeorgeRecordsViewed = CloudwatchLogsQueryParams(
-    lambda_name="LloydGeorgeStitchLambda",
+    lambda_name="GetDocRefLambda",
     query_string="""
         fields @timestamp, Message, Authorisation.selected_organisation.org_ods_code AS ods_code 
-        | filter Message = 'User has viewed Lloyd George records' 
+        | filter Message = 'Document fetch by ID process completed' 
         | stats count() AS daily_count_viewed BY ods_code
     """,
 )
