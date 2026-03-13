@@ -11,17 +11,22 @@ import { getDocument } from 'pdfjs-dist';
 import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import BackButton from '../../../generic/backButton/BackButton';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
-import { parsePageNumbersToIndices } from '../../../../helpers/utils/documentMangement/pageNumbers';
+import {
+    getUniquePageNumbersFromIndexRanges,
+    parsePageNumbersToIndexRanges,
+} from '../../../../helpers/utils/documentManagement/pageNumbers';
 
 export type Props = {
     baseDocumentBlob: Blob | null;
     documentConfig: DOCUMENT_TYPE_CONFIG;
-    setPagesToRemove: Dispatch<SetStateAction<string[]>>;
+    pagesToRemove: number[][];
+    setPagesToRemove: Dispatch<SetStateAction<number[][]>>;
 };
 
 const DocumentSelectPagesStage = ({
     baseDocumentBlob,
     documentConfig,
+    pagesToRemove,
     setPagesToRemove,
 }: Props): React.JSX.Element => {
     const [errorMessage, setErrorMessage] = useState<string>('');
@@ -33,6 +38,13 @@ const DocumentSelectPagesStage = ({
     };
     const { register, handleSubmit } = useForm<FormData>({
         reValidateMode: 'onSubmit',
+        defaultValues: {
+            pageNumbers: pagesToRemove
+                .map((range) =>
+                    range.length > 1 ? `${range[0] + 1}-${range.at(-1)! + 1}` : `${range[0] + 1}`,
+                )
+                .join(', '),
+        },
     });
 
     const { ref: pageNumbersRef, ...pageNumbersProps } = register('pageNumbers', {
@@ -80,8 +92,10 @@ const DocumentSelectPagesStage = ({
     });
 
     const onSuccess = async (data: FormData): Promise<void> => {
-        const pageNumbersInput = data.pageNumbers.split(',');
-        const uniquePageNumbers = parsePageNumbersToIndices(pageNumbersInput);
+        const pageNumbersInput = data.pageNumbers.split(',').map((p) => p.trim());
+
+        const pageNumberRanges = parsePageNumbersToIndexRanges(pageNumbersInput);
+        const uniquePageNumbers = getUniquePageNumbersFromIndexRanges(pageNumberRanges);
 
         const buffer = await baseDocumentBlob!.arrayBuffer();
 
@@ -103,7 +117,7 @@ const DocumentSelectPagesStage = ({
             }
 
             setErrorMessage('');
-            setPagesToRemove(pageNumbersInput);
+            setPagesToRemove(pageNumberRanges);
 
             navigate(routeChildren.DOCUMENT_REASSIGN_CONFIRM_REMOVED_PAGES);
         } catch {
@@ -155,6 +169,7 @@ const DocumentSelectPagesStage = ({
                     </p>
 
                     <TextInput
+                        autoComplete="off"
                         data-testid="page-numbers-input"
                         type="text"
                         error={errorMessage}

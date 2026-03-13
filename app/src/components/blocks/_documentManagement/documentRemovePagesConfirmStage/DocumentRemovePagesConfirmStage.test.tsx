@@ -11,6 +11,8 @@ import usePatient from '../../../../helpers/hooks/usePatient';
 import userEvent from '@testing-library/user-event';
 import * as downloadFileModule from '../../../../helpers/utils/downloadFile';
 import { routeChildren } from '../../../../types/generic/routes';
+import { useState } from 'react';
+import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -61,45 +63,37 @@ const mockExtractPages = vi.fn();
 const mockUsePatient = usePatient as Mock;
 const mockDownloadFile = downloadFileModule.downloadFile as Mock;
 
+let pagesToRemove: number[][] = [];
+
 describe('DocumentRemovePagesConfirmStage', () => {
     beforeEach(() => {
         mockUsePatient.mockReturnValue(buildPatientDetails());
         mockScrollIntoView.mockClear();
         mockPageScrollIntoView.mockClear();
         mockQuerySelector.mockClear();
+
+        pagesToRemove = [[0], [2, 3], [4]];
     });
 
     it('renders correctly', async () => {
-        const pagesToRemove = ['1', '3-4', '5'];
-
-        const file = buildLgFile(1);
-        const buffer = await file.arrayBuffer();
-
-        mockExtractPages.mockResolvedValueOnce(new Uint8Array(buffer));
-
-        render(
-            <DocumentRemovePagesConfirmStage
-                documentReference={buildDocumentReference()}
-                baseDocumentBlob={file}
-                pagesToRemove={pagesToRemove}
-            />,
-        );
+        await renderComponent();
 
         await waitFor(() => {
-            pagesToRemove.forEach((page) => {
-                expect(screen.getByText(`Page ${page}`)).toBeInTheDocument();
+            pagesToRemove.forEach((pageRange) => {
+                if (pageRange.length === 1) {
+                    expect(screen.getByText(`Page ${pageRange[0] + 1}`)).toBeInTheDocument();
+                } else {
+                    expect(
+                        screen.getByText(`Page ${pageRange[0] + 1}-${pageRange.at(-1)! + 1}`),
+                    ).toBeInTheDocument();
+                }
             });
         });
     });
 
     it('does not generate the removed pages blob until the base document blob is available', async () => {
-        render(
-            <DocumentRemovePagesConfirmStage
-                documentReference={buildDocumentReference()}
-                baseDocumentBlob={null}
-                pagesToRemove={['1']}
-            />,
-        );
+        pagesToRemove = [[0]];
+        await renderComponent(false);
 
         await waitFor(() => {
             expect(mockExtractPages).not.toHaveBeenCalled();
@@ -107,20 +101,7 @@ describe('DocumentRemovePagesConfirmStage', () => {
     });
 
     it('should download the removed pages PDF when download button is clicked', async () => {
-        const pagesToRemove = ['1', '3-4', '5'];
-
-        const file = buildLgFile(1);
-        const buffer = await file.arrayBuffer();
-
-        mockExtractPages.mockResolvedValueOnce(new Uint8Array(buffer));
-
-        render(
-            <DocumentRemovePagesConfirmStage
-                documentReference={buildDocumentReference()}
-                baseDocumentBlob={file}
-                pagesToRemove={pagesToRemove}
-            />,
-        );
+        await renderComponent();
 
         let downloadButton;
         await waitFor(() => {
@@ -136,88 +117,43 @@ describe('DocumentRemovePagesConfirmStage', () => {
     });
 
     it('should scroll to the correct page when view link is clicked', async () => {
-        const pagesToRemove = ['1', '3-4', '5'];
-
-        const file = buildLgFile(1);
-        const buffer = await file.arrayBuffer();
-
-        mockExtractPages.mockResolvedValueOnce(new Uint8Array(buffer));
-
         const mockPageElement = { scrollIntoView: mockPageScrollIntoView };
         mockQuerySelector.mockReturnValue(mockPageElement);
 
-        render(
-            <DocumentRemovePagesConfirmStage
-                documentReference={buildDocumentReference()}
-                baseDocumentBlob={file}
-                pagesToRemove={pagesToRemove}
-            />,
-        );
+        await renderComponent();
 
         await waitFor(() => {
             expect(screen.getByText('Page 1')).toBeInTheDocument();
         });
 
-        // Click the "View" link for the first page
         const viewLinks = screen.getAllByText('View');
         await userEvent.click(viewLinks[0]);
 
-        // Should query for the correct page element (page 1 is at index 0 in pagesToRemove, so data-page-number="1")
         expect(mockQuerySelector).toHaveBeenCalledWith('.page[data-page-number="1"]');
         expect(mockPageScrollIntoView).toHaveBeenCalledWith({ behavior: 'instant' });
         expect(mockScrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' });
     });
 
     it('should handle page ranges correctly when view link is clicked', async () => {
-        const pagesToRemove = ['1', '3-4', '5'];
-
-        const file = buildLgFile(1);
-        const buffer = await file.arrayBuffer();
-
-        mockExtractPages.mockResolvedValueOnce(new Uint8Array(buffer));
-
         const mockPageElement = { scrollIntoView: mockPageScrollIntoView };
         mockQuerySelector.mockReturnValue(mockPageElement);
 
-        render(
-            <DocumentRemovePagesConfirmStage
-                documentReference={buildDocumentReference()}
-                baseDocumentBlob={file}
-                pagesToRemove={pagesToRemove}
-            />,
-        );
+        await renderComponent();
 
         await waitFor(() => {
             expect(screen.getByText('Page 3-4')).toBeInTheDocument();
         });
 
-        // Click the "View" link for the page range "3-4" (second item)
         const viewLinks = screen.getAllByText('View');
         await userEvent.click(viewLinks[1]);
 
-        // For range "3-4", it should use the first number (3), which is at index 2 in the original document
-        // parsePageNumbersToIndices(['1', '3-4', '5']) returns [0, 2, 3, 4]
-        // Index of (3-1)=2 in [0, 2, 3, 4] is 1, so data-page-number="2"
         expect(mockQuerySelector).toHaveBeenCalledWith('.page[data-page-number="2"]');
         expect(mockPageScrollIntoView).toHaveBeenCalledWith({ behavior: 'instant' });
         expect(mockScrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' });
     });
 
     it('navigates to reassign search patient screen when continue button clicked', async () => {
-        const pagesToRemove = ['1', '3-4', '5'];
-
-        const file = buildLgFile(1);
-        const buffer = await file.arrayBuffer();
-
-        mockExtractPages.mockResolvedValueOnce(new Uint8Array(buffer));
-
-        render(
-            <DocumentRemovePagesConfirmStage
-                documentReference={buildDocumentReference()}
-                baseDocumentBlob={file}
-                pagesToRemove={pagesToRemove}
-            />,
-        );
+        await renderComponent();
 
         let continueButton;
         await waitFor(() => {
@@ -233,3 +169,44 @@ describe('DocumentRemovePagesConfirmStage', () => {
         });
     });
 });
+
+type TestAppProps = {
+    documentReference?: DocumentReference;
+    baseDocumentBlob?: Blob | null;
+    reassignedPagesBlob?: Blob | null;
+};
+
+const TestApp = ({
+    documentReference,
+    baseDocumentBlob,
+    reassignedPagesBlob,
+}: TestAppProps): React.JSX.Element => {
+    const [reassignedPagesBlobState, setReassignedPagesBlobState] = useState<Blob | null>(
+        reassignedPagesBlob ?? null,
+    );
+    return (
+        <DocumentRemovePagesConfirmStage
+            documentReference={documentReference ?? buildDocumentReference()}
+            baseDocumentBlob={baseDocumentBlob ?? null}
+            pagesToRemove={pagesToRemove}
+            reassignedPagesBlob={reassignedPagesBlobState}
+            setReassignedPagesBlob={setReassignedPagesBlobState}
+        />
+    );
+};
+
+const renderComponent = async (
+    createBaseBlob: boolean = true,
+    props: Partial<TestAppProps> = {},
+): Promise<void> => {
+    if (createBaseBlob) {
+        const file = buildLgFile(1);
+        const buffer = await file.arrayBuffer();
+
+        mockExtractPages.mockResolvedValueOnce(new Uint8Array(buffer));
+
+        props.baseDocumentBlob = file;
+    }
+
+    render(<TestApp {...props} />);
+};

@@ -82,7 +82,6 @@ const buildDocument = (
         progress: 0,
         id: uuidv4(),
         docType: docType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
-        attempts: 0,
         versionId: '1',
     };
     return mockDocument;

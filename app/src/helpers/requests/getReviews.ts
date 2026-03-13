@@ -134,7 +134,6 @@ export const getReviewData = async ({
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 progress: 0,
                 docType: reviewData.snomedCode,
-                attempts: 0,
                 numPages: undefined,
                 validated: false,
                 versionId: results[0].version,
@@ -175,7 +174,6 @@ export const getReviewData = async ({
             state: DOCUMENT_UPLOAD_STATE.SELECTED,
             progress: 0,
             docType: reviewData.snomedCode,
-            attempts: 0,
             numPages: undefined,
             validated: false,
         });

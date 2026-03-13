@@ -181,16 +181,19 @@ vi.mock(
     }),
 );
 
-vi.mock('../../components/blocks/generic/patientVerifyPage/PatientVerifyPage', () => ({
-    default: ({ onSubmit }: { onSubmit: (fn: any) => void }): React.JSX.Element => (
-        <div data-testid="patient-verify-page">
-            Patient Verify
-            <button data-testid="verify-submit" onClick={(): void => onSubmit(vi.fn())}>
-                Submit
-            </button>
-        </div>
-    ),
-}));
+vi.mock(
+    '../../components/blocks/_reviews/reviewDetailsPatientVerifyStage/ReviewDetailsPatientVerifyStage',
+    () => ({
+        default: ({ onSubmit }: { onSubmit: (fn: any) => void }): React.JSX.Element => (
+            <div data-testid="patient-verify-page">
+                Patient Verify
+                <button data-testid="verify-submit" onClick={(): void => onSubmit(vi.fn())}>
+                    Submit
+                </button>
+            </div>
+        ),
+    }),
+);
 
 vi.mock(
     '../../components/blocks/_reviews/reviewDetailsAddMoreChoiceStage/ReviewDetailsAddMoreChoiceStage',

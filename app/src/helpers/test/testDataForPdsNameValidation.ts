@@ -87,6 +87,5 @@ export const buildLGUploadDocsFromFilenames = (filenames: string[]): UploadDocum
         progress: 0,
         id: uuidv4(),
         docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-        attempts: 0,
     }));
 };

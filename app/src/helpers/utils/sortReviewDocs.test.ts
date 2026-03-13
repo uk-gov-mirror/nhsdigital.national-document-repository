@@ -16,7 +16,6 @@ const createMockDocument = (
     file: new File(['content'], fileName, { type: 'application/pdf' }),
     state: DOCUMENT_UPLOAD_STATE.SELECTED,
     docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-    attempts: 0,
     ...options,
 });
 
@@ -75,7 +74,6 @@ describe('sortDocumentsForReview', () => {
         it('preserves documents without matching additionalFiles entries', () => {
             const uploadDocuments: ReviewUploadDocument[] = [
                 createMockDocument('doc-1', 'file1.pdf', {
-                    attempts: 3,
                     state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
                 }),
                 createMockDocument('doc-2', 'file2.pdf'),
@@ -269,7 +267,6 @@ describe('sortDocumentsForReview', () => {
             const uploadDocuments: ReviewUploadDocument[] = [
                 createMockDocument('doc-1', 'file1.pdf', {
                     state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
-                    attempts: 2,
                     progress: 100,
                     ref: 'some-ref',
                     key: 'some-key',
@@ -286,7 +283,6 @@ describe('sortDocumentsForReview', () => {
             expect(result[0]).toMatchObject({
                 id: 'doc-1',
                 state: DOCUMENT_UPLOAD_STATE.SUCCEEDED,
-                attempts: 2,
                 progress: 100,
                 ref: 'some-ref',
                 key: 'some-key',

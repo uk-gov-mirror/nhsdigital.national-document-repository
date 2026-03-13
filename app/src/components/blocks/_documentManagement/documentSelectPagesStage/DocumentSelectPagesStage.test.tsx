@@ -1,6 +1,6 @@
 // need to use happy-dom for this test file as jsdom doesn't support DOMMatrix https://github.com/jsdom/jsdom/issues/2647
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import DocumentSelectPagesStage from './DocumentSelectPagesStage';
 import {
     buildDocumentConfig,
@@ -107,9 +107,11 @@ describe('DocumentSelectPagesStage', () => {
         await userEvent.type(input, '1-10');
         await userEvent.click(submitButton);
 
-        expect(screen.getAllByText('You cannot remove all pages from the document.')).toHaveLength(
-            2,
-        );
+        await waitFor(() => {
+            expect(
+                screen.getAllByText('You cannot remove all pages from the document.'),
+            ).toHaveLength(2);
+        });
     });
 
     it('should navigate to server error page when PDF parsing fails', async () => {
@@ -155,6 +157,7 @@ const renderApp = (document: File | null = null): void => {
         <DocumentSelectPagesStage
             baseDocumentBlob={document}
             documentConfig={buildDocumentConfig()}
+            pagesToRemove={[]}
             setPagesToRemove={vi.fn()}
         />,
     );

@@ -145,7 +145,6 @@ const DocumentSelectStage = ({
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 progress: 0,
                 docType: documentType,
-                attempts: 0,
                 numPages: 0,
                 validated: false,
             };

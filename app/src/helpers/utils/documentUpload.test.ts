@@ -28,7 +28,6 @@ import {
     MAX_POLLING_TIME,
     UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS,
 } from '../constants/network';
-import * as urlManipulations from './urlManipulations';
 
 vi.mock('../requests/uploadDocuments');
 vi.mock('../requests/documentReview');
@@ -57,7 +56,6 @@ describe('documentUpload', () => {
             state: DOCUMENT_UPLOAD_STATE.SELECTED,
             progress: 0,
             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-            attempts: 0,
             versionId: 'v1',
         },
         {
@@ -66,7 +64,6 @@ describe('documentUpload', () => {
             state: DOCUMENT_UPLOAD_STATE.SELECTED,
             progress: 0,
             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-            attempts: 0,
             versionId: 'v1',
         },
     ];
@@ -100,7 +97,6 @@ describe('documentUpload', () => {
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 progress: 0,
                 docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                attempts: 0,
                 versionId: 'version123',
             });
             expect(result[0].file.name).toBe('stitched_file.pdf');
@@ -134,7 +130,6 @@ describe('documentUpload', () => {
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 progress: 0,
                 docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                attempts: 0,
                 versionId: 'version123',
             });
             expect(result[0].file.name).toBe(
@@ -196,7 +191,8 @@ describe('documentUpload', () => {
             vi.spyOn(isLocal, 'isLocal', 'get').mockReturnValueOnce(true);
 
             const result = await getUploadSession(
-                mockPatientDetails,
+                mockPatientDetails.canManageRecord!,
+                mockPatientDetails.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 undefined,
@@ -223,7 +219,8 @@ describe('documentUpload', () => {
             const existingDocs = [{ ...mockDocuments[0], id: 'existing-doc-id' }];
 
             const result = await getUploadSession(
-                patientWithPermission,
+                patientWithPermission.canManageRecord,
+                patientWithPermission.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 existingDocs[0].id,
@@ -265,7 +262,8 @@ describe('documentUpload', () => {
                 .mockResolvedValueOnce(mockReviewDocs[1] as any);
 
             const result = await getUploadSession(
-                patientWithoutPermission,
+                patientWithoutPermission.canManageRecord!,
+                patientWithoutPermission.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 undefined,
@@ -302,7 +300,8 @@ describe('documentUpload', () => {
             vi.mocked(uploadDocumentForReview).mockResolvedValue(mockReview as any);
 
             await getUploadSession(
-                patientWithoutPermission,
+                patientWithoutPermission.canManageRecord!,
+                patientWithoutPermission.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 undefined,
@@ -528,7 +527,6 @@ describe('documentUpload', () => {
             state: DOCUMENT_UPLOAD_STATE.UPLOADING,
             progress: 0,
             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-            attempts: 0,
             versionId: 'v1',
         };
 
@@ -648,7 +646,6 @@ describe('documentUpload', () => {
                 state: DOCUMENT_UPLOAD_STATE.UPLOADING,
                 progress: 50,
                 docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                attempts: 0,
                 versionId: 'v1',
                 ref: 'doc-ref-1',
             },
@@ -684,7 +681,8 @@ describe('documentUpload', () => {
                 setInterval,
                 mockUploadDocuments,
                 mockSetDocuments,
-                patientWithPermission,
+                patientWithPermission.canManageRecord!,
+                patientWithPermission.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 1000,
@@ -716,7 +714,8 @@ describe('documentUpload', () => {
                 setInterval,
                 mockUploadDocuments,
                 mockSetDocuments,
-                patientWithoutPermission,
+                patientWithoutPermission.canManageRecord!,
+                patientWithoutPermission.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 1000,
@@ -749,7 +748,8 @@ describe('documentUpload', () => {
                 setInterval,
                 localDocs,
                 mockSetDocuments,
-                mockPatientDetails,
+                mockPatientDetails.canManageRecord!,
+                mockPatientDetails.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 1000,
@@ -779,7 +779,8 @@ describe('documentUpload', () => {
                 setInterval,
                 localDocs,
                 mockSetDocuments,
-                mockPatientDetails,
+                mockPatientDetails.canManageRecord!,
+                mockPatientDetails.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 1000,
@@ -807,7 +808,8 @@ describe('documentUpload', () => {
                 setInterval,
                 [virusDoc],
                 mockSetDocuments,
-                mockPatientDetails,
+                mockPatientDetails.canManageRecord!,
+                mockPatientDetails.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 1000,
@@ -834,7 +836,8 @@ describe('documentUpload', () => {
                 setInterval,
                 [failedDoc],
                 mockSetDocuments,
-                mockPatientDetails,
+                mockPatientDetails.canManageRecord!,
+                mockPatientDetails.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 1000,
@@ -862,7 +865,8 @@ describe('documentUpload', () => {
                 setInterval,
                 localDocs,
                 mockSetDocuments,
-                mockPatientDetails,
+                mockPatientDetails.canManageRecord!,
+                mockPatientDetails.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 1000,
@@ -1039,6 +1043,7 @@ describe('documentUpload', () => {
         const mockNavigate = Object.assign(vi.fn(), {
             withParams: vi.fn(),
         });
+        const mockOnSuccess = vi.fn();
 
         let mockInterval = 0;
         let mockVirusRef: { current: boolean };
@@ -1048,29 +1053,9 @@ describe('documentUpload', () => {
             vi.clearAllMocks();
             vi.spyOn(globalThis, 'clearInterval');
             vi.spyOn(window, 'clearInterval');
-            vi.spyOn(urlManipulations, 'getJourney').mockReturnValue('new');
             mockInterval = 1;
             mockVirusRef = { current: false };
             mockCompleteRef = { current: false };
-        });
-
-        it('should navigate to SERVER_ERROR when journey param is update but journey type does not match', () => {
-            vi.spyOn(urlManipulations, 'getJourney').mockReturnValue('update');
-
-            const intervalTimer = 123;
-
-            handleDocumentStatusUpdates(
-                'new',
-                mockNavigate,
-                intervalTimer,
-                mockInterval,
-                mockDocuments,
-                mockVirusRef,
-                mockCompleteRef,
-            );
-
-            expect(globalThis.clearInterval).toHaveBeenCalledWith(intervalTimer);
-            expect(mockNavigate).toHaveBeenCalledWith(routes.SERVER_ERROR);
         });
 
         it('should navigate to SERVER_ERROR when polling time exceeds MAX_POLLING_TIME', () => {
@@ -1080,13 +1065,13 @@ describe('documentUpload', () => {
             const intervalTimer = 456;
 
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 intervalTimer,
                 mockInterval,
                 mockDocuments,
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
             expect(window.clearInterval).toHaveBeenCalledWith(intervalTimer);
@@ -1095,13 +1080,13 @@ describe('documentUpload', () => {
 
         it('should return early when documents array is empty', () => {
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 123,
                 mockInterval,
                 [],
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
             expect(mockNavigate).not.toHaveBeenCalled();
@@ -1119,13 +1104,13 @@ describe('documentUpload', () => {
             const intervalTimer = 789;
 
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 intervalTimer,
                 mockInterval,
                 documentsWithVirus,
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
             expect(mockVirusRef.current).toBe(true);
@@ -1144,13 +1129,13 @@ describe('documentUpload', () => {
             mockVirusRef.current = true;
 
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 123,
                 mockInterval,
                 documentsWithVirus,
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
             expect(mockNavigate).not.toHaveBeenCalledWith(routeChildren.DOCUMENT_UPLOAD_INFECTED);
@@ -1171,20 +1156,20 @@ describe('documentUpload', () => {
             ];
 
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 123,
                 mockInterval,
                 allFailedDocs,
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
             expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining(routes.SERVER_ERROR));
             expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('?encodedError='));
         });
 
-        it('should navigate to DOCUMENT_UPLOAD_COMPLETED when all documents finished successfully', () => {
+        it('should call success when all documents finished successfully', () => {
             const allSucceededDocs: UploadDocument[] = [
                 {
                     ...mockDocuments[0],
@@ -1199,23 +1184,21 @@ describe('documentUpload', () => {
             const intervalTimer = 101;
 
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 intervalTimer,
                 mockInterval,
                 allSucceededDocs,
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
             expect(mockCompleteRef.current).toBe(true);
             expect(window.clearInterval).toHaveBeenCalledWith(intervalTimer);
-            expect(mockNavigate.withParams).toHaveBeenCalledWith(
-                routeChildren.DOCUMENT_UPLOAD_COMPLETED,
-            );
+            expect(mockOnSuccess).toHaveBeenCalled();
         });
 
-        it('should not navigate to completed page again if completeRef is already true', () => {
+        it('should not call success again if completeRef is already true', () => {
             const allSucceededDocs: UploadDocument[] = [
                 {
                     ...mockDocuments[0],
@@ -1226,19 +1209,19 @@ describe('documentUpload', () => {
             mockCompleteRef.current = true;
 
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 123,
                 mockInterval,
                 allSucceededDocs,
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
-            expect(mockNavigate.withParams).not.toHaveBeenCalled();
+            expect(mockOnSuccess).not.toHaveBeenCalled();
         });
 
-        it('should navigate to completed page when mix of succeeded and error documents', () => {
+        it('should call success when mix of succeeded and error documents', () => {
             const mixedDocs: UploadDocument[] = [
                 {
                     ...mockDocuments[0],
@@ -1254,23 +1237,21 @@ describe('documentUpload', () => {
             const intervalTimer = 202;
 
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 intervalTimer,
                 mockInterval,
                 mixedDocs,
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
             expect(mockCompleteRef.current).toBe(true);
             expect(window.clearInterval).toHaveBeenCalledWith(intervalTimer);
-            expect(mockNavigate.withParams).toHaveBeenCalledWith(
-                routeChildren.DOCUMENT_UPLOAD_COMPLETED,
-            );
+            expect(mockOnSuccess).toHaveBeenCalled();
         });
 
-        it('should not navigate when documents are still uploading', () => {
+        it('should not call success when documents are still uploading', () => {
             const uploadingDocs: UploadDocument[] = [
                 {
                     ...mockDocuments[0],
@@ -1283,20 +1264,20 @@ describe('documentUpload', () => {
             ];
 
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 123,
                 mockInterval,
                 uploadingDocs,
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
             expect(mockNavigate).not.toHaveBeenCalled();
-            expect(mockNavigate.withParams).not.toHaveBeenCalled();
+            expect(mockOnSuccess).not.toHaveBeenCalled();
         });
 
-        it('should not navigate when documents are still scanning', () => {
+        it('should not call success when documents are still scanning', () => {
             const scanningDocs: UploadDocument[] = [
                 {
                     ...mockDocuments[0],
@@ -1305,17 +1286,17 @@ describe('documentUpload', () => {
             ];
 
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 123,
                 mockInterval,
                 scanningDocs,
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
             expect(mockNavigate).not.toHaveBeenCalled();
-            expect(mockNavigate.withParams).not.toHaveBeenCalled();
+            expect(mockOnSuccess).not.toHaveBeenCalled();
         });
 
         it('should prioritize virus detection over all documents failed', () => {
@@ -1334,13 +1315,13 @@ describe('documentUpload', () => {
             const intervalTimer = 303;
 
             handleDocumentStatusUpdates(
-                'new',
                 mockNavigate,
                 intervalTimer,
                 mockInterval,
                 virusAndFailedDocs,
                 mockVirusRef,
                 mockCompleteRef,
+                mockOnSuccess,
             );
 
             expect(mockNavigate).toHaveBeenCalledWith(routeChildren.DOCUMENT_UPLOAD_INFECTED);

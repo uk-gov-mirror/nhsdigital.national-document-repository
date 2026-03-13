@@ -53,7 +53,6 @@ const buildDoc = (fileName: string, state: DOCUMENT_UPLOAD_STATE): ReviewUploadD
         file: new File([blob], fileName, { type: 'application/pdf' }),
         id: `id-${fileName}`,
         docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-        attempts: 0,
         blob,
     };
 };

@@ -115,7 +115,6 @@ const ReviewDetailsDocumentUploadingStage = ({
                         state: DOCUMENT_UPLOAD_STATE.SELECTED,
                         progress: 0,
                         docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                        attempts: 0,
                         type: UploadDocumentType.REVIEW,
                         blob: fileBlob,
                         versionId: existing?.versionId,
@@ -229,7 +228,8 @@ const ReviewDetailsDocumentUploadingStage = ({
     const startUpload = async (): Promise<void> => {
         try {
             const uploadSession: UploadSession = await getUploadSession(
-                patientDetails!,
+                true,
+                patientDetails!.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 existingId,
@@ -250,7 +250,8 @@ const ReviewDetailsDocumentUploadingStage = ({
                 setInterval,
                 documents,
                 setDocuments,
-                patientDetails!,
+                true,
+                patientDetails!.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS,
@@ -292,7 +293,13 @@ const ReviewDetailsDocumentUploadingStage = ({
                 <DocumentUploadingStage
                     documents={documents}
                     startUpload={startUpload}
-                    documentConfig={getConfigForDocType(reviewData?.snomedCode!)}
+                    title="Your documents are uploading"
+                    warningBoxText={
+                        'Do not close or navigate away from this page until the upload is complete.' +
+                        (getConfigForDocType(reviewData.snomedCode).stitched
+                            ? ' Your files will be combined into one document when the upload is complete.'
+                            : '')
+                    }
                 />
             )}
         </>

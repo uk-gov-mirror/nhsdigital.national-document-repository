@@ -47,7 +47,6 @@ export type UploadDocument = {
     progress?: number;
     id: string;
     docType: DOCUMENT_TYPE;
-    attempts: number;
     ref?: string;
     key?: string;
     position?: number;

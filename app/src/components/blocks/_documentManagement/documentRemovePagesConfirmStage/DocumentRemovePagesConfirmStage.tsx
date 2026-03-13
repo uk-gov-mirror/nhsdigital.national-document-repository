@@ -3,10 +3,12 @@ import useTitle from '../../../../helpers/hooks/useTitle';
 import BackButton from '../../../generic/backButton/BackButton';
 import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
 import { routeChildren, routes } from '../../../../types/generic/routes';
-import { useEffect, useRef, useState } from 'react';
-import { getDocument } from 'pdfjs-dist';
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { Button, Table } from 'nhsuk-react-components';
-import { parsePageNumbersToIndices } from '../../../../helpers/utils/documentMangement/pageNumbers';
+import {
+    extractPdfBlobUsingSelectedPages,
+    getUniquePageNumbersFromIndexRanges,
+} from '../../../../helpers/utils/documentManagement/pageNumbers';
 import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import PdfViewer from '../../../generic/pdfViewer/PdfViewer';
@@ -17,17 +19,21 @@ import { downloadFile } from '../../../../helpers/utils/downloadFile';
 type Props = {
     documentReference: DocumentReference;
     baseDocumentBlob: Blob | null;
-    pagesToRemove: string[];
+    pagesToRemove: number[][];
+    reassignedPagesBlob: Blob | null;
+    setReassignedPagesBlob: Dispatch<SetStateAction<Blob | null>>;
 };
 
 const DocumentRemovePagesConfirmStage = ({
     documentReference,
     baseDocumentBlob,
     pagesToRemove,
+    reassignedPagesBlob,
+    setReassignedPagesBlob,
 }: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const loadingRef = useRef(false);
-    const [removedPagesBlob, setRemovedPagesBlob] = useState<Blob | null>(null);
+    const hasLoadedBlob = useRef(false);
     const [documentConfig] = useState(
         getConfigForDocType(documentReference.documentSnomedCodeType),
     );
@@ -46,25 +52,20 @@ const DocumentRemovePagesConfirmStage = ({
 
         const generateRemovedPagesBlob = async (): Promise<void> => {
             try {
-                const buffer1 = await baseDocumentBlob.arrayBuffer();
-                const buffer2 = await baseDocumentBlob.arrayBuffer();
-                const pdf = await getDocument(buffer1).promise;
-                const result = await pdf.extractPages([
-                    {
-                        document: new Uint8Array(buffer2),
-                        includePages: parsePageNumbersToIndices(pagesToRemove),
-                    },
-                ]);
-                setRemovedPagesBlob(
-                    new Blob([result.buffer as ArrayBuffer], { type: 'application/pdf' }),
+                const blob = await extractPdfBlobUsingSelectedPages(
+                    baseDocumentBlob,
+                    pagesToRemove,
+                    true,
                 );
+                setReassignedPagesBlob(blob);
                 loadingRef.current = false;
+                hasLoadedBlob.current = true;
             } catch {
                 navigate(routes.SERVER_ERROR);
             }
         };
 
-        if (!loadingRef.current && !removedPagesBlob) {
+        if (!loadingRef.current && !hasLoadedBlob.current) {
             loadingRef.current = true;
             generateRemovedPagesBlob();
         }
@@ -73,24 +74,20 @@ const DocumentRemovePagesConfirmStage = ({
     const downloadRemovedPages = (e: React.MouseEvent<HTMLAnchorElement>): void => {
         e.preventDefault();
 
-        downloadFile(removedPagesBlob!, 'removed_pages.pdf');
+        downloadFile(reassignedPagesBlob!, 'removed_pages.pdf');
     };
 
     const viewPageClicked = (
         e: React.MouseEvent<HTMLAnchorElement>,
-        pageNumberString: string,
+        pageIndexRange: number[],
     ): void => {
         e.preventDefault();
         if (!pdfViewerRef.current) {
             return;
         }
 
-        pageNumberString = pageNumberString.includes('-')
-            ? pageNumberString.split('-')[0]
-            : pageNumberString;
-
-        const parsedPageIndeces = parsePageNumbersToIndices(pagesToRemove);
-        const pageIndex = parsedPageIndeces.indexOf(Number(pageNumberString.trim()) - 1);
+        const uniquePageNumbers = getUniquePageNumbersFromIndexRanges(pagesToRemove);
+        const pageIndex = uniquePageNumbers.indexOf(pageIndexRange[0]);
 
         const page = pdfViewerRef.current.iframe?.contentWindow?.document.querySelector(
             `.page[data-page-number="${pageIndex + 1}"]`,
@@ -108,7 +105,7 @@ const DocumentRemovePagesConfirmStage = ({
         <>
             <BackButton />
 
-            {removedPagesBlob ? (
+            {reassignedPagesBlob ? (
                 <>
                     <h1>{pageTitle}</h1>
 
@@ -139,13 +136,19 @@ const DocumentRemovePagesConfirmStage = ({
                             </Table.Row>
                         </Table.Head>
                         <Table.Body>
-                            {pagesToRemove.map((pageNumber) => (
-                                <Table.Row key={pageNumber}>
-                                    <Table.Cell>Page {pageNumber}</Table.Cell>
+                            {pagesToRemove.map((pageNumberRange) => (
+                                <Table.Row key={pageNumberRange.join('-')}>
+                                    <Table.Cell>
+                                        Page {pageNumberRange[0] + 1}
+                                        {pageNumberRange.length > 1 &&
+                                            `-${pageNumberRange.at(-1)! + 1}`}
+                                    </Table.Cell>
                                     <Table.Cell className="text-right">
                                         <Link
                                             to={''}
-                                            onClick={(e): void => viewPageClicked(e, pageNumber)}
+                                            onClick={(e): void =>
+                                                viewPageClicked(e, pageNumberRange)
+                                            }
                                         >
                                             View
                                         </Link>
@@ -158,7 +161,7 @@ const DocumentRemovePagesConfirmStage = ({
                     <h3>{documentConfig?.content.chosenToRemovePagesSubtitle}</h3>
                     <PdfViewer
                         customClasses={['my-8']}
-                        fileUrl={URL.createObjectURL(removedPagesBlob)}
+                        fileUrl={URL.createObjectURL(reassignedPagesBlob)}
                         viewerRef={pdfViewerRef}
                     />
 

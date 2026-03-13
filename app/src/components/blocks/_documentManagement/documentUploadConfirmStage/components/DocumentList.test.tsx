@@ -15,7 +15,6 @@ describe('DocumentList', () => {
             file: new File(['content'], 'document1.pdf', { type: 'application/pdf' }),
             position: 1,
             state: DOCUMENT_UPLOAD_STATE.SELECTED,
-            attempts: 0,
             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
         },
         {
@@ -23,7 +22,6 @@ describe('DocumentList', () => {
             file: new File(['content'], 'document2.pdf', { type: 'application/pdf' }),
             position: 2,
             state: DOCUMENT_UPLOAD_STATE.SELECTED,
-            attempts: 0,
             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
         },
         {
@@ -31,7 +29,6 @@ describe('DocumentList', () => {
             file: new File(['content'], 'document3.jpg', { type: 'image/jpeg' }),
             position: 3,
             state: DOCUMENT_UPLOAD_STATE.SELECTED,
-            attempts: 0,
             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
         },
     ];
@@ -134,7 +131,6 @@ describe('DocumentList', () => {
             file: new File(['content'], `document${i + 1}.pdf`, { type: 'application/pdf' }),
             position: i + 1,
             state: DOCUMENT_UPLOAD_STATE.SELECTED,
-            attempts: 0,
             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
         }));
 

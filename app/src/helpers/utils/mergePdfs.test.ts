@@ -57,7 +57,6 @@ describe('mergePdfsFromUploadDocuments', () => {
             file: createMockFile('test.pdf'),
             id: 'test-id',
             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-            attempts: 0,
             ...overrides,
         };
     };

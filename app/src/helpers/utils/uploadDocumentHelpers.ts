@@ -3,6 +3,7 @@ import { DOCUMENT_UPLOAD_STATE, UploadDocument } from '../../types/pages/UploadD
 import { UploadSession } from '../../types/generic/uploadResult';
 import { isRunningInCypress } from './isLocal';
 import { getLastURLPath } from './urlManipulations';
+import { uploadDocumentToS3 } from '../requests/uploadDocuments';
 
 export const DELAY_BEFORE_VIRUS_SCAN_IN_SECONDS = isRunningInCypress() ? 0 : 3;
 export const DELAY_BETWEEN_VIRUS_SCAN_RETRY_IN_SECONDS = isRunningInCypress() ? 0 : 5;
@@ -23,7 +24,6 @@ export const setSingleDocument = (
         prevState.map((document) => {
             if (document.id === id) {
                 progress = progress ?? document.progress;
-                attempts = attempts ?? document.attempts;
                 state = state ?? document.state;
                 ref = ref ?? document.ref;
 
@@ -85,4 +85,31 @@ export const extractUploadSession = (data: any): UploadSession => {
     });
 
     return data as UploadSession;
+};
+
+export const uploadSingleDocument = async (
+    document: UploadDocument,
+    uploadSession: UploadSession,
+    setDocuments: Dispatch<SetStateAction<UploadDocument[]>>,
+): Promise<void> => {
+    try {
+        await uploadDocumentToS3({
+            document,
+            uploadSession,
+            setDocuments,
+        });
+    } catch {
+        markDocumentWithError(document, setDocuments);
+    }
+};
+
+const markDocumentWithError = (
+    document: UploadDocument,
+    setDocuments: Dispatch<SetStateAction<UploadDocument[]>>,
+): void => {
+    setSingleDocument(setDocuments, {
+        id: document.id,
+        state: DOCUMENT_UPLOAD_STATE.ERROR,
+        progress: 0,
+    });
 };

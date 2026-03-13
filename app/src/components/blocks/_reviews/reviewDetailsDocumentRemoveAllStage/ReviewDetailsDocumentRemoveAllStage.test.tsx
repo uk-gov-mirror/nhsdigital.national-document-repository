@@ -44,7 +44,6 @@ describe('ReviewDetailsDocumentRemoveAllStage', () => {
         progress: 0,
         docType: testReviewSnoMed,
         type: UploadDocumentType.REVIEW,
-        attempts: 0,
     };
 
     const mockAdditionalDocument: ReviewUploadDocument = {
@@ -54,7 +53,6 @@ describe('ReviewDetailsDocumentRemoveAllStage', () => {
         progress: 0,
         docType: testReviewSnoMed,
         type: undefined,
-        attempts: 0,
     };
 
     const mockDocuments: ReviewUploadDocument[] = [mockReviewDocument, mockAdditionalDocument];

@@ -4,7 +4,7 @@ import {
     UploadDocument,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import DocumentUploadingStage from './DocumentUploadingStage';
-import { buildDocumentConfig, buildLgFile } from '../../../../helpers/test/testBuilders';
+import { buildLgFile } from '../../../../helpers/test/testBuilders';
 import { MemoryRouter } from 'react-router-dom';
 import { routes } from '../../../../types/generic/routes';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
@@ -23,8 +23,6 @@ vi.mock('react-router-dom', async () => {
 
 URL.createObjectURL = vi.fn();
 
-const docConfig = buildDocumentConfig();
-
 describe('DocumentUploadCompleteStage', () => {
     let documents: UploadDocument[];
 
@@ -35,7 +33,6 @@ describe('DocumentUploadCompleteStage', () => {
                 docType: DOCUMENT_TYPE.LLOYD_GEORGE,
                 id: '1',
                 file: buildLgFile(1),
-                attempts: 0,
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 numPages: 5,
                 position: 1,
@@ -81,7 +78,8 @@ describe('DocumentUploadCompleteStage', () => {
                 <DocumentUploadingStage
                     documents={documents}
                     startUpload={mockStartUpload}
-                    documentConfig={docConfig}
+                    title="Your documents are uploading"
+                    warningBoxText="warning"
                 />
             </MemoryRouter>,
         );

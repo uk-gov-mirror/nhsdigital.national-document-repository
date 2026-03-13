@@ -22,7 +22,6 @@ describe('documentReview', () => {
         docType: DOCUMENT_TYPE.LLOYD_GEORGE,
         file: { name: 'test-document.pdf' } as File,
         state: DOCUMENT_UPLOAD_STATE.UPLOADING,
-        attempts: 0,
     };
 
     const mockArgs = {

@@ -13,12 +13,11 @@ import useBaseAPIHeaders from '../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import useConfig from '../../helpers/hooks/useConfig';
 import usePatient from '../../helpers/hooks/usePatient';
-import { uploadDocumentToS3 } from '../../helpers/requests/uploadDocuments';
 import { errorToParams } from '../../helpers/utils/errorToParams';
 import { isLocal, isMock } from '../../helpers/utils/isLocal';
 import {
     markDocumentsAsUploading,
-    setSingleDocument,
+    uploadSingleDocument,
 } from '../../helpers/utils/uploadDocumentHelpers';
 import {
     getJourney,
@@ -90,15 +89,26 @@ const DocumentUploadPage = (): React.JSX.Element => {
     }, []);
 
     useEffect(() => {
-        handleDocumentStatusUpdates(
-            journey,
-            navigate,
-            intervalTimer,
-            interval,
-            documents,
-            virusReference,
-            completeRef,
-        );
+        const journeyParam = getJourney();
+
+        if (journeyParam === 'update' && journey !== journeyParam) {
+            globalThis.clearInterval(intervalTimer);
+            navigate(routes.SERVER_ERROR);
+        }
+    }, [getJourney, navigate]);
+
+    useEffect(() => {
+        if (!virusReference.current && !completeRef.current) {
+            handleDocumentStatusUpdates(
+                navigate,
+                intervalTimer,
+                interval,
+                documents,
+                virusReference,
+                completeRef,
+                () => navigate.withParams(routeChildren.DOCUMENT_UPLOAD_COMPLETED),
+            );
+        }
     }, [
         baseHeaders,
         baseUrl,
@@ -109,6 +119,8 @@ const DocumentUploadPage = (): React.JSX.Element => {
         uploadSession,
         intervalTimer,
         interval,
+        virusReference,
+        completeRef,
     ]);
 
     useEffect(() => {
@@ -143,35 +155,12 @@ const DocumentUploadPage = (): React.JSX.Element => {
         setExistingDocuments(newDocuments);
     };
 
-    const uploadSingleDocument = async (
-        document: UploadDocument,
-        uploadSession: UploadSession,
-    ): Promise<void> => {
-        try {
-            await uploadDocumentToS3({
-                document,
-                uploadSession,
-                setDocuments,
-            });
-        } catch {
-            markDocumentWithError(document);
-        }
-    };
-
-    const markDocumentWithError = (document: UploadDocument): void => {
-        setSingleDocument(setDocuments, {
-            id: document.id,
-            state: DOCUMENT_UPLOAD_STATE.ERROR,
-            progress: 0,
-        });
-    };
-
     const uploadAllDocuments = (
         uploadDocuments: Array<UploadDocument>,
         uploadSession: UploadSession,
     ): void => {
         uploadDocuments.forEach((document) => {
-            void uploadSingleDocument(document, uploadSession);
+            void uploadSingleDocument(document, uploadSession, setDocuments);
         });
     };
 
@@ -215,7 +204,8 @@ const DocumentUploadPage = (): React.JSX.Element => {
     const startUpload = async (): Promise<void> => {
         try {
             const uploadSession: UploadSession = await getUploadSession(
-                patientDetails!,
+                patientDetails!.canManageRecord!,
+                patientDetails!.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 existingDocuments[0]?.id,
@@ -236,7 +226,8 @@ const DocumentUploadPage = (): React.JSX.Element => {
                 setInterval,
                 documents,
                 setDocuments,
-                patientDetails!,
+                patientDetails!.canManageRecord!,
+                patientDetails!.nhsNumber,
                 baseUrl,
                 baseHeaders,
                 UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS,
@@ -286,6 +277,17 @@ const DocumentUploadPage = (): React.JSX.Element => {
                 documentConfig={documentConfig}
             />
         );
+    };
+
+    const getWarningBoxText = (): string => {
+        let text = 'Do not close or navigate away from this page until the upload is complete. ';
+        if (journey === 'update') {
+            text += `Your files will be added to the existing ${documentConfig.displayName} when the upload is complete.`;
+        } else if (documentConfig.stitched) {
+            text += 'Your files will be combined into one document when the upload is complete.';
+        }
+
+        return text;
     };
 
     const hasNextDocType = documentTypeList.indexOf(documentType) < documentTypeList.length - 1;
@@ -371,7 +373,12 @@ const DocumentUploadPage = (): React.JSX.Element => {
                         <DocumentUploadingStage
                             documents={documents}
                             startUpload={startUpload}
-                            documentConfig={documentConfig}
+                            title={
+                                journey === 'update'
+                                    ? 'Uploading additional files'
+                                    : 'Your documents are uploading'
+                            }
+                            warningBoxText={getWarningBoxText()}
                         />
                     }
                 />

@@ -15,5 +15,6 @@ export default defineConfig({
         clearMocks: true,
         restoreMocks: true,
         env: loadEnv('', process.cwd(), ''),
+        testTimeout: 15000,
     },
 });

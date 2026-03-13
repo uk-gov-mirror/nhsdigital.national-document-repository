@@ -1343,7 +1343,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             id: '1',
                             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            attempts: 0,
                         },
                     ]}
                 />,
@@ -1387,7 +1386,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             id: '1',
                             docType: DOCUMENT_TYPE.EHR,
-                            attempts: 0,
                         },
                     ]}
                 />,
@@ -1418,7 +1416,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             id: '1',
                             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            attempts: 0,
                         },
                         {
                             type: UploadDocumentType.REVIEW,
@@ -1426,7 +1423,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             id: '2',
                             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            attempts: 0,
                         },
                     ]}
                 />,
@@ -1472,7 +1468,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             id: '1',
                             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            attempts: 0,
                         },
                         {
                             type: UploadDocumentType.REVIEW,
@@ -1480,7 +1475,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             id: '2',
                             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            attempts: 0,
                         },
                     ]}
                 />,
@@ -1595,7 +1589,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             id: '1',
                             docType: DOCUMENT_TYPE.EHR_ATTACHMENTS,
-                            attempts: 0,
                         },
                     ]}
                 />,
@@ -1638,7 +1631,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             id: '1',
                             docType: DOCUMENT_TYPE.EHR_ATTACHMENTS,
-                            attempts: 0,
                         },
                     ]}
                 />,
@@ -1833,7 +1825,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             type: UploadDocumentType.REVIEW,
                             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            attempts: 0,
                         },
                     ]}
                 />,
@@ -1949,7 +1940,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             type: UploadDocumentType.REVIEW,
                             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            attempts: 0,
                         },
                     ]}
                 />,
@@ -2010,7 +2000,6 @@ describe('ReviewDetailsStage', () => {
                             state: DOCUMENT_UPLOAD_STATE.SELECTED,
                             type: UploadDocumentType.REVIEW,
                             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            attempts: 0,
                         },
                     ]}
                 />,

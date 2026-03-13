@@ -27,7 +27,6 @@ const createMockDocument = (id: string): UploadDocument => ({
     file: new File(['test'], 'test.pdf', { type: 'application/pdf' }),
     id,
     docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-    attempts: 0,
 });
 
 const docConfig = buildDocumentConfig();

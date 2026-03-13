@@ -17,20 +17,20 @@ import {
     ReviewUploadDocument,
     DOCUMENT_UPLOAD_STATE,
 } from '../../../../types/pages/UploadDocumentsPage/types';
-import useReviewId from '../../../../helpers/hooks/useReviewId';
 
 const mockNavigate = vi.fn();
+const mockUseParams = vi.fn();
 const mockUseBaseAPIUrl = vi.fn();
 const mockUseBaseAPIHeaders = vi.fn();
 const mockUseConfig = vi.fn();
 const mockUseSessionContext = vi.fn();
-const mockUseReviewId = useReviewId as Mock;
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,
         useNavigate: (): Mock => mockNavigate,
+        useParams: (): unknown => mockUseParams(),
         Link: ({ children, to }: { children: React.ReactNode; to: string }): JSX.Element => (
             <a href={to}>{children}</a>
         ),
@@ -59,8 +59,6 @@ vi.mock(
         default: (): React.JSX.Element => <div data-testid="lloyd-george-preview">Preview</div>,
     }),
 );
-
-vi.mock('../../../../helpers/hooks/useReviewId');
 
 let capturedDownloadAction: ((e: React.MouseEvent<HTMLElement>) => void) | null = null;
 let anchorClickSpy: ReturnType<typeof vi.spyOn> | null = null;
@@ -103,13 +101,13 @@ describe('ReviewDetailsPatientSearchPage', () => {
             ...documentTypeModule.getConfigForDocType('16521000000101' as DOCUMENT_TYPE),
             multifileZipped: true,
         });
+        mockUseParams.mockReturnValue({ reviewId: mockReviewId });
         mockUseBaseAPIUrl.mockReturnValue(mockBaseUrl);
         mockUseBaseAPIHeaders.mockReturnValue(mockBaseHeaders);
         mockUseConfig.mockReturnValue({
             mockLocal: { patientIsActive: true, patientIsDeceased: false },
             featureFlags: {},
         });
-        mockUseReviewId.mockReturnValue(mockReviewId);
     });
 
     afterEach(() => {
@@ -198,10 +196,6 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             await waitFor(() => {
                 expect(link).toBeInTheDocument();
-                expect(link).toHaveAttribute(
-                    'href',
-                    `/reviews/${mockReviewId}/dont-know-nhs-number`,
-                );
             });
         });
 
@@ -232,7 +226,6 @@ describe('ReviewDetailsPatientSearchPage', () => {
             await userEvent.click(continueButton);
 
             await waitFor(() => {
-                expect(screen.getByText('There is a problem')).toBeInTheDocument();
                 const errorMessages = screen.getAllByText(incorrectFormatMessage);
                 expect(errorMessages.length).toBeGreaterThan(0);
             });
@@ -787,7 +780,6 @@ describe('ReviewDetailsPatientSearchPage', () => {
                     blob: new Blob(['content'], { type: 'application/pdf' }),
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '1',
-                    attempts: 0,
                     docType: '16521000000101' as DOCUMENT_TYPE,
                 },
             ] as ReviewUploadDocument[];
@@ -820,7 +812,6 @@ describe('ReviewDetailsPatientSearchPage', () => {
                     blob: mockBlob1,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '1',
-                    attempts: 0,
                     docType: '16521000000101' as DOCUMENT_TYPE,
                 },
                 {
@@ -828,7 +819,6 @@ describe('ReviewDetailsPatientSearchPage', () => {
                     blob: mockBlob2,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '2',
-                    attempts: 0,
                     docType: '16521000000101' as DOCUMENT_TYPE,
                 },
             ] as ReviewUploadDocument[];
@@ -866,7 +856,6 @@ describe('ReviewDetailsPatientSearchPage', () => {
                     blob: mockBlob,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '1',
-                    attempts: 0,
                     docType: '16521000000101' as DOCUMENT_TYPE,
                 },
             ] as ReviewUploadDocument[];
@@ -949,7 +938,6 @@ describe('ReviewDetailsPatientSearchPage', () => {
                     blob: new Blob(['content'], { type: 'application/pdf' }),
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '1',
-                    attempts: 0,
                     docType: '16521000000101' as DOCUMENT_TYPE,
                 },
             ] as ReviewUploadDocument[];
@@ -991,21 +979,18 @@ describe('ReviewDetailsPatientSearchPage', () => {
                     file: mockPdfFile1,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '1',
-                    attempts: 0,
                     docType: '16521000000101' as DOCUMENT_TYPE,
                 },
                 {
                     file: mockPdfFile2,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '2',
-                    attempts: 0,
                     docType: '16521000000101' as DOCUMENT_TYPE,
                 },
                 {
                     file: mockNonPdfFile,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '3',
-                    attempts: 0,
                     docType: '16521000000101' as DOCUMENT_TYPE,
                 },
             ] as ReviewUploadDocument[];

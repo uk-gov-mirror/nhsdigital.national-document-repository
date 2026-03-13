@@ -54,7 +54,6 @@ const makeReviewDoc = (
         id: `id-${name}`,
         file: new File(['%PDF-1.4'], name, { type: 'application/pdf' }),
         docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-        attempts: 0,
         state,
         type,
     };

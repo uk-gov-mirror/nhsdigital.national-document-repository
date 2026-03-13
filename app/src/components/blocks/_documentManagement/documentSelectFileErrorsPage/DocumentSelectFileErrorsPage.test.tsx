@@ -31,7 +31,6 @@ const createFailedDocument = (name: string, error: UPLOAD_FILE_ERROR_TYPE): Uplo
     state: DOCUMENT_UPLOAD_STATE.FAILED,
     docType: DOCUMENT_TYPE.LLOYD_GEORGE,
     error,
-    attempts: 0,
 });
 
 const renderDocs = (documents: UploadDocument[] = []): void => {

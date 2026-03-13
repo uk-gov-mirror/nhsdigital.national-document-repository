@@ -646,7 +646,6 @@ describe('DocumentSelectStage', () => {
             state: DOCUMENT_UPLOAD_STATE.SELECTED,
             progress: 0,
             docType: docConfig.snomedCode as DOCUMENT_TYPE,
-            attempts: 0,
             numPages: 1,
             type: UploadDocumentType.REVIEW,
         };
@@ -657,7 +656,6 @@ describe('DocumentSelectStage', () => {
             state: DOCUMENT_UPLOAD_STATE.SELECTED,
             progress: 0,
             docType: docConfig.snomedCode as DOCUMENT_TYPE,
-            attempts: 0,
             numPages: 1,
             type: undefined,
         };
@@ -778,7 +776,6 @@ describe('DocumentSelectStage', () => {
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 progress: 0,
                 docType: docConfig.snomedCode as DOCUMENT_TYPE,
-                attempts: 0,
                 numPages: 1,
             };
 
@@ -805,7 +802,6 @@ describe('DocumentSelectStage', () => {
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 progress: 0,
                 docType: docConfig.snomedCode as DOCUMENT_TYPE,
-                attempts: 0,
                 numPages: 1,
             };
 

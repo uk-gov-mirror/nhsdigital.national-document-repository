@@ -1674,7 +1674,6 @@ describe('getReviews.ts', () => {
             expect(doc).toHaveProperty('state', DOCUMENT_UPLOAD_STATE.SELECTED);
             expect(doc).toHaveProperty('progress', 0);
             expect(doc).toHaveProperty('docType', documentTypeModule.DOCUMENT_TYPE.EHR);
-            expect(doc).toHaveProperty('attempts', 0);
             expect(doc).toHaveProperty('numPages', undefined);
             expect(doc).toHaveProperty('validated', false);
             expect(doc).not.toHaveProperty('versionId');

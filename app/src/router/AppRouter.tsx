@@ -247,6 +247,18 @@ export const childRoutes = [
         route: routeChildren.DOCUMENT_REASSIGN_SEARCH_PATIENT,
         parent: DOCUMENT_REASSIGN_PAGES,
     },
+    {
+        route: routeChildren.DOCUMENT_REASSIGN_VERIFY_PATIENT_DETAILS,
+        parent: DOCUMENT_REASSIGN_PAGES,
+    },
+    {
+        route: routeChildren.DOCUMENT_REASSIGN_UPLOADING,
+        parent: DOCUMENT_REASSIGN_PAGES,
+    },
+    {
+        route: routeChildren.DOCUMENT_REASSIGN_COMPLETE,
+        parent: DOCUMENT_REASSIGN_PAGES,
+    },
 ];
 
 export const routeMap: Routes = {

@@ -1,4 +1,4 @@
-import { Dispatch, JSX, SetStateAction, useEffect, useState } from 'react';
+import { JSX, useEffect, useState } from 'react';
 import { Outlet, Route, Routes, useNavigate } from 'react-router-dom';
 import ReviewDetailsAddMoreChoiceStage from '../../components/blocks/_reviews/reviewDetailsAddMoreChoiceStage/ReviewDetailsAddMoreChoiceStage';
 import ReviewDetailsAssessmentStage from '../../components/blocks/_reviews/reviewDetailsAssessmentStage/ReviewDetailsAssessmentStage';
@@ -14,7 +14,6 @@ import ReviewDetailsNoFilesChoiceStage from '../../components/blocks/_reviews/re
 import ReviewsDetailsStage from '../../components/blocks/_reviews/reviewsDetailsStage/ReviewsDetailsStage';
 import ReviewDetailsPatientSearchStage from '../../components/blocks/_reviews/reviewDetailsPatientSearchStage/ReviewDetailsPatientSearchStage';
 import ReviewsPageIndex from '../../components/blocks/_reviews/reviewsPageIndex/ReviewsPageIndex';
-import PatientVerifyPage from '../../components/blocks/generic/patientVerifyPage/PatientVerifyPage';
 import DocumentSelectFileErrorsPage from '../../components/blocks/_documentManagement/documentSelectFileErrorsPage/DocumentSelectFileErrorsPage';
 import useConfig from '../../helpers/hooks/useConfig';
 import { routeChildren, routes } from '../../types/generic/routes';
@@ -31,6 +30,7 @@ import { getChildPath } from '../../helpers/utils/urlManipulations';
 import ReviewDataGuard from '../../router/guards/reviewDataGuard/ReviewDataGuard';
 import ReviewDetailsDontKnowNHSNumberConfirmStage from '../../components/blocks/_admin/reviewDetailsDontKnowNHSNumberConfirmStage/ReviewDetailsDontKnowNHSNumberConfirmStage';
 import getReviewNavigationFormat from '../../helpers/getReviewNavigationFormat';
+import ReviewDetailsPatientVerifyStage from '../../components/blocks/_reviews/reviewDetailsPatientVerifyStage/ReviewDetailsPatientVerifyStage';
 
 export enum CompleteState {
     PATIENT_UNKNOWN = 'PATIENT_UNKNOWN',
@@ -65,15 +65,6 @@ const ReviewsPage = (): JSX.Element => {
         navigate(routes.HOME);
         return <></>;
     }
-
-    const patientVerifyOnSubmit = (setInputError: Dispatch<SetStateAction<string>>): void => {
-        navigate(
-            routeChildren.REVIEW_COMPLETE_PATIENT_MATCH.replaceAll(
-                ':reviewId',
-                getReviewNavigationFormat(reviewData!.id, reviewData!.version),
-            ),
-        );
-    };
 
     const loadData = async (): Promise<void> => {
         if (!reviewData) {
@@ -238,9 +229,19 @@ const ReviewsPage = (): JSX.Element => {
                         routeChildren.REVIEW_DONT_KNOW_NHS_NUMBER_PATIENT_VERIFY,
                     )}
                     element={
-                        <PatientVerifyPage
-                            onSubmit={patientVerifyOnSubmit}
-                            reviewPatientDetails={newPatientDetails}
+                        <ReviewDetailsPatientVerifyStage
+                            onSubmit={(): void => {
+                                navigate(
+                                    routeChildren.REVIEW_COMPLETE_PATIENT_MATCH.replaceAll(
+                                        ':reviewId',
+                                        getReviewNavigationFormat(
+                                            reviewData!.id,
+                                            reviewData!.version,
+                                        ),
+                                    ),
+                                );
+                            }}
+                            patientDetails={newPatientDetails!}
                         />
                     }
                 />

@@ -35,6 +35,10 @@ vi.mock(
 vi.mock('../../helpers/utils/errorToParams', () => ({
     errorToParams: (): string => '?encodedError=Error%3A%20Fetch%20failed',
 }));
+vi.mock('../../helpers/hooks/usePatient');
+vi.mock('../../helpers/hooks/useSession');
+vi.mock('../../helpers/hooks/useBaseAPIHeaders');
+vi.mock('../../helpers/hooks/useBaseURL');
 global.fetch = vi.fn(() =>
     Promise.resolve({
         blob: () => Promise.resolve(new Blob()),

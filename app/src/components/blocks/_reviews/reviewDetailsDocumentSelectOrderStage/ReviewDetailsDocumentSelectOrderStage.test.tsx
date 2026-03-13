@@ -25,7 +25,6 @@ vi.mock('../../_documentManagement/documentSelectOrderStage/DocumentSelectOrderS
                                 state: 'SELECTED',
                                 progress: 0,
                                 docType: 'LLOYD_GEORGE',
-                                attempts: 0,
                                 numPages: 1,
                                 validated: false,
                             },
@@ -89,7 +88,6 @@ describe('ReviewDetailsDocumentSelectOrderStage', () => {
         state: 'SELECTED',
         progress: 0,
         docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-        attempts: 0,
         numPages: 1,
         validated: false,
     } as UploadDocument;

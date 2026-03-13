@@ -36,21 +36,18 @@ describe('DocumentUploadRemoveFilesStage', () => {
                 file: new File(['test'], 'test1.pdf'),
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                attempts: 0,
             },
             {
                 id: '2',
                 file: new File(['test'], 'test2.pdf'),
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 docType: DOCUMENT_TYPE.EHR,
-                attempts: 0,
             },
             {
                 id: '3',
                 file: new File(['test'], 'test3.pdf'),
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                attempts: 0,
             },
         ];
     });

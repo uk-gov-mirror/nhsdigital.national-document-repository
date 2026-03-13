@@ -8,25 +8,21 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { routes } from '../../../../types/generic/routes';
 import { allDocsHaveState } from '../../../../helpers/utils/uploadDocumentHelpers';
-import { getJourney } from '../../../../helpers/utils/urlManipulations';
-import { DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
 
 type Props = {
     documents: UploadDocument[];
     startUpload: () => Promise<void>;
-    documentConfig: DOCUMENT_TYPE_CONFIG;
+    title: string;
+    warningBoxText: string;
 };
 
 const DocumentUploadingStage = ({
     documents,
     startUpload,
-    documentConfig,
+    title,
+    warningBoxText,
 }: Props): React.JSX.Element => {
-    const journey = getJourney();
-    const pageHeader =
-        journey === 'update' ? 'Uploading additional files' : 'Your documents are uploading';
-
-    useTitle({ pageTitle: 'Uploading documents' });
+    useTitle({ pageTitle: title });
     const navigate = useNavigate();
     const uploadStartedRef = useRef<boolean>(false);
 
@@ -51,19 +47,10 @@ const DocumentUploadingStage = ({
 
     return (
         <>
-            <h1 data-testid="arf-upload-uploading-stage-header">{pageHeader}</h1>
+            <h1 data-testid="arf-upload-uploading-stage-header">{title}</h1>
             <WarningCallout id="upload-stage-warning">
                 <WarningCallout.Label headingLevel="h2">Stay on this page</WarningCallout.Label>
-                <p>
-                    Do not close or navigate away from this page until the upload is complete.{' '}
-                    {documentConfig.stitched && (
-                        <span>
-                            {journey === 'update'
-                                ? `Your files will be added to the existing ${documentConfig.displayName} when the upload is complete.`
-                                : 'Your files will be combined into one document when the upload is complete.'}
-                        </span>
-                    )}
-                </p>
+                <p>{warningBoxText}</p>
             </WarningCallout>
             <Table
                 responsive
@@ -100,14 +87,16 @@ const DocumentUploadingStage = ({
                     ))}
                 </Table.Body>
             </Table>
-            {documents.some((d) => d.state === DOCUMENT_UPLOAD_STATE.SCANNING) && (
-                <div id="virus-scan-status">
-                    <div className="nhsuk-inset-text">
-                        <span className="nhsuk-u-visually-hidden">Information: </span>
-                        <p>Virus scan in progress...</p>
-                    </div>
+            <div id="virus-scan-status">
+                <div className="nhsuk-inset-text">
+                    <span className="nhsuk-u-visually-hidden">Information: </span>
+                    <p>
+                        {documents.some((d) => d.state === DOCUMENT_UPLOAD_STATE.SCANNING)
+                            ? 'Virus scan in progress...'
+                            : 'Processing...'}
+                    </p>
                 </div>
-            )}
+            </div>
         </>
     );
 };

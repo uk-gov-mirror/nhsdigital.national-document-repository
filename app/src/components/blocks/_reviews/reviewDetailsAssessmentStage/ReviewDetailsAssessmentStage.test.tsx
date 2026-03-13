@@ -158,7 +158,6 @@ const createMockUploadDocuments = (): ReviewUploadDocument[] => [
         type: UploadDocumentType.REVIEW,
         state: DOCUMENT_UPLOAD_STATE.SELECTED,
         docType: '16521000000101' as DOCUMENT_TYPE,
-        attempts: 0,
     },
     {
         id: 'new-2',
@@ -166,7 +165,6 @@ const createMockUploadDocuments = (): ReviewUploadDocument[] => [
         type: UploadDocumentType.REVIEW,
         state: DOCUMENT_UPLOAD_STATE.SELECTED,
         docType: '16521000000101' as DOCUMENT_TYPE,
-        attempts: 0,
     },
     {
         id: 'existing-1',
@@ -174,7 +172,6 @@ const createMockUploadDocuments = (): ReviewUploadDocument[] => [
         type: UploadDocumentType.EXISTING,
         state: DOCUMENT_UPLOAD_STATE.SELECTED,
         docType: '16521000000101' as DOCUMENT_TYPE,
-        attempts: 0,
     },
 ];
 
@@ -492,7 +489,6 @@ describe('ReviewDetailsAssessmentStage', () => {
                     type: UploadDocumentType.REVIEW,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     docType: '16521000000101' as DOCUMENT_TYPE,
-                    attempts: 0,
                 },
                 {
                     id: 'new-2',
@@ -502,7 +498,6 @@ describe('ReviewDetailsAssessmentStage', () => {
                     type: UploadDocumentType.REVIEW,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     docType: '16521000000101' as DOCUMENT_TYPE,
-                    attempts: 0,
                 },
             ];
 
@@ -556,7 +551,6 @@ describe('ReviewDetailsAssessmentStage', () => {
                     type: UploadDocumentType.EXISTING,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     docType: '16521000000101' as DOCUMENT_TYPE,
-                    attempts: 0,
                 },
                 {
                     id: 'existing-2',
@@ -566,7 +560,6 @@ describe('ReviewDetailsAssessmentStage', () => {
                     type: UploadDocumentType.EXISTING,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     docType: '16521000000101' as DOCUMENT_TYPE,
-                    attempts: 0,
                 },
             ];
 
@@ -968,7 +961,6 @@ describe('ReviewDetailsAssessmentStage', () => {
                     type: UploadDocumentType.REVIEW,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     docType: '24511000000107' as DOCUMENT_TYPE,
-                    attempts: 0,
                 },
             ];
 
@@ -1025,7 +1017,6 @@ describe('ReviewDetailsAssessmentStage', () => {
                     type: UploadDocumentType.REVIEW,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     docType: '24511000000107' as DOCUMENT_TYPE,
-                    attempts: 0,
                 },
                 {
                     id: 'new-2',
@@ -1033,7 +1024,6 @@ describe('ReviewDetailsAssessmentStage', () => {
                     type: UploadDocumentType.REVIEW,
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     docType: '24511000000107' as DOCUMENT_TYPE,
-                    attempts: 0,
                 },
             ];
 

@@ -22,13 +22,13 @@ import {
 } from '../../types/blocks/documentReview';
 import { getDocumentReviewStatus, uploadDocumentForReview } from '../requests/documentReview';
 import { Dispatch, RefObject, SetStateAction } from 'react';
-import { EnhancedNavigate, getJourney, JourneyType } from './urlManipulations';
 import { routeChildren, routes } from '../../types/generic/routes';
 import {
     MAX_POLLING_TIME,
     UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS,
 } from '../constants/network';
 import { errorCodeToParams } from './errorToParams';
+import { NavigateFunction } from 'react-router';
 
 export const reduceDocumentsForUpload = async (
     documents: UploadDocument[],
@@ -50,7 +50,6 @@ export const reduceDocumentsForUpload = async (
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 progress: 0,
                 docType: documentConfig.snomedCode,
-                attempts: 0,
                 versionId: versionId,
             },
         ];
@@ -70,7 +69,6 @@ export const reduceDocumentsForUpload = async (
                 state: DOCUMENT_UPLOAD_STATE.SELECTED,
                 progress: 0,
                 docType: documentConfig.snomedCode,
-                attempts: 0,
                 versionId,
             },
         ];
@@ -80,7 +78,8 @@ export const reduceDocumentsForUpload = async (
 };
 
 export const getUploadSession = async (
-    patientDetails: PatientDetails,
+    isUpload: boolean,
+    nhsNumber: string,
     baseUrl: string,
     baseHeaders: AuthHeaders,
     existingDocumentId: string | undefined,
@@ -91,9 +90,9 @@ export const getUploadSession = async (
         return buildMockUploadSession(documents);
     }
 
-    if (patientDetails?.canManageRecord) {
+    if (isUpload) {
         return await uploadDocuments({
-            nhsNumber: patientDetails.nhsNumber,
+            nhsNumber: nhsNumber,
             documents: documents,
             baseUrl,
             baseHeaders,
@@ -102,7 +101,7 @@ export const getUploadSession = async (
     }
 
     return await getUploadSessionForReview(
-        patientDetails,
+        nhsNumber,
         baseUrl,
         baseHeaders,
         documents,
@@ -110,8 +109,8 @@ export const getUploadSession = async (
     );
 };
 
-const getUploadSessionForReview = async (
-    patientDetails: PatientDetails,
+export const getUploadSessionForReview = async (
+    nhsNumber: string,
     baseUrl: string,
     baseHeaders: AuthHeaders,
     documents: UploadDocument[],
@@ -122,7 +121,7 @@ const getUploadSessionForReview = async (
 
     const reviewDocs = documents.map((document) => {
         const documentReview = uploadDocumentForReview({
-            nhsNumber: patientDetails.nhsNumber,
+            nhsNumber: nhsNumber,
             document,
             baseUrl,
             baseHeaders,
@@ -225,7 +224,8 @@ export const startIntervalTimer = (
     setInterval: Dispatch<SetStateAction<number>>,
     documents: Array<UploadDocument>,
     setDocuments: Dispatch<SetStateAction<UploadDocument[]>>,
-    patientDetails: PatientDetails,
+    isUpload: boolean,
+    nhsNumber: string,
     baseUrl: string,
     baseHeaders: AuthHeaders,
     timeout: number,
@@ -259,12 +259,12 @@ export const startIntervalTimer = (
                     return doc;
                 });
                 setDocuments(updatedDocuments);
-            } else if (patientDetails.canManageRecord) {
+            } else if (isUpload) {
                 const documentStatusResult = await getDocumentStatus({
                     documents: uploadDocuments,
                     baseUrl,
                     baseHeaders,
-                    nhsNumber: patientDetails.nhsNumber,
+                    nhsNumber,
                 });
 
                 handleDocStatusResult(documentStatusResult, setDocuments);
@@ -274,7 +274,7 @@ export const startIntervalTimer = (
                         document,
                         baseUrl,
                         baseHeaders,
-                        nhsNumber: patientDetails.nhsNumber,
+                        nhsNumber,
                     }).then((result) => handleDocReviewStatusResult(result, setDocuments));
                 });
             }
@@ -317,22 +317,14 @@ export const goToPreviousDocType = (
 };
 
 export const handleDocumentStatusUpdates = (
-    journey: JourneyType,
-    navigate: EnhancedNavigate,
+    navigate: NavigateFunction,
     intervalTimer: number,
     interval: number,
     documents: UploadDocument[],
     virusReference: RefObject<boolean>,
     completeRef: RefObject<boolean>,
+    onComplete: () => void,
 ): void => {
-    const journeyParam = getJourney();
-
-    if (journeyParam === 'update' && journey !== journeyParam) {
-        globalThis.clearInterval(intervalTimer);
-        navigate(routes.SERVER_ERROR);
-        return;
-    }
-
     if (interval * UPDATE_DOCUMENT_STATE_FREQUENCY_MILLISECONDS > MAX_POLLING_TIME) {
         globalThis.clearInterval(intervalTimer);
         navigate(routes.SERVER_ERROR);
@@ -363,6 +355,6 @@ export const handleDocumentStatusUpdates = (
     } else if (allFinished && !completeRef.current) {
         completeRef.current = true;
         globalThis.clearInterval(intervalTimer);
-        navigate.withParams(routeChildren.DOCUMENT_UPLOAD_COMPLETED);
+        onComplete();
     }
 };

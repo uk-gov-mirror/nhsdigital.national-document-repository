@@ -58,7 +58,6 @@ describe('ReviewDetailsCompletePage', () => {
             file: mockFile,
             id: 'test-id-1',
             docType: DOCUMENT_TYPE.LLOYD_GEORGE,
-            attempts: 1,
         },
     ];
 
