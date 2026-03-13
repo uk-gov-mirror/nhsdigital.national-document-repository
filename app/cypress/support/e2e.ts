@@ -53,6 +53,16 @@ Cypress.Commands.add('getByTestId', (selector, ...args) => {
     return cy.get(`[data-testid=${selector}]`, ...args);
 });
 
+Cypress.Commands.add('declineCookies', () => {
+    // get the body and then attempt to find the accept button, if it exists click it
+    // we do this because we don't want the tests to fail if the cookie banner has already been accepted
+    cy.get('body').then(($body) => {
+        if ($body.find('#nhsuk-cookie-banner__link_accept:visible').length > 0) {
+            cy.get('#nhsuk-cookie-banner__link_accept').click();
+        }
+    });
+});
+
 Cypress.Commands.add('login', (role, featureFlags) => {
     const roleInfo: RoleInfo = resolveRole(role);
     const authCallback = '/auth-callback';
@@ -69,6 +79,9 @@ Cypress.Commands.add('login', (role, featureFlags) => {
     }).as('featureFlags');
 
     cy.visit(authCallback);
+
+    cy.declineCookies();
+
     cy.wait('@auth');
     cy.wait('@featureFlags');
 });
@@ -85,6 +98,9 @@ Cypress.Commands.add('smokeLogin', (role, odsCode = 'H81109') => {
         'Access and store digital patient documents',
     );
     cy.get('.nhsuk-header__navigation').should('not.exist');
+
+    cy.declineCookies();
+
     cy.getByTestId('start-btn').should('exist');
     cy.getByTestId('start-btn').click();
     cy.get('#key').should('exist');
@@ -207,6 +223,7 @@ declare global {
             navigateToHomePage(): Chainable<void>;
             navigateToPatientSearchPage(): Chainable<void>;
             navigateToDownloadReportPage(): Chainable<void>;
+            declineCookies(): Chainable<void>;
         }
     }
 }
