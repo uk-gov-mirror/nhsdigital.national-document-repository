@@ -92,6 +92,37 @@ def test_service(mocker, set_env, mock_tempfile):
 
 
 @pytest.fixture
+@freeze_time("2025-01-01T12:00:00")
+def test_service_with_review_enabled(mocker, set_env, mock_tempfile):
+    mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
+    mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository",
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadS3Repository",
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.BulkUploadSqsRepository",
+    )
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.get_virus_scan_service",
+    )
+
+    service = BulkUploadMetadataProcessorService(
+        metadata_formatter_service=MockMetadataPreprocessorService(
+            practice_directory=TEST_MOCK_METADATA_CSV,
+        ),
+        metadata_heading_remap={},
+        input_file_location=TEST_MOCK_METADATA_CSV,
+        send_to_review_enabled=True,
+    )
+
+    mocker.patch.object(service, "s3_service")
+    return service
+
+
+@pytest.fixture
 def metadata_filename():
     return METADATA_FILENAME
 
@@ -587,103 +618,80 @@ def test_handle_invalid_filename_writes_failed_entry_to_dynamo(
         mock_staging_metadata.return_value,
         UploadStatus.FAILED,
         str(error),
+        sent_to_review=False,
     )
 
     assert (nhs_number, ods_code) in failed_files
     assert failed_files[(nhs_number, ods_code)] == [expected_file]
 
 
+def test_handle_invalid_filename_sets_sent_to_review_true_when_review_enabled(
+    mocker,
+    test_service_with_review_enabled,
+    base_metadata_file,
+):
+    nhs_number = "1234567890"
+    ods_code = "Y12345"
+    failed_files = defaultdict(list)
+    error = InvalidFileNameException("Invalid filename format")
+
+    mock_write = mocker.patch.object(
+        test_service_with_review_enabled.dynamo_repository,
+        "write_report_upload_to_dynamo",
+    )
+    mocker.patch("services.bulk_upload_metadata_processor_service.StagingSqsMetadata")
+
+    test_service_with_review_enabled.handle_invalid_filename(
+        base_metadata_file,
+        error,
+        nhs_number,
+        ods_code,
+        failed_files,
+    )
+
+    mock_write.assert_called_once_with(
+        mocker.ANY,
+        UploadStatus.FAILED,
+        str(error),
+        sent_to_review=True,
+    )
+
+
 def test_csv_to_sqs_metadata_sends_failed_files_to_review_queue_when_enabled(
     mocker,
-    set_env,
-    mock_tempfile,
+    test_service_with_review_enabled,
 ):
     """Test that failed files are sent to review queue when flag is enabled"""
-    mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
-    mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
-    mocker.patch(
-        "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository",
-    )
-    mocker.patch(
-        "services.bulk_upload_metadata_processor_service.BulkUploadS3Repository",
-    )
-    mock_sqs_repo = mocker.patch(
-        "services.bulk_upload_metadata_processor_service.BulkUploadSqsRepository",
-    )
-    mocker.patch(
-        "services.bulk_upload_metadata_processor_service.get_virus_scan_service",
+    mocker.patch.object(
+        test_service_with_review_enabled,
+        "validate_and_correct_filename",
+        side_effect=InvalidFileNameException("invalid"),
     )
 
-    # Create mock preprocessor that raises InvalidFileNameException
-    class MockFailingPreprocessor(MetadataPreprocessorService):
-        def validate_record_filename(self, original_filename: str, *args, **kwargs):
-            raise InvalidFileNameException("Invalid filename")
-
-    service = BulkUploadMetadataProcessorService(
-        metadata_formatter_service=MockFailingPreprocessor(
-            practice_directory="test_practice_directory",
-        ),
-        metadata_heading_remap={},
-        input_file_location="test_input_file_location",
-        send_to_review_enabled=True,
-    )
-
-    mocker.patch(
-        "services.bulk_upload_metadata_processor_service.validate_file_name",
-        side_effect=LGInvalidFilesException("invalid"),
-    )
-
-    result = service.csv_to_sqs_metadata(MOCK_METADATA_CSV)
+    result = test_service_with_review_enabled.csv_to_sqs_metadata(MOCK_METADATA_CSV)
 
     # Should have sent to review queue
-    assert mock_sqs_repo.return_value.send_message_to_review_queue.called
+    assert (
+        test_service_with_review_enabled.sqs_repository.send_message_to_review_queue.called
+    )
     assert len(result) == 0  # No valid patients
 
 
 def test_csv_to_sqs_metadata_does_not_send_to_review_when_disabled(
     mocker,
-    set_env,
-    mock_tempfile,
+    test_service,
 ):
     """Test that failed files are NOT sent to review queue when flag is disabled"""
-    mocker.patch("services.bulk_upload_metadata_processor_service.S3Service")
-    mocker.patch("services.bulk_upload_metadata_processor_service.SQSService")
-    mocker.patch(
-        "services.bulk_upload_metadata_processor_service.BulkUploadDynamoRepository",
-    )
-    mocker.patch(
-        "services.bulk_upload_metadata_processor_service.BulkUploadS3Repository",
-    )
-    mock_sqs_repo = mocker.patch(
-        "services.bulk_upload_metadata_processor_service.BulkUploadSqsRepository",
-    )
-    mocker.patch(
-        "services.bulk_upload_metadata_processor_service.get_virus_scan_service",
+    mocker.patch.object(
+        test_service,
+        "validate_and_correct_filename",
+        side_effect=InvalidFileNameException("invalid"),
     )
 
-    # Create mock preprocessor that raises InvalidFileNameException
-    class MockFailingPreprocessor(MetadataPreprocessorService):
-        def validate_record_filename(self, original_filename: str, *args, **kwargs):
-            raise InvalidFileNameException("Invalid filename")
-
-    service = BulkUploadMetadataProcessorService(
-        metadata_formatter_service=MockFailingPreprocessor(
-            practice_directory="test_practice_directory",
-        ),
-        metadata_heading_remap={},
-        input_file_location="test_input_file_location",
-        send_to_review_enabled=False,
-    )
-
-    mocker.patch(
-        "services.bulk_upload_metadata_processor_service.validate_file_name",
-        side_effect=LGInvalidFilesException("invalid"),
-    )
-
-    result = service.csv_to_sqs_metadata(MOCK_METADATA_CSV)
+    result = test_service.csv_to_sqs_metadata(MOCK_METADATA_CSV)
 
     # Should NOT have sent to review queue
-    assert not mock_sqs_repo.return_value.send_message_to_review_queue.called
+    assert not test_service.sqs_repository.send_message_to_review_queue.called
     assert len(result) == 0  # No valid patients
 
 

@@ -422,6 +422,7 @@ def test_handle_sqs_message_calls_report_upload_failure_when_patient_record_alre
         UploadStatus.FAILED,
         str(mocked_error),
         "Y12345",
+        sent_to_review=False,
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
@@ -462,6 +463,7 @@ def test_handle_sqs_message_calls_report_upload_failure_when_lg_file_name_invali
         UploadStatus.FAILED,
         str(mocked_error),
         "Y12345",
+        sent_to_review=False,
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
@@ -999,6 +1001,7 @@ def test_reject_document_reference_if_missing_scan_date(
         UploadStatus.FAILED,
         "Invalid scan date format",
         "Y12345",
+        sent_to_review=False,
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
@@ -1022,7 +1025,7 @@ def test_raise_client_error_from_ssm_with_pds_service(
 
 
 def test_mismatch_ods_with_pds_service(
-    repo_under_test,
+    repo_with_review_enabled,
     mock_ods_validation,
     set_env,
     mock_uuid,
@@ -1032,13 +1035,14 @@ def test_mismatch_ods_with_pds_service(
 ):
     mock_ods_validation.return_value = False
 
-    repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
+    repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
 
-    repo_under_test.dynamo_repository.write_report_upload_to_dynamo.assert_called_with(
+    repo_with_review_enabled.dynamo_repository.write_report_upload_to_dynamo.assert_called_with(
         TEST_STAGING_METADATA,
         UploadStatus.FAILED,
         "Patient not registered at your practice",
         "Y12345",
+        sent_to_review=True,
     )
 
 
@@ -1462,3 +1466,45 @@ def test_does_not_send_to_review_queue_when_s3_file_not_found(
     repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
 
     repo_with_review_enabled.sqs_repository.send_message_to_review_queue.assert_not_called()
+
+
+def test_report_upload_sets_sent_to_review_true_when_validation_fails_and_review_enabled(
+    repo_with_review_enabled,
+    mock_validate_files,
+    mock_pds_service,
+):
+    mocked_error = LGInvalidFilesException(
+        "One or more of the files do not match naming convention",
+    )
+    mock_validate_files.side_effect = mocked_error
+
+    repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    repo_with_review_enabled.dynamo_repository.write_report_upload_to_dynamo.assert_called_with(
+        TEST_STAGING_METADATA,
+        UploadStatus.FAILED,
+        str(mocked_error),
+        "Y12345",
+        sent_to_review=True,
+    )
+
+
+def test_report_upload_sets_sent_to_review_false_when_validation_fails_and_review_disabled(
+    repo_under_test,
+    mock_validate_files,
+    mock_pds_service,
+):
+    mocked_error = LGInvalidFilesException(
+        "One or more of the files do not match naming convention",
+    )
+    mock_validate_files.side_effect = mocked_error
+
+    repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    repo_under_test.dynamo_repository.write_report_upload_to_dynamo.assert_called_with(
+        TEST_STAGING_METADATA,
+        UploadStatus.FAILED,
+        str(mocked_error),
+        "Y12345",
+        sent_to_review=False,
+    )

@@ -222,6 +222,7 @@ class BulkUploadService:
                 UploadStatus.FAILED,
                 reason,
                 patient_ods_code,
+                sent_to_review=self.send_to_review_enabled,
             )
             if isinstance(error, (InvalidNhsNumberException, PatientNotFoundException)):
                 logger.info("Invalid NHS number detected. Will set as placeholder")

@@ -1,7 +1,7 @@
-NhsNumber,UploaderOdsCode,Date,Reason,RegisteredAtUploaderPractice
-9000000005,Y12345,2012-01-13,Could not find the given patient on PDS,True
-9000000006,Y12345,2012-01-13,Could not find the given patient on PDS,True
-9000000007,Y12345,2012-01-13,Lloyd George file already exists,True
-9000000014,Z12345,2012-01-13,Could not find the given patient on PDS,True
-9000000015,Z12345,2012-01-13,Could not find the given patient on PDS,True
-9000000016,Z12345,2012-01-13,Lloyd George file already exists,True
+NhsNumber,UploaderOdsCode,Date,Reason,RegisteredAtUploaderPractice,SentToReview
+9000000005,Y12345,2012-01-13,Could not find the given patient on PDS,True,False
+9000000006,Y12345,2012-01-13,Could not find the given patient on PDS,True,False
+9000000007,Y12345,2012-01-13,Lloyd George file already exists,True,False
+9000000014,Z12345,2012-01-13,Could not find the given patient on PDS,True,False
+9000000015,Z12345,2012-01-13,Could not find the given patient on PDS,True,False
+9000000016,Z12345,2012-01-13,Lloyd George file already exists,True,False

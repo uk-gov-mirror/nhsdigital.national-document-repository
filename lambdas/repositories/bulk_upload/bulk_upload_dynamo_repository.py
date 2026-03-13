@@ -33,6 +33,7 @@ class BulkUploadDynamoRepository:
         upload_status: UploadStatus,
         reason: str = None,
         pds_ods_code: str = "",
+        sent_to_review: bool = False,
     ):
         nhs_number = staging_metadata.nhs_number
 
@@ -45,6 +46,9 @@ class BulkUploadDynamoRepository:
                 stored_file_name=file.stored_file_name,
                 pds_ods_code=pds_ods_code,
                 uploader_ods_code=file.gp_practice_code,
+                sent_to_review=(
+                    sent_to_review if upload_status == UploadStatus.FAILED else False
+                ),
             )
             self.dynamo_repository.create_item(
                 table_name=self.bulk_upload_report_dynamo_table,
@@ -60,5 +64,6 @@ class BulkUploadDynamoRepository:
             primary_key_value = document_reference.id
             deletion_key = {primary_key_name: primary_key_value}
             self.dynamo_repository.delete_item(
-                table_name=self.lg_dynamo_table, key=deletion_key
+                table_name=self.lg_dynamo_table,
+                key=deletion_key,
             )

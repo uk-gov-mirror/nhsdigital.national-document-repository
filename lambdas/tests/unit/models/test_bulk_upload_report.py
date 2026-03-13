@@ -1,6 +1,7 @@
+from freezegun import freeze_time
+
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.upload_status import UploadStatus
-from freezegun import freeze_time
 from models.report.bulk_upload_report import BulkUploadReport
 from tests.unit.conftest import TEST_UUID
 
@@ -14,6 +15,7 @@ MOCK_DATA_COMPLETE_UPLOAD = {
     "StoredFileName": "/9000000009/1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000009]_[25-12-2019].pdf",
     "PdsOdsCode": "Y12345",
     "UploaderOdsCode": "Y12345",
+    "SentToReview": False,
 }
 
 MOCK_REASON = "File name not matching Lloyd George naming convention"
@@ -28,6 +30,7 @@ MOCK_DATA_FAILED_UPLOAD = {
     "StoredFileName": "/9000000025/invalid_filename.pdf",
     "PdsOdsCode": "",
     "UploaderOdsCode": "Y12345",
+    "SentToReview": False,
 }
 
 mock_report = BulkUploadReport(

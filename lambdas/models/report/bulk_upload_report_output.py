@@ -1,7 +1,8 @@
+from inflection import underscore
+
 from enums.metadata_report import MetadataReport
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.upload_status import UploadStatus
-from inflection import underscore
 from models.report.bulk_upload_report import BulkUploadReport
 from utils.audit_logging_setup import LoggingService
 
@@ -87,9 +88,11 @@ class OdsReport(ReportBase):
         if item.pds_ods_code == PatientOdsInactiveStatus.SUSPENDED:
             self.total_suspended.add((item.nhs_number, item.date))
         elif item.pds_ods_code == PatientOdsInactiveStatus.DECEASED:
-            self.total_deceased.add((item.nhs_number, item.date, item.reason))
+            self.total_deceased.add(
+                (item.nhs_number, item.date, item.reason, item.sent_to_review),
+            )
         elif item.pds_ods_code == PatientOdsInactiveStatus.RESTRICTED:
-            self.total_restricted.add((item.nhs_number, item.date))
+            self.total_restricted.add((item.nhs_number, item.date, item.sent_to_review))
         elif (
             item.uploader_ods_code != item.pds_ods_code
             and item.pds_ods_code not in PatientOdsInactiveStatus.list()
@@ -101,7 +104,7 @@ class OdsReport(ReportBase):
                 item.nhs_number,
                 item.date,
                 item.get_registered_at_uploader_practice_status(),
-            )
+            ),
         )
 
     def process_failed_report_item(self, item: BulkUploadReport):
@@ -122,10 +125,11 @@ class OdsReport(ReportBase):
                             underscore(str(MetadataReport.Timestamp)),
                             underscore(str(MetadataReport.UploaderOdsCode)),
                             underscore(str(MetadataReport.Reason)),
+                            underscore(str(MetadataReport.SentToReview)),
                         },
                         by_alias=True,
-                    )
-                }
+                    ),
+                },
             )
             self.failures_per_patient[item.nhs_number][
                 MetadataReport.RegisteredAtUploaderPractice.value
@@ -178,13 +182,13 @@ class SummaryReport(ReportBase):
                         f"{MetadataReport.Reason} for {report.uploader_ods_code}",
                         reason,
                         count,
-                    ]
+                    ],
                 )
 
         if ods_code_success_total:
             for uploader_ods_code, nhs_numbers in ods_code_success_total.items():
                 self.success_summary.append(
-                    ["Success by ODS", uploader_ods_code, len(nhs_numbers)]
+                    ["Success by ODS", uploader_ods_code, len(nhs_numbers)],
                 )
         else:
             self.success_summary.append(["Success by ODS", "No ODS codes found", 0])

@@ -5,8 +5,9 @@ from unittest.mock import call
 
 import pytest
 from boto3.dynamodb.conditions import Attr
-from enums.metadata_report import MetadataReport
 from freezegun import freeze_time
+
+from enums.metadata_report import MetadataReport
 from models.report.bulk_upload_report import BulkUploadReport
 from services.bulk_upload_report_service import BulkUploadReportService, OdsReport
 from tests.unit.conftest import (
@@ -84,7 +85,7 @@ def mock_get_times_for_scan(bulk_upload_report_service, mocker):
 @pytest.fixture
 def mock_filter(mocker):
     mock_filter = Attr("Timestamp").gt(MOCK_START_REPORT_TIME) & Attr("Timestamp").lt(
-        MOCK_END_REPORT_TIME
+        MOCK_END_REPORT_TIME,
     )
 
     mocker.patch("boto3.dynamodb.conditions.And", return_value=mock_filter)
@@ -133,7 +134,7 @@ def test_get_time_for_scan_at_7am(bulk_upload_report_service):
 
 def test_get_dynamo_data_2_calls(bulk_upload_report_service, mock_filter):
     mock_last_key = {
-        "FilePath": "/9000000010/2of2_Lloyd_George_Record_[NAME_2]_[9000000010]_[DOB].pdf"
+        "FilePath": "/9000000010/2of2_Lloyd_George_Record_[NAME_2]_[9000000010]_[DOB].pdf",
     }
     bulk_upload_report_service.db_service.scan_table.side_effect = [
         MOCK_REPORT_RESPONSE_ALL_WITH_LAST_KEY,
@@ -141,7 +142,8 @@ def test_get_dynamo_data_2_calls(bulk_upload_report_service, mock_filter):
     ]
 
     actual = bulk_upload_report_service.get_dynamodb_report_items(
-        int(MOCK_START_REPORT_TIME.timestamp()), int(MOCK_END_REPORT_TIME.timestamp())
+        int(MOCK_START_REPORT_TIME.timestamp()),
+        int(MOCK_END_REPORT_TIME.timestamp()),
     )
 
     assert actual == MOCK_REPORT_ITEMS_ALL * 2
@@ -158,7 +160,9 @@ def test_get_dynamo_data_2_calls(bulk_upload_report_service, mock_filter):
 
 
 def test_get_dynamo_data_handles_invalid_dynamo_data(
-    bulk_upload_report_service, mock_filter, caplog
+    bulk_upload_report_service,
+    mock_filter,
+    caplog,
 ):
     invalid_data = {
         "Timestamp": 1688395680,
@@ -174,7 +178,8 @@ def test_get_dynamo_data_handles_invalid_dynamo_data(
     ]
 
     actual = bulk_upload_report_service.get_dynamodb_report_items(
-        int(MOCK_START_REPORT_TIME.timestamp()), int(MOCK_END_REPORT_TIME.timestamp())
+        int(MOCK_START_REPORT_TIME.timestamp()),
+        int(MOCK_END_REPORT_TIME.timestamp()),
     )
 
     assert actual == [MOCK_REPORT_ITEMS_ALL[1]]
@@ -183,17 +188,19 @@ def test_get_dynamo_data_handles_invalid_dynamo_data(
 
 def test_get_dynamo_data_with_no_start_key(bulk_upload_report_service, mock_filter):
     bulk_upload_report_service.db_service.scan_table.side_effect = [
-        MOCK_REPORT_RESPONSE_ALL
+        MOCK_REPORT_RESPONSE_ALL,
     ]
 
     actual = bulk_upload_report_service.get_dynamodb_report_items(
-        int(MOCK_START_REPORT_TIME.timestamp()), int(MOCK_END_REPORT_TIME.timestamp())
+        int(MOCK_START_REPORT_TIME.timestamp()),
+        int(MOCK_END_REPORT_TIME.timestamp()),
     )
 
     assert actual == MOCK_REPORT_ITEMS_ALL
     bulk_upload_report_service.db_service.scan_table.assert_called_once()
     bulk_upload_report_service.db_service.scan_table.assert_called_with(
-        MOCK_BULK_REPORT_TABLE_NAME, filter_expression=mock_filter
+        MOCK_BULK_REPORT_TABLE_NAME,
+        filter_expression=mock_filter,
     )
 
 
@@ -201,7 +208,8 @@ def test_get_dynamo_data_with_no_items_returns_empty_list(bulk_upload_report_ser
     bulk_upload_report_service.db_service.scan_table.side_effect = [MOCK_EMPTY_RESPONSE]
 
     actual = bulk_upload_report_service.get_dynamodb_report_items(
-        int(MOCK_START_REPORT_TIME.timestamp()), int(MOCK_END_REPORT_TIME.timestamp())
+        int(MOCK_START_REPORT_TIME.timestamp()),
+        int(MOCK_END_REPORT_TIME.timestamp()),
     )
 
     assert actual == []
@@ -214,7 +222,8 @@ def test_get_dynamo_data_with_bad_response_returns_empty_list(
     bulk_upload_report_service.db_service.scan_table.side_effect = [UNEXPECTED_RESPONSE]
 
     actual = bulk_upload_report_service.get_dynamodb_report_items(
-        int(MOCK_START_REPORT_TIME.timestamp()), int(MOCK_END_REPORT_TIME.timestamp())
+        int(MOCK_START_REPORT_TIME.timestamp()),
+        int(MOCK_END_REPORT_TIME.timestamp()),
     )
 
     assert actual == []
@@ -334,7 +343,8 @@ def test_report_handler_with_items_uploads_summary_report_to_bucket(
     ]
 
     bulk_upload_report_service.s3_service.upload_file.assert_has_calls(
-        calls, any_order=False
+        calls,
+        any_order=False,
     )
 
     log_message_match = set(expected_messages).issubset(caplog.messages)
@@ -343,7 +353,8 @@ def test_report_handler_with_items_uploads_summary_report_to_bucket(
 
 
 def test_write_items_to_csv_writes_header_and_rows(
-    tmp_path, bulk_upload_report_service
+    tmp_path,
+    bulk_upload_report_service,
 ):
     items = [
         BulkUploadReport(
@@ -387,6 +398,7 @@ def test_write_items_to_csv_writes_header_and_rows(
             MetadataReport.FilePath,
             MetadataReport.Date,
             MetadataReport.Timestamp,
+            MetadataReport.SentToReview,
         ]
         assert reader.fieldnames == expected_headers
 
@@ -400,6 +412,7 @@ def test_write_items_to_csv_writes_header_and_rows(
         assert rows[0][MetadataReport.FilePath] == "/9000000009/file1.pdf"
         assert rows[0][MetadataReport.Date] == "2023-10-30"
         assert rows[0][MetadataReport.Timestamp] == "1698661500"
+        assert rows[0][MetadataReport.SentToReview] == "False"
 
         assert rows[1][MetadataReport.NhsNumber] == "9000000025"
         assert rows[1][MetadataReport.UploadStatus] == "failed"
@@ -409,10 +422,12 @@ def test_write_items_to_csv_writes_header_and_rows(
         assert rows[1][MetadataReport.FilePath] == "/9000000025/invalid.pdf"
         assert rows[1][MetadataReport.Date] == "2023-10-30"
         assert rows[1][MetadataReport.Timestamp] == "1698661600"
+        assert rows[1][MetadataReport.SentToReview] == "False"
 
 
 def test_write_items_to_csv_excludes_id_and_stored_file_name(
-    tmp_path, bulk_upload_report_service
+    tmp_path,
+    bulk_upload_report_service,
 ):
     item = BulkUploadReport(
         ID="abc-123",
@@ -441,7 +456,8 @@ def test_write_items_to_csv_excludes_id_and_stored_file_name(
 
 
 def test_write_items_to_csv_with_empty_list_writes_only_header(
-    tmp_path, bulk_upload_report_service
+    tmp_path,
+    bulk_upload_report_service,
 ):
     csv_path = tmp_path / "empty.csv"
 
@@ -461,12 +477,15 @@ def test_write_items_to_csv_with_empty_list_writes_only_header(
             MetadataReport.FilePath,
             MetadataReport.Date,
             MetadataReport.Timestamp,
+            MetadataReport.SentToReview,
         ]
         assert lines[0] == expected_headers
 
 
 def test_generate_individual_ods_report_creates_ods_report(
-    bulk_upload_report_service, mock_write_summary_data_to_csv, mock_get_times_for_scan
+    bulk_upload_report_service,
+    mock_write_summary_data_to_csv,
+    mock_get_times_for_scan,
 ):
     expected = OdsReport(
         MOCK_TIMESTAMP,
@@ -475,7 +494,8 @@ def test_generate_individual_ods_report_creates_ods_report(
     )
 
     actual = bulk_upload_report_service.generate_individual_ods_report(
-        TEST_UPLOADER_ODS_1, MOCK_REPORT_ITEMS_UPLOADER_1
+        TEST_UPLOADER_ODS_1,
+        MOCK_REPORT_ITEMS_UPLOADER_1,
     )
 
     assert actual.__dict__ == expected.__dict__
@@ -497,12 +517,14 @@ def test_generate_individual_ods_report_creates_ods_report(
 
 
 def test_generate_individual_ods_report_writes_csv_report(
-    bulk_upload_report_service, mock_get_times_for_scan
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
 ):
     mock_file_name = f"daily_statistical_report_bulk_upload_ods_summary_{MOCK_TIMESTAMP}_uploaded_by_{TEST_CURRENT_GP_ODS}.csv"
 
     bulk_upload_report_service.generate_individual_ods_report(
-        TEST_UPLOADER_ODS_1, MOCK_REPORT_ITEMS_UPLOADER_1
+        TEST_UPLOADER_ODS_1,
+        MOCK_REPORT_ITEMS_UPLOADER_1,
     )
     expected = readfile("expected_ods_report_for_uploader_1.csv")
     with open(f"/tmp/{mock_file_name}") as test_file:
@@ -518,7 +540,8 @@ def test_generate_individual_ods_report_writes_csv_report(
 
 
 def test_generate_ods_reports_writes_multiple_ods_reports(
-    bulk_upload_report_service, mock_get_times_for_scan
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
 ):
     mock_file_name_uploader_1 = (
         f"daily_statistical_report_bulk_upload_ods_summary_{MOCK_TIMESTAMP}"
@@ -546,7 +569,8 @@ def test_generate_ods_reports_writes_multiple_ods_reports(
 
 
 def test_generate_summary_report_with_two_ods_reports(
-    bulk_upload_report_service, mock_get_times_for_scan
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
 ):
     mock_file_name = (
         f"daily_statistical_report_bulk_upload_summary_{MOCK_TIMESTAMP}.csv"
@@ -563,7 +587,9 @@ def test_generate_summary_report_with_two_ods_reports(
 
 
 def test_generate_success_report_writes_csv(
-    bulk_upload_report_service, mock_get_times_for_scan, mocker
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
 ):
     mock_file_name = (
         f"daily_statistical_report_bulk_upload_success_{MOCK_TIMESTAMP}.csv"
@@ -585,7 +611,9 @@ def test_generate_success_report_writes_csv(
 
 
 def test_generate_success_report_does_not_write_when_no_data(
-    bulk_upload_report_service, mock_get_times_for_scan, mocker
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
 ):
     bulk_upload_report_service.write_and_upload_additional_reports = mocker.MagicMock()
 
@@ -597,7 +625,9 @@ def test_generate_success_report_does_not_write_when_no_data(
 
 
 def test_generate_suspended_report_writes_csv(
-    bulk_upload_report_service, mock_get_times_for_scan, mocker
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
 ):
     bulk_upload_report_service.write_and_upload_additional_reports = mocker.MagicMock()
 
@@ -611,7 +641,9 @@ def test_generate_suspended_report_writes_csv(
 
 
 def test_generate_suspended_report_does_not_write_when_no_data(
-    bulk_upload_report_service, mock_get_times_for_scan, mocker
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
 ):
     bulk_upload_report_service.write_and_upload_additional_reports = mocker.MagicMock()
 
@@ -625,7 +657,9 @@ def test_generate_suspended_report_does_not_write_when_no_data(
 
 
 def test_generate_deceased_report_writes_csv(
-    bulk_upload_report_service, mock_get_times_for_scan, mocker
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
 ):
     bulk_upload_report_service.write_and_upload_additional_reports = mocker.MagicMock()
 
@@ -639,7 +673,9 @@ def test_generate_deceased_report_writes_csv(
 
 
 def test_generate_deceased_report_does_not_write_when_no_data(
-    bulk_upload_report_service, mock_get_times_for_scan, mocker
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
 ):
     bulk_upload_report_service.write_and_upload_additional_reports = mocker.MagicMock()
 
@@ -651,7 +687,9 @@ def test_generate_deceased_report_does_not_write_when_no_data(
 
 
 def test_generate_restricted_report_writes_csv(
-    bulk_upload_report_service, mock_get_times_for_scan, mocker
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
 ):
     bulk_upload_report_service.write_and_upload_additional_reports = mocker.MagicMock()
 
@@ -665,7 +703,9 @@ def test_generate_restricted_report_writes_csv(
 
 
 def test_generate_restricted_report_does_not_write_when_no_data(
-    bulk_upload_report_service, mock_get_times_for_scan, mocker
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
 ):
     bulk_upload_report_service.write_and_upload_additional_reports = mocker.MagicMock()
 
@@ -677,7 +717,9 @@ def test_generate_restricted_report_does_not_write_when_no_data(
 
 
 def test_generate_rejected_report_writes_csv(
-    bulk_upload_report_service, mock_get_times_for_scan, mocker
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
 ):
     mock_file_name = (
         f"daily_statistical_report_bulk_upload_rejected_{MOCK_TIMESTAMP}.csv"
@@ -700,7 +742,9 @@ def test_generate_rejected_report_writes_csv(
 
 
 def test_generate_rejected_report_does_not_write_when_no_data(
-    bulk_upload_report_service, mock_get_times_for_scan, mocker
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
 ):
     bulk_upload_report_service.write_and_upload_additional_reports = mocker.MagicMock()
 
@@ -712,7 +756,8 @@ def test_generate_rejected_report_does_not_write_when_no_data(
 
 
 def test_write_and_upload_additional_reports_creates_csv_and_writes_to_s3(
-    bulk_upload_report_service, mock_get_times_for_scan
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
 ):
     mock_file_name = (
         f"daily_statistical_report_bulk_upload_rejected_{MOCK_TIMESTAMP}.csv"
@@ -724,6 +769,7 @@ def test_write_and_upload_additional_reports_creates_csv_and_writes_to_s3(
         MetadataReport.Date,
         MetadataReport.Reason,
         MetadataReport.RegisteredAtUploaderPractice,
+        MetadataReport.SentToReview,
     ]
 
     mock_data_rows = [
@@ -733,6 +779,7 @@ def test_write_and_upload_additional_reports_creates_csv_and_writes_to_s3(
             "2012-01-13",
             "Could not find the given patient on PDS",
             "True",
+            False,
         ],
         [
             "9000000006",
@@ -740,6 +787,7 @@ def test_write_and_upload_additional_reports_creates_csv_and_writes_to_s3(
             "2012-01-13",
             "Could not find the given patient on PDS",
             "True",
+            False,
         ],
         [
             "9000000007",
@@ -747,6 +795,7 @@ def test_write_and_upload_additional_reports_creates_csv_and_writes_to_s3(
             "2012-01-13",
             "Lloyd George file already exists",
             "True",
+            False,
         ],
         [
             "9000000014",
@@ -754,6 +803,7 @@ def test_write_and_upload_additional_reports_creates_csv_and_writes_to_s3(
             "2012-01-13",
             "Could not find the given patient on PDS",
             "True",
+            False,
         ],
         [
             "9000000015",
@@ -761,6 +811,7 @@ def test_write_and_upload_additional_reports_creates_csv_and_writes_to_s3(
             "2012-01-13",
             "Could not find the given patient on PDS",
             "True",
+            False,
         ],
         [
             "9000000016",
@@ -768,11 +819,14 @@ def test_write_and_upload_additional_reports_creates_csv_and_writes_to_s3(
             "2012-01-13",
             "Lloyd George file already exists",
             "True",
+            False,
         ],
     ]
 
     bulk_upload_report_service.write_and_upload_additional_reports(
-        mock_file_name, mock_headers, mock_data_rows
+        mock_file_name,
+        mock_headers,
+        mock_data_rows,
     )
 
     expected = readfile("expected_rejected_report.csv")

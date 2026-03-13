@@ -362,6 +362,7 @@ class BulkUploadMetadataProcessorService:
             failed_entry,
             UploadStatus.FAILED,
             str(error),
+            sent_to_review=self.send_to_review_enabled,
         )
 
     def send_failed_files_to_review_queue(

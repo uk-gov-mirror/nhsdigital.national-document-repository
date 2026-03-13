@@ -1,8 +1,9 @@
 from datetime import datetime
 
+from freezegun import freeze_time
+
 from enums.metadata_report import MetadataReport
 from enums.upload_status import UploadStatus
-from freezegun import freeze_time
 from models.report.bulk_upload_report import BulkUploadReport
 from models.report.bulk_upload_report_output import OdsReport, ReportBase, SummaryReport
 from tests.unit.helpers.data.bulk_upload.dynamo_responses import (
@@ -168,9 +169,9 @@ def test_ods_report_populate_report_populates_successfully():
         "total_registered_elsewhere": {("9000000004", "2012-01-13")},
         "total_suspended": {("9000000000", "2012-01-13")},
         "total_deceased": {
-            ("9000000001", "2012-01-13", "Patient is deceased - INFORMAL")
+            ("9000000001", "2012-01-13", "Patient is deceased - INFORMAL", False),
         },
-        "total_restricted": {("9000000002", "2012-01-13")},
+        "total_restricted": {("9000000002", "2012-01-13", False)},
         "report_items": MOCK_REPORT_ITEMS_UPLOADER_1,
         "failures_per_patient": {
             "9000000005": {
@@ -179,6 +180,7 @@ def test_ods_report_populate_report_populates_successfully():
                 "Timestamp": 1688395681,
                 "UploaderOdsCode": "Y12345",
                 MetadataReport.RegisteredAtUploaderPractice.value: "True",
+                "SentToReview": False,
             },
             "9000000006": {
                 "Date": "2012-01-13",
@@ -186,6 +188,7 @@ def test_ods_report_populate_report_populates_successfully():
                 "Timestamp": 1688395681,
                 "UploaderOdsCode": "Y12345",
                 MetadataReport.RegisteredAtUploaderPractice.value: "True",
+                "SentToReview": False,
             },
             "9000000007": {
                 "Date": "2012-01-13",
@@ -193,6 +196,7 @@ def test_ods_report_populate_report_populates_successfully():
                 "Timestamp": 1688395681,
                 "UploaderOdsCode": "Y12345",
                 MetadataReport.RegisteredAtUploaderPractice.value: "True",
+                "SentToReview": False,
             },
         },
         "unique_failures": {
@@ -227,7 +231,8 @@ def test_ods_report_process_failed_report_item_handles_failures():
             reason=old_reason,
             pds_ods_code=TEST_UPLOADER_ODS_1,
             uploader_ods_code=TEST_UPLOADER_ODS_1,
-        )
+            sent_to_review=False,
+        ),
     ]
 
     new_failed_item = BulkUploadReport(
@@ -239,6 +244,7 @@ def test_ods_report_process_failed_report_item_handles_failures():
         reason=newest_reason,
         pds_ods_code=TEST_UPLOADER_ODS_1,
         uploader_ods_code=TEST_UPLOADER_ODS_1,
+        sent_to_review=False,
     )
 
     expected = {
@@ -248,7 +254,8 @@ def test_ods_report_process_failed_report_item_handles_failures():
             "Timestamp": old_time_stamp,
             "UploaderOdsCode": TEST_UPLOADER_ODS_1,
             MetadataReport.RegisteredAtUploaderPractice.value: "True",
-        }
+            "SentToReview": False,
+        },
     }
 
     report = OdsReport(
@@ -269,7 +276,8 @@ def test_ods_report_process_failed_report_item_handles_failures():
             "Timestamp": new_time_stamp,
             "UploaderOdsCode": TEST_UPLOADER_ODS_1,
             MetadataReport.RegisteredAtUploaderPractice.value: "True",
-        }
+            "SentToReview": False,
+        },
     }
 
     actual = report.failures_per_patient
@@ -399,12 +407,12 @@ def test_summary_report_populate_report_populates_successfully():
         },
         "total_suspended": {("9000000000", "2012-01-13"), ("9000000009", "2012-01-13")},
         "total_deceased": {
-            ("9000000001", "2012-01-13", "Patient is deceased - INFORMAL"),
-            ("9000000010", "2012-01-13", "Patient is deceased - FORMAL"),
+            ("9000000001", "2012-01-13", "Patient is deceased - INFORMAL", False),
+            ("9000000010", "2012-01-13", "Patient is deceased - FORMAL", False),
         },
         "total_restricted": {
-            ("9000000002", "2012-01-13"),
-            ("9000000011", "2012-01-13"),
+            ("9000000002", "2012-01-13", False),
+            ("9000000011", "2012-01-13", False),
         },
         "ods_reports": test_uploader_reports,
         "success_summary": [
@@ -420,7 +428,8 @@ def test_summary_report_populate_report_populates_successfully():
     }
 
     actual = SummaryReport(
-        generated_at=get_timestamp(), ods_reports=test_uploader_reports
+        generated_at=get_timestamp(),
+        ods_reports=test_uploader_reports,
     ).__dict__
 
     assert actual == expected
@@ -457,7 +466,8 @@ def test_summary_report_populate_report_empty_reports_objects_populate_successfu
     }
 
     actual = SummaryReport(
-        generated_at=get_timestamp(), ods_reports=test_uploader_reports
+        generated_at=get_timestamp(),
+        ods_reports=test_uploader_reports,
     ).__dict__
 
     assert actual == expected

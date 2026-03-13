@@ -1,6 +1,7 @@
 import pytest
-from enums.upload_status import UploadStatus
 from freezegun import freeze_time
+
+from enums.upload_status import UploadStatus
 from repositories.bulk_upload.bulk_upload_dynamo_repository import (
     BulkUploadDynamoRepository,
 )
@@ -33,14 +34,17 @@ def test_create_record_in_dynamodb_table(set_env, repo_under_test):
 
 @freeze_time("2023-10-1 13:00:00")
 def test_report_upload_complete_add_record_to_dynamodb(
-    repo_under_test, set_env, mock_uuid
+    repo_under_test,
+    set_env,
+    mock_uuid,
 ):
     repo_under_test.write_report_upload_to_dynamo(
-        TEST_STAGING_METADATA, upload_status=UploadStatus.COMPLETE
+        TEST_STAGING_METADATA,
+        upload_status=UploadStatus.COMPLETE,
     )
 
     assert repo_under_test.dynamo_repository.create_item.call_count == len(
-        TEST_STAGING_METADATA.files
+        TEST_STAGING_METADATA.files,
     )
 
     for file in TEST_STAGING_METADATA.files:
@@ -54,15 +58,19 @@ def test_report_upload_complete_add_record_to_dynamodb(
             "UploadStatus": UploadStatus.COMPLETE,
             "UploaderOdsCode": "Y12345",
             "PdsOdsCode": "",
+            "SentToReview": False,
         }
         repo_under_test.dynamo_repository.create_item.assert_any_call(
-            item=expected_dynamo_db_record, table_name=MOCK_BULK_REPORT_TABLE_NAME
+            item=expected_dynamo_db_record,
+            table_name=MOCK_BULK_REPORT_TABLE_NAME,
         )
 
 
 @freeze_time("2023-10-2 13:00:00")
 def test_report_upload_failure_add_record_to_dynamodb(
-    repo_under_test, set_env, mock_uuid
+    repo_under_test,
+    set_env,
+    mock_uuid,
 ):
     mock_reason = "File name invalid"
     repo_under_test.write_report_upload_to_dynamo(
@@ -83,9 +91,57 @@ def test_report_upload_failure_add_record_to_dynamodb(
             "Reason": mock_reason,
             "UploaderOdsCode": "Y12345",
             "PdsOdsCode": "",
+            "SentToReview": False,
         }
         repo_under_test.dynamo_repository.create_item.assert_any_call(
-            item=expected_dynamo_db_record, table_name=MOCK_BULK_REPORT_TABLE_NAME
+            item=expected_dynamo_db_record,
+            table_name=MOCK_BULK_REPORT_TABLE_NAME,
+        )
+
+
+@freeze_time("2023-10-1 13:00:00")
+@pytest.mark.parametrize(
+    "upload_status, sent_to_review_arg, expected_sent_to_review",
+    [
+        (UploadStatus.COMPLETE, False, False),
+        (UploadStatus.FAILED, True, True),
+        (UploadStatus.FAILED, False, False),
+    ],
+)
+def test_report_upload_sets_sent_to_review_correctly(
+    repo_under_test,
+    set_env,
+    mock_uuid,
+    upload_status,
+    sent_to_review_arg,
+    expected_sent_to_review,
+):
+    mock_reason = "File name invalid"
+
+    repo_under_test.write_report_upload_to_dynamo(
+        TEST_STAGING_METADATA,
+        upload_status=upload_status,
+        reason=mock_reason,
+        sent_to_review=sent_to_review_arg,
+    )
+
+    for file in TEST_STAGING_METADATA.files:
+        expected_dynamo_db_record = {
+            "Date": "2023-10-01",
+            "FilePath": file.file_path,
+            "StoredFileName": file.stored_file_name,
+            "ID": mock_uuid,
+            "NhsNumber": TEST_STAGING_METADATA.nhs_number,
+            "Timestamp": 1696165200,
+            "UploadStatus": upload_status,
+            "Reason": mock_reason,
+            "UploaderOdsCode": "Y12345",
+            "PdsOdsCode": "",
+            "SentToReview": expected_sent_to_review,
+        }
+        repo_under_test.dynamo_repository.create_item.assert_any_call(
+            item=expected_dynamo_db_record,
+            table_name=MOCK_BULK_REPORT_TABLE_NAME,
         )
 
 
@@ -99,8 +155,9 @@ def test_rollback_transaction(repo_under_test, set_env, mock_uuid):
     repo_under_test.rollback_transaction()
 
     repo_under_test.dynamo_repository.delete_item.assert_called_with(
-        table_name=MOCK_LG_TABLE_NAME, key={"ID": mock_uuid}
+        table_name=MOCK_LG_TABLE_NAME,
+        key={"ID": mock_uuid},
     )
     assert repo_under_test.dynamo_repository.delete_item.call_count == len(
-        TEST_DOCUMENT_REFERENCE_LIST
+        TEST_DOCUMENT_REFERENCE_LIST,
     )

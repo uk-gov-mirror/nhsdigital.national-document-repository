@@ -13,3 +13,4 @@ class MetadataReport(StrEnum):
     Timestamp = "Timestamp"
     ID = "ID"
     RegisteredAtUploaderPractice = "RegisteredAtUploaderPractice"
+    SentToReview = "SentToReview"

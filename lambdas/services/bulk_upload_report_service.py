@@ -3,10 +3,11 @@ import datetime
 import os
 
 from boto3.dynamodb.conditions import Attr
+from pydantic import ValidationError
+
 from enums.metadata_report import MetadataReport
 from models.report.bulk_upload_report import BulkUploadReport
 from models.report.bulk_upload_report_output import OdsReport, SummaryReport
-from pydantic import ValidationError
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from utils.audit_logging_setup import LoggingService
@@ -26,12 +27,13 @@ class BulkUploadReportService:
     def report_handler(self):
         start_time, end_time = self.get_times_for_scan()
         report_data = self.get_dynamodb_report_items(
-            int(start_time.timestamp()), int(end_time.timestamp())
+            int(start_time.timestamp()),
+            int(end_time.timestamp()),
         )
 
         if report_data:
             logger.info(
-                f"Bulk upload reports for {str(start_time)} to {str(end_time)}.csv"
+                f"Bulk upload reports for {str(start_time)} to {str(end_time)}.csv",
             )
 
             ods_reports: list[OdsReport] = self.generate_ods_reports(report_data)
@@ -54,7 +56,8 @@ class BulkUploadReportService:
             logger.info("No data found, no new report file to upload")
 
     def generate_ods_reports(
-        self, report_data: list[BulkUploadReport]
+        self,
+        report_data: list[BulkUploadReport],
     ) -> list[OdsReport]:
         ods_reports: list[OdsReport] = []
 
@@ -67,14 +70,17 @@ class BulkUploadReportService:
 
         for uploader_ods_code, ods_report_items in grouped_ods_data.items():
             ods_report = self.generate_individual_ods_report(
-                uploader_ods_code, ods_report_items
+                uploader_ods_code,
+                ods_report_items,
             )
             ods_reports.append(ods_report)
 
         return ods_reports
 
     def generate_individual_ods_report(
-        self, uploader_ods_code: str, ods_report_items: list[BulkUploadReport]
+        self,
+        uploader_ods_code: str,
+        ods_report_items: list[BulkUploadReport],
     ) -> OdsReport:
         ods_report = OdsReport(
             generated_at=self.generated_on,
@@ -106,7 +112,8 @@ class BulkUploadReportService:
 
     def generate_summary_report(self, ods_reports: list[OdsReport]):
         summary_report = SummaryReport(
-            generated_at=self.generated_on, ods_reports=ods_reports
+            generated_at=self.generated_on,
+            ods_reports=ods_reports,
         )
 
         file_name = (
@@ -133,7 +140,10 @@ class BulkUploadReportService:
         )
 
     def generate_daily_report(
-        self, report_data: list[BulkUploadReport], start_time: str, end_time: str
+        self,
+        report_data: list[BulkUploadReport],
+        start_time: str,
+        end_time: str,
     ):
         file_name = f"daily_statistical_report_entire_bulk_upload_{str(start_time)}_to_{str(end_time)}.csv"
 
@@ -166,7 +176,7 @@ class BulkUploadReportService:
                         str(report.uploader_ods_code),
                         str(patient[1]),
                         str(patient[2]),
-                    ]
+                    ],
                 )
 
         if data_rows:
@@ -189,7 +199,7 @@ class BulkUploadReportService:
         for report in ods_reports:
             for patient in report.get_sorted(report.total_suspended):
                 data_rows.append(
-                    [str(patient[0]), str(report.uploader_ods_code), str(patient[1])]
+                    [str(patient[0]), str(report.uploader_ods_code), str(patient[1])],
                 )
 
         if data_rows:
@@ -208,6 +218,7 @@ class BulkUploadReportService:
             MetadataReport.UploaderOdsCode,
             MetadataReport.Date,
             MetadataReport.Reason,
+            MetadataReport.SentToReview,
         ]
         data_rows = []
         for report in ods_reports:
@@ -218,7 +229,8 @@ class BulkUploadReportService:
                         str(report.uploader_ods_code),
                         str(patient[1]),
                         str(patient[2]),
-                    ]
+                        str(patient[3]),
+                    ],
                 )
 
         if data_rows:
@@ -236,12 +248,18 @@ class BulkUploadReportService:
             MetadataReport.NhsNumber,
             MetadataReport.UploaderOdsCode,
             MetadataReport.Date,
+            MetadataReport.SentToReview,
         ]
         data_rows = []
         for report in ods_reports:
             for patient in report.get_sorted(report.total_restricted):
                 data_rows.append(
-                    [str(patient[0]), str(report.uploader_ods_code), str(patient[1])]
+                    [
+                        str(patient[0]),
+                        str(report.uploader_ods_code),
+                        str(patient[1]),
+                        str(patient[2]),
+                    ],
                 )
 
         if data_rows:
@@ -261,6 +279,7 @@ class BulkUploadReportService:
             MetadataReport.Date,
             MetadataReport.Reason,
             MetadataReport.RegisteredAtUploaderPractice,
+            MetadataReport.SentToReview,
         ]
 
         data_rows = []
@@ -273,7 +292,8 @@ class BulkUploadReportService:
                         report_item[MetadataReport.Date],
                         report_item[MetadataReport.Reason],
                         report_item[MetadataReport.RegisteredAtUploaderPractice],
-                    ]
+                        report_item[MetadataReport.SentToReview],
+                    ],
                 )
 
         if data_rows:
@@ -295,6 +315,7 @@ class BulkUploadReportService:
                 MetadataReport.FilePath,
                 MetadataReport.Date,
                 MetadataReport.Timestamp,
+                MetadataReport.SentToReview,
             ]
             dict_writer_object = csv.DictWriter(output_file, fieldnames=field_names)
             dict_writer_object.writeheader()
@@ -303,7 +324,7 @@ class BulkUploadReportService:
                     item.model_dump(
                         exclude={str(MetadataReport.ID).lower(), "stored_file_name"},
                         by_alias=True,
-                    )
+                    ),
                 )
 
     @staticmethod
@@ -325,14 +346,14 @@ class BulkUploadReportService:
             writer.writerow(["Total", "Total Ingested", total_ingested])
             writer.writerow(["Total", "Total Successful", total_successful])
             writer.writerow(
-                ["Total", "Successful Percentage", total_successful_percentage]
+                ["Total", "Successful Percentage", total_successful_percentage],
             )
             writer.writerow(
                 [
                     "Total",
                     "Successful - Registered Elsewhere",
                     total_registered_elsewhere,
-                ]
+                ],
             )
             writer.writerow(["Total", "Successful - Suspended", total_suspended])
 
@@ -358,15 +379,18 @@ class BulkUploadReportService:
                 writer.writerow(row)
 
     def get_dynamodb_report_items(
-        self, start_timestamp: int, end_timestamp: int
+        self,
+        start_timestamp: int,
+        end_timestamp: int,
     ) -> list[BulkUploadReport]:
         logger.info("Starting Scan on DynamoDB table")
         bulk_upload_table_name = os.getenv("BULK_UPLOAD_DYNAMODB_NAME")
         filter_time = Attr("Timestamp").gt(start_timestamp) & Attr("Timestamp").lt(
-            end_timestamp
+            end_timestamp,
         )
         db_response = self.db_service.scan_table(
-            bulk_upload_table_name, filter_expression=filter_time
+            bulk_upload_table_name,
+            filter_expression=filter_time,
         )
 
         if "Items" not in db_response:
@@ -412,7 +436,9 @@ class BulkUploadReportService:
         data_rows: list[list[str]],
     ):
         self.write_additional_report_items_to_csv(
-            file_name=file_name, headers=headers, rows_to_write=data_rows
+            file_name=file_name,
+            headers=headers,
+            rows_to_write=data_rows,
         )
 
         self.s3_service.upload_file(
