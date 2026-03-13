@@ -1,13 +1,14 @@
-import { getDocument } from 'pdfjs-dist';
+import PDFMerger from 'pdf-merger-js/browser';
+import { PDFDocument } from 'pdf-lib';
 
-export const parsePageNumbersToIndexRanges = (pageNumberStrings: string[]): number[][] => {
+export const parsePageNumbersToRanges = (pageNumberStrings: string[]): number[][] => {
     const pageNumbers = pageNumberStrings.map((part) => {
         const trimmedPart = part.trim();
         if (trimmedPart.includes('-')) {
-            const [start, end] = trimmedPart.split('-').map((num) => Number(num.trim()) - 1);
+            const [start, end] = trimmedPart.split('-').map((num) => Number(num.trim()));
             return Array.from({ length: end - start + 1 }, (_, i) => start + i);
         }
-        return [Number(trimmedPart) - 1];
+        return [Number(trimmedPart)];
     });
     const uniquePageNumbers = [...new Set(pageNumbers.flat())].sort((a, b) => a - b);
 
@@ -24,8 +25,8 @@ export const parsePageNumbersToIndexRanges = (pageNumberStrings: string[]): numb
     return ranges;
 };
 
-export const getUniquePageNumbersFromIndexRanges = (indexRanges: number[][]): number[] => {
-    const pageNumbers = indexRanges.flat();
+export const getUniquePageNumbersFromRanges = (ranges: number[][]): number[] => {
+    const pageNumbers = ranges.flat();
     return [...new Set(pageNumbers)].sort((a, b) => a - b);
 };
 
@@ -34,24 +35,26 @@ export const extractPdfBlobUsingSelectedPages = async (
     selectedPages: number[][],
     includePages: boolean,
 ): Promise<Blob> => {
-    const buffer1 = await baseBlob.arrayBuffer();
-    const buffer2 = await baseBlob.arrayBuffer();
-    const pdf = await getDocument(buffer1).promise;
-    const uniquePageNumbers = getUniquePageNumbersFromIndexRanges(selectedPages);
+    const buffer = await baseBlob.arrayBuffer();
+    const uniquePageNumbers = getUniquePageNumbersFromRanges(selectedPages);
 
-    const options: [any] = [
-        {
-            document: new Uint8Array(buffer2),
-        },
-    ];
-
+    // Determine which 1-based page numbers to include in the output
+    let pagesToInclude: number[];
     if (includePages) {
-        options[0]['includePages'] = uniquePageNumbers;
+        pagesToInclude = uniquePageNumbers;
     } else {
-        options[0]['excludePages'] = uniquePageNumbers;
+        const srcDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+        const totalPages = srcDoc.getPageCount();
+        const excludeSet = new Set(uniquePageNumbers);
+        pagesToInclude = [];
+        for (let i = 1; i <= totalPages; i++) {
+            if (!excludeSet.has(i)) {
+                pagesToInclude.push(i);
+            }
+        }
     }
 
-    const result = await pdf.extractPages(options);
-
-    return new Blob([result.buffer as ArrayBuffer], { type: 'application/pdf' });
+    const merger = new PDFMerger();
+    await merger.add(new Blob([buffer], { type: 'application/pdf' }), pagesToInclude);
+    return await merger.saveAsBlob();
 };

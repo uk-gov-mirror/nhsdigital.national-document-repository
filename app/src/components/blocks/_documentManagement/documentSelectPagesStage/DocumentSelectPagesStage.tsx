@@ -12,8 +12,8 @@ import ErrorBox from '../../../layout/errorBox/ErrorBox';
 import BackButton from '../../../generic/backButton/BackButton';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import {
-    getUniquePageNumbersFromIndexRanges,
-    parsePageNumbersToIndexRanges,
+    getUniquePageNumbersFromRanges,
+    parsePageNumbersToRanges,
 } from '../../../../helpers/utils/documentManagement/pageNumbers';
 
 export type Props = {
@@ -40,9 +40,7 @@ const DocumentSelectPagesStage = ({
         reValidateMode: 'onSubmit',
         defaultValues: {
             pageNumbers: pagesToRemove
-                .map((range) =>
-                    range.length > 1 ? `${range[0] + 1}-${range.at(-1)! + 1}` : `${range[0] + 1}`,
-                )
+                .map((range) => (range.length > 1 ? `${range[0]}-${range.at(-1)!}` : `${range[0]}`))
                 .join(', '),
         },
     });
@@ -94,14 +92,14 @@ const DocumentSelectPagesStage = ({
     const onSuccess = async (data: FormData): Promise<void> => {
         const pageNumbersInput = data.pageNumbers.split(',').map((p) => p.trim());
 
-        const pageNumberRanges = parsePageNumbersToIndexRanges(pageNumbersInput);
-        const uniquePageNumbers = getUniquePageNumbersFromIndexRanges(pageNumberRanges);
+        const pageNumberRanges = parsePageNumbersToRanges(pageNumbersInput);
+        const uniquePageNumbers = getUniquePageNumbersFromRanges(pageNumberRanges);
 
         const buffer = await baseDocumentBlob!.arrayBuffer();
 
         try {
             const pdf = await getDocument(buffer).promise;
-            if (uniquePageNumbers.some((p) => p < 0 || p >= pdf.numPages)) {
+            if (uniquePageNumbers.some((p) => p < 1 || p > pdf.numPages)) {
                 setErrorMessage('One or more page numbers are out of range.');
                 setTimeout(() => {
                     scrollToRef.current?.scrollIntoView({ behavior: 'smooth' });

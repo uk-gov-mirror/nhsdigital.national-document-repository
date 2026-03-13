@@ -7,7 +7,7 @@ import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { Button, Table } from 'nhsuk-react-components';
 import {
     extractPdfBlobUsingSelectedPages,
-    getUniquePageNumbersFromIndexRanges,
+    getUniquePageNumbersFromRanges,
 } from '../../../../helpers/utils/documentManagement/pageNumbers';
 import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
@@ -77,17 +77,14 @@ const DocumentRemovePagesConfirmStage = ({
         downloadFile(reassignedPagesBlob!, 'removed_pages.pdf');
     };
 
-    const viewPageClicked = (
-        e: React.MouseEvent<HTMLAnchorElement>,
-        pageIndexRange: number[],
-    ): void => {
+    const viewPageClicked = (e: React.MouseEvent<HTMLAnchorElement>, pageRange: number[]): void => {
         e.preventDefault();
         if (!pdfViewerRef.current) {
             return;
         }
 
-        const uniquePageNumbers = getUniquePageNumbersFromIndexRanges(pagesToRemove);
-        const pageIndex = uniquePageNumbers.indexOf(pageIndexRange[0]);
+        const uniquePageNumbers = getUniquePageNumbersFromRanges(pagesToRemove);
+        const pageIndex = uniquePageNumbers.indexOf(pageRange[0]);
 
         const page = pdfViewerRef.current.iframe?.contentWindow?.document.querySelector(
             `.page[data-page-number="${pageIndex + 1}"]`,
@@ -139,9 +136,9 @@ const DocumentRemovePagesConfirmStage = ({
                             {pagesToRemove.map((pageNumberRange) => (
                                 <Table.Row key={pageNumberRange.join('-')}>
                                     <Table.Cell>
-                                        Page {pageNumberRange[0] + 1}
+                                        Page {pageNumberRange[0]}
                                         {pageNumberRange.length > 1 &&
-                                            `-${pageNumberRange.at(-1)! + 1}`}
+                                            `-${pageNumberRange.at(-1)!}`}
                                     </Table.Cell>
                                     <Table.Cell className="text-right">
                                         <Link

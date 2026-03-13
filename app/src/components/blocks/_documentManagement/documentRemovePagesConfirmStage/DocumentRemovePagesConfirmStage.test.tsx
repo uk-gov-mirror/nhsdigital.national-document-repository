@@ -26,14 +26,17 @@ vi.mock('react-router-dom', async () => {
         ),
     };
 });
-vi.mock('pdfjs-dist', () => ({
-    getDocument: (): any => ({
-        promise: Promise.resolve({
-            extractPages: mockExtractPages,
-        }),
-    }),
-}));
 vi.mock('../../../../helpers/hooks/usePatient');
+
+vi.mock('../../../../helpers/utils/documentManagement/pageNumbers', async () => {
+    const actual = await vi.importActual(
+        '../../../../helpers/utils/documentManagement/pageNumbers',
+    );
+    return {
+        ...actual,
+        extractPdfBlobUsingSelectedPages: mockExtractPdfBlobUsingSelectedPages,
+    };
+});
 
 const mockScrollIntoView = vi.fn();
 const mockPageScrollIntoView = vi.fn();
@@ -59,7 +62,7 @@ vi.mock('../../../generic/pdfViewer/PdfViewer', () => ({
 vi.mock('../../../../helpers/utils/downloadFile');
 
 const mockNavigate = vi.fn();
-const mockExtractPages = vi.fn();
+const mockExtractPdfBlobUsingSelectedPages = vi.hoisted(() => vi.fn());
 const mockUsePatient = usePatient as Mock;
 const mockDownloadFile = downloadFileModule.downloadFile as Mock;
 
@@ -72,7 +75,7 @@ describe('DocumentRemovePagesConfirmStage', () => {
         mockPageScrollIntoView.mockClear();
         mockQuerySelector.mockClear();
 
-        pagesToRemove = [[0], [2, 3], [4]];
+        pagesToRemove = [[1], [3, 4], [6]];
     });
 
     it('renders correctly', async () => {
@@ -81,10 +84,10 @@ describe('DocumentRemovePagesConfirmStage', () => {
         await waitFor(() => {
             pagesToRemove.forEach((pageRange) => {
                 if (pageRange.length === 1) {
-                    expect(screen.getByText(`Page ${pageRange[0] + 1}`)).toBeInTheDocument();
+                    expect(screen.getByText(`Page ${pageRange[0]}`)).toBeInTheDocument();
                 } else {
                     expect(
-                        screen.getByText(`Page ${pageRange[0] + 1}-${pageRange.at(-1)! + 1}`),
+                        screen.getByText(`Page ${pageRange[0]}-${pageRange.at(-1)!}`),
                     ).toBeInTheDocument();
                 }
             });
@@ -96,7 +99,7 @@ describe('DocumentRemovePagesConfirmStage', () => {
         await renderComponent(false);
 
         await waitFor(() => {
-            expect(mockExtractPages).not.toHaveBeenCalled();
+            expect(mockExtractPdfBlobUsingSelectedPages).not.toHaveBeenCalled();
         });
     });
 
@@ -201,9 +204,8 @@ const renderComponent = async (
 ): Promise<void> => {
     if (createBaseBlob) {
         const file = buildLgFile(1);
-        const buffer = await file.arrayBuffer();
 
-        mockExtractPages.mockResolvedValueOnce(new Uint8Array(buffer));
+        mockExtractPdfBlobUsingSelectedPages.mockResolvedValueOnce(file);
 
         props.baseDocumentBlob = file;
     }
