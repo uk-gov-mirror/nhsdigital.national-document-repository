@@ -31,4 +31,3 @@ class LoggingAppInteraction(Enum):
     ACCESS_AUDIT = "Access audit"
     BULK_UPLOAD = "Bulk upload"
     MANIFEST_JOB = "Manifest job"
-    SEARCH_HISTORY = "Search document reference history"

@@ -149,11 +149,6 @@ class LambdaError(Enum):
         "message": "The user is not authorised to upload documents for this patient",
         "fhir_coding": UKCoreSpineError.ACCESS_DENIED,
     }
-    DocRefMissingOds = {
-        "err_code": "DR_4011",
-        "message": "Missing ODS code in request context",
-        "fhir_coding": UKCoreSpineError.ACCESS_DENIED,
-    }
     DocRefPresign = {
         "err_code": "DR_5001",
         "message": "An error occurred when creating pre-signed url for document reference",

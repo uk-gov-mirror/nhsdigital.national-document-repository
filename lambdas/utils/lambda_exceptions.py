@@ -30,10 +30,6 @@ class DocumentRefException(LambdaException):
     pass
 
 
-class GetDocumentReferenceHistoryException(LambdaException):
-    pass
-
-
 class CreateDocumentRefException(LambdaException):
     pass
 

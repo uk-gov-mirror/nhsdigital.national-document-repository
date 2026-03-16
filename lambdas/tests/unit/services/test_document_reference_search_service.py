@@ -407,7 +407,6 @@ def test_create_document_reference_fhir_response_integration(
     mock_document_reference.custodian = "Y12345"
     mock_document_reference.document_snomed_code_type = "16521000000101"
     mock_document_reference.version = "1"
-    mock_document_reference.status = None
 
     expected_fhir_response = {
         "id": "16521000000101~Y05868-1634567890",

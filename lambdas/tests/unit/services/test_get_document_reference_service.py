@@ -49,7 +49,6 @@ def mock_document_reference(mock_s3_bucket_name, mock_s3_file_key, mock_nhs_numb
     doc_ref.s3_bucket_name = mock_s3_bucket_name
     doc_ref.s3_file_key = mock_s3_file_key
     doc_ref.version = "2"
-    doc_ref.s3_version_id = "mock_version_id"
 
     yield doc_ref
 
@@ -109,7 +108,6 @@ def test_valid_input_returns_presigned_url(
     mock_service.fhir_doc_service.s3_service.create_download_presigned_url.assert_called_once_with(
         s3_bucket_name=mock_s3_bucket_name,
         file_key=mock_s3_file_key,
-        version_id=mock_document_reference.s3_version_id,
     )
 
     assert result == expected_result

@@ -40,16 +40,14 @@ class GetDocumentReferenceService:
         presigned_s3_url = self.create_document_presigned_url(
             document_reference.s3_bucket_name,
             document_reference.s3_file_key,
-            document_reference.s3_version_id,
         )
 
         return {"url": presigned_s3_url, "contentType": document_reference.content_type}
 
-    def create_document_presigned_url(self, bucket_name, file_location, s3_version_id):
+    def create_document_presigned_url(self, bucket_name, file_location):
         presigned_url_response = self.s3_service.create_download_presigned_url(
             s3_bucket_name=bucket_name,
             file_key=file_location,
-            version_id=s3_version_id,
         )
 
         presigned_id = str(uuid.uuid4())

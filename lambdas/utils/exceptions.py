@@ -96,10 +96,6 @@ class UserNotAuthorisedException(Exception):
     pass
 
 
-class UserIsNotCustodianException(Exception):
-    pass
-
-
 class VirusScanNoResultException(Exception):
     pass
 
