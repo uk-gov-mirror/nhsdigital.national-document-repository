@@ -22,7 +22,15 @@ class PdsErrorException(Exception):
     pass
 
 
+class PdsPatientValidationException(Exception):
+    pass
+
+
 class PdsTooManyRequestsException(Exception):
+    pass
+
+
+class PdsHttpErrorException(Exception):
     pass
 
 

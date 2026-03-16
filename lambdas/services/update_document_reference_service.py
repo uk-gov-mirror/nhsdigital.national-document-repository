@@ -19,6 +19,9 @@ from utils.exceptions import (
     LGInvalidFilesException,
     OdsErrorException,
     PatientNotFoundException,
+    PdsErrorException,
+    PdsHttpErrorException,
+    PdsPatientValidationException,
     PdsTooManyRequestsException,
 )
 from utils.lambda_exceptions import DocumentRefException
@@ -98,6 +101,9 @@ class UpdateDocumentReferenceService:
             InvalidNhsNumberException,
             LGInvalidFilesException,
             PdsTooManyRequestsException,
+            PdsPatientValidationException,
+            PdsErrorException,
+            PdsHttpErrorException,
         ) as e:
             logger.error(
                 f"{LambdaError.DocRefInvalidFiles.to_str()} :{str(e)}",

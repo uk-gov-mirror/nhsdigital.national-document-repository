@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from botocore.exceptions import ClientError
+
 from enums.document_review_status import DocumentReviewStatus
 from models.document_review import (
     DocumentReviewFileDetails,
@@ -35,9 +36,8 @@ class ReviewProcessorService:
         self.review_bucket_name = os.environ["PENDING_REVIEW_BUCKET_NAME"]
 
     def process_review_message(self, review_message: ReviewMessageBody) -> None:
-        logger.info("Processing review queue message")
-
         request_context.patient_nhs_no = review_message.nhs_number
+        logger.info("Processing review queue message")
 
         review_id = review_message.upload_id
         review_files = self._move_files_to_review_bucket(review_message, review_id)

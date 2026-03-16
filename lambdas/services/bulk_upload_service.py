@@ -32,6 +32,8 @@ from utils.exceptions import (
     PatientNotFoundException,
     PatientRecordAlreadyExistException,
     PdsErrorException,
+    PdsHttpErrorException,
+    PdsPatientValidationException,
     PdsTooManyRequestsException,
     S3FileNotFoundException,
     VirusScanFailedException,
@@ -203,6 +205,21 @@ class BulkUploadService:
                         "PDS record is restricted",
                     )
 
+        except (PdsPatientValidationException, PdsHttpErrorException) as error:
+            logger.info(
+                f"Detected issue related to patient number: {staging_metadata.nhs_number}",
+            )
+            logger.error(error)
+            logger.info("Will stop processing Lloyd George record for this patient.")
+            logger.info("A PDS error occurred, not sending message to review queue.")
+            self.dynamo_repository.write_report_upload_to_dynamo(
+                staging_metadata,
+                UploadStatus.FAILED,
+                str(error),
+                patient_ods_code,
+                sent_to_review=False,
+            )
+            return
         except (
             InvalidNhsNumberException,
             LGInvalidFilesException,
@@ -214,13 +231,10 @@ class BulkUploadService:
             )
             logger.error(error)
             logger.info("Will stop processing Lloyd George record for this patient.")
-
-            reason = str(error)
-
             self.dynamo_repository.write_report_upload_to_dynamo(
                 staging_metadata,
                 UploadStatus.FAILED,
-                reason,
+                str(error),
                 patient_ods_code,
                 sent_to_review=self.send_to_review_enabled,
             )

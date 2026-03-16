@@ -33,7 +33,11 @@ from tests.unit.helpers.data.test_documents import (
 from utils.common_query_filters import NotDeleted
 from utils.constants.ssm import UPLOAD_PILOT_ODS_ALLOWED_LIST
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
-from utils.exceptions import PatientNotFoundException
+from utils.exceptions import (
+    PatientNotFoundException,
+    PdsHttpErrorException,
+    PdsPatientValidationException,
+)
 from utils.lambda_exceptions import DocumentRefException
 from utils.lloyd_george_validator import LGInvalidFilesException
 from utils.request_context import request_context
@@ -305,7 +309,7 @@ def test_create_document_reference_failed_to_parse_pds_response(
     mock_getting_patient_info_from_pds,
     mock_fetch_available_document_references_by_type,
 ):
-    mock_getting_patient_info_from_pds.side_effect = LGInvalidFilesException
+    mock_getting_patient_info_from_pds.side_effect = PdsPatientValidationException
 
     with pytest.raises(Exception) as exc_info:
         mock_create_doc_ref_service.create_document_reference_request(
@@ -340,6 +344,29 @@ def test_cdr_nhs_number_not_found_raises_search_patient_exception(
     assert isinstance(exception, DocumentRefException)
     assert exception.status_code == 404
     assert exception.message == "Patient does not exist for given NHS number"
+
+    mock_create_document_reference.assert_not_called()
+
+
+def test_create_document_reference_pds_general_error_throws_exception(
+    mock_fhir_doc_ref_base_service,
+    mock_create_doc_ref_service,
+    mock_create_document_reference,
+    mock_getting_patient_info_from_pds,
+    mock_fetch_available_document_references_by_type,
+):
+    mock_getting_patient_info_from_pds.side_effect = PdsHttpErrorException
+
+    with pytest.raises(Exception) as exc_info:
+        mock_create_doc_ref_service.create_document_reference_request(
+            TEST_NHS_NUMBER,
+            LG_FILE_LIST,
+        )
+
+    exception = exc_info.value
+    assert isinstance(exception, DocumentRefException)
+    assert exception.status_code == 400
+    assert exception.message == "Invalid files or id"
 
     mock_create_document_reference.assert_not_called()
 

@@ -35,6 +35,9 @@ from utils.common_query_filters import NotDeleted
 from utils.exceptions import (
     PatientNotFoundException,
     PatientRecordAlreadyExistException,
+    PdsErrorException,
+    PdsHttpErrorException,
+    PdsPatientValidationException,
     PdsTooManyRequestsException,
 )
 from utils.lloyd_george_validator import (
@@ -881,7 +884,7 @@ def test_bad_request_with_pds_service(mock_pds_call):
 
     mock_pds_call.return_value = response
 
-    with pytest.raises(LGInvalidFilesException) as e:
+    with pytest.raises(PdsHttpErrorException) as e:
         getting_patient_info_from_pds("9000000009")
     assert str(e.value) == "Failed to retrieve patient data from PDS"
 
@@ -916,11 +919,11 @@ def test_check_pds_response_404_status_raises_patient_not_found_exception():
         check_pds_response_status(response)
 
 
-def test_check_pds_response_4xx_or_5xx_status_raise_lg_invalid_files_exception():
+def test_check_pds_response_4xx_or_5xx_status_raise_pds_error_exception():
     response = Response()
     response.status_code = 500
 
-    with pytest.raises(LGInvalidFilesException):
+    with pytest.raises(PdsHttpErrorException):
         check_pds_response_status(response)
 
 
@@ -928,7 +931,7 @@ def test_check_pds_response_200_status_not_raise_exception():
     response = Response()
     response.status_code = 200
 
-    with expect_not_to_raise(LGInvalidFilesException):
+    with expect_not_to_raise(PdsErrorException):
         check_pds_response_status(response)
 
 
@@ -949,7 +952,7 @@ def test_parse_pds_response_raise_error_when_model_validation_failed():
         b"""{"body": "some data that pydantic cannot parse"}"""
     )
 
-    with pytest.raises(LGInvalidFilesException) as error:
+    with pytest.raises(PdsPatientValidationException) as error:
         parse_pds_response(mock_invalid_pds_response)
 
     assert str(error.value) == "Fail to parse the patient detail response from PDS API."

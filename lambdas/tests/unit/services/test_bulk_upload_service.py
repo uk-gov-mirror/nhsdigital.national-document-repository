@@ -52,6 +52,8 @@ from utils.exceptions import (
     InvalidMessageException,
     PatientNotFoundException,
     PatientRecordAlreadyExistException,
+    PdsHttpErrorException,
+    PdsPatientValidationException,
     PdsTooManyRequestsException,
     S3FileNotFoundException,
     TagNotFoundException,
@@ -1397,7 +1399,6 @@ def test_sends_to_review_queue_when_invalid_files(
     repo_with_review_enabled,
     mock_validate_files,
     mock_pds_service,
-    mocker,
 ):
     mocked_error = LGInvalidFilesException(
         "One or more of the files do not match naming convention",
@@ -1411,6 +1412,41 @@ def test_sends_to_review_queue_when_invalid_files(
         failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
         uploader_ods=TEST_STAGING_METADATA.files[0].gp_practice_code,
     )
+
+
+def test_does_not_send_to_review_queue_pds_validation_error(
+    repo_with_review_enabled,
+    mocker,
+):
+    mocked_error = PdsPatientValidationException(
+        "Fail to parse the patient detail response from PDS API.",
+    )
+
+    mock_pds_service = mocker.patch(
+        "services.bulk_upload_service.getting_patient_info_from_pds",
+    )
+
+    mock_pds_service.side_effect = mocked_error
+
+    repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    repo_with_review_enabled.sqs_repository.send_message_to_review_queue.assert_not_called()
+
+
+def test_does_not_send_to_review_queue_pds_http_error(mocker, repo_with_review_enabled):
+    mocked_error = PdsHttpErrorException(
+        "Failed to retrieve patient date from PDS",
+    )
+
+    mock_pds_service = mocker.patch(
+        "services.bulk_upload_service.getting_patient_info_from_pds",
+    )
+
+    mock_pds_service.side_effect = mocked_error
+
+    repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
+
+    repo_with_review_enabled.sqs_repository.send_message_to_review_queue.assert_not_called()
 
 
 def test_does_not_send_to_review_queue_when_virus_scan_fails(

@@ -14,7 +14,11 @@ from tests.unit.helpers.data.test_documents import (
     create_test_doc_store_refs,
     create_test_lloyd_george_doc_store_refs,
 )
-from utils.exceptions import LGInvalidFilesException, PatientNotFoundException
+from utils.exceptions import (
+    LGInvalidFilesException,
+    PatientNotFoundException,
+    PdsHttpErrorException,
+)
 from utils.lambda_exceptions import DocumentRefException
 from utils.request_context import request_context
 
@@ -233,6 +237,32 @@ def test_nhs_number_not_found_raises_exception(
     assert isinstance(exception, DocumentRefException)
     assert exception.status_code == 404
     assert exception.message == "Patient does not exist for given NHS number"
+
+    mock_check_if_ods_code_is_in_pilot.assert_not_called()
+    mock_process_fhir_document_reference.assert_not_called()
+
+
+def test_general_pds_error_raises_exception(
+    mock_fhir_doc_ref_base_service,
+    mock_getting_patient_info_from_pds,
+    mock_update_doc_ref_service,
+    mock_check_if_ods_code_is_in_pilot,
+    mock_process_fhir_document_reference,
+    mock_fetch_documents_from_table,
+):
+    mock_getting_patient_info_from_pds.side_effect = PdsHttpErrorException
+    mock_fetch_documents_from_table.return_value = create_test_doc_store_refs()
+
+    with pytest.raises(DocumentRefException) as exc_info:
+        mock_update_doc_ref_service.update_document_reference_request(
+            TEST_NHS_NUMBER,
+            LG_FILE,
+            TEST_UUID,
+        )
+
+    exception = exc_info.value
+    assert isinstance(exception, DocumentRefException)
+    assert exception.status_code == 400
 
     mock_check_if_ods_code_is_in_pilot.assert_not_called()
     mock_process_fhir_document_reference.assert_not_called()

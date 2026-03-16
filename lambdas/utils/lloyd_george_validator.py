@@ -19,6 +19,8 @@ from utils.exceptions import (
     LGInvalidFilesException,
     PatientNotFoundException,
     PatientRecordAlreadyExistException,
+    PdsHttpErrorException,
+    PdsPatientValidationException,
     PdsTooManyRequestsException,
 )
 from utils.unicode_utils import (
@@ -383,7 +385,7 @@ def check_pds_response_status(pds_response: requests.Response):
         pds_response.raise_for_status()
     except HTTPError as e:
         logger.error(e)
-        raise LGInvalidFilesException("Failed to retrieve patient data from PDS")
+        raise PdsHttpErrorException("Failed to retrieve patient data from PDS")
 
 
 def parse_pds_response(pds_response: requests.Response) -> Patient:
@@ -393,7 +395,7 @@ def parse_pds_response(pds_response: requests.Response) -> Patient:
     except pydantic.ValidationError:
         error_msg = "Fail to parse the patient detail response from PDS API."
         logger.error(error_msg)
-        raise LGInvalidFilesException(error_msg)
+        raise PdsPatientValidationException(error_msg)
 
 
 def get_allowed_ods_codes() -> list[str]:
