@@ -104,7 +104,12 @@ class S3Service:
             )
         return None
 
-    def create_download_presigned_url(self, s3_bucket_name: str, file_key: str):
+    def create_download_presigned_url(
+        self,
+        s3_bucket_name: str,
+        file_key: str,
+        version_id: str | None = None,
+    ):
         if self.custom_client:
             if datetime.now(timezone.utc) > self.expiration_time - timedelta(
                 minutes=10,
@@ -116,9 +121,13 @@ class S3Service:
                     config=self.config,
                 )
             logger.info("Generating presigned URL")
+            params = {"Bucket": s3_bucket_name, "Key": file_key}
+            if version_id:
+                params["VersionId"] = version_id
+
             return self.custom_client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": s3_bucket_name, "Key": file_key},
+                Params=params,
                 ExpiresIn=self.presigned_url_expiry,
             )
         return None

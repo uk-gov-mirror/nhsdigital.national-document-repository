@@ -112,7 +112,7 @@ class AuthoriserService:
             case "/DocumentManifest":
                 deny_resource = not patient_access_is_allowed or is_user_gp_clinical
 
-            case doc_ref if re.match(doc_ref_pattern, doc_ref):
+            case path if re.match(doc_ref_pattern, path):
                 deny_resource = is_user_pcse or not patient_access_is_allowed
                 if http_verb != HttpVerb.GET and access_to_deceased_patient:
                     deny_resource = True
