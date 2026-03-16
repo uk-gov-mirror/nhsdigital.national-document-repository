@@ -104,5 +104,6 @@ def test_extract_bearer_token_when_pdm(context, mock_mtls_common_names):
 
 
 def test_extract_document_parameters_valid_pdm():
-    document_id = extract_document_parameters(MOCK_MTLS_VALID_EVENT)
+    document_id, snomed_code = extract_document_parameters(MOCK_MTLS_VALID_EVENT)
+    assert snomed_code is None
     assert document_id == TEST_UUID

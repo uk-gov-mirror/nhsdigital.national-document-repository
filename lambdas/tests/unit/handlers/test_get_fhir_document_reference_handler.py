@@ -165,13 +165,17 @@ def test_extract_missing_bearer_token(context):
 
 
 def test_extract_document_parameters_valid():
-    document_id = extract_document_parameters(MOCK_CIS2_VALID_EVENT)
+    document_id, snomed_code = extract_document_parameters(MOCK_CIS2_VALID_EVENT)
     assert document_id == TEST_UUID
+    assert snomed_code == SNOMED_CODE
 
 
 def test_extract_document_parameters_invalid():
-    document_id = extract_document_parameters(MOCK_INVALID_EVENT_ID_MALFORMED)
+    document_id, snomed_code = extract_document_parameters(
+        MOCK_INVALID_EVENT_ID_MALFORMED,
+    )
     assert document_id == TEST_UUID
+    assert snomed_code is None
 
 
 def test_verify_user_authorisation(
@@ -336,8 +340,12 @@ def test_lambda_handler_search_service_errors(
     ],
 )
 def test_get_id_from_path_parameters(path_parameter):
-    document_id = get_id_from_path_parameters(path_parameter)
+    document_id, snomed_code = get_id_from_path_parameters(path_parameter)
     assert document_id == TEST_UUID
+    if snomed_code:
+        assert isinstance(snomed_code, str)
+    else:
+        assert snomed_code is None
 
 
 @pytest.mark.parametrize(
@@ -355,5 +363,6 @@ def test_get_id_from_path_parameters_raises_error(path_parameter):
 
 
 def test_get_id_from_path_parameters_empty():
-    document_id = get_id_from_path_parameters("")
+    document_id, snomed_code = get_id_from_path_parameters("")
     assert document_id is None
+    assert snomed_code is None

@@ -1,10 +1,11 @@
 import uuid
+from typing import Optional, Tuple
 
 from oauthlib.oauth2 import WebApplicationClient
 
 from enums.lambda_error import LambdaError
 from enums.mtls import MtlsCommonNames
-from enums.snomed_codes import SnomedCode, SnomedCodes
+from enums.snomed_codes import SnomedCodes
 from services.base.ssm_service import SSMService
 from services.dynamic_configuration_service import DynamicConfigurationService
 from services.get_fhir_document_reference_service import GetFhirDocumentReferenceService
@@ -43,12 +44,13 @@ def lambda_handler(event, context):
         bearer_token = extract_bearer_token(event, context)
         selected_role_id = event.get("headers", {}).get("cis2-urid", None)
 
-        document_id = extract_document_parameters(event)
-        snomed_code = _determine_document_type(common_name=common_name)
+        document_id, snomed_code = extract_document_parameters(event)
+        if not snomed_code:
+            snomed_code = _determine_document_type(common_name=common_name)
 
         get_document_service = GetFhirDocumentReferenceService()
         document_reference = get_document_service.handle_get_document_reference_request(
-            snomed_code.code,
+            snomed_code,
             document_id,
         )
 
@@ -88,7 +90,7 @@ def lambda_handler(event, context):
 def extract_document_parameters(event):
     """Extract document ID and SNOMED code from path parameters"""
     path_params = event.get("pathParameters", {}).get("id", None)
-    document_id = get_id_from_path_parameters(path_params)
+    document_id, snomed_code = get_id_from_path_parameters(path_params)
 
     if not document_id:
         logger.error("Missing document ID in request path parameters.")
@@ -97,7 +99,7 @@ def extract_document_parameters(event):
             LambdaError.DocumentReferenceMissingParameters,
         )
 
-    return document_id
+    return document_id, snomed_code
 
 
 def verify_user_authorisation(bearer_token, selected_role_id, nhs_number):
@@ -135,23 +137,35 @@ def verify_user_authorisation(bearer_token, selected_role_id, nhs_number):
         raise GetFhirDocumentReferenceException(e.status_code, e.error)
 
 
-def get_id_from_path_parameters(path_parameters):
+def get_id_from_path_parameters(path_parameters) -> Tuple[Optional[str], Optional[str]]:
     """Extract uuid from path parameters.
 
     Accepts:
     - '1234~uuid'
     - 'uuid'
     """
+    snomed_code = None
     if not path_parameters:
-        return None
+        return None, None
 
-    id = path_parameters.split("~")[-1]
-    if not is_uuid(id):
+    params = path_parameters.split("~")
+    if len(params) > 2:
         raise GetFhirDocumentReferenceException(
             400,
             LambdaError.DocRefInvalidFiles,
         )
-    return id
+
+    if len(params) > 1:
+        snomed_code = params[0] if params[0] else None
+        doc_id = params[1]
+    else:
+        doc_id = params[-1]
+    if not is_uuid(doc_id):
+        raise GetFhirDocumentReferenceException(
+            400,
+            LambdaError.DocRefInvalidFiles,
+        )
+    return doc_id, snomed_code
 
 
 def is_uuid(value: str) -> bool:
@@ -162,12 +176,12 @@ def is_uuid(value: str) -> bool:
         return False
 
 
-def _determine_document_type(common_name: MtlsCommonNames | None) -> SnomedCode:
+def _determine_document_type(common_name: MtlsCommonNames | None) -> str:
     if not common_name:
-        return SnomedCodes.LLOYD_GEORGE.value
+        return SnomedCodes.LLOYD_GEORGE.value.code
 
     if common_name not in MtlsCommonNames:
         logger.error(f"mTLS common name {common_name} - is not supported")
         raise GetFhirDocumentReferenceException(400, LambdaError.DocRefInvalidType)
 
-    return SnomedCodes.PATIENT_DATA.value
+    return SnomedCodes.PATIENT_DATA.value.code
