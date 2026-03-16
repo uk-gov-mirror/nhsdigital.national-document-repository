@@ -51,9 +51,13 @@ class RecordStoreData(StatisticData):
 
 
 class OrganisationData(StatisticData):
+    model_config = ConfigDict(
+        alias_generator=to_pascal,
+        validate_by_name=True,
+        extra="allow",
+    )
     number_of_patients: int = 0
     average_records_per_patient: Decimal = Decimal(0)
-    daily_count_uploaded: int = 0
     daily_count_viewed: int = 0
     daily_count_downloaded: int = 0
     daily_count_deleted: int = 0
@@ -65,6 +69,8 @@ class OrganisationData(StatisticData):
     daily_count_users_accessing_deceased: int = 0
     daily_count_ods_report_requested: int = 0
     daily_count_ods_report_created: int = 0
+    daily_count_upload_review: int = 0
+    daily_count_upload: int = 0
 
 
 class ApplicationData(StatisticData):

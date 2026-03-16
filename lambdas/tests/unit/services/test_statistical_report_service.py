@@ -5,8 +5,9 @@ from unittest.mock import call
 import polars as pl
 import pytest
 from freezegun import freeze_time
-from models.report.statistics import ApplicationData
 from polars.testing import assert_frame_equal
+
+from models.report.statistics import ApplicationData, OrganisationData
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from services.statistical_report_service import StatisticalReportService
@@ -47,7 +48,8 @@ def mock_service(set_env, mock_s3_service, mock_dynamodb_service):
 @pytest.fixture
 def mock_s3_service(mocker):
     patched_instance = mocker.patch(
-        "services.statistical_report_service.S3Service", spec=S3Service
+        "services.statistical_report_service.S3Service",
+        spec=S3Service,
     ).return_value
 
     yield patched_instance
@@ -56,7 +58,8 @@ def mock_s3_service(mocker):
 @pytest.fixture
 def mock_dynamodb_service(mocker):
     patched_instance = mocker.patch(
-        "services.statistical_report_service.DynamoDBService", spec=DynamoDBService
+        "services.statistical_report_service.DynamoDBService",
+        spec=DynamoDBService,
     ).return_value
 
     yield patched_instance
@@ -97,7 +100,11 @@ def test_make_weekly_summary(set_env, mocker):
     expected = EXPECTED_WEEKLY_SUMMARY
 
     assert_frame_equal(
-        actual, expected, check_row_order=False, check_dtypes=False, check_exact=False
+        actual,
+        expected,
+        check_row_order=False,
+        check_dtypes=False,
+        check_exact=False,
     )
 
 
@@ -127,7 +134,8 @@ def test_get_statistic_data(mock_dynamodb_service, mock_service):
 
 
 def test_get_statistic_data_raise_error_if_all_data_are_empty(
-    mock_dynamodb_service, mock_service
+    mock_dynamodb_service,
+    mock_service,
 ):
     mock_dynamodb_service.query_table.return_value = []
 
@@ -137,7 +145,7 @@ def test_get_statistic_data_raise_error_if_all_data_are_empty(
 
 def test_summarise_record_store_data(mock_service):
     actual = mock_service.summarise_record_store_data(
-        [MOCK_RECORD_STORE_DATA_1, MOCK_RECORD_STORE_DATA_2, MOCK_RECORD_STORE_DATA_3]
+        [MOCK_RECORD_STORE_DATA_1, MOCK_RECORD_STORE_DATA_2, MOCK_RECORD_STORE_DATA_3],
     )
 
     expected = EXPECTED_SUMMARY_RECORD_STORE_DATA
@@ -147,10 +155,12 @@ def test_summarise_record_store_data(mock_service):
 
 def test_summarise_record_store_data_larger_mock_data(mock_service):
     mock_data_h81109 = build_random_record_store_data(
-        "H81109", ["20240601", "20240603", "20240604", "20240605", "20240607"]
+        "H81109",
+        ["20240601", "20240603", "20240604", "20240605", "20240607"],
     )
     mock_data_y12345 = build_random_record_store_data(
-        "Y12345", ["20240601", "20240602", "20240603", "20240606"]
+        "Y12345",
+        ["20240601", "20240602", "20240603", "20240606"],
     )
     mock_record_store_data = mock_data_h81109 + mock_data_y12345
     shuffle(mock_record_store_data)
@@ -158,7 +168,8 @@ def test_summarise_record_store_data_larger_mock_data(mock_service):
     latest_record_in_h81109 = max(mock_data_h81109, key=lambda record: record.date)
     latest_record_in_y12345 = max(mock_data_y12345, key=lambda record: record.date)
     expected = pl.DataFrame([latest_record_in_h81109, latest_record_in_y12345]).drop(
-        "date", "statistic_id"
+        "date",
+        "statistic_id",
     )
 
     actual = mock_service.summarise_record_store_data(mock_record_store_data)
@@ -176,20 +187,28 @@ def test_summarise_record_store_data_can_handle_empty_input(mock_service):
 
 def test_summarise_organisation_data(mock_service):
     actual = mock_service.summarise_organisation_data(
-        [MOCK_ORGANISATION_DATA_1, MOCK_ORGANISATION_DATA_2, MOCK_ORGANISATION_DATA_3]
+        [MOCK_ORGANISATION_DATA_1, MOCK_ORGANISATION_DATA_2, MOCK_ORGANISATION_DATA_3],
     )
 
     expected = EXPECTED_SUMMARY_ORGANISATION_DATA
 
-    assert_frame_equal(actual, expected, check_row_order=False, check_dtypes=False)
+    assert_frame_equal(
+        actual,
+        expected,
+        check_row_order=False,
+        check_dtypes=False,
+        check_column_order=False,
+    )
 
 
 def test_summarise_organisation_data_larger_mock_data(mock_service):
     mock_data_h81109 = build_random_organisation_data(
-        "H81109", ["20240603", "20240604", "20240605", "20240606", "20240607"]
+        "H81109",
+        ["20240603", "20240604", "20240605", "20240606", "20240607"],
     )
     mock_data_y12345 = build_random_organisation_data(
-        "Y12345", ["20240603", "20240604", "20240605", "20240606", "20240607"]
+        "Y12345",
+        ["20240603", "20240604", "20240605", "20240606", "20240607"],
     )
     mock_input_data = {"H81109": mock_data_h81109, "Y12345": mock_data_y12345}
 
@@ -202,16 +221,18 @@ def test_summarise_organisation_data_larger_mock_data(mock_service):
         mock_data_of_ods_code = mock_input_data[ods_code]
         row_in_actual_data = actual.filter(pl.col("ods_code") == ods_code)
         assert_weekly_counts_match_sum_of_daily_counts(
-            mock_data_of_ods_code, row_in_actual_data
+            mock_data_of_ods_code,
+            row_in_actual_data,
         )
         assert_average_record_per_patient_correct(
-            mock_data_of_ods_code, row_in_actual_data
+            mock_data_of_ods_code,
+            row_in_actual_data,
         )
         assert_number_of_patient_correct(mock_data_of_ods_code, row_in_actual_data)
 
 
 def assert_weekly_counts_match_sum_of_daily_counts(mock_data, row_in_actual_data):
-    for count_type in ["viewed", "downloaded", "uploaded", "deleted"]:
+    for count_type in ["viewed", "downloaded", "upload", "deleted"]:
         expected_weekly_count = sum(
             getattr(data, f"daily_count_{count_type}") for data in mock_data
         )
@@ -225,7 +246,8 @@ def assert_average_record_per_patient_correct(mock_data, row_in_actual_data):
         data.average_records_per_patient for data in mock_data
     ) / len(mock_data)
     actual_average_patient_record = row_in_actual_data.item(
-        0, "average_records_per_patient"
+        0,
+        "average_records_per_patient",
     )
 
     assert actual_average_patient_record == float(expected_average_patient_record)
@@ -268,10 +290,12 @@ def test_summarise_application_data(mock_service):
 
 def test_summarise_application_data_larger_mock_data(mock_service):
     mock_data_h81109 = build_random_application_data(
-        "H81109", ["20240603", "20240604", "20240605", "20240606", "20240607"]
+        "H81109",
+        ["20240603", "20240604", "20240605", "20240606", "20240607"],
     )
     mock_data_y12345 = build_random_application_data(
-        "Y12345", ["20240603", "20240604", "20240605", "20240606", "20240607"]
+        "Y12345",
+        ["20240603", "20240604", "20240605", "20240606", "20240607"],
     )
     mock_organisation_data = mock_data_h81109 + mock_data_y12345
     shuffle(mock_organisation_data)
@@ -291,7 +315,7 @@ def test_summarise_application_data_larger_mock_data(mock_service):
                 "active_users_count": len(active_users_count_y12345),
                 "unique_active_user_ids_hashed": str(active_users_count_y12345),
             },
-        ]
+        ],
     )
     actual = mock_service.summarise_application_data(mock_organisation_data)
 
@@ -319,20 +343,167 @@ def test_summarise_application_data_can_handle_empty_input(mock_service):
     assert actual.is_empty()
 
 
+def test_summarise_organisation_data_sums_file_type_breakdown_columns(mock_service):
+    data_day1 = OrganisationData(
+        date="20240510",
+        ods_code="Z56789",
+        daily_count_upload_review_lloyd_george_record_folder=3,
+        daily_count_upload_lloyd_george_record_folder=1,
+    )
+    data_day2 = OrganisationData(
+        date="20240511",
+        ods_code="Z56789",
+        daily_count_upload_review_lloyd_george_record_folder=2,
+        daily_count_upload_lloyd_george_record_folder=4,
+    )
+
+    actual = mock_service.summarise_organisation_data([data_day1, data_day2])
+
+    assert actual.item(0, "weekly_count_upload_review_lloyd_george_record_folder") == 5
+    assert actual.item(0, "weekly_count_upload_lloyd_george_record_folder") == 5
+
+
+def test_summarise_organisation_data_sums_multiple_file_types_per_ods_code(
+    mock_service,
+):
+    data_day1 = OrganisationData(
+        date="20240510",
+        ods_code="H81109",
+        daily_count_upload_review_electronic_health_record=5,
+        daily_count_upload_review_care_plan=2,
+    )
+    data_day2 = OrganisationData(
+        date="20240511",
+        ods_code="H81109",
+        daily_count_upload_review_electronic_health_record=3,
+        daily_count_upload_review_care_plan=1,
+    )
+
+    actual = mock_service.summarise_organisation_data([data_day1, data_day2])
+
+    assert actual.item(0, "weekly_count_upload_review_electronic_health_record") == 8
+    assert actual.item(0, "weekly_count_upload_review_care_plan") == 3
+
+
+def test_reorder_columns_puts_priority_columns_first(mock_service):
+    input_df = pl.DataFrame(
+        [
+            {
+                "ods_code": "Z56789",
+                "weekly_count_upload": 0,
+                "weekly_count_viewed": 35,
+                "weekly_count_deleted": 1,
+                "weekly_count_searched": 0,
+                "weekly_count_users_uploaded": 0,
+                "weekly_count_users_reviewed": 0,
+                "weekly_count_users_reassigned": 0,
+                "weekly_count_users_accessing_review": 3,
+                "weekly_count_users_accessing_deceased": 12,
+                "weekly_count_ods_report_requested": 10,
+                "weekly_count_ods_report_created": 0,
+                "weekly_count_upload_review": 0,
+                "weekly_count_downloaded": 4,
+                "active_users_count": 1,
+                "unique_active_user_ids_hashed": "[]",
+                "number_of_patients": 4,
+                "total_number_of_records": 18,
+                "date": "20240530-20240605",
+            },
+        ],
+    )
+
+    actual = mock_service.reorder_columns(input_df)
+
+    columns = actual.columns
+    assert columns[0] == "date"
+    assert columns[1] == "ods_code"
+    assert columns[2] == "number_of_patients"
+    assert columns[3] == "total_number_of_records"
+    assert "weekly_count_upload_review" in columns
+    assert "weekly_count_upload" in columns
+
+
+def test_reorder_columns_puts_extra_columns_after_priority_columns_sorted(mock_service):
+    input_df = pl.DataFrame(
+        [
+            {
+                "ods_code": "Z56789",
+                "date": "20240530-20240605",
+                "number_of_patients": 4,
+                "total_number_of_records": 18,
+                "weekly_count_upload_review": 0,
+                "weekly_count_upload": 0,
+                "weekly_count_upload_review_care_plan": 1,
+                "weekly_count_upload_lloyd_george_record_folder": 2,
+            },
+        ],
+    )
+
+    actual = mock_service.reorder_columns(input_df)
+
+    priority = [
+        "date",
+        "ods_code",
+        "number_of_patients",
+        "total_number_of_records",
+        "weekly_count_upload_review",
+        "weekly_count_upload",
+    ]
+    for i, col in enumerate(priority):
+        assert actual.columns[i] == col
+
+    extra_cols = actual.columns[len(priority) :]
+    assert extra_cols == sorted(extra_cols)
+
+
+def test_rename_snakecase_columns_converts_ods_code(mock_service):
+    assert mock_service.rename_snakecase_columns("ods_code") == "ODS code"
+
+
+def test_rename_snakecase_columns_humanizes_snake_case(mock_service):
+    assert (
+        mock_service.rename_snakecase_columns("weekly_count_upload")
+        == "Weekly count upload"
+    )
+    assert (
+        mock_service.rename_snakecase_columns("number_of_patients")
+        == "Number of patients"
+    )
+    assert (
+        mock_service.rename_snakecase_columns("weekly_count_upload_review_care_plan")
+        == "Weekly count upload review care plan"
+    )
+
+
+def test_tidy_up_data_updates_date_and_renames_columns(mock_service):
+    mock_service.report_period = "20240530-20240605"
+    input_df = pl.DataFrame(
+        [{"ods_code": "Z56789", "number_of_patients": 4, "weekly_count_upload": 2}],
+    )
+
+    actual = mock_service.tidy_up_data(input_df)
+
+    assert "Date" in actual.columns
+    assert actual.item(0, "Date") == "20240530-20240605"
+    assert "ODS code" in actual.columns
+    assert "Number of patients" in actual.columns
+    assert "Weekly count upload" in actual.columns
+
+
 def test_join_dataframes_by_ods_code(mock_service):
     mock_data_1 = pl.DataFrame([{"ods_code": "Y12345", "field1": "apple"}])
     mock_data_2 = pl.DataFrame(
         [
             {"ods_code": "Y12345", "field2": "banana"},
             {"ods_code": "Z56789", "field2": "cherry"},
-        ]
+        ],
     )
 
     expected = pl.DataFrame(
         [
             {"ods_code": "Y12345", "field1": "apple", "field2": "banana"},
             {"ods_code": "Z56789", "field2": "cherry"},
-        ]
+        ],
     )
     actual = mock_service.join_dataframes_by_ods_code([mock_data_1, mock_data_2])
 
@@ -346,17 +517,17 @@ def test_join_dataframes_by_ods_code_can_handle_empty_dataframe(mock_service):
         [
             {"ods_code": "Y12345", "field2": "dog"},
             {"ods_code": "Z56789", "field3": "lizard"},
-        ]
+        ],
     )
 
     expected = pl.DataFrame(
         [
             {"ods_code": "Y12345", "field1": "cat", "field2": "dog"},
             {"ods_code": "Z56789", "field3": "lizard"},
-        ]
+        ],
     )
     actual = mock_service.join_dataframes_by_ods_code(
-        [mock_data_1, mock_data_2, mock_data_3]
+        [mock_data_1, mock_data_2, mock_data_3],
     )
 
     assert_frame_equal(actual, expected, check_dtypes=False, check_row_order=False)

@@ -1,12 +1,14 @@
 import os
 
+from pydantic import ValidationError
+
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
 from enums.dynamo_filter import AttributeOperator
 from enums.lambda_error import LambdaError
 from enums.supported_document_types import SupportedDocumentTypes
 from enums.trace_status import TraceStatus
 from models.document_reference import DocumentReference
 from models.zip_trace import DocumentManifestJob, DocumentManifestZipTrace
-from pydantic import ValidationError
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from services.document_service import DocumentService
@@ -45,7 +47,7 @@ class DocumentManifestJobService:
                     query_filter=UploadCompleted,
                 )
                 for doc_type in doc_types
-            ]
+            ],
         )
 
         if not self.documents:
@@ -85,7 +87,8 @@ class DocumentManifestJobService:
 
         if not matched_references:
             raise DocumentManifestJobServiceException(
-                400, LambdaError.ManifestFilterDocumentReferences
+                400,
+                LambdaError.ManifestFilterDocumentReferences,
             )
 
         return matched_references
@@ -100,7 +103,7 @@ class DocumentManifestJobService:
             if duplicated_filename:
                 file_names_to_be_zipped[file_name] += 1
                 document.file_name = document.create_unique_filename(
-                    file_names_to_be_zipped[file_name]
+                    file_names_to_be_zipped[file_name],
                 )
             else:
                 file_names_to_be_zipped[file_name] = 1
@@ -113,23 +116,28 @@ class DocumentManifestJobService:
         logger.info("Writing Document Manifest zip trace to db")
 
         zip_trace = DocumentManifestZipTrace(
-            files_to_download=documents_to_download, nhs_number=nhs_number
+            files_to_download=documents_to_download,
+            nhs_number=nhs_number,
         )
         self.dynamo_service.create_item(
-            self.zip_trace_table, zip_trace.model_dump(by_alias=True)
+            self.zip_trace_table,
+            zip_trace.model_dump(by_alias=True),
         )
 
         return str(zip_trace.job_id)
 
     def query_document_manifest_job(
-        self, job_id: str, nhs_number: str
+        self,
+        job_id: str,
+        nhs_number: str,
     ) -> DocumentManifestJob:
         zip_trace = self.query_zip_trace(job_id=job_id, nhs_number=nhs_number)
 
         match zip_trace.job_status:
             case TraceStatus.FAILED:
                 raise DocumentManifestJobServiceException(
-                    500, LambdaError.ManifestFailure
+                    500,
+                    LambdaError.ManifestFailure,
                 )
             case TraceStatus.PENDING:
                 return DocumentManifestJob(job_status=TraceStatus.PENDING, url="")
@@ -137,26 +145,29 @@ class DocumentManifestJobService:
                 return DocumentManifestJob(job_status=TraceStatus.PROCESSING, url="")
             case TraceStatus.COMPLETED:
                 presigned_url = self.create_document_manifest_presigned_url(
-                    zip_trace.zip_file_location
+                    zip_trace.zip_file_location,
                 )
                 logger.info(
-                    "User has downloaded Lloyd George records",
+                    CloudwatchLogsReportingMessage.LG_RECORDS_DOWNLOADED,
                     {"Result": "Successful download"},
                 )
 
                 return DocumentManifestJob(
-                    job_status=TraceStatus.COMPLETED, url=presigned_url
+                    job_status=TraceStatus.COMPLETED,
+                    url=presigned_url,
                 )
 
     def create_document_manifest_presigned_url(self, zip_file_location: str):
         file_key = get_file_key_from_s3_url(zip_file_location)
         is_manifest_ready = self.s3_service.file_exist_on_s3(
-            s3_bucket_name=self.zip_output_bucket, file_key=file_key
+            s3_bucket_name=self.zip_output_bucket,
+            file_key=file_key,
         )
         if not is_manifest_ready:
             logger.error("No Document Manifest found")
             raise DocumentManifestJobServiceException(
-                404, LambdaError.ManifestMissingJob
+                404,
+                LambdaError.ManifestMissingJob,
             )
         return self.s3_service.create_download_presigned_url(
             s3_bucket_name=self.zip_output_bucket,
@@ -188,5 +199,6 @@ class DocumentManifestJobService:
                 {"Result": "Failed to create document manifest job"},
             )
             raise DocumentManifestJobServiceException(
-                404, LambdaError.ManifestMissingJob
+                404,
+                LambdaError.ManifestMissingJob,
             )

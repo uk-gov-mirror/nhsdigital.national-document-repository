@@ -3,6 +3,8 @@ import os
 from typing import Optional
 
 from botocore.exceptions import ClientError
+
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.snomed_codes import SnomedCodes
@@ -388,7 +390,11 @@ class UploadDocumentReferenceService:
             self.copy_files_from_staging_bucket(document_reference, object_key)
 
             logger.info(
-                f"Successfully processed clean document: {document_reference.id}",
+                f"{CloudwatchLogsReportingMessage.UPLOAD_PROCESSED} {self.table_name}: {document_reference.id}",
+                {
+                    "ods_code": document_reference.author,
+                    "document_snomed_code_type": document_reference.document_snomed_code_type,
+                },
             )
 
         except Exception as e:

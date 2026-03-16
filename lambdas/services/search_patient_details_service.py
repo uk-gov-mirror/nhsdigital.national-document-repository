@@ -1,7 +1,9 @@
-from enums.lambda_error import LambdaError
-from enums.repository_role import RepositoryRole
 from pydantic import ValidationError
 from pydantic_core import PydanticSerializationError
+
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
+from enums.lambda_error import LambdaError
+from enums.repository_role import RepositoryRole
 from services.manage_user_session_access import ManageUserSessionAccess
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import (
@@ -49,10 +51,14 @@ class SearchPatientDetailsService:
 
             if not patient_details.deceased:
                 can_manage_record = self._check_authorization(
-                    patient_details.general_practice_ods, can_access_not_my_record
+                    patient_details.general_practice_ods,
+                    can_access_not_my_record,
                 )
 
-            logger.info("Searched for patient details", {"Result": "Patient found"})
+            logger.info(
+                CloudwatchLogsReportingMessage.PATIENT_SEARCHED,
+                {"Result": "Patient found"},
+            )
 
             if update_session and can_manage_record:
                 self._update_session(nhs_number, patient_details.deceased)
@@ -63,7 +69,10 @@ class SearchPatientDetailsService:
 
         except PatientNotFoundException as e:
             self._handle_error(
-                e, LambdaError.SearchPatientNoPDS, 404, "Patient not found"
+                e,
+                LambdaError.SearchPatientNoPDS,
+                404,
+                "Patient not found",
             )
             return None
 
@@ -78,13 +87,19 @@ class SearchPatientDetailsService:
 
         except (InvalidResourceIdException, PdsErrorException) as e:
             self._handle_error(
-                e, LambdaError.SearchPatientNoId, 400, "Patient not found"
+                e,
+                LambdaError.SearchPatientNoId,
+                400,
+                "Patient not found",
             )
             return None
 
         except (ValidationError, PydanticSerializationError) as e:
             self._handle_error(
-                e, LambdaError.SearchPatientNoParse, 400, "Patient not found"
+                e,
+                LambdaError.SearchPatientNoParse,
+                400,
+                "Patient not found",
             )
             return None
 
@@ -94,7 +109,9 @@ class SearchPatientDetailsService:
         return pds_service.fetch_patient_details(nhs_number)
 
     def _check_authorization(
-        self, gp_ods_for_patient, can_access_not_my_record
+        self,
+        gp_ods_for_patient,
+        can_access_not_my_record,
     ) -> bool:
         """
         Check if the current user is authorised to view the patient details.

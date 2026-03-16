@@ -46,6 +46,9 @@ from tests.unit.helpers.data.statistic.mock_logs_query_results import (
     MOCK_ODS_REPORT_REQUESTED,
     MOCK_PATIENT_SEARCHED,
     MOCK_UNIQUE_ACTIVE_USER_IDS,
+    MOCK_UPLOAD_COUNT_BY_FILE_TYPE,
+    MOCK_UPLOAD_REVIEW_COUNT_BY_FILE_TYPE,
+    MOCK_UPLOAD_REVIEW_COUNT_BY_ODS_CODE,
     MOCK_USERS_ACCESSING_REVIEW,
     MOCK_USERS_LG_REASSIGNED,
     MOCK_USERS_LG_REVIEWED,
@@ -61,11 +64,14 @@ from utils.cloudwatch_logs_query import (
     LloydGeorgeRecordsDeleted,
     LloydGeorgeRecordsDownloaded,
     LloydGeorgeRecordsSearched,
-    LloydGeorgeRecordsUploaded,
     LloydGeorgeRecordsViewed,
     OdsReportsCreated,
     OdsReportsRequested,
     UniqueActiveUserIds,
+    UploadCountByFileType,
+    UploadCountByOdsCode,
+    UploadReviewCountByFileType,
+    UploadReviewCountByOdsCode,
 )
 from utils.common_query_filters import UploadCompleted
 
@@ -113,8 +119,6 @@ def mock_query_logs(mocker):
             return MOCK_LG_DOWNLOADED
         if query_params == LloydGeorgeRecordsDeleted:
             return MOCK_LG_DELETED
-        if query_params == LloydGeorgeRecordsUploaded:
-            return MOCK_LG_UPLOADED
         if query_params == CountUsersLloydGeorgeRecordsUploaded:
             return MOCK_USERS_LG_UPLOADED
         if query_params == CountUsersLloydGeorgeRecordsReviewed:
@@ -133,6 +137,14 @@ def mock_query_logs(mocker):
             return MOCK_ODS_REPORT_REQUESTED
         if query_params == OdsReportsCreated:
             return MOCK_ODS_REPORT_CREATED
+        if query_params == UploadCountByOdsCode:
+            return MOCK_LG_UPLOADED
+        if query_params == UploadCountByFileType:
+            return MOCK_UPLOAD_COUNT_BY_FILE_TYPE
+        if query_params == UploadReviewCountByOdsCode:
+            return MOCK_UPLOAD_REVIEW_COUNT_BY_ODS_CODE
+        if query_params == UploadReviewCountByFileType:
+            return MOCK_UPLOAD_REVIEW_COUNT_BY_FILE_TYPE
         return []
 
     patched_instance = mocker.patch(
@@ -479,5 +491,67 @@ def test_generate_daily_ranges(mock_service):
         START_DATE + timedelta(days=6),
     ]
     actual = mock_service.generate_daily_ranges()
+
+    assert actual == expected
+
+
+def test_group_by_file_type_upload_review(mock_service):
+    actual = mock_service.group_by_file_type(
+        MOCK_UPLOAD_REVIEW_COUNT_BY_FILE_TYPE,
+        count_key="daily_count_upload_review",
+    )
+    expected = unordered(
+        [
+            {
+                "ods_code": "Y12345",
+                "daily_count_upload_review_lloyd_george_record_folder": 2,
+                "daily_count_upload_review_care_plan": 1,
+            },
+            {
+                "ods_code": "H81109",
+                "daily_count_upload_review_electronic_health_record": 3,
+                "daily_count_upload_review_electronic_health_record_attachments": 2,
+            },
+        ],
+    )
+
+    assert actual == expected
+
+
+def test_group_by_file_type_upload(mock_service):
+    actual = mock_service.group_by_file_type(
+        MOCK_UPLOAD_COUNT_BY_FILE_TYPE,
+        count_key="daily_count_upload",
+    )
+    expected = unordered(
+        [
+            {
+                "ods_code": "Y12345",
+                "daily_count_upload_lloyd_george_record_folder": 1,
+                "daily_count_upload_electronic_health_record": 1,
+            },
+            {
+                "ods_code": "H81109",
+                "daily_count_upload_care_record_elements": 2,
+                "daily_count_upload_electronic_health_record_attachments": 2,
+            },
+        ],
+    )
+
+    assert actual == expected
+
+
+def test_group_by_file_type_returns_empty_for_empty_input(mock_service):
+    actual = mock_service.group_by_file_type([], count_key="daily_count_upload_review")
+    assert actual == []
+
+
+def test_group_by_file_type_uses_snomed_code_as_fallback_for_unknown_code(mock_service):
+    unknown_code = "999999999"
+    input_data = [
+        {"ods_code": "H81109", "file_type": unknown_code, "daily_count_upload": "5"},
+    ]
+    actual = mock_service.group_by_file_type(input_data, count_key="daily_count_upload")
+    expected = [{"ods_code": "H81109", f"daily_count_upload_{unknown_code}": 5}]
 
     assert actual == expected

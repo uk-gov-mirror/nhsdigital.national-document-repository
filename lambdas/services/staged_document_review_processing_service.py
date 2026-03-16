@@ -3,6 +3,7 @@ import os
 
 from botocore.exceptions import ClientError
 
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
 from enums.document_review_status import DocumentReviewStatus
 from enums.virus_scan_result import VirusScanResult
 from models.document_reference import S3_PREFIX
@@ -176,7 +177,13 @@ class StagedDocumentReviewProcessingService:
             condition_expression=update_condition,
         )
         self.delete_file_from_staging_bucket(object_key)
-        logger.info(f"Successfully processed clean document: {document_reference.id}")
+        logger.info(
+            f"{CloudwatchLogsReportingMessage.UPLOAD_REVIEW_PROCESSED}: {document_reference.id}",
+            {
+                "ods_code": document_reference.author,
+                "document_snomed_code_type": document_reference.document_snomed_code_type,
+            },
+        )
 
     def copy_files_from_staging_bucket(
         self,

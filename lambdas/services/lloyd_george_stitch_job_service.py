@@ -3,11 +3,13 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from botocore.exceptions import ClientError
+from pydantic import ValidationError
+
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
 from enums.dynamo_filter import AttributeOperator
 from enums.lambda_error import LambdaError
 from enums.trace_status import TraceStatus
 from models.stitch_trace import DocumentStitchJob, StitchTrace
-from pydantic import ValidationError
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from services.document_reference_service import DocumentReferenceService
@@ -25,7 +27,7 @@ class LloydGeorgeStitchJobService:
     def __init__(self):
         get_document_presign_url_aws_role_arn = os.getenv("PRESIGNED_ASSUME_ROLE")
         self.s3_service = S3Service(
-            custom_aws_role=get_document_presign_url_aws_role_arn
+            custom_aws_role=get_document_presign_url_aws_role_arn,
         )
         self.dynamo_service = DynamoDBService()
         self.document_service = DocumentReferenceService()
@@ -70,7 +72,8 @@ class LloydGeorgeStitchJobService:
 
         stitch_trace = StitchTrace(nhs_number=nhs_number, expire_at=expiration_time)
         self.dynamo_service.create_item(
-            self.stitch_trace_table, stitch_trace.model_dump(by_alias=True)
+            self.stitch_trace_table,
+            stitch_trace.model_dump(by_alias=True),
         )
         return stitch_trace.job_status
 
@@ -82,7 +85,7 @@ class LloydGeorgeStitchJobService:
 
     def query_document_stitch_job(self, nhs_number: str):
         stitch_trace_response = self.query_stitch_trace_with_nhs_number(
-            nhs_number=nhs_number
+            nhs_number=nhs_number,
         )
         stitch_trace = self.get_latest_stitch_trace(stitch_trace_response)
         return self.process_stitch_trace_response(stitch_trace)
@@ -96,14 +99,15 @@ class LloydGeorgeStitchJobService:
 
             case TraceStatus.PROCESSING:
                 return DocumentStitchJob(
-                    jobStatus=TraceStatus.PROCESSING, presignedUrl=""
+                    jobStatus=TraceStatus.PROCESSING,
+                    presignedUrl="",
                 )
             case TraceStatus.COMPLETED:
                 presigned_url = self.create_document_stitch_presigned_url(
-                    stitch_trace.stitched_file_location
+                    stitch_trace.stitched_file_location,
                 )
                 logger.info(
-                    "User has viewed Lloyd George records",
+                    CloudwatchLogsReportingMessage.LG_RECORDS_STITCHED,
                     {"Result": "Successful Stitching"},
                 )
 
@@ -116,7 +120,8 @@ class LloydGeorgeStitchJobService:
                 )
 
     def validate_stitch_trace(
-        self, stitch_trace_dynamo_response: list
+        self,
+        stitch_trace_dynamo_response: list,
     ) -> list[StitchTrace] | None:
         try:
             if not stitch_trace_dynamo_response:
@@ -182,7 +187,7 @@ class LloydGeorgeStitchJobService:
     def check_lloyd_george_record_for_patient(self, nhs_number) -> None:
         try:
             self.document_service.get_available_lloyd_george_record_for_patient(
-                nhs_number
+                nhs_number,
             )
         except ClientError as e:
             logger.error(
@@ -196,7 +201,8 @@ class LloydGeorgeStitchJobService:
                 {"Result": "Lloyd George stitching failed"},
             )
             raise LGStitchServiceException(
-                status_code=423, error=LambdaError.UploadInProgressError
+                status_code=423,
+                error=LambdaError.UploadInProgressError,
             )
         except NoAvailableDocument as e:
             logger.error(
@@ -204,7 +210,8 @@ class LloydGeorgeStitchJobService:
                 {"Result": "Lloyd George stitching failed"},
             )
             raise LGStitchServiceException(
-                status_code=404, error=LambdaError.StitchNotFound
+                status_code=404,
+                error=LambdaError.StitchNotFound,
             )
         except LGInvalidFilesException as e:
             logger.error(
@@ -212,5 +219,6 @@ class LloydGeorgeStitchJobService:
                 {"Result": "Lloyd George stitching failed"},
             )
             raise LGStitchServiceException(
-                status_code=400, error=LambdaError.IncompleteRecordError
+                status_code=400,
+                error=LambdaError.IncompleteRecordError,
             )

@@ -4,13 +4,14 @@ from typing import Literal, Optional
 from urllib.parse import urlparse
 
 from botocore.exceptions import ClientError
+from inflection import underscore
+
 from enums.document_retention import DocumentRetentionDays
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.nrl_sqs_upload import NrlActionTypes
 from enums.snomed_codes import SnomedCode, SnomedCodes
 from enums.supported_document_types import SupportedDocumentTypes
-from inflection import underscore
 from models.document_reference import DocumentReference
 from models.fhir.R4.fhir_document_reference import Attachment
 from models.sqs.nrl_sqs_message import NrlSqsMessage
@@ -46,8 +47,7 @@ class DocumentDeletionService:
             if result != []:
                 return [document_id]
             return result
-        else:
-            return self.delete_documents_by_types(nhs_number, doc_types)
+        return self.delete_documents_by_types(nhs_number, doc_types)
 
     def delete_document_by_id(self, nhs_number: str, document_id: str):
         doc_ref_list: DocumentReference = (
@@ -78,7 +78,9 @@ class DocumentDeletionService:
         )
 
     def delete_documents_by_types(
-        self, nhs_number: str, doc_types: list[SupportedDocumentTypes]
+        self,
+        nhs_number: str,
+        doc_types: list[SupportedDocumentTypes],
     ):
         files_deleted = []
 
@@ -103,11 +105,13 @@ class DocumentDeletionService:
 
             if not bucket_name or not object_key:
                 raise DocumentDeletionServiceException(
-                    400, LambdaError.DocDelObjectFailure
+                    400,
+                    LambdaError.DocDelObjectFailure,
                 )
 
             self.document_service.delete_document_object(
-                bucket=bucket_name, key=object_key
+                bucket=bucket_name,
+                key=object_key,
             )
 
             logger.info(
@@ -127,7 +131,8 @@ class DocumentDeletionService:
         doc_type: Literal[SupportedDocumentTypes.ARF, SupportedDocumentTypes.LG],
     ) -> list[DocumentReference]:
         query_filter = get_document_type_filter(
-            DynamoQueryFilterBuilder(), doc_type.value
+            DynamoQueryFilterBuilder(),
+            doc_type.value,
         )
 
         results = self.document_service.fetch_documents_from_table_with_nhs_number(

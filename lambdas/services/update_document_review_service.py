@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
 from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
 from models.document_review import (
@@ -56,28 +57,35 @@ class UpdateDocumentReviewService:
         reviewer_ods_code: str,
     ):
         logger.info(
-            f"Updating document review for patient_id: {patient_id}, document_id: {document_id}"
+            f"Updating document review for patient_id: {patient_id}, document_id: {document_id}",
         )
         try:
             review_document = self._fetch_document(document_id, document_version)
             self._validate_document_for_update(
-                review_document, patient_id, reviewer_ods_code
+                review_document,
+                patient_id,
+                reviewer_ods_code,
             )
             self._process_review_status_update(
-                review_document, update_data, document_id, reviewer_ods_code
+                review_document,
+                update_data,
+                document_id,
+                reviewer_ods_code,
             )
 
             logger.info(
-                f"Successfully updated document review for document_id: {document_id}"
+                f"{CloudwatchLogsReportingMessage.USERS_PATCH_REVIEW}: {document_id}",
             )
         except DocumentReviewException:
             raise UpdateDocumentReviewException(
-                400, LambdaError.DocumentReviewGeneralError
+                400,
+                LambdaError.DocumentReviewGeneralError,
             )
 
     def _fetch_document(self, document_id: str, document_version: int):
         review_document = self.document_review_service.get_document_review_by_id(
-            document_id=document_id, document_version=document_version
+            document_id=document_id,
+            document_version=document_version,
         )
 
         if not review_document:
@@ -108,7 +116,8 @@ class UpdateDocumentReviewService:
                 {"Result": self.FAILED_LOG_MESSAGE},
             )
             raise UpdateDocumentReviewException(
-                400, LambdaError.UpdateDocNHSNumberMismatch
+                400,
+                LambdaError.UpdateDocNHSNumberMismatch,
             )
 
     def _validate_review_status(self, document):
@@ -121,7 +130,8 @@ class UpdateDocumentReviewService:
                 {"Result": self.FAILED_LOG_MESSAGE},
             )
             raise UpdateDocumentReviewException(
-                400, LambdaError.DocumentReviewStatusUpdateUnavailable
+                400,
+                LambdaError.DocumentReviewStatusUpdateUnavailable,
             )
 
     def _validate_user_match_custodian(self, document, reviewer_ods_code: str):
@@ -131,7 +141,8 @@ class UpdateDocumentReviewService:
                 {"Result": self.FAILED_LOG_MESSAGE},
             )
             raise UpdateDocumentReviewException(
-                403, LambdaError.DocumentReviewUploadForbidden
+                403,
+                LambdaError.DocumentReviewUploadForbidden,
             )
 
     def _process_review_status_update(
@@ -167,36 +178,44 @@ class UpdateDocumentReviewService:
                 {"Result": self.FAILED_LOG_MESSAGE},
             )
             raise UpdateDocumentReviewException(
-                400, LambdaError.DocumentReviewGeneralError
+                400,
+                LambdaError.DocumentReviewGeneralError,
             )
 
     def _handle_rejection_or_approval(self, document, update_fields):
         self.document_review_service.update_pending_review_status(
-            review_update=document, field_names=update_fields
+            review_update=document,
+            field_names=update_fields,
         )
         self._handle_soft_delete(document)
 
     def _handle_soft_delete(self, review_document: DocumentUploadReviewReference):
         logger.info(
-            f"Deleting document review files for document_id: {review_document.id}"
+            f"Deleting document review files for document_id: {review_document.id}",
         )
         self.document_review_service.delete_document_review_files(review_document)
 
     def _handle_reassignment_status(
-        self, document, update_data: PatchDocumentReviewRequest, document_id: str
+        self,
+        document,
+        update_data: PatchDocumentReviewRequest,
+        document_id: str,
     ):
         new_document_review = self._create_reassigned_document(document, update_data)
 
         self.document_review_service.update_document_review_with_transaction(
-            new_review_item=new_document_review, existing_review_item=document
+            new_review_item=new_document_review,
+            existing_review_item=document,
         )
 
         logger.info(
-            f"Document {document_id} reassigned to patient {update_data.nhs_number}"
+            f"Document {document_id} reassigned to patient {update_data.nhs_number}",
         )
 
     def _create_reassigned_document(
-        self, document, update_data: PatchDocumentReviewRequest
+        self,
+        document,
+        update_data: PatchDocumentReviewRequest,
     ) -> DocumentUploadReviewReference:
         new_document_review = document.model_copy(deep=True)
         new_document_review.review_date = None
@@ -208,7 +227,7 @@ class UpdateDocumentReviewService:
         else:
             new_document_review.nhs_number = update_data.nhs_number
             new_document_review.custodian = self._get_patient_custodian(
-                update_data.nhs_number
+                update_data.nhs_number,
             )
 
         new_document_review.review_status = DocumentReviewStatus.PENDING_REVIEW
@@ -227,8 +246,9 @@ class UpdateDocumentReviewService:
             InvalidResourceIdException,
         ):
             logger.error(
-                f"Failed to fetch patient details for NHS number: {patient_nhs_number}"
+                f"Failed to fetch patient details for NHS number: {patient_nhs_number}",
             )
             raise UpdateDocumentReviewException(
-                400, LambdaError.DocumentReviewInvalidNhsNumber
+                400,
+                LambdaError.DocumentReviewInvalidNhsNumber,
             )

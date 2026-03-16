@@ -1,5 +1,6 @@
 import json
 
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
 from enums.file_type import FileType
 from enums.logging_app_interaction import LoggingAppInteraction
 from enums.report_type import ReportType
@@ -21,7 +22,7 @@ logger = LoggingService(__name__)
         "PRESIGNED_ASSUME_ROLE",
         "LLOYD_GEORGE_DYNAMODB_NAME",
         "STATISTICAL_REPORTS_BUCKET",
-    ]
+    ],
 )
 @override_error_check
 @handle_lambda_exceptions
@@ -31,13 +32,12 @@ def lambda_handler(event, context):
 
     if "httpMethod" in event:
         return handle_api_gateway_request(event)
-    else:
-        return handle_manual_trigger(event)
+    return handle_manual_trigger(event)
 
 
 def handle_api_gateway_request(event):
     ods_code = request_context.authorization.get("selected_organisation", {}).get(
-        "org_ods_code"
+        "org_ods_code",
     )
     if not ods_code:
         raise OdsErrorException("No ODS code provided")
@@ -54,11 +54,13 @@ def handle_api_gateway_request(event):
     if report_type not in ReportType.__members__.values():
         raise OdsErrorException("Incorrect report type provided")
 
-    logger.info(f"Received a request to create a report for ODS code: {ods_code}")
+    logger.info(f"{CloudwatchLogsReportingMessage.ODS_REPORTS_REQUESTED}: {ods_code}")
     pre_signed_url = create_report(ods_code, file_type, report_type)
-    logger.info("A report has been successfully created.")
+    logger.info(CloudwatchLogsReportingMessage.ODS_REPORTS_CREATED)
     return ApiGatewayResponse(
-        200, json.dumps({"url": pre_signed_url}), "GET"
+        200,
+        json.dumps({"url": pre_signed_url}),
+        "GET",
     ).create_api_gateway_response()
 
 
@@ -95,8 +97,12 @@ def handle_manual_trigger(event):
     for ods_code in ods_codes:
         logger.info(f"Starting process for ods code: {ods_code}")
         service.get_nhs_numbers_by_ods(
-            ods_code=ods_code, is_upload_to_s3_needed=True, file_type_output=file_type
+            ods_code=ods_code,
+            is_upload_to_s3_needed=True,
+            file_type_output=file_type,
         )
     return ApiGatewayResponse(
-        200, "Successfully created report", "GET"
+        200,
+        "Successfully created report",
+        "GET",
     ).create_api_gateway_response()

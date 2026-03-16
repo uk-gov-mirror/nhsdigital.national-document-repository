@@ -1,5 +1,6 @@
 import json
 
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
 from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
@@ -26,7 +27,7 @@ logger = LoggingService(__name__)
         "APPCONFIG_ENVIRONMENT",
         "DOCUMENT_STORE_DYNAMODB_NAME",
         "LLOYD_GEORGE_DYNAMODB_NAME",
-    ]
+    ],
 )
 @validate_patient_id
 @override_error_check
@@ -38,7 +39,7 @@ def lambda_handler(event, context):
     feature_flag_service = FeatureFlagService()
     upload_flag_name = FeatureFlags.UPLOAD_LAMBDA_ENABLED.value
     upload_lambda_enabled_flag_object = feature_flag_service.get_feature_flags_by_flag(
-        upload_flag_name
+        upload_flag_name,
     )
 
     if not upload_lambda_enabled_flag_object[upload_flag_name]:
@@ -49,20 +50,25 @@ def lambda_handler(event, context):
     request_context.patient_nhs_no = nhs_number_query_string
     if not documents_list_query_string or not nhs_number_query_string:
         raise UploadConfirmResultException(
-            400, LambdaError.UploadConfirmResultMissingParams
+            400,
+            LambdaError.UploadConfirmResultMissingParams,
         )
     documents_id_list = set(documents_list_query_string.split(","))
 
     upload_confirm_result_service = GetDocumentUploadStatusService()
     results = upload_confirm_result_service.get_document_references_by_id(
-        document_ids=documents_id_list, nhs_number=nhs_number_query_string
+        document_ids=documents_id_list,
+        nhs_number=nhs_number_query_string,
     )
     if results:
-        logger.info("All documents processed successfully")
+        logger.info(CloudwatchLogsReportingMessage.UPLOAD_STATUS_CHECKED)
         return ApiGatewayResponse(
-            status_code=200, body=json.dumps(results), methods="GET"
+            status_code=200,
+            body=json.dumps(results),
+            methods="GET",
         ).create_api_gateway_response()
-    else:
-        return ApiGatewayResponse(
-            status_code=404, body=json.dumps(results), methods="GET"
-        )
+    return ApiGatewayResponse(
+        status_code=404,
+        body=json.dumps(results),
+        methods="GET",
+    )

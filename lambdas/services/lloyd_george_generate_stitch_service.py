@@ -5,12 +5,14 @@ from io import BytesIO
 from urllib import parse
 
 from botocore.exceptions import ClientError
+from pikepdf import Pdf
+from pypdf.errors import PyPdfError
+
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
 from enums.lambda_error import LambdaError
 from enums.trace_status import TraceStatus
 from models.document_reference import DocumentReference
 from models.stitch_trace import StitchTrace
-from pikepdf import Pdf
-from pypdf.errors import PyPdfError
 from services.base.s3_service import S3Service
 from services.document_reference_service import DocumentReferenceService
 from utils.audit_logging_setup import LoggingService
@@ -27,7 +29,8 @@ class LloydGeorgeStitchService:
     def __init__(self, stitch_trace: StitchTrace):
         self.lloyd_george_bucket_name = os.environ.get("LLOYD_GEORGE_BUCKET_NAME")
         self.lifecycle_policy_tag = os.environ.get(
-            "STITCHED_FILE_LIFECYCLE_POLICY_TAG", "autodelete"
+            "STITCHED_FILE_LIFECYCLE_POLICY_TAG",
+            "autodelete",
         )
 
         self.s3_service = S3Service()
@@ -64,7 +67,7 @@ class LloydGeorgeStitchService:
                     f"{self.combined_file_folder}/{filename_for_stitched_file}"
                 )
                 ordered_documents = self.prepare_documents_for_stitching(
-                    documents_for_stitching
+                    documents_for_stitching,
                 )
                 stitched_lg_stream = self.stream_and_stitch_documents(ordered_documents)
                 self.stitch_trace_object.total_file_size_in_bytes = (
@@ -79,7 +82,7 @@ class LloydGeorgeStitchService:
                 self.stitch_trace_object.stitched_file_location = destination_key
 
                 logger.info(
-                    "User has viewed Lloyd George records",
+                    CloudwatchLogsReportingMessage.LG_RECORDS_STITCHED,
                     {"Result": "Successful viewing LG"},
                 )
 
@@ -100,7 +103,8 @@ class LloydGeorgeStitchService:
         return Pdf.open(stream)
 
     def stream_and_stitch_documents(
-        self, documents: list[DocumentReference]
+        self,
+        documents: list[DocumentReference],
     ) -> BytesIO:
         output_pdf = Pdf.new()
 
@@ -119,7 +123,8 @@ class LloydGeorgeStitchService:
         return output_stream
 
     def prepare_documents_for_stitching(
-        self, documents: list[DocumentReference]
+        self,
+        documents: list[DocumentReference],
     ) -> list[DocumentReference]:
         self.update_trace_status(TraceStatus.PROCESSING)
 
@@ -129,7 +134,7 @@ class LloydGeorgeStitchService:
             sorted_docs = self.sort_documents_by_filenames(documents)
         self.stitch_trace_object.number_of_files = len(sorted_docs)
         self.stitch_trace_object.file_last_updated = self.get_most_recent_created_date(
-            sorted_docs
+            sorted_docs,
         )
 
         return sorted_docs
@@ -148,7 +153,9 @@ class LloydGeorgeStitchService:
             raise LGStitchServiceException(500, LambdaError.StitchValidation)
 
     def upload_stitched_lg_record(
-        self, stitched_lg_stream: BytesIO, filename_on_bucket: str
+        self,
+        stitched_lg_stream: BytesIO,
+        filename_on_bucket: str,
     ):
         try:
             extra_args = {
@@ -163,7 +170,7 @@ class LloydGeorgeStitchService:
                 extra_args=extra_args,
             )
             logger.info(
-                f"Uploaded stitched file to {self.lloyd_george_bucket_name} with key {filename_on_bucket}"
+                f"Uploaded stitched file to {self.lloyd_george_bucket_name} with key {filename_on_bucket}",
             )
         except ValueError as e:
             logger.error(
@@ -188,7 +195,8 @@ class LloydGeorgeStitchService:
             table_name=self.stitch_trace_table,
             key_pair={"ID": self.stitch_trace_object.id},
             updated_fields=self.stitch_trace_object.model_dump(
-                by_alias=True, exclude={"id"}
+                by_alias=True,
+                exclude={"id"},
             ),
         )
 
@@ -198,7 +206,8 @@ class LloydGeorgeStitchService:
             table_name=self.stitch_trace_table,
             key_pair={"ID": self.stitch_trace_object.id},
             updated_fields=self.stitch_trace_object.model_dump(
-                by_alias=True, include={"job_status"}
+                by_alias=True,
+                include={"job_status"},
             ),
         )
 
@@ -208,10 +217,11 @@ class LloydGeorgeStitchService:
 
         available_docs = (
             self.document_service.get_available_lloyd_george_record_for_patient(
-                self.stitch_trace_object.nhs_number
+                self.stitch_trace_object.nhs_number,
             )
         )
         check_for_number_of_files_match_expected(
-            available_docs[0].file_name, len(available_docs)
+            available_docs[0].file_name,
+            len(available_docs),
         )
         return available_docs

@@ -2,8 +2,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 from botocore.exceptions import ClientError
+
 from enums.infrastructure import DynamoTables
 from enums.virus_scan_result import VirusScanResult
+from lambdas.enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
 from services.mock_virus_scan_service import MockVirusScanService
 from services.upload_document_reference_service import UploadDocumentReferenceService
@@ -16,8 +18,6 @@ from tests.unit.conftest import (
 from utils.common_query_filters import PreliminaryStatus
 from utils.exceptions import DocumentServiceException, FileProcessingException
 from utils.lambda_exceptions import InvalidDocTypeException
-
-from lambdas.enums.snomed_codes import SnomedCodes
 
 
 @pytest.fixture
@@ -36,6 +36,8 @@ def mock_document_reference():
     doc_ref._build_s3_location = Mock(
         return_value="s3://test-lg-bucket/9000000001/test-doc-id",
     )
+    doc_ref.author = "A12345"
+    doc_ref.document_snomed_code_type = SnomedCodes.PATIENT_DATA.value
     return doc_ref
 
 
@@ -81,6 +83,8 @@ def mock_pdm_document_reference():
     doc_ref._build_s3_location = Mock(
         return_value=f"s3://test-staging-bucket/fhir_upload/{SnomedCodes.PATIENT_DATA.value.code}/9000000001/test-doc-id",
     )
+    doc_ref.author = "A12345"
+    doc_ref.document_snomed_code_type = SnomedCodes.PATIENT_DATA.value
     return doc_ref
 
 

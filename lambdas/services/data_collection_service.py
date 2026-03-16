@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import polars as pl
 
 from enums.metadata_field_names import DocumentReferenceMetadataFields
+from enums.snomed_codes import SnomedCodes
 from enums.supported_document_types import SupportedDocumentTypes
 from models.report.statistics import (
     ApplicationData,
@@ -27,11 +28,14 @@ from utils.cloudwatch_logs_query import (
     LloydGeorgeRecordsDeleted,
     LloydGeorgeRecordsDownloaded,
     LloydGeorgeRecordsSearched,
-    LloydGeorgeRecordsUploaded,
     LloydGeorgeRecordsViewed,
     OdsReportsCreated,
     OdsReportsRequested,
     UniqueActiveUserIds,
+    UploadCountByFileType,
+    UploadCountByOdsCode,
+    UploadReviewCountByFileType,
+    UploadReviewCountByOdsCode,
 )
 from utils.common_query_filters import UploadCompleted
 from utils.utilities import flatten, get_file_key_from_s3_url
@@ -210,11 +214,6 @@ class DataCollectionService:
             start_date,
             end_date,
         )
-        daily_count_uploaded = self.get_cloud_watch_query_result(
-            LloydGeorgeRecordsUploaded,
-            start_date,
-            end_date,
-        )
         daily_count_users_uploaded = self.get_cloud_watch_query_result(
             CountUsersLloydGeorgeRecordsUploaded,
             start_date,
@@ -255,6 +254,35 @@ class DataCollectionService:
             start_date,
             end_date,
         )
+        daily_upload_review_count_by_ods_code = self.get_cloud_watch_query_result(
+            UploadReviewCountByOdsCode,
+            start_date,
+            end_date,
+        )
+        daily_upload_review_count_by_file_type = self.get_cloud_watch_query_result(
+            UploadReviewCountByFileType,
+            start_date,
+            end_date,
+        )
+        grouped_upload_review_by_file_type = self.group_by_file_type(
+            daily_upload_review_count_by_file_type,
+            count_key="daily_count_upload_review",
+        )
+        daily_upload_count_by_ods_code = self.get_cloud_watch_query_result(
+            UploadCountByOdsCode,
+            start_date,
+            end_date,
+        )
+        daily_upload_count_by_file_type = self.get_cloud_watch_query_result(
+            UploadCountByFileType,
+            start_date,
+            end_date,
+        )
+        grouped_upload_by_file_type = self.group_by_file_type(
+            daily_upload_count_by_file_type,
+            count_key="daily_count_upload",
+        )
+
         joined_query_result = self.join_results_by_ods_code(
             [
                 number_of_patients,
@@ -262,7 +290,6 @@ class DataCollectionService:
                 daily_count_viewed,
                 daily_count_downloaded,
                 daily_count_deleted,
-                daily_count_uploaded,
                 daily_count_users_uploaded,
                 daily_count_users_reviewed,
                 daily_count_users_reassigned,
@@ -271,6 +298,10 @@ class DataCollectionService:
                 daily_count_deceased,
                 daily_count_ods_report_requested,
                 daily_count_ods_report_created,
+                daily_upload_review_count_by_ods_code,
+                grouped_upload_review_by_file_type,
+                daily_upload_count_by_ods_code,
+                grouped_upload_by_file_type,
             ],
         )
 
@@ -442,6 +473,25 @@ class DataCollectionService:
             .rename({OdsCodeFieldName: "ods_code"})
         )
         return result.to_dicts()
+
+    @staticmethod
+    def group_by_file_type(
+        query_result: list[dict],
+        count_key: str,
+    ) -> list[dict]:
+        grouped: dict[str, dict[str, int]] = defaultdict(dict)
+        for entry in query_result:
+            ods_code = entry.get("ods_code", "")
+            snomed_code = entry.get("file_type", "")
+            count = int(entry.get(count_key, 0))
+            snomed = SnomedCodes.find_by_code(snomed_code)
+            display_name = snomed.display_name if snomed else snomed_code
+            column_name = f"{count_key}_{display_name.lower().replace(' ', '_')}"
+            grouped[ods_code][column_name] = count
+        return [
+            {"ods_code": ods_code, **file_type_counts}
+            for ods_code, file_type_counts in grouped.items()
+        ]
 
     @staticmethod
     def join_results_by_ods_code(results: list[list[dict]]) -> list[dict]:

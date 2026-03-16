@@ -60,11 +60,11 @@ MOCK_LG_DELETED = [
 MOCK_LG_UPLOADED = [
     {
         "ods_code": "Y12345",
-        "daily_count_uploaded": "2",
+        "daily_count_upload": "2",
     },
     {
         "ods_code": "H81109",
-        "daily_count_uploaded": "4",
+        "daily_count_upload": "4",
     },
 ]
 
@@ -118,6 +118,37 @@ MOCK_ODS_REPORT_REQUESTED = [
 MOCK_ODS_REPORT_CREATED = [
     {"ods_code": "Y12345", "daily_count_ods_report_created": "0"},
     {"ods_code": "H81109", "daily_count_ods_report_created": "13"},
+]
+
+MOCK_UPLOAD_REVIEW_COUNT_BY_ODS_CODE = [
+    {"ods_code": "Y12345", "daily_count_upload_review": "3"},
+    {"ods_code": "H81109", "daily_count_upload_review": "5"},
+]
+
+MOCK_UPLOAD_REVIEW_COUNT_BY_FILE_TYPE = [
+    {
+        "ods_code": "Y12345",
+        "file_type": "16521000000101",
+        "daily_count_upload_review": "2",
+    },
+    {"ods_code": "Y12345", "file_type": "734163000", "daily_count_upload_review": "1"},
+    {
+        "ods_code": "H81109",
+        "file_type": "717301000000104",
+        "daily_count_upload_review": "3",
+    },
+    {
+        "ods_code": "H81109",
+        "file_type": "24511000000107",
+        "daily_count_upload_review": "2",
+    },
+]
+
+MOCK_UPLOAD_COUNT_BY_FILE_TYPE = [
+    {"ods_code": "Y12345", "file_type": "16521000000101", "daily_count_upload": "1"},
+    {"ods_code": "Y12345", "file_type": "717301000000104", "daily_count_upload": "1"},
+    {"ods_code": "H81109", "file_type": "162931000000103", "daily_count_upload": "2"},
+    {"ods_code": "H81109", "file_type": "24511000000107", "daily_count_upload": "2"},
 ]
 MOCK_RESPONSE_QUERY_IN_PROGRESS = {"status": "Running"}
 

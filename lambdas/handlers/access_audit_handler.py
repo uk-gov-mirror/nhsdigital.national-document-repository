@@ -1,5 +1,6 @@
 import json
 
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from services.access_audit_service import AccessAuditService
@@ -33,5 +34,5 @@ def lambda_handler(event, context):
     request_context.patient_nhs_no = nhs_number
     access_audit_service = AccessAuditService()
     access_audit_service.manage_access_request(nhs_number, body, request_type)
-    logger.info("Successful processed access request to view deceased patient")
+    logger.info(CloudwatchLogsReportingMessage.USERS_ACCESSED_DECEASED_PATIENT)
     return ApiGatewayResponse(200, "", "POST").create_api_gateway_response()

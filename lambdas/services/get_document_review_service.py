@@ -2,6 +2,7 @@ import os
 import uuid
 from datetime import datetime, timezone
 
+from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessage
 from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
 from services.base.s3_service import S3Service
@@ -29,19 +30,23 @@ class GetDocumentReviewService:
         self.cloudfront_url = os.environ.get("CLOUDFRONT_URL")
 
     def get_document_review(
-        self, patient_id: str, document_id: str, document_version: int
+        self,
+        patient_id: str,
+        document_id: str,
+        document_version: int,
     ) -> dict | None:
         try:
 
             reviewer_ods_code = extract_ods_code_from_request_context()
 
             logger.info(
-                f"Fetching document review for patient_id: {patient_id}, document_id: {document_id}"
+                f"Fetching document review for patient_id: {patient_id}, document_id: {document_id}",
             )
 
             document_review_item = (
                 self.document_review_service.get_document_review_by_id(
-                    document_id=document_id, document_version=document_version
+                    document_id=document_id,
+                    document_version=document_version,
                 )
             )
 
@@ -54,24 +59,24 @@ class GetDocumentReviewService:
                 != DocumentReviewStatus.PENDING_REVIEW
             ):
                 raise DocumentNotPendingReviewException(
-                    "Document is not available for review"
+                    "Document is not available for review",
                 )
 
             if reviewer_ods_code != document_review_item.custodian:
                 raise UserNotAuthorisedException(
-                    f"{reviewer_ods_code} is not custodian of document."
+                    f"{reviewer_ods_code} is not custodian of document.",
                 )
 
             if document_review_item.nhs_number != patient_id:
                 logger.warning(
-                    f"Document {document_id} does not belong to patient {patient_id}"
+                    f"Document {document_id} does not belong to patient {patient_id}",
                 )
                 return None
 
             if document_review_item.files:
                 for file_detail in document_review_item.files:
                     presigned_url = self.create_cloudfront_presigned_url(
-                        file_detail.file_location
+                        file_detail.file_location,
                     )
                     file_detail.presigned_url = presigned_url
 
@@ -86,7 +91,7 @@ class GetDocumentReviewService:
             )
 
             logger.info(
-                f"Successfully retrieved document review for document_id: {document_id}"
+                f"{CloudwatchLogsReportingMessage.USERS_ACCESSED_REVIEW}: {document_id}",
             )
 
             return document_review
@@ -100,17 +105,20 @@ class GetDocumentReviewService:
         except OdsErrorException as e:
             logger.error(e)
             raise DocumentReviewLambdaException(
-                403, LambdaError.DocumentReviewMissingODS
+                403,
+                LambdaError.DocumentReviewMissingODS,
             )
         except UserNotAuthorisedException as e:
             logger.error(e)
             raise DocumentReviewLambdaException(
-                403, LambdaError.DocumentReviewUploadForbidden
+                403,
+                LambdaError.DocumentReviewUploadForbidden,
             )
         except DocumentNotPendingReviewException as e:
             logger.error(e)
             raise DocumentReviewLambdaException(
-                400, LambdaError.DocumentReviewNotPendingReview
+                400,
+                LambdaError.DocumentReviewNotPendingReview,
             )
 
         except Exception as e:

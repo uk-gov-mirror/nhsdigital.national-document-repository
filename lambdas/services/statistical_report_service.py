@@ -96,7 +96,9 @@ class StatisticalReportService:
         cast_decimal_to_float = column_select.by_dtype(pl.datatypes.Decimal).cast(
             pl.Float64,
         )
-        loaded_data = pl.DataFrame(data).with_columns(cast_decimal_to_float)
+        loaded_data = pl.DataFrame([item.model_dump() for item in data]).with_columns(
+            cast_decimal_to_float,
+        )
         return loaded_data
 
     def summarise_record_store_data(
@@ -223,13 +225,14 @@ class StatisticalReportService:
             "weekly_count_users_accessing_review",
             "weekly_count_viewed",
             "weekly_count_downloaded",
-            "weekly_count_uploaded",
             "weekly_count_users_uploaded",
             "weekly_count_users_reviewed",
             "weekly_count_users_reassigned",
             "weekly_count_deleted",
             "weekly_count_ods_report_requested",
             "weekly_count_ods_report_created",
+            "weekly_count_upload_review",
+            "weekly_count_upload",
             "active_users_count",
             "unique_active_user_ids_hashed",
         ]
