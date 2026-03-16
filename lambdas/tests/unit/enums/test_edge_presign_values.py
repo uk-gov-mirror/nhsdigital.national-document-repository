@@ -31,8 +31,9 @@ EXPECTED_EDGE_MALFORMED_HEADER_ERROR_CODE = LambdaError.EdgeRequiredHeaders.valu
 EXPECTED_EDGE_NO_ORIGIN_ERROR_MESSAGE = LambdaError.EdgeNoOrigin.value["message"]
 EXPECTED_EDGE_NO_ORIGIN_ERROR_CODE = LambdaError.EdgeNoOrigin.value["err_code"]
 
-EXPECTED_EDGE_NO_CLIENT_ERROR_MESSAGE = LambdaError.EdgeNoClient.value["message"]
-EXPECTED_EDGE_NO_CLIENT_ERROR_CODE = LambdaError.EdgeNoClient.value["err_code"]
+EXPECTED_EDGE_NOT_FOUND_ERROR_MESSAGE = LambdaError.EdgeDocNotFound.value["message"]
+EXPECTED_EDGE_NOT_FOUND_ERROR_CODE = LambdaError.EdgeDocNotFound.value["err_code"]
+
 EXPECTED_EDGE_MALFORMED_ERROR_MESSAGE = LambdaError.EdgeMalformed.value["message"]
 EXPECTED_EDGE_MALFORMED_ERROR_CODE = LambdaError.EdgeMalformed.value["err_code"]
 
@@ -52,10 +53,10 @@ MOCK_S3_EDGE_EVENT = {
                             "customHeaders": {},
                             "domainName": MOCKED_LG_BUCKET_URL,
                             "path": "",
-                        }
+                        },
                     },
-                }
-            }
-        }
-    ]
+                },
+            },
+        },
+    ],
 }

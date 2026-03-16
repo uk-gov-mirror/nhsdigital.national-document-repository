@@ -660,7 +660,7 @@ class LambdaError(Enum):
         "message": "Malformed header structure or missing data",
     }
 
-    EdgeNoClient = {"err_code": "CE_4001", "message": "Document not found"}
+    EdgeDocNotFound = {"err_code": "CE_4001", "message": "Document not found"}
 
     """
        Errors with no exception

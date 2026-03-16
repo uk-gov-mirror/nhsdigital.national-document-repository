@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 from botocore.exceptions import ClientError
+
 from services.edge_presign_service import EdgePresignService
 from tests.unit.conftest import (
     MOCK_TABLE_NAME,
@@ -9,8 +10,8 @@ from tests.unit.conftest import (
     MOCKED_LG_BUCKET_URL,
 )
 from tests.unit.enums.test_edge_presign_values import (
-    EXPECTED_EDGE_NO_CLIENT_ERROR_CODE,
-    EXPECTED_EDGE_NO_CLIENT_ERROR_MESSAGE,
+    EXPECTED_EDGE_NOT_FOUND_ERROR_CODE,
+    EXPECTED_EDGE_NOT_FOUND_ERROR_MESSAGE,
     MOCKED_AUTH_QUERY,
 )
 from utils.lambda_exceptions import CloudFrontEdgeException
@@ -23,8 +24,8 @@ def edge_presign_service(mock_ssm_service, mock_dynamo_service):
     mock_ssm_service.get_ssm_parameter.return_value = MOCK_TABLE_NAME
     mock_dynamo_service.update_item.return_value = {
         "Attributes": {
-            "presignedUrl": f"https://{MOCKED_LG_BUCKET_URL}/some/path?querystring"
-        }
+            "presignedUrl": f"https://{MOCKED_LG_BUCKET_URL}/some/path?querystring",
+        },
     }
     return EdgePresignService(MOCKED_LG_BUCKET_ENV)
 
@@ -37,7 +38,7 @@ def request_values():
         "origin": {
             "s3": {
                 "domainName": MOCKED_LG_BUCKET_URL,
-            }
+            },
         },
         "headers": {
             "authorization": "some_auth",
@@ -47,7 +48,8 @@ def request_values():
 
 def test_use_presigned(edge_presign_service, request_values, mocker):
     mock_attempt_presigned_ingestion = mocker.patch.object(
-        edge_presign_service, "_attempt_presigned_ingestion"
+        edge_presign_service,
+        "_attempt_presigned_ingestion",
     )
     mock_attempt_presigned_ingestion.return_value = (
         "https://example.com/someother/path?querystring"
@@ -64,8 +66,8 @@ def test_attempt_presigned_ingestion_success(edge_presign_service):
     try:
         edge_presign_service.dynamo_service.update_item.return_value = {
             "Attributes": {
-                "presignedUrl": f"https://{MOCKED_LG_BUCKET_URL}/some/path?querystring"
-            }
+                "presignedUrl": f"https://{MOCKED_LG_BUCKET_URL}/some/path?querystring",
+            },
         }
         result = edge_presign_service._attempt_presigned_ingestion("random id")
 
@@ -76,9 +78,47 @@ def test_attempt_presigned_ingestion_success(edge_presign_service):
         assert False
 
 
+def test_attempt_presigned_ingestion_raises_400_when_item_not_found(
+    edge_presign_service,
+):
+    client_error = ClientError(
+        {"Error": {"Code": "ConditionalCheckFailedException"}},
+        "UpdateItem",
+    )
+    edge_presign_service.dynamo_service.update_item.side_effect = client_error
+
+    with pytest.raises(CloudFrontEdgeException) as exc_info:
+        edge_presign_service._attempt_presigned_ingestion("missing-id")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.err_code == EXPECTED_EDGE_NOT_FOUND_ERROR_CODE
+    assert exc_info.value.message == EXPECTED_EDGE_NOT_FOUND_ERROR_MESSAGE
+
+
+def test_attempt_presigned_ingestion_raises_400_when_already_requested(
+    edge_presign_service,
+):
+    client_error = ClientError(
+        {
+            "Error": {"Code": "ConditionalCheckFailedException"},
+            "Item": {"ID": {"S": "some-id"}, "IsRequested": {"BOOL": True}},
+        },
+        "UpdateItem",
+    )
+    edge_presign_service.dynamo_service.update_item.side_effect = client_error
+
+    with pytest.raises(CloudFrontEdgeException) as exc_info:
+        edge_presign_service._attempt_presigned_ingestion("some-id")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.err_code == EXPECTED_EDGE_NOT_FOUND_ERROR_CODE
+    assert exc_info.value.message == EXPECTED_EDGE_NOT_FOUND_ERROR_MESSAGE
+
+
 def test_attempt_presigned_ingestion_client_error(edge_presign_service):
     client_error = ClientError(
-        {"Error": {"Code": "ConditionalCheckFailedException"}}, "UpdateItem"
+        {"Error": {"Code": "ProvisionedThroughputExceededException"}},
+        "UpdateItem",
     )
     edge_presign_service.dynamo_service.update_item.side_effect = client_error
 
@@ -86,8 +126,8 @@ def test_attempt_presigned_ingestion_client_error(edge_presign_service):
         edge_presign_service._attempt_presigned_ingestion("hashed_uri")
 
     assert exc_info.value.status_code == 400
-    assert exc_info.value.err_code == EXPECTED_EDGE_NO_CLIENT_ERROR_CODE
-    assert exc_info.value.message == EXPECTED_EDGE_NO_CLIENT_ERROR_MESSAGE
+    assert exc_info.value.err_code == EXPECTED_EDGE_NOT_FOUND_ERROR_CODE
+    assert exc_info.value.message == EXPECTED_EDGE_NOT_FOUND_ERROR_MESSAGE
 
 
 def test_update_s3_headers(edge_presign_service, request_values):
@@ -108,9 +148,29 @@ def test_extend_table_name(edge_presign_service, environment):
     )
 
 
+def test_update_dynamo_item_uses_attribute_exists_condition(edge_presign_service):
+    table_name = "test_table"
+    request_id = "test-request-id"
+
+    edge_presign_service.dynamo_service.update_item.return_value = {
+        "Attributes": {"presignedUrl": "https://example.com/test?key=value"},
+    }
+
+    edge_presign_service._update_dynamo_item(table_name, request_id)
+
+    edge_presign_service.dynamo_service.update_item.assert_called_once_with(
+        table_name=table_name,
+        key_pair={"ID": request_id},
+        updated_fields={"IsRequested": True},
+        condition_expression="attribute_exists(ID) AND (attribute_not_exists(IsRequested) OR IsRequested = :false)",
+        expression_attribute_values={":false": False},
+        return_values_on_condition_failure="ALL_OLD",
+    )
+
+
 def test_extract_presigned_url(edge_presign_service):
     updated_item = {
-        "Attributes": {"presignedUrl": "https://example.com/test-id?key=value"}
+        "Attributes": {"presignedUrl": "https://example.com/test-id?key=value"},
     }
     presigned_url = edge_presign_service._extract_presigned_url(updated_item)
     assert presigned_url == "https://example.com/test-id?key=value"

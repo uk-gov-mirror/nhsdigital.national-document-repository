@@ -6,6 +6,7 @@ from typing import Optional, Sequence
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
 from botocore.exceptions import ClientError
+
 from utils.audit_logging_setup import LoggingService
 from utils.dynamo_utils import (
     create_expression_attribute_values,
@@ -213,6 +214,7 @@ class DynamoDBService:
         updated_fields: dict,
         condition_expression: str | ConditionBase | None = None,
         expression_attribute_values: dict | None = None,
+        return_values_on_condition_failure: str | None = None,
     ):
         table = self.get_table(table_name)
         updated_field_names = list(updated_fields.keys())
@@ -236,6 +238,11 @@ class DynamoDBService:
 
         if condition_expression:
             update_item_args["ConditionExpression"] = condition_expression
+
+        if return_values_on_condition_failure:
+            update_item_args["ReturnValuesOnConditionCheckFailure"] = (
+                return_values_on_condition_failure
+            )
 
         return table.update_item(**update_item_args)
 

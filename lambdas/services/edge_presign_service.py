@@ -1,4 +1,5 @@
 from botocore.exceptions import ClientError
+
 from enums.lambda_error import LambdaError
 from services.base.dynamo_service import DynamoDBService
 from services.base.ssm_service import SSMService
@@ -29,8 +30,18 @@ class EdgePresignService:
             updated_item = self._update_dynamo_item(table_name, request_id)
             return self._extract_presigned_url(updated_item)
         except ClientError as e:
-            logger.error(f"{str(e)}", {"Result": LambdaError.EdgeNoClient.to_str()})
-            raise CloudFrontEdgeException(400, LambdaError.EdgeNoClient)
+            logger.error(f"{str(e)}", {"Result": "Failed to forward request"})
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                item = e.response.get("Item", {})
+                if not item:
+                    logger.warning(
+                        f"Item with ID '{request_id}' does not exist",
+                    )
+                else:
+                    logger.warning(
+                        f"Item with ID '{request_id}' has already been requested",
+                    )
+            raise CloudFrontEdgeException(400, LambdaError.EdgeDocNotFound)
 
     def update_s3_headers(self, request: dict) -> dict:
         domain_name = self._extract_domain_name(request)
@@ -45,7 +56,9 @@ class EdgePresignService:
         return request_values.get("origin", {}).get("s3", {}).get("domainName", "")
 
     def _update_request_with_presigned_url(
-        self, request_values: dict, presigned_url: str
+        self,
+        request_values: dict,
+        presigned_url: str,
     ):
         question_mark_index = presigned_url.find("?")
         querystring = (
@@ -75,8 +88,9 @@ class EdgePresignService:
             table_name=table_name,
             key_pair={"ID": request_id},
             updated_fields={"IsRequested": True},
-            condition_expression="attribute_not_exists(IsRequested) OR IsRequested = :false",
+            condition_expression="attribute_exists(ID) AND (attribute_not_exists(IsRequested) OR IsRequested = :false)",
             expression_attribute_values={":false": False},
+            return_values_on_condition_failure="ALL_OLD",
         )
 
     @staticmethod
