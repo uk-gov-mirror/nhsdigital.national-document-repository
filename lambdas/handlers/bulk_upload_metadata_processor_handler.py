@@ -1,5 +1,6 @@
 from enums.feature_flags import FeatureFlags
 from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
+from enums.logging_app_interaction import LoggingAppInteraction
 from services.bulk_upload_metadata_processor_service import (
     BulkUploadMetadataProcessorService,
     get_formatter_service,
@@ -11,6 +12,7 @@ from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
+from utils.request_context import request_context
 
 logger = LoggingService(__name__)
 
@@ -22,6 +24,7 @@ logger = LoggingService(__name__)
 )
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
+    request_context.app_interaction = LoggingAppInteraction.BULK_UPLOAD.value
     feature_flag_service = FeatureFlagService()
     send_to_review_flag_object = feature_flag_service.get_feature_flags_by_flag(
         FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value,

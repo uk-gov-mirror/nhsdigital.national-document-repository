@@ -1,9 +1,11 @@
 import json
 
+from pydantic import ValidationError
+
 from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
+from enums.logging_app_interaction import LoggingAppInteraction
 from models.document_review import DocumentReviewUploadEvent
-from pydantic import ValidationError
 from services.feature_flags_service import FeatureFlagService
 from services.post_document_review_service import PostDocumentReviewService
 from utils.audit_logging_setup import LoggingService
@@ -13,6 +15,7 @@ from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.exceptions import InvalidFileTypeException, InvalidNhsNumberException
 from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_response import ApiGatewayResponse
+from utils.request_context import request_context
 
 logger = LoggingService("__name__")
 
@@ -24,13 +27,14 @@ logger = LoggingService("__name__")
         "PRESIGNED_ASSUME_ROLE",
         "EDGE_REFERENCE_TABLE",
         "CLOUDFRONT_URL",
-    ]
+    ],
 )
 @handle_lambda_exceptions
 def lambda_handler(event, context):
+    request_context.app_interaction = LoggingAppInteraction.POST_REVIEW_DOCUMENTS.value
     feature_flag_service = FeatureFlagService()
     feature_flag_service.validate_feature_flag(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED,
     )
 
     try:
@@ -39,19 +43,22 @@ def lambda_handler(event, context):
         logger.error(e)
         raise DocumentReviewLambdaException(400, LambdaError.DocumentReviewInvalidBody)
 
+    request_context.patient_nhs_no = validated_event_body.nhs_number
+
     post_document_review_service = PostDocumentReviewService()
     logger.info(f"Processing event: {event}.")
     response = post_document_review_service.process_event(event=validated_event_body)
 
     return ApiGatewayResponse(
-        status_code=200, body=json.dumps(response), methods="POST"
+        status_code=200,
+        body=json.dumps(response),
+        methods="POST",
     ).create_api_gateway_response()
 
 
 def validate_event_body(body):
     try:
         event_body = DocumentReviewUploadEvent.model_validate_json(body)
-
         return event_body
     except (ValidationError, InvalidNhsNumberException) as e:
         logger.error(e)
@@ -59,5 +66,6 @@ def validate_event_body(body):
     except InvalidFileTypeException as e:
         logger.error(e)
         raise DocumentReviewLambdaException(
-            400, LambdaError.DocumentReviewUnsupportedFileType
+            400,
+            LambdaError.DocumentReviewUnsupportedFileType,
         )

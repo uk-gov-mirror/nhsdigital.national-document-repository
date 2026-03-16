@@ -1,6 +1,7 @@
 import os
 
 from enums.feature_flags import FeatureFlags
+from enums.logging_app_interaction import LoggingAppInteraction
 from services.bulk_upload_service import BulkUploadService
 from services.feature_flags_service import FeatureFlagService
 from utils.audit_logging_setup import LoggingService
@@ -10,6 +11,7 @@ from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.exceptions import BulkUploadException
 from utils.lambda_response import ApiGatewayResponse
+from utils.request_context import request_context
 
 logger = LoggingService(__name__)
 
@@ -19,17 +21,18 @@ logger = LoggingService(__name__)
 @ensure_environment_variables(names=["PDF_STITCHING_SQS_URL"])
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
+    request_context.app_interaction = LoggingAppInteraction.BULK_UPLOAD.value
     logger.info("Received event. Starting bulk upload process")
     feature_flag_service = FeatureFlagService()
     validation_strict_mode_flag_object = feature_flag_service.get_feature_flags_by_flag(
-        FeatureFlags.LLOYD_GEORGE_VALIDATION_STRICT_MODE_ENABLED.value
+        FeatureFlags.LLOYD_GEORGE_VALIDATION_STRICT_MODE_ENABLED.value,
     )
     validation_strict_mode = validation_strict_mode_flag_object[
         FeatureFlags.LLOYD_GEORGE_VALIDATION_STRICT_MODE_ENABLED.value
     ]
 
     send_to_review_flag_object = feature_flag_service.get_feature_flags_by_flag(
-        FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value
+        FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value,
     )
     send_to_review_enabled = send_to_review_flag_object[
         FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value
@@ -50,7 +53,9 @@ def lambda_handler(event, _context):
         )
         logger.error(response_body, {"Result": "Bulk upload failed"})
         return ApiGatewayResponse(
-            status_code=http_status_code, body=response_body, methods="GET"
+            status_code=http_status_code,
+            body=response_body,
+            methods="GET",
         ).create_api_gateway_response()
 
     bulk_upload_service = BulkUploadService(
@@ -70,5 +75,7 @@ def lambda_handler(event, _context):
         logger.error(str(e), {"Result": "Bulk upload failed"})
 
     return ApiGatewayResponse(
-        status_code=http_status_code, body=response_body, methods="GET"
+        status_code=http_status_code,
+        body=response_body,
+        methods="GET",
     ).create_api_gateway_response()

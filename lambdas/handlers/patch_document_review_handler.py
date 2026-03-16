@@ -1,8 +1,9 @@
+from pydantic import ValidationError
+
 from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from models.document_review import PatchDocumentReviewRequest
-from pydantic import ValidationError
 from services.feature_flags_service import FeatureFlagService
 from services.update_document_review_service import UpdateDocumentReviewService
 from utils.audit_logging_setup import LoggingService
@@ -26,7 +27,7 @@ logger = LoggingService(__name__)
 @ensure_environment_variables(
     names=[
         "DOCUMENT_REVIEW_DYNAMODB_NAME",
-    ]
+    ],
 )
 @override_error_check
 @handle_lambda_exceptions
@@ -36,7 +37,7 @@ def lambda_handler(event, context):
     logger.info("Patch Document Review handler has been triggered")
     feature_flag_service = FeatureFlagService()
     feature_flag_service.validate_feature_flag(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
+        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED,
     )
 
     query_params = event.get("queryStringParameters", {})
@@ -45,6 +46,7 @@ def lambda_handler(event, context):
     if not patient_id:
         logger.error("Missing patient_id in query string parameters")
         raise UpdateDocumentReviewException(400, LambdaError.PatientIdNoKey)
+    request_context.patient_nhs_no = patient_id
 
     document_id, document_version = validate_review_path_parameters(event)
 
@@ -53,7 +55,8 @@ def lambda_handler(event, context):
 
     except OdsErrorException:
         raise UpdateDocumentReviewException(
-            401, LambdaError.DocumentReferenceUnauthorised
+            401,
+            LambdaError.DocumentReferenceUnauthorised,
         )
 
     body = event.get("body")

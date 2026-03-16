@@ -34,7 +34,7 @@ logger = LoggingService(__name__)
 )
 @override_error_check
 def lambda_handler(event: dict[str, any], context):
-    request_context.app_interaction = LoggingAppInteraction.VIEW_LG_RECORD.value
+    request_context.app_interaction = LoggingAppInteraction.GET_DOCUMENT.value
 
     feature_flag_service = FeatureFlagService()
     feature_flag_service.validate_feature_flag(
@@ -52,6 +52,8 @@ def lambda_handler(event: dict[str, any], context):
         document_id = event["pathParameters"]["id"]
         nhs_number = event["queryStringParameters"]["patientId"]
         version = event["pathParameters"].get("version", None)
+        request_context.patient_nhs_no = nhs_number
+
         if (
             not version_history_flag_object[version_history_flag]
             and version is not None

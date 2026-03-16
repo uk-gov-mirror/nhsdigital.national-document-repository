@@ -1,6 +1,7 @@
 import json
 
 from enums.lambda_error import LambdaError
+from enums.logging_app_interaction import LoggingAppInteraction
 from services.access_audit_service import AccessAuditService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -19,10 +20,11 @@ logger = LoggingService(__name__)
 @validate_patient_id
 @override_error_check
 @ensure_environment_variables(
-    names=["AUTH_SESSION_TABLE_NAME", "ACCESS_AUDIT_TABLE_NAME"]
+    names=["AUTH_SESSION_TABLE_NAME", "ACCESS_AUDIT_TABLE_NAME"],
 )
 @handle_lambda_exceptions
 def lambda_handler(event, context):
+    request_context.app_interaction = LoggingAppInteraction.ACCESS_AUDIT.value
     nhs_number = event.get("queryStringParameters").get("patientId")
     request_type = event.get("queryStringParameters", {}).get("accessAuditType")
     body = json.loads(event.get("body"))

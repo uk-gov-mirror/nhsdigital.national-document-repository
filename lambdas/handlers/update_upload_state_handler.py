@@ -29,7 +29,7 @@ logger = LoggingService(__name__)
         "APPCONFIG_ENVIRONMENT",
         "DOCUMENT_STORE_DYNAMODB_NAME",
         "LLOYD_GEORGE_DYNAMODB_NAME",
-    ]
+    ],
 )
 @handle_lambda_exceptions
 def lambda_handler(event, context):
@@ -39,10 +39,10 @@ def lambda_handler(event, context):
     feature_flag_service = FeatureFlagService()
     upload_flag_name = FeatureFlags.UPLOAD_LAMBDA_ENABLED.value
     upload_lambda_enabled_flag_object = feature_flag_service.get_feature_flags_by_flag(
-        upload_flag_name
+        upload_flag_name,
     )
     nhs_number = event["queryStringParameters"]["patientId"]
-    request_context.nhs_number = nhs_number
+    request_context.patient_nhs_no = nhs_number
     if not upload_lambda_enabled_flag_object[upload_flag_name]:
         logger.info("Feature flag not enabled, event will not be processed")
         raise FeatureFlagsException(500, LambdaError.FeatureFlagDisabled)

@@ -22,7 +22,7 @@ def create_manifest_job(event, context):
     logger.info("Starting document manifest process")
     nhs_number = event["queryStringParameters"]["patientId"]
     document_type = extract_document_type_to_enum(
-        event["queryStringParameters"]["docType"]
+        event["queryStringParameters"]["docType"],
     )
     document_references = event["multiValueQueryStringParameters"].get("docReferences")
 
@@ -30,11 +30,15 @@ def create_manifest_job(event, context):
 
     document_manifest_service = DocumentManifestJobService()
     response = document_manifest_service.create_document_manifest_job(
-        nhs_number, document_type, document_references
+        nhs_number,
+        document_type,
+        document_references,
     )
 
     return ApiGatewayResponse(
-        200, json.dumps({"jobId": response}), "POST"
+        200,
+        json.dumps({"jobId": response}),
+        "POST",
     ).create_api_gateway_response()
 
 
@@ -44,11 +48,15 @@ def get_manifest_job(event, context):
     nhs_number = event["queryStringParameters"]["patientId"]
     job_id = event["queryStringParameters"]["jobId"]
 
+    request_context.patient_nhs_no = nhs_number
+
     document_manifest_service = DocumentManifestJobService()
     response = document_manifest_service.query_document_manifest_job(job_id, nhs_number)
 
     return ApiGatewayResponse(
-        200, json.dumps(response.model_dump(by_alias=True)), "GET"
+        200,
+        json.dumps(response.model_dump(by_alias=True)),
+        "GET",
     ).create_api_gateway_response()
 
 
@@ -61,12 +69,12 @@ def get_manifest_job(event, context):
         "ZIPPED_STORE_BUCKET_NAME",
         "ZIPPED_STORE_DYNAMODB_NAME",
         "PRESIGNED_ASSUME_ROLE",
-    ]
+    ],
 )
 @override_error_check
 @handle_lambda_exceptions
 def lambda_handler(event, context):
-    request_context.app_interaction = LoggingAppInteraction.DOWNLOAD_RECORD.value
+    request_context.app_interaction = LoggingAppInteraction.MANIFEST_JOB.value
 
     method_handler = {"GET": get_manifest_job, "POST": create_manifest_job}
     http_method = event["httpMethod"]

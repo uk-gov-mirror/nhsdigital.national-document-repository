@@ -26,7 +26,7 @@ logger = LoggingService(__name__)
 @override_error_check
 @handle_lambda_exceptions
 def lambda_handler(event, context):
-    request_context.app_interaction = LoggingAppInteraction.VIEW_PATIENT.value
+    request_context.app_interaction = LoggingAppInteraction.SEARCH_DOCUMENT.value
     logger.info("Starting document reference search process")
 
     nhs_number, next_page_token, limit = extract_querystring_params(event)

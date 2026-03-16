@@ -19,7 +19,6 @@ logger = LoggingService(__name__)
 
 @validate_patient_id
 def create_stitch_job(event, context):
-    request_context.app_interaction = LoggingAppInteraction.VIEW_LG_RECORD.value
     logger.info("Lloyd George stitching handler triggered")
     nhs_number = extract_nhs_number_from_event(event)
 
@@ -29,7 +28,9 @@ def create_stitch_job(event, context):
     job_status = document_stitch_service.get_or_create_stitch_job(nhs_number)
 
     return ApiGatewayResponse(
-        200, json.dumps({"jobStatus": job_status}), "POST"
+        200,
+        json.dumps({"jobStatus": job_status}),
+        "POST",
     ).create_api_gateway_response()
 
 
@@ -38,12 +39,15 @@ def get_stitch_job(event, context):
     logger.info("Retrieving document stitch")
 
     nhs_number = extract_nhs_number_from_event(event)
+    request_context.patient_nhs_no = nhs_number
 
     document_stitch_service = LloydGeorgeStitchJobService()
     response = document_stitch_service.query_document_stitch_job(nhs_number)
 
     return ApiGatewayResponse(
-        200, json.dumps(response.model_dump(by_alias=True)), "GET"
+        200,
+        json.dumps(response.model_dump(by_alias=True)),
+        "GET",
     ).create_api_gateway_response()
 
 
@@ -57,10 +61,10 @@ def get_stitch_job(event, context):
         "PRESIGNED_ASSUME_ROLE",
         "CLOUDFRONT_URL",
         "STITCH_METADATA_DYNAMODB_NAME",
-    ]
+    ],
 )
 def lambda_handler(event, context):
-    request_context.app_interaction = LoggingAppInteraction.DOWNLOAD_RECORD.value
+    request_context.app_interaction = LoggingAppInteraction.STITCH_RECORD.value
 
     method_handler = {"GET": get_stitch_job, "POST": create_stitch_job}
     http_method = event["httpMethod"]

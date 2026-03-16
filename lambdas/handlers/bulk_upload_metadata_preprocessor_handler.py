@@ -1,4 +1,5 @@
 from enums.lloyd_george_pre_process_format import LloydGeorgePreProcessFormat
+from enums.logging_app_interaction import LoggingAppInteraction
 from services.bulk_upload.metadata_general_preprocessor import (
     MetadataGeneralPreprocessor,
 )
@@ -10,6 +11,7 @@ from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
+from utils.request_context import request_context
 
 logger = LoggingService(__name__)
 
@@ -19,20 +21,22 @@ logger = LoggingService(__name__)
 @ensure_environment_variables(names=["STAGING_STORE_BUCKET_NAME"])
 @handle_lambda_exceptions
 def lambda_handler(event, _context):
+    request_context.app_interaction = LoggingAppInteraction.BULK_UPLOAD.value
     practice_directory = event.get("practiceDirectory")
     raw_pre_format_type = event.get(
-        "preFormatType", LloydGeorgePreProcessFormat.GENERAL
+        "preFormatType",
+        LloydGeorgePreProcessFormat.GENERAL,
     )
 
     pre_processor_service = get_pre_process_service(raw_pre_format_type)
     if not practice_directory:
         logger.info(
-            "Failed to start metadata pre-processor due to missing practice directory"
+            "Failed to start metadata pre-processor due to missing practice directory",
         )
         return
 
     logger.info(
-        f"Starting metadata pre-processor for practice directory: {practice_directory}"
+        f"Starting metadata pre-processor for practice directory: {practice_directory}",
     )
 
     metadata_service = pre_processor_service(practice_directory)
@@ -44,10 +48,10 @@ def get_pre_process_service(raw_pre_format_type):
         pre_format_type = LloydGeorgePreProcessFormat(raw_pre_format_type)
         if pre_format_type == LloydGeorgePreProcessFormat.GENERAL:
             return MetadataGeneralPreprocessor
-        elif pre_format_type == LloydGeorgePreProcessFormat.USB:
+        if pre_format_type == LloydGeorgePreProcessFormat.USB:
             return MetadataUsbPreprocessorService
     except ValueError:
         logger.warning(
-            f"Invalid preFormatType: '{raw_pre_format_type}', defaulting to {LloydGeorgePreProcessFormat.GENERAL}."
+            f"Invalid preFormatType: '{raw_pre_format_type}', defaulting to {LloydGeorgePreProcessFormat.GENERAL}.",
         )
         return MetadataGeneralPreprocessor

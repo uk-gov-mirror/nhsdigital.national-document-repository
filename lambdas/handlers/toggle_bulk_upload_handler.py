@@ -2,8 +2,11 @@ import logging
 import os
 
 import boto3
+
+from enums.logging_app_interaction import LoggingAppInteraction
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
+from utils.request_context import request_context
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -15,6 +18,7 @@ ESM_UUID = os.environ["ESM_UUID"]
 @override_error_check
 @handle_lambda_exceptions
 def lambda_handler(event, context):
+    request_context.app_interaction = LoggingAppInteraction.BULK_UPLOAD.value
     logger.info(f"Received event: {event}")
 
     action = event.get("action")
@@ -32,7 +36,7 @@ def lambda_handler(event, context):
         )
 
         logger.info(
-            f"Successfully updated event source mapping {ESM_UUID}: Enabled={action == 'enable'}"
+            f"Successfully updated event source mapping {ESM_UUID}: Enabled={action == 'enable'}",
         )
 
         return {

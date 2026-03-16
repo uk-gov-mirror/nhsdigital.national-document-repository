@@ -1,8 +1,10 @@
+from enums.logging_app_interaction import LoggingAppInteraction
 from services.edge_presign_service import EdgePresignService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.handle_edge_exceptions import handle_edge_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
+from utils.request_context import request_context
 
 logger = LoggingService(__name__)
 
@@ -11,6 +13,7 @@ logger = LoggingService(__name__)
 @override_error_check
 @handle_edge_exceptions
 def lambda_handler(event, context):
+    request_context.app_interaction = LoggingAppInteraction.EDGE_PRESIGN.value
     request: dict = event["Records"][0]["cf"]["request"]
     logger.info("Edge received S3 request")
     logger.info(f"Request: {request}")
