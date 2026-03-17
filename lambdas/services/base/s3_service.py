@@ -29,8 +29,8 @@ class S3Service:
     def __init__(self, custom_aws_role=None):
         if not self.initialised:
             self.config = BotoConfig(
-                connect_timeout=3,
-                read_timeout=5,
+                connect_timeout=10,
+                read_timeout=60,
                 retries={"max_attempts": 3, "mode": "standard"},
                 s3={"addressing_style": "virtual"},
                 signature_version="s3v4",

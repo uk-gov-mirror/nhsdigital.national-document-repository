@@ -3,7 +3,7 @@ import os
 import uuid
 
 import pydantic
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ConnectTimeoutError, ReadTimeoutError
 
 from enums.document_review_reason import DocumentReviewReason
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
@@ -335,7 +335,7 @@ class BulkUploadService:
                 f"Successfully uploaded the Lloyd George records for patient: {staging_metadata.nhs_number}",
                 {"Result": "Successful upload"},
             )
-        except ClientError as e:
+        except (ClientError, ReadTimeoutError, ConnectTimeoutError) as e:
             logger.info(
                 f"Got unexpected error during file transfer: {str(e)}",
                 {"Result": "Unsuccessful upload"},

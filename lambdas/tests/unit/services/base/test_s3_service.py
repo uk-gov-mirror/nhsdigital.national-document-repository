@@ -5,6 +5,7 @@ from io import BytesIO
 import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
+
 from services.base.s3_service import S3Service
 from tests.unit.conftest import (
     MOCK_BUCKET,
@@ -72,8 +73,8 @@ def test_s3_service_constructs_boto_client_with_timeouts(mocker):
 
     mocked_boto_client.assert_called_once()
     _, kwargs = mocked_boto_client.call_args
-    assert kwargs["config"].connect_timeout == 3
-    assert kwargs["config"].read_timeout == 5
+    assert kwargs["config"].connect_timeout == 10
+    assert kwargs["config"].read_timeout == 60
 
     S3Service._instance = None
 

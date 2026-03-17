@@ -2,7 +2,7 @@ import json
 from copy import copy
 
 import pytest
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ConnectTimeoutError, ReadTimeoutError
 from freezegun import freeze_time
 
 from enums.document_review_reason import DocumentReviewReason
@@ -736,7 +736,20 @@ def test_handle_sqs_message_put_staging_metadata_back_to_queue_when_virus_scan_r
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "transfer_error",
+    [
+        ClientError(
+            {"Error": {"Code": "AccessDenied", "Message": "Access Denied"}},
+            "GetObject",
+        ),
+        ReadTimeoutError(endpoint_url="https://s3.amazonaws.com"),
+        ConnectTimeoutError(endpoint_url="https://s3.amazonaws.com"),
+    ],
+    ids=["ClientError", "ReadTimeoutError", "ConnectTimeoutError"],
+)
 def test_handle_sqs_message_rollback_transaction_when_validation_pass_but_file_transfer_failed_halfway(
+    transfer_error,
     repo_under_test,
     set_env,
     mocker,
@@ -766,16 +779,11 @@ def test_handle_sqs_message_rollback_transaction_when_validation_pass_but_file_t
         repo_under_test.bulk_upload_s3_repository,
         "remove_ingested_file_from_source_bucket",
     )
-    mock_client_error = ClientError(
-        {"Error": {"Code": "AccessDenied", "Message": "Access Denied"}},
-        "GetObject",
-    )
 
-    # simulate a client error occur when copying the 3rd file
     repo_under_test.bulk_upload_s3_repository.copy_to_lg_bucket.side_effect = [
         MOCK_COPY_OBJECT_RESPONSE,
         MOCK_COPY_OBJECT_RESPONSE,
-        mock_client_error,
+        transfer_error,
     ]
 
     repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
