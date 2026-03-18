@@ -147,6 +147,7 @@ MOCK_ALERTING_SLACK_CHANNEL_ID = "slack_channel_id"
 MOCK_DOCUMENT_REVIEW_TABLE = "test_document_review"
 MOCK_DOCUMENT_REVIEW_BUCKET = "test_document_review_bucket"
 MOCK_EDGE_REFERENCE_TABLE = "test_edge_reference_table"
+MOCK_USER_RESTRICTION_TABLE = "test_user_restriction_table"
 
 
 @pytest.fixture
@@ -255,6 +256,7 @@ def set_env(monkeypatch):
     monkeypatch.setenv("EDGE_REFERENCE_TABLE", MOCK_EDGE_REFERENCE_TABLE)
     monkeypatch.setenv("REVIEW_SQS_QUEUE_URL", REVIEW_SQS_QUEUE_URL)
     monkeypatch.setenv("HEALTHCARE_WORKER_API_URL", HEALTHCARE_WORKER_API_URL)
+    monkeypatch.setenv("RESTRICTIONS_TABLE_NAME", MOCK_USER_RESTRICTION_TABLE)
     monkeypatch.setenv("USE_MOCK_HEALTHCARE_SERVICE", "true")
 
 

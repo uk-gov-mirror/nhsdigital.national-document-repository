@@ -675,6 +675,11 @@ class LambdaError(Enum):
         "message": "Malformed user restriction model error",
     }
 
+    UserRestrictionDynamoDBConditionError = {
+        "err_code": "UR_4002",
+        "message": "Failed DynamoDB operation, bad request",
+    }
+
     """
        Errors with no exception
     """

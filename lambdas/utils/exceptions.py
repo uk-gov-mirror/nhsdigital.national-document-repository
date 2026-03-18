@@ -241,3 +241,15 @@ class MigrationRetryableException(Exception):
 
     def to_dict(self):
         return {"segmentId": self.segment_id, "message": self.message}
+
+
+class UserRestrictionException(Exception):
+    pass
+
+
+class UserRestrictionValidationException(Exception):
+    pass
+
+
+class UserRestrictionConditionCheckFailedException(Exception):
+    pass

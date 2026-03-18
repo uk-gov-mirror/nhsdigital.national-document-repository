@@ -3,6 +3,8 @@ import pytest
 from enums.feature_flags import FeatureFlags
 from services.feature_flags_service import FeatureFlagService
 
+MOCK_SMARTCARD_ID = "123456789012"
+
 
 @pytest.fixture
 def mock_user_restriction_enabled(mocker):

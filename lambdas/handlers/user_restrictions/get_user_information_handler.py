@@ -4,7 +4,7 @@ from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from services.feature_flags_service import FeatureFlagService
-from services.user_restrictions.utilites import get_healthcare_worker_api_service
+from services.user_restrictions.utilities import get_healthcare_worker_api_service
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions

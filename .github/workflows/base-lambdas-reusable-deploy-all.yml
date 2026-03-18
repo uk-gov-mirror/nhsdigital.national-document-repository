@@ -882,7 +882,7 @@ jobs:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
 
   deploy_get_user_information_lambda:
-    name: Deploy Concurrency Controller Lambda
+    name: Deploy Get User Information Lambda
     uses: ./.github/workflows/base-lambdas-reusable-deploy.yml
     with:
       environment: ${{ inputs.environment }}
@@ -891,6 +891,21 @@ jobs:
       sandbox: ${{ inputs.sandbox }}
       lambda_handler_name: get_user_information_handler
       lambda_aws_name: GetUserInformation
+      lambda_layer_names: "core_lambda_layer"
+      lambda_handler_path: user_restrictions
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  deploy_update_status_user_restriction_lambda:
+    name: Deploy Update Status User Restriction Lambda
+    uses: ./.github/workflows/base-lambdas-reusable-deploy.yml
+    with:
+      environment: ${{ inputs.environment }}
+      python_version: ${{ inputs.python_version }}
+      build_branch: ${{ inputs.build_branch }}
+      sandbox: ${{ inputs.sandbox }}
+      lambda_handler_name: update_status_user_restriction_handler
+      lambda_aws_name: UpdateStatusUserRestriction
       lambda_layer_names: "core_lambda_layer"
       lambda_handler_path: user_restrictions
     secrets:

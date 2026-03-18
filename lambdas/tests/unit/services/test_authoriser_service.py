@@ -131,6 +131,29 @@ def test_deny_access_policy_returns_false_for_nhs_number_in_allowed(
 
 
 @pytest.mark.parametrize(
+    "role, deny_resource",
+    [
+        (RepositoryRole.GP_ADMIN, False),
+        (RepositoryRole.GP_CLINICAL, False),
+        (RepositoryRole.PCSE, False),
+    ],
+)
+def test_deny_access_policy_allows_review_for_placeholder_nhs_number(
+    mock_auth_service: AuthoriserService,
+    role,
+    deny_resource,
+):
+
+    actual = mock_auth_service.deny_access_policy(
+        f"/DocumentReview/{TEST_UUID}/1",
+        "GET",
+        role,
+        NHS_NUMBER_PLACEHOLDER,
+    )
+    assert actual == deny_resource
+
+
+@pytest.mark.parametrize(
     ["path", "role", "expected"],
     [
         ("/DocumentReference", RepositoryRole.GP_ADMIN.value, False),
@@ -172,6 +195,13 @@ def test_deny_access_policy_returns_false_for_nhs_number_in_allowed(
         ("/LloydGeorgeStitch", RepositoryRole.GP_ADMIN.value, False),
         ("/LloydGeorgeStitch", RepositoryRole.GP_CLINICAL.value, False),
         ("/LloydGeorgeStitch", RepositoryRole.PCSE.value, True),
+        (f"/UserRestriction/{TEST_UUID}", RepositoryRole.GP_ADMIN.value, False),
+        (f"/UserRestriction/{TEST_UUID}", RepositoryRole.GP_CLINICAL.value, False),
+        (
+            "/UserRestriction/6b6417b5-58ed-45db-8359-bd78891e67b7",
+            RepositoryRole.PCSE.value,
+            True,
+        ),
     ],
 )
 def test_deny_access_policy_for_various_paths_and_roles(
@@ -184,24 +214,6 @@ def test_deny_access_policy_for_various_paths_and_roles(
 
     actual = mock_auth_service.deny_access_policy(path, "GET", role, "122222222")
     assert actual == expected
-
-
-def test_deny_access_policy_allows_review_for_placeholder_nhs_number(
-    mock_auth_service: AuthoriserService,
-):
-    roles = [
-        RepositoryRole.GP_ADMIN.value,
-        RepositoryRole.GP_CLINICAL.value,
-        RepositoryRole.PCSE.value,
-    ]
-    for role in roles:
-        actual = mock_auth_service.deny_access_policy(
-            f"/DocumentReview/{TEST_UUID}/1",
-            "GET",
-            role,
-            NHS_NUMBER_PLACEHOLDER,
-        )
-        assert not actual
 
 
 @pytest.mark.parametrize(

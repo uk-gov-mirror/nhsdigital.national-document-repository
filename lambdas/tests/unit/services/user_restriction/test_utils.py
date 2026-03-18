@@ -1,12 +1,14 @@
 import pytest
 
+from lambdas.services.user_restrictions.utilities import (
+    get_healthcare_worker_api_service,
+)
 from services.user_restrictions.healthcare_worker_service import (
     HealthCareWorkerApiService,
 )
 from services.user_restrictions.mock_hwc_api_service import (
     MockHealthcareWorkerApiService,
 )
-from services.user_restrictions.utilites import get_healthcare_worker_api_service
 
 
 @pytest.mark.parametrize(

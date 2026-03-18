@@ -32,3 +32,4 @@ class LoggingAppInteraction(Enum):
     ACCESS_AUDIT = "Access audit"
     BULK_UPLOAD = "Bulk upload"
     MANIFEST_JOB = "Manifest job"
+    RESTRICTION_SOFT_DELETE = "User restrictions - soft-delete"

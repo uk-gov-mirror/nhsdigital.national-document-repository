@@ -153,6 +153,13 @@ class AuthoriserService:
                     not patient_access_is_allowed or is_user_gp_clinical or is_user_pcse
                 )
 
+            case path if re.match(
+                r"^/UserRestriction/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-"
+                r"[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})?(\?.*)?$",
+                path,
+            ):
+                deny_resource = not patient_access_is_allowed or is_user_pcse
+
             case "/VirusScan":
                 deny_resource = (
                     not patient_access_is_allowed or is_user_gp_clinical or is_user_pcse

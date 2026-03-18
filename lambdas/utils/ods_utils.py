@@ -28,7 +28,7 @@ def extract_ods_role_code_with_r_prefix_from_role_codes_string(role_codes) -> st
 def extract_ods_code_from_request_context() -> str:
     try:
         ods_code = request_context.authorization.get("selected_organisation", {}).get(
-            "org_ods_code"
+            "org_ods_code",
         )
         if not ods_code:
             raise OdsErrorException()
@@ -36,4 +36,18 @@ def extract_ods_code_from_request_context() -> str:
         return ods_code
 
     except AttributeError:
+        raise OdsErrorException()
+
+
+def extract_creator_and_ods_code_from_request_context() -> tuple[str, str]:
+    try:
+        authorization = request_context.authorization or {}
+        creator = authorization.get("nhs_user_id")
+        ods_code = extract_ods_code_from_request_context()
+        if not creator or not ods_code:
+            raise OdsErrorException()
+
+        return creator, ods_code
+
+    except (AttributeError, OdsErrorException):
         raise OdsErrorException()

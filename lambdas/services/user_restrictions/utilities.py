@@ -9,6 +9,6 @@ from services.user_restrictions.mock_hwc_api_service import (
 
 
 def get_healthcare_worker_api_service() -> HealthCareWorkerApiService:
-    if os.getenv("USE_MOCK_HEALTHCARE_SERVICE") in ["False", "false"]:
+    if os.getenv("USE_MOCK_HEALTHCARE_SERVICE", True) in ["False", "false"]:
         return HealthCareWorkerApiService()
     return MockHealthcareWorkerApiService()

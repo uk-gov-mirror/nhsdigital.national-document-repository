@@ -218,7 +218,7 @@ jobs:
         id: changed-files
         run: |
           git remote set-branches origin main && git fetch --depth 1 origin main && git branch main origin/main
-          echo "CHANGED_FILES=$(git diff main --name-status | grep -E '^[^D].*\.py$' | cut -f2 | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          echo "CHANGED_FILES=$(git diff main --name-status | grep -E '^[^D].*\.py$' | awk '{print $NF}' | tr '\n' ' ')" >> $GITHUB_OUTPUT
 
       - name: Run black
         id: black
