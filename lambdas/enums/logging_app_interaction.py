@@ -28,6 +28,7 @@ class LoggingAppInteraction(Enum):
     CHECK_REVIEW_STATUS = "Check review document status"
     SSH_KEY_MANAGEMENT = "SSH Key Management"
     UPDATE_REVIEW = "Update review"
+    GET_USER_INFO = "Get user information"
     ACCESS_AUDIT = "Access audit"
     BULK_UPLOAD = "Bulk upload"
     MANIFEST_JOB = "Manifest job"

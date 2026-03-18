@@ -663,6 +663,19 @@ class LambdaError(Enum):
     EdgeDocNotFound = {"err_code": "CE_4001", "message": "Document not found"}
 
     """
+        Errors for User Restrictions feature
+    """
+    UserRestrictionInvalidEvent = {
+        "err_code": "UR_4001",
+        "message": "Malformed user restriction event",
+    }
+
+    UserRestrictionModelValidationError = {
+        "err_code": "UR_5001",
+        "message": "Malformed user restriction model error",
+    }
+
+    """
        Errors with no exception
     """
     DocDelNull = {

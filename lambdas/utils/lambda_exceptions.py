@@ -132,3 +132,7 @@ class UpdateDocumentReviewException(LambdaException):
 
 class ReportDistributionException(LambdaException):
     pass
+
+
+class UserRestrictionsException(LambdaException):
+    pass

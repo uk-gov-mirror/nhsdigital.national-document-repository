@@ -162,10 +162,6 @@ def test_get_practitioner_handles_key_error(mocker, mock_service, mock_get):
         mock_service.get_practitioner(MOCK_IDENTIFIER)
 
 
-def test_service_calls_ssm_for_token_each_call_to_api(mock_service):
-    pass
-
-
 def test_build_practitioner_returns_practitioner_model_instance(mock_service):
     _, mock_response, expected = build_mock_response_and_practitioner(MOCK_IDENTIFIER)
 

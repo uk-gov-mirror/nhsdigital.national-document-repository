@@ -7,7 +7,10 @@ from services.mock_data.user_restrictions.build_mock_data import (
 from services.user_restrictions.healthcare_worker_service import (
     HealthCareWorkerApiService,
 )
+from utils.audit_logging_setup import LoggingService
 from utils.exceptions import HealthcareWorkerAPIException
+
+logger = LoggingService(__name__)
 
 
 class MockErrorIdentifiers(StrEnum):
@@ -24,7 +27,7 @@ class MockHealthcareWorkerApiService(HealthCareWorkerApiService):
         self.base_url = None
 
     def get_practitioner(self, identifier: str) -> Practitioner | None:
-
+        logger.info("Using Mock Healthcare Worker API")
         match identifier:
             case [
                 MockErrorIdentifiers.MOCK_USER_NOT_FOUND_ID,

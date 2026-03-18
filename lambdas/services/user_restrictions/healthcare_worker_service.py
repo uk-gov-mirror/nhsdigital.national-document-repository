@@ -48,12 +48,12 @@ class HealthCareWorkerApiService:
             body = response.json()
             return self.build_practitioner(body)
 
-        except requests.exceptions.HTTPError as err:
+        except requests.exceptions.HTTPError as e:
             raise HealthcareWorkerAPIException(
-                status_code=err.response.status_code,
+                status_code=e.response.status_code,
             )
-        except (ValidationError, KeyError) as err:
-            logger.error(err)
+        except (ValidationError, KeyError) as e:
+            logger.error(e)
             raise HealthcareWorkerPractitionerModelException
 
     def build_practitioner(self, response: dict) -> Practitioner:
@@ -61,7 +61,7 @@ class HealthCareWorkerApiService:
             logger.info("Received more than on entry for practitioner.")
             raise HealthcareWorkerPractitionerModelException
 
-        logger.info("Getting practitioner model.")
+        logger.info("Creating practitioner model with user information.")
         entry = response["entry"][0]
 
         practitioner_id = entry["resource"]["id"]

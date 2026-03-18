@@ -255,6 +255,7 @@ def set_env(monkeypatch):
     monkeypatch.setenv("EDGE_REFERENCE_TABLE", MOCK_EDGE_REFERENCE_TABLE)
     monkeypatch.setenv("REVIEW_SQS_QUEUE_URL", REVIEW_SQS_QUEUE_URL)
     monkeypatch.setenv("HEALTHCARE_WORKER_API_URL", HEALTHCARE_WORKER_API_URL)
+    monkeypatch.setenv("USE_MOCK_HEALTHCARE_SERVICE", "true")
 
 
 EXPECTED_PARSED_PATIENT_BASE_CASE = PatientDetails(

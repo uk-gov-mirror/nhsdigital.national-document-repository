@@ -158,6 +158,9 @@ class AuthoriserService:
                     not patient_access_is_allowed or is_user_gp_clinical or is_user_pcse
                 )
 
+            case "/UserRestriction/SearchUser":
+                deny_resource = False
+
             case _:
                 deny_resource = not patient_access_is_allowed
 
