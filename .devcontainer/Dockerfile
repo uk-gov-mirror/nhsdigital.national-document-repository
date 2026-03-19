@@ -68,10 +68,10 @@ RUN apt-get install -y \
   libasound2
 
 RUN wget https://github.com/mikefarah/yq/releases/download/v4.52.4/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq
-RUN wget https://github.com/asdf-vm/asdf/releases/download/v0.18.0/asdf-v0.18.0-linux-amd64.tar.gz -O - | tar xz && sudo mv asdf /usr/local/bin/asdf
+RUN wget https://github.com/asdf-vm/asdf/releases/download/v0.18.1/asdf-v0.18.1-linux-amd64.tar.gz -O - | tar xz && sudo mv asdf /usr/local/bin/asdf
 
 # Install Cypress globally
-RUN npm install -g cypress@15.11.0
+RUN npm install -g cypress@15.12.0
 
 # Installing ASDF
 USER vscode

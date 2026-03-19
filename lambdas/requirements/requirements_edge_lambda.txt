@@ -1,4 +1,4 @@
-boto3==1.42.59
+boto3==1.42.68
 pydantic==2.12.5
-PyJWT==2.11.0
+PyJWT==2.12.1
 inflection==0.5.1

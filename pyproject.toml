@@ -6,8 +6,8 @@ readme = "README.md"
 packages = [{ include = "lambdas" }]
 
 [tool.poetry.dependencies]
-python = "^3.11.14"
-ruff = "0.15.4"
+python = "^3.11.15"
+ruff = "0.15.6"
 ruff-lsp = "0.0.62"
 
 [tool.poetry.group.test.dependencies]
@@ -18,32 +18,32 @@ pytest-unordered = "0.7.0"
 requests-mock = "1.12.1"
 freezegun = "1.5.5"
 MarkupSafe = "2.1.5"
-black = "24.10.0"
-isort = "7.0.0"
+black = "26.3.1"
+isort = "8.0.1"
 pip-audit = "2.10.0"
 syrupy = "4.9.1"
 
 [tool.poetry.group.edge_lambda.dependencies]
-boto3 = "1.42.59"
+boto3 = "1.42.68"
 pydantic = "2.12.5"
-PyJWT = "2.11.0"
+PyJWT = "2.12.1"
 inflection = "0.5.1"
 
 [tool.poetry.group.alerting_lambda.dependencies]
-PyJWT = "2.11.0"
-boto3 = "1.42.59"
+PyJWT = "2.12.1"
+boto3 = "1.42.68"
 inflection = "0.5.1"
-jinja2 = "3.1.6"
+Jinja2 = "3.1.6"
 pydantic = "2.12.5"
 requests = "2.32.5"
 
 [tool.poetry.group.core_lambda.dependencies]
-PyJWT = { version = "2.11.0", extras = ["crypto"] }
-boto3 = "1.42.59"
+PyJWT = { version = "2.12.1", extras = ["crypto"] }
+boto3 = "1.42.68"
 inflection = "0.5.1"
 oauthlib = "3.3.1"
 pydantic = { version = "2.12.5", extras = ["email"] }
-pypdf = "6.7.5"
+pypdf = "6.9.1"
 requests = "2.32.5"
 regex = "2023.12.25"
 pikepdf = "8.15.1"

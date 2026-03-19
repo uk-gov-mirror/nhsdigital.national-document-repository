@@ -1,12 +1,12 @@
 aws-vault 7.2.0
-awscli 2.34.0
+awscli 2.34.9
 awsume 4.5.5
 gitleaks 8.30.0
 nodejs 24.14.0
 poetry 2.3.2
 pre-commit 4.5.1
-python 3.11.14
+python 3.11.15
 shellcheck 0.11.0
-terraform 1.14.6
+terraform 1.14.7
 terraform-docs 0.20.0
-trivy 0.69.2
+trivy 0.69.3
