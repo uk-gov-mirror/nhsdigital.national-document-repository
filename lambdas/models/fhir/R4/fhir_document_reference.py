@@ -264,6 +264,7 @@ class DocumentReferenceInfo(BaseModel):
             content=[DocumentReferenceContent(attachment=self.attachment)],
             date=document.created,
             meta=Meta(versionId=document.version),
+            status=document.status if document.status else "current",
         )
 
         if author_ods:

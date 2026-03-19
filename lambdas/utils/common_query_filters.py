@@ -71,8 +71,16 @@ def get_doc_status_final_filter(filter_builder: DynamoQueryFilterBuilder):
     return doc_status_filter_expression & filter_not_deleted
 
 
-def not_superceded(filter_builder: DynamoQueryFilterBuilder):
+def not_superseded(filter_builder: DynamoQueryFilterBuilder):
     filter_builder.add_condition("Status", AttributeOperator.NOT_EQUAL, "superceded")
+    return filter_builder.build()
+
+
+def patient_nhs_number_filter(
+    filter_builder: DynamoQueryFilterBuilder,
+    nhs_number: str,
+):
+    filter_builder.add_condition("NhsNumber", AttributeOperator.EQUAL, nhs_number)
     return filter_builder.build()
 
 
@@ -90,10 +98,10 @@ PreliminaryStatus = get_doc_status_preliminary_filter(DynamoQueryFilterBuilder()
 
 FinalStatusFilter = get_doc_status_final_filter(DynamoQueryFilterBuilder())
 
-NotSuperceded = not_superceded(DynamoQueryFilterBuilder())
+NotSuperseded = not_superseded(DynamoQueryFilterBuilder())
 
-FinalStatusAndNotSuperceded = NotSuperceded & FinalStatusFilter
+FinalStatusAndNotSuperseded = NotSuperseded & FinalStatusFilter
 
-FinalOrPreliminaryAndNotSuperseded = NotSuperceded & (
+FinalOrPreliminaryAndNotSuperseded = NotSuperseded & (
     FinalStatusFilter | PreliminaryStatus
 )
