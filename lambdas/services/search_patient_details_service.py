@@ -5,6 +5,9 @@ from enums.cloudwatch_logs_reporting_message import CloudwatchLogsReportingMessa
 from enums.lambda_error import LambdaError
 from enums.repository_role import RepositoryRole
 from services.manage_user_session_access import ManageUserSessionAccess
+from services.user_restrictions.user_restriction_dynamo_service import (
+    UserRestrictionDynamoService,
+)
 from utils.audit_logging_setup import LoggingService
 from utils.exceptions import (
     InvalidResourceIdException,
@@ -14,6 +17,7 @@ from utils.exceptions import (
 )
 from utils.lambda_exceptions import SearchPatientException
 from utils.ods_utils import is_ods_code_active
+from utils.request_context import request_context
 from utils.utilities import get_pds_service
 
 logger = LoggingService(__name__)
@@ -45,6 +49,8 @@ class SearchPatientDetailsService:
             SearchPatientException: With appropriate error code and message
         """
         try:
+            self._check_user_restriction(nhs_number)
+
             patient_details = self._fetch_patient_details(nhs_number)
 
             can_manage_record = patient_details.deceased
@@ -102,6 +108,32 @@ class SearchPatientDetailsService:
                 "Patient not found",
             )
             return None
+
+    def _check_user_restriction(self, nhs_number: str) -> None:
+        """Raise SearchPatientException (403) if the current user is restricted from this patient."""
+        user_id = (
+            request_context.authorization.get("nhs_user_id")
+            if isinstance(request_context.authorization, dict)
+            else None
+        )
+        if not user_id:
+            logger.error(
+                f"{LambdaError.SearchPatientRestricted.to_str()}",
+                {"Result": "Unable to identify user for restriction check"},
+            )
+            raise SearchPatientException(403, LambdaError.SearchPatientRestricted)
+
+        restriction_service = UserRestrictionDynamoService()
+        is_restricted = restriction_service.check_user_restriction(
+            nhs_number=nhs_number,
+            smartcard_id=user_id,
+        )
+        if is_restricted:
+            logger.error(
+                f"{LambdaError.SearchPatientRestricted.to_str()}",
+                {"Result": "User is restricted from accessing this patient"},
+            )
+            raise SearchPatientException(403, LambdaError.SearchPatientRestricted)
 
     def _fetch_patient_details(self, nhs_number):
         """Fetch patient details from PDS service"""

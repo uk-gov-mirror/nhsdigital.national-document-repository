@@ -11,9 +11,16 @@ class UserRestrictionsFields(StrEnum):
     CREATOR = "CreatorSmartcard"
     RESTRICTED_USER = "RestrictedSmartcard"
     REMOVED_BY = "RemoverSmartCard"
+    CUSTODIAN = "Custodian"
+    NHS_NUMBER = "NhsNumber"
     IS_ACTIVE = "IsActive"
     LAST_UPDATED = "LastUpdated"
-    NHS_NUMBER = "NhsNumber"
+
+
+class UserRestrictionIndexes(StrEnum):
+    CUSTODIAN_INDEX = "CustodianIndex"
+    NHS_NUMBER_INDEX = "NhsNumberIndex"
+    RESTRICTED_SMARTCARD_INDEX = "RestrictedSmartcardIndex"
 
 
 class UserRestriction(BaseModel):

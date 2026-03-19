@@ -504,7 +504,7 @@ class DynamoDBService:
         key: str,
         condition: str,
         filter_expression: str | None = None,
-        expression_attribute_names: str | None = None,
+        expression_attribute_names: dict | None = None,
         expression_attribute_values: dict | None = None,
         limit: int = 20,
         page_size: int = 1,

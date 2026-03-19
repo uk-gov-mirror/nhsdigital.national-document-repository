@@ -95,6 +95,11 @@ class LambdaError(Enum):
         "message": "Failed to parse PDS data",
         "fhir_coding": UKCoreSpineError.VALIDATION_ERROR,
     }
+    SearchPatientRestricted = {
+        "err_code": "SP_4006",
+        "message": "You are restricted from accessing this patient's record",
+        "fhir_coding": UKCoreSpineError.ACCESS_DENIED,
+    }
 
     """
          Errors for /DocumentReference

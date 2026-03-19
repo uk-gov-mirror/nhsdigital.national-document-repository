@@ -58,6 +58,10 @@ class DocumentServiceException(Exception):
     pass
 
 
+class UserRestrictionValidationException(Exception):
+    pass
+
+
 class DocumentReviewException(Exception):
     pass
 
@@ -244,10 +248,6 @@ class MigrationRetryableException(Exception):
 
 
 class UserRestrictionException(Exception):
-    pass
-
-
-class UserRestrictionValidationException(Exception):
     pass
 
 

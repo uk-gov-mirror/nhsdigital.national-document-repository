@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from enums.repository_role import RepositoryRole
 from models.pds_models import PatientDetails
 from services.search_patient_details_service import SearchPatientDetailsService
@@ -13,6 +14,8 @@ from utils.exceptions import (
 )
 from utils.lambda_exceptions import SearchPatientException
 from utils.request_context import request_context
+
+MOCK_USER_ID = "test-user-id"
 
 USER_VALID_ODS_CODE = "X12345"
 USER_INVALID_ODS_CODE = "X54321"
@@ -57,11 +60,20 @@ def mock_deceased_patient_details():
 def setup_request_context():
     request_context.authorization = {
         "ndr_session_id": TEST_UUID,
-        "nhs_user_id": "test-user-id",
+        "nhs_user_id": MOCK_USER_ID,
         "selected_organisation": {"org_ods_code": "test-ods-code"},
     }
     yield
     request_context.authorization = {}
+
+
+@pytest.fixture
+def mock_check_user_restriction():
+    with patch.object(
+        SearchPatientDetailsService,
+        "_check_user_restriction",
+    ) as mock_check:
+        yield mock_check
 
 
 @pytest.fixture
@@ -76,7 +88,8 @@ def mock_pds_service_fetch(mock_patient_details):
 @pytest.fixture
 def mock_check_if_user_authorise():
     with patch.object(
-        SearchPatientDetailsService, "_check_authorization"
+        SearchPatientDetailsService,
+        "_check_authorization",
     ) as mock_check:
         yield mock_check
 
@@ -88,7 +101,16 @@ def mock_update_session():
 
 
 @pytest.fixture
-def mock_service(request, mocker, setup_request_context):
+def mock_restriction_service(mocker):
+    mock_restriction_cls = mocker.patch(
+        "services.search_patient_details_service.UserRestrictionDynamoService",
+    )
+    mock_restriction_cls.return_value.check_user_restriction.return_value = False
+    yield mock_restriction_cls.return_value
+
+
+@pytest.fixture
+def mock_service(request, mocker, setup_request_context, mock_restriction_service):
     role, ods_code = (
         request.param
         if hasattr(request, "param")
@@ -98,8 +120,7 @@ def mock_service(request, mocker, setup_request_context):
         )
     )
     mocker.patch("services.search_patient_details_service.ManageUserSessionAccess")
-    service = SearchPatientDetailsService(role, ods_code)
-    yield service
+    yield SearchPatientDetailsService(role, ods_code)
 
 
 @pytest.mark.parametrize(
@@ -112,6 +133,7 @@ def test_handle_search_patient_request_returns_patient_details(
     mock_patient_details,
     mock_pds_service_fetch,
     mock_check_if_user_authorise,
+    mock_check_user_restriction,
     mock_update_session,
 ):
     # Act
@@ -119,6 +141,7 @@ def test_handle_search_patient_request_returns_patient_details(
 
     # Assert
     mock_pds_service_fetch.assert_called_with(NHS_NUMBER)
+    mock_check_user_restriction.assert_called_once_with(NHS_NUMBER)
     mock_check_if_user_authorise.assert_called_once()
     mock_update_session.assert_called_once()
     assert result == mock_patient_details
@@ -134,11 +157,13 @@ def test_handle_search_patient_request_with_update_session_false(
     mock_patient_details,
     mock_pds_service_fetch,
     mock_check_if_user_authorise,
+    mock_check_user_restriction,
     mock_update_session,
 ):
     # Act
     result = mock_service.handle_search_patient_request(
-        NHS_NUMBER, update_session=False
+        NHS_NUMBER,
+        update_session=False,
     )
 
     # Assert
@@ -158,6 +183,7 @@ def test_handle_search_patient_deceased_skips_authorization_check(
     mock_deceased_patient_details,
     mock_pds_service_fetch,
     mock_check_if_user_authorise,
+    mock_check_user_restriction,
     mock_update_session,
 ):
     # Arrange
@@ -182,6 +208,7 @@ def test_handle_search_patient_request_raise_error_when_patient_not_found(
     mock_service,
     mock_pds_service_fetch,
     mock_check_if_user_authorise,
+    mock_check_user_restriction,
     mock_update_session,
 ):
     # Arrange
@@ -192,6 +219,7 @@ def test_handle_search_patient_request_raise_error_when_patient_not_found(
         mock_service.handle_search_patient_request(NHS_NUMBER)
 
     mock_pds_service_fetch.assert_called_with(NHS_NUMBER)
+    mock_check_user_restriction.assert_called_once_with(NHS_NUMBER)
     mock_check_if_user_authorise.assert_not_called()
     mock_update_session.assert_not_called()
 
@@ -205,6 +233,7 @@ def test_handle_search_patient_request_raise_error_when_invalid_patient(
     mock_service,
     mock_pds_service_fetch,
     mock_check_if_user_authorise,
+    mock_check_user_restriction,
     mock_update_session,
 ):
     # Arrange
@@ -215,6 +244,7 @@ def test_handle_search_patient_request_raise_error_when_invalid_patient(
         mock_service.handle_search_patient_request(NHS_NUMBER)
 
     mock_pds_service_fetch.assert_called_with(NHS_NUMBER)
+    mock_check_user_restriction.assert_called_once_with(NHS_NUMBER)
     mock_check_if_user_authorise.assert_not_called()
     mock_update_session.assert_not_called()
 
@@ -228,6 +258,7 @@ def test_handle_search_patient_request_raise_error_when_pds_error(
     mock_service,
     mock_pds_service_fetch,
     mock_check_if_user_authorise,
+    mock_check_user_restriction,
     mock_update_session,
 ):
     # Arrange
@@ -238,6 +269,7 @@ def test_handle_search_patient_request_raise_error_when_pds_error(
         mock_service.handle_search_patient_request(NHS_NUMBER)
 
     mock_pds_service_fetch.assert_called_with(NHS_NUMBER)
+    mock_check_user_restriction.assert_called_once_with(NHS_NUMBER)
     mock_check_if_user_authorise.assert_not_called()
     mock_update_session.assert_not_called()
 
@@ -251,6 +283,7 @@ def test_handle_search_patient_request_raise_error_when_validation_error(
     mock_service,
     mock_pds_service_fetch,
     mock_check_if_user_authorise,
+    mock_check_user_restriction,
     mock_update_session,
     validation_error,
 ):
@@ -262,6 +295,7 @@ def test_handle_search_patient_request_raise_error_when_validation_error(
         mock_service.handle_search_patient_request(NHS_NUMBER)
 
     mock_pds_service_fetch.assert_called_with(NHS_NUMBER)
+    mock_check_user_restriction.assert_called_once_with(NHS_NUMBER)
     mock_check_if_user_authorise.assert_not_called()
     mock_update_session.assert_not_called()
 
@@ -276,6 +310,7 @@ def test_handle_search_patient_request_raise_error_when_user_not_authorised(
     mock_patient_details,
     mock_pds_service_fetch,
     mock_check_if_user_authorise,
+    mock_check_user_restriction,
     mock_update_session,
 ):
     # Arrange
@@ -455,40 +490,18 @@ def test_check_authorization(
     exception_expected,
     can_access_not_my_record,
 ):
-    # Arrange
     with patch(
-        "services.search_patient_details_service.is_ods_code_active"
+        "services.search_patient_details_service.ManageUserSessionAccess",
+    ), patch(
+        "services.search_patient_details_service.is_ods_code_active",
     ) as mock_is_active:
         mock_is_active.return_value = patient_active
         service = SearchPatientDetailsService(user_role, user_ods)
-        # Act & Assert
         if exception_expected:
             with pytest.raises(UserNotAuthorisedException):
                 service._check_authorization(patient_ods, can_access_not_my_record)
         else:
-            # Should not raise exception
             service._check_authorization(patient_ods, can_access_not_my_record)
-
-
-@pytest.mark.parametrize("flag_value", [True, False])
-def returns_flag_value_based_on_arf_upload_flag(mocker, flag_value):
-    mock_flag_service = mocker.MagicMock()
-    mocker.patch(
-        "services.search_patient_details_service.FeatureFlagService",
-        return_value=mock_flag_service,
-    )
-    mock_flag_service.get_feature_flags_by_flag.return_value = {
-        "uploadArfWorkflowEnabled": flag_value
-    }
-
-    service = SearchPatientDetailsService("GP_ADMIN", "ODS123")
-
-    result = service._is_arf_upload_enabled()
-
-    assert result is flag_value
-    mock_flag_service.get_feature_flags_by_flag.assert_called_once_with(
-        "uploadArfWorkflowEnabled"
-    )
 
 
 def test_updates_session_with_correct_parameters(mock_service):
@@ -500,3 +513,60 @@ def test_updates_session_with_correct_parameters(mock_service):
         nhs_number="1234567890",
         write_to_deceased_column=True,
     )
+
+
+def test_check_user_restriction_passes_when_no_restriction_found(
+    mock_service,
+    mock_restriction_service,
+):
+    mock_service._check_user_restriction(NHS_NUMBER)
+
+    mock_restriction_service.check_user_restriction.assert_called_once_with(
+        nhs_number=NHS_NUMBER,
+        smartcard_id=MOCK_USER_ID,
+    )
+
+
+def test_check_user_restriction_raises_exception_when_restriction_found(
+    mock_service,
+    mock_restriction_service,
+):
+    mock_restriction_service.check_user_restriction.return_value = True
+
+    with pytest.raises(SearchPatientException):
+        mock_service._check_user_restriction(NHS_NUMBER)
+
+
+def test_check_user_restriction_raises_exception_when_nhs_user_id_missing(
+    mocker,
+    setup_request_context,
+):
+    request_context.authorization = {"ndr_session_id": TEST_UUID}
+    mocker.patch("services.search_patient_details_service.ManageUserSessionAccess")
+    mocker.patch("services.search_patient_details_service.UserRestrictionDynamoService")
+    service = SearchPatientDetailsService("GP_ADMIN", USER_VALID_ODS_CODE)
+
+    with pytest.raises(SearchPatientException):
+        service._check_user_restriction(NHS_NUMBER)
+
+
+@pytest.mark.parametrize(
+    "mock_service",
+    (("GP_ADMIN", USER_VALID_ODS_CODE),),
+    indirect=True,
+)
+def test_handle_search_patient_request_raises_exception_when_user_is_restricted(
+    mock_service,
+    mock_restriction_service,
+    mock_pds_service_fetch,
+    mock_check_if_user_authorise,
+    mock_update_session,
+):
+    mock_restriction_service.check_user_restriction.return_value = True
+
+    with pytest.raises(SearchPatientException):
+        mock_service.handle_search_patient_request(NHS_NUMBER)
+
+    mock_pds_service_fetch.assert_not_called()
+    mock_check_if_user_authorise.assert_not_called()
+    mock_update_session.assert_not_called()

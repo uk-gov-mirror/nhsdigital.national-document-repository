@@ -5,13 +5,15 @@ from enum import StrEnum
 from botocore.exceptions import ClientError
 from pydantic import ValidationError
 
-from enums.dynamo_filter import ConditionOperator
+from enums.dynamo_filter import AttributeOperator, ConditionOperator
 from models.user_restrictions.user_restrictions import (
     UserRestriction,
+    UserRestrictionIndexes,
     UserRestrictionsFields,
 )
 from services.base.dynamo_service import DynamoDBService
 from utils.audit_logging_setup import LoggingService
+from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.dynamo_utils import build_mixed_condition_expression
 from utils.exceptions import (
     UserRestrictionConditionCheckFailedException,
@@ -72,20 +74,6 @@ class UserRestrictionDynamoService:
 
         return restrictions, next_token
 
-    def get_restriction_by_smartcard_id(
-        self,
-        restriction_id: str | None = None,
-    ) -> UserRestriction | None:
-        response = self.dynamo_service.get_item(
-            table_name=self.table_name,
-            key={UserRestrictionsFields.ID.value: restriction_id},
-        )
-
-        if "Item" not in response:
-            return None
-
-        return UserRestriction.model_validate(response["Item"])
-
     def update_restriction_inactive(
         self,
         restriction_id: str,
@@ -117,14 +105,13 @@ class UserRestrictionDynamoService:
             )
 
         except ClientError as e:
-            logger.error(e)
+            logger.error(f"Unexpected DynamoDB error: {e.response['Error']['Code']}")
             if (
                 e.response["Error"]["Code"]
                 == DynamoClientErrors.CONDITION_CHECK_FAILURE
             ):
                 raise UserRestrictionConditionCheckFailedException()
-            else:
-                raise e
+            raise e
 
     @staticmethod
     def _build_query_filter(
@@ -165,3 +152,55 @@ class UserRestrictionDynamoService:
             raise UserRestrictionValidationException(
                 f"Failed to validate user restrictions: {e}",
             ) from e
+
+    def get_active_user_restrictions_by_smartcard_and_nhs_number(
+        self,
+        nhs_number: str,
+        smartcard_id: str,
+    ) -> UserRestriction | None:
+        query_filter = (
+            DynamoQueryFilterBuilder()
+            .add_condition(
+                attribute=UserRestrictionsFields.RESTRICTED_USER,
+                attr_operator=AttributeOperator.EQUAL,
+                filter_value=smartcard_id,
+            )
+            .add_condition(
+                attribute=UserRestrictionsFields.IS_ACTIVE,
+                attr_operator=AttributeOperator.EQUAL,
+                filter_value=True,
+            )
+            .build()
+        )
+        try:
+            response = self.dynamo_service.query_table_single(
+                table_name=self.table_name,
+                index_name=UserRestrictionIndexes.NHS_NUMBER_INDEX,
+                search_key=UserRestrictionsFields.NHS_NUMBER,
+                search_condition=nhs_number,
+                query_filter=query_filter,
+                limit=1,
+            )
+        except ClientError as e:
+            logger.error(f"DynamoDB ClientError when checking user restriction: {e}")
+            raise UserRestrictionValidationException(
+                f"Failed to check user restriction in DynamoDB: {e}",
+            ) from e
+
+        items = response.get("Items", [])
+        if not items:
+            return None
+        return self._validate_restrictions(items)[0]
+
+    def check_user_restriction(
+        self,
+        nhs_number: str,
+        smartcard_id: str,
+    ) -> bool:
+        return (
+            self.get_active_user_restrictions_by_smartcard_and_nhs_number(
+                nhs_number,
+                smartcard_id,
+            )
+            is not None
+        )
