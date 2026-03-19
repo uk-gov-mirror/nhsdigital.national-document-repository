@@ -85,6 +85,11 @@ const HomePage = (): React.JSX.Element => {
                                 <ul className="mt-4">
                                     <li>review and action pending patient documents</li>
                                     <li>download a report on the records stored in this service</li>
+                                    {config.featureFlags.userRestrictionEnabled && (
+                                        <li>
+                                            add and manage restrictions on accessing patient records
+                                        </li>
+                                    )}
                                 </ul>
                                 <RightCircleIcon />
                             </Card.Content>

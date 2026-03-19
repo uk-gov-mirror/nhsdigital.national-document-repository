@@ -41,6 +41,8 @@ export enum routes {
 
     COOKIES_POLICY = '/cookies-policy',
     COOKIES_POLICY_WILDCARD = '/cookies-policy/*',
+
+    USER_PATIENT_RESTRICTIONS = '/user-patient-restrictions',
 }
 
 export enum routeChildren {

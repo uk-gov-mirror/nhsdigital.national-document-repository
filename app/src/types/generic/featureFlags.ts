@@ -5,6 +5,7 @@ export type FeatureFlags = {
     uploadDocumentIteration2Enabled?: boolean;
     uploadDocumentIteration3Enabled?: boolean;
     documentCorrectEnabled?: boolean;
+    userRestrictionEnabled?: boolean;
 };
 
 export const defaultFeatureFlags: FeatureFlags = {
@@ -14,4 +15,5 @@ export const defaultFeatureFlags: FeatureFlags = {
     uploadDocumentIteration2Enabled: false,
     uploadDocumentIteration3Enabled: false,
     documentCorrectEnabled: false,
+    userRestrictionEnabled: false,
 };

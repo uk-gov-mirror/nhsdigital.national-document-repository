@@ -1,8 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { AdminPage } from './AdminPage';
 import { runAxeTest } from '../../helpers/test/axeTestHelper';
-import { describe, expect, it, Mock } from 'vitest';
+import { describe, expect, it, Mock, vi } from 'vitest';
 import { routes } from '../../types/generic/routes';
+import useConfig from '../../helpers/hooks/useConfig';
+import { defaultFeatureFlags } from '../../types/generic/featureFlags';
 
 vi.mock('../../../helpers/hooks/useTitle');
 vi.mock('../../styles/right-chevron-circle.svg', () => ({
@@ -15,9 +17,22 @@ vi.mock('react-router-dom', async () => {
         useNavigate: (): Mock => mockNavigate,
     };
 });
+vi.mock('../../helpers/hooks/useConfig');
+const mockUseConfig = useConfig as Mock;
 const mockNavigate = vi.fn();
 
+const renderWithConfig = (userRestrictionEnabled = false): void => {
+    mockUseConfig.mockReturnValue({
+        featureFlags: { ...defaultFeatureFlags, userRestrictionEnabled },
+    });
+    render(<AdminPage />);
+};
+
 describe('AdminPage', (): void => {
+    beforeEach(() => {
+        mockUseConfig.mockReturnValue({ featureFlags: defaultFeatureFlags });
+    });
+
     describe('Rendering', (): void => {
         it('renders the admin hub heading', (): void => {
             render(<AdminPage />);
@@ -66,6 +81,11 @@ describe('AdminPage', (): void => {
                 ),
             ).toBeInTheDocument();
         });
+
+        it('renders the back button', (): void => {
+            render(<AdminPage />);
+            expect(screen.getByTestId('admin-back-btn')).toBeInTheDocument();
+        });
     });
 
     describe('Accessibility', (): void => {
@@ -82,6 +102,32 @@ describe('AdminPage', (): void => {
             const reviewsLink = screen.getByTestId('admin-reviews-btn');
             reviewsLink.click();
             expect(mockNavigate).toHaveBeenCalledWith(routes.REVIEWS);
+        });
+
+        it('navigates to home page when back button is clicked', async (): Promise<void> => {
+            render(<AdminPage />);
+            screen.getByTestId('admin-back-btn').click();
+            expect(mockNavigate).toHaveBeenCalledWith(routes.HOME);
+        });
+    });
+
+    describe('Feature flag - userRestrictionEnabled', (): void => {
+        it('does not render the user restrictions tile when flag is disabled', (): void => {
+            renderWithConfig(false);
+            expect(screen.queryByTestId('user-restrictions-btn')).not.toBeInTheDocument();
+        });
+
+        it('renders the user restrictions tile when flag is enabled', (): void => {
+            renderWithConfig(true);
+            expect(screen.getByTestId('user-restrictions-btn')).toBeInTheDocument();
+        });
+
+        it('renders the user restrictions tile with correct href when flag is enabled', (): void => {
+            renderWithConfig(true);
+            expect(screen.getByTestId('user-restrictions-btn')).toHaveAttribute(
+                'href',
+                routes.USER_PATIENT_RESTRICTIONS,
+            );
         });
     });
 });

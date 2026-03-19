@@ -97,6 +97,34 @@ describe('HomePage', () => {
         });
     });
 
+    describe('User restrictions bullet point', () => {
+        it('does not render user restrictions bullet point when flag is disabled', () => {
+            mockUseConfig.mockReturnValue(
+                buildConfig(undefined, {
+                    uploadDocumentIteration3Enabled: true,
+                    userRestrictionEnabled: false,
+                }),
+            );
+            render(<HomePage />);
+            expect(
+                screen.queryByText('add and manage restrictions on accessing patient records'),
+            ).not.toBeInTheDocument();
+        });
+
+        it('renders user restrictions bullet point when flag is enabled', () => {
+            mockUseConfig.mockReturnValue(
+                buildConfig(undefined, {
+                    uploadDocumentIteration3Enabled: true,
+                    userRestrictionEnabled: true,
+                }),
+            );
+            render(<HomePage />);
+            expect(
+                screen.getByText('add and manage restrictions on accessing patient records'),
+            ).toBeInTheDocument();
+        });
+    });
+
     describe('Navigation', () => {
         it('navigates to patient search when search patient button is clicked', async () => {
             render(<HomePage />);
