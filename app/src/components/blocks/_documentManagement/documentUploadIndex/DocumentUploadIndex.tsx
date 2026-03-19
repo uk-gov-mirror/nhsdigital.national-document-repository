@@ -161,15 +161,16 @@ const DocumentUploadIndex = ({
                                                 {documentConfig.content.uploadTitle}
                                             </Card.Link>
                                         </Card.Heading>
-                                        <Card.Description>
-                                            {(
-                                                documentConfig.content.uploadDescription as string[]
-                                            ).map((paragraph, index) => (
-                                                <p key={`${documentConfig.snomedCode}-${index}`}>
+                                        {(documentConfig.content.uploadDescription as string[]).map(
+                                            (paragraph, index) => (
+                                                <Card.Description
+                                                    className="my-3"
+                                                    key={`${documentConfig.snomedCode}-description-${index}`}
+                                                >
                                                     {paragraph}
-                                                </p>
-                                            ))}
-                                        </Card.Description>
+                                                </Card.Description>
+                                            ),
+                                        )}
                                         <RightCircleIcon />
                                     </Card.Content>
                                 </Card>
