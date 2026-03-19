@@ -152,6 +152,13 @@ class AuthoriserService:
                 deny_resource = (
                     not patient_access_is_allowed or is_user_gp_clinical or is_user_pcse
                 )
+            case "/UserRestriction":
+                if http_verb == HttpVerb.POST:
+                    deny_resource = not patient_access_is_allowed
+                elif http_verb == HttpVerb.GET:
+                    deny_resource = False
+                else:
+                    deny_resource = True
 
             case path if re.match(
                 r"^/UserRestriction/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-"

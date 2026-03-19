@@ -910,3 +910,19 @@ jobs:
       lambda_handler_path: user_restrictions
     secrets:
       AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+
+  deploy_search_user_restriction_lambda:
+    name: Deploy Search User Restriction Lambda
+    uses: ./.github/workflows/base-lambdas-reusable-deploy.yml
+    with:
+      environment: ${{ inputs.environment }}
+      python_version: ${{ inputs.python_version }}
+      build_branch: ${{ inputs.build_branch }}
+      sandbox: ${{ inputs.sandbox }}
+      lambda_handler_name: search_user_restriction_handler
+      lambda_handler_path: user_restrictions
+      lambda_aws_name: SearchUserRestriction
+      lambda_layer_names: "core_lambda_layer"
+    secrets:
+      AWS_ASSUME_ROLE: ${{ secrets.AWS_ASSUME_ROLE }}
+

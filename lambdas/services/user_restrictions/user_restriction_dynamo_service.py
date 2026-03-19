@@ -25,11 +25,6 @@ logger = LoggingService(__name__)
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 100
 
-SMARTCARD_KEY = "RestrictedSmartcard"
-NHS_NUMBER_KEY = "NhsNumber"
-ODS_CODE_GSI = "CustodianIndex"
-ODS_CODE_KEY = "Custodian"
-
 
 class DynamoClientErrors(StrEnum):
     NOT_FOUND = "ResourceNotFoundException"
@@ -49,6 +44,8 @@ class UserRestrictionDynamoService:
         limit: int = DEFAULT_LIMIT,
         start_key: str | None = None,
     ) -> tuple[list[UserRestriction], str | None]:
+        limit = max(1, min(limit, MAX_LIMIT))
+
         filter_expression, expression_attribute_names, expression_attribute_values = (
             self._build_query_filter(
                 smart_card_id=smart_card_id,
@@ -58,8 +55,8 @@ class UserRestrictionDynamoService:
 
         response = self.dynamo_service.query_table_with_paginator(
             table_name=self.table_name,
-            index_name=ODS_CODE_GSI,
-            key=ODS_CODE_KEY,
+            index_name=UserRestrictionIndexes.CUSTODIAN_INDEX,
+            key=UserRestrictionsFields.CUSTODIAN,
             condition=ods_code,
             filter_expression=filter_expression,
             expression_attribute_names=expression_attribute_names,
@@ -105,12 +102,15 @@ class UserRestrictionDynamoService:
             )
 
         except ClientError as e:
-            logger.error(f"Unexpected DynamoDB error: {e.response['Error']['Code']}")
             if (
                 e.response["Error"]["Code"]
                 == DynamoClientErrors.CONDITION_CHECK_FAILURE
             ):
                 raise UserRestrictionConditionCheckFailedException()
+            logger.error(
+                f"Unexpected DynamoDB error in update_restriction_inactive: "
+                f"{e.response['Error']['Code']} - {e}",
+            )
             raise e
 
     @staticmethod
@@ -120,7 +120,7 @@ class UserRestrictionDynamoService:
     ) -> tuple[str, dict, dict]:
         conditions = [
             {
-                "field": "IsActive",
+                "field": UserRestrictionsFields.IS_ACTIVE,
                 "operator": ConditionOperator.EQUAL.value,
                 "value": True,
             },
@@ -128,7 +128,7 @@ class UserRestrictionDynamoService:
         if smart_card_id:
             conditions.append(
                 {
-                    "field": SMARTCARD_KEY,
+                    "field": UserRestrictionsFields.RESTRICTED_USER,
                     "operator": ConditionOperator.EQUAL.value,
                     "value": smart_card_id,
                 },
@@ -136,7 +136,7 @@ class UserRestrictionDynamoService:
         if nhs_number:
             conditions.append(
                 {
-                    "field": NHS_NUMBER_KEY,
+                    "field": UserRestrictionsFields.NHS_NUMBER,
                     "operator": ConditionOperator.EQUAL.value,
                     "value": nhs_number,
                 },

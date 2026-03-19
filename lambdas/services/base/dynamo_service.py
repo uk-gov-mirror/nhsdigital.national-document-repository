@@ -185,7 +185,7 @@ class DynamoDBService:
         Args:
             table_name: Name of the DynamoDB table
             item: The item to be inserted (as a dictionary)
-            key_name: The name of the key field to check existance for conditional put
+            key_name: The name of the key field to check existence for conditional put
         Returns:
             Response from the DynamoDB put_item operation
         Raises:
@@ -377,7 +377,7 @@ class DynamoDBService:
             transact_items: List of transaction items (Put, Update, Delete, ConditionCheck)
 
         Raises:
-            ClientError: If the transaction fails (e.g., TransactionCanceledException)
+            ClientError: If the transaction fails (e.g. TransactionCanceledException)
         """
         try:
             logger.info(f"Executing transaction with {len(transact_items)} items")

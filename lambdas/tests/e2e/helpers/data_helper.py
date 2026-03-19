@@ -233,6 +233,44 @@ class PdmDataHelper(DataHelper):
         )
 
 
+class UserRestrictionDataHelper:
+    def __init__(self):
+        self.workspace = os.environ.get("AWS_WORKSPACE", "")
+        self.dynamo_service = DynamoDBService()
+        self.dynamo_table = None
+        self.api_endpoint = None
+
+        self._build_env()
+
+    def _build_env(self):
+        if not self.workspace:
+            raise ValueError("AWS_WORKSPACE environment variable is missing or empty.")
+        self.dynamo_table = f"{self.workspace}_UserRestrictions"
+
+        domain = (
+            "national-document-repository.nhs.uk"
+            if self.workspace == "pre-prod"
+            else "access-request-fulfilment.patient-deductions.nhs.uk"
+        )
+        self.api_endpoint = (
+            f"api.{self.workspace}.{domain}"
+            if self.workspace in {"pre-prod", "ndr-test"}
+            else f"api-{self.workspace}.{domain}"
+        )
+
+    def create_restriction(self, restriction: dict) -> None:
+        self.dynamo_service.create_item(self.dynamo_table, restriction)
+
+    def delete_restriction(self, restriction_id: str) -> None:
+        self.dynamo_service.delete_item(
+            table_name=self.dynamo_table,
+            key={"ID": restriction_id},
+        )
+
+    def tidyup(self, record: dict) -> None:
+        self.delete_restriction(record["ID"])
+
+
 class LloydGeorgeDataHelper(DataHelper):
     def __init__(self):
         self.bulk_upload_table_name = "BulkUploadReport"

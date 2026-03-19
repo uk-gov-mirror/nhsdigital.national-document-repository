@@ -12,5 +12,5 @@ class FeatureFlags(StrEnum):
     UPLOAD_DOCUMENT_ITERATION_2_ENABLED = "uploadDocumentIteration2Enabled"
     UPLOAD_DOCUMENT_ITERATION_3_ENABLED = "uploadDocumentIteration3Enabled"
     BULK_UPLOAD_SEND_TO_REVIEW_ENABLED = "bulkUploadSendToReviewEnabled"
-    VERSION_HISTORY_ENABLED = "versionHistoryEnabled"
     USER_RESTRICTION_ENABLED = "userRestrictionEnabled"
+    VERSION_HISTORY_ENABLED = "versionHistoryEnabled"

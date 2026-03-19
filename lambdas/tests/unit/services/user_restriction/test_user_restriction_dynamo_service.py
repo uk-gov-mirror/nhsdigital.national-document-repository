@@ -9,10 +9,6 @@ from models.user_restrictions.user_restrictions import (
     UserRestrictionsFields,
 )
 from services.user_restrictions.user_restriction_dynamo_service import (
-    NHS_NUMBER_KEY,
-    ODS_CODE_GSI,
-    ODS_CODE_KEY,
-    SMARTCARD_KEY,
     UserRestrictionDynamoService,
 )
 from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_NHS_NUMBER, TEST_UUID
@@ -66,9 +62,9 @@ def test_query_restrictions_calls_paginator_with_correct_key_and_index(mock_serv
     call_kwargs = (
         mock_service.dynamo_service.query_table_with_paginator.call_args.kwargs
     )
-    assert call_kwargs["key"] == ODS_CODE_KEY
+    assert call_kwargs["key"] == UserRestrictionsFields.CUSTODIAN
     assert call_kwargs["condition"] == TEST_ODS_CODE
-    assert call_kwargs["index_name"] == ODS_CODE_GSI
+    assert call_kwargs["index_name"] == UserRestrictionIndexes.CUSTODIAN_INDEX
 
 
 def test_query_restrictions_by_ods_code_uses_active_filter(mock_service):
@@ -78,8 +74,10 @@ def test_query_restrictions_by_ods_code_uses_active_filter(mock_service):
         mock_service.dynamo_service.query_table_with_paginator.call_args.kwargs
     )
     assert "IsActive" in call_kwargs["filter_expression"]
-    assert SMARTCARD_KEY not in call_kwargs["filter_expression"]
-    assert NHS_NUMBER_KEY not in call_kwargs["filter_expression"]
+    assert (
+        UserRestrictionsFields.RESTRICTED_USER not in call_kwargs["filter_expression"]
+    )
+    assert UserRestrictionsFields.NHS_NUMBER not in call_kwargs["filter_expression"]
 
 
 def test_query_restrictions_by_smart_card_id_applies_smartcard_filter(mock_service):
@@ -92,7 +90,7 @@ def test_query_restrictions_by_smart_card_id_applies_smartcard_filter(mock_servi
         mock_service.dynamo_service.query_table_with_paginator.call_args.kwargs
     )
     assert "IsActive" in call_kwargs["filter_expression"]
-    assert SMARTCARD_KEY in call_kwargs["filter_expression"]
+    assert UserRestrictionsFields.RESTRICTED_USER in call_kwargs["filter_expression"]
     assert (
         call_kwargs["expression_attribute_values"][":RestrictedSmartcard_condition_val"]
         == TEST_SMART_CARD_ID
@@ -106,7 +104,7 @@ def test_query_restrictions_by_nhs_number_applies_nhs_number_filter(mock_service
         mock_service.dynamo_service.query_table_with_paginator.call_args.kwargs
     )
     assert "IsActive" in call_kwargs["filter_expression"]
-    assert NHS_NUMBER_KEY in call_kwargs["filter_expression"]
+    assert UserRestrictionsFields.NHS_NUMBER in call_kwargs["filter_expression"]
     assert (
         call_kwargs["expression_attribute_values"][":NhsNumber_condition_val"]
         == TEST_NHS_NUMBER

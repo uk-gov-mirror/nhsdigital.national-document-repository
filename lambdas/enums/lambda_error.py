@@ -769,3 +769,23 @@ class LambdaError(Enum):
         "err_code": "RD_IA",
         "message": "Invalid action. Expected 'list' or 'process_one'.",
     }
+
+    """
+       Errors for User Restriction lambdas
+    """
+    UserRestrictionMissingODS = {
+        "err_code": "SUR_4001",
+        "message": "No ODS code provided in request context",
+    }
+    UserRestrictionInvalidQueryString = {
+        "err_code": "SUR_4002",
+        "message": "Invalid query string parameter",
+    }
+    UserRestrictionDB = {
+        "err_code": "SUR_5001",
+        "message": "Failed to query user restrictions from DynamoDB",
+    }
+    UserRestrictionInvalidQueryParameter = {
+        "err_code": "SUR_4003",
+        "message": "Invalid query parameter value: %(details)s",
+    }

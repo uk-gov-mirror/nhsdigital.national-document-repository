@@ -136,3 +136,7 @@ class ReportDistributionException(LambdaException):
 
 class UserRestrictionsException(LambdaException):
     pass
+
+
+class SearchUserRestrictionException(LambdaException):
+    pass

@@ -1,0 +1,29 @@
+{
+  "count": 2,
+  "restrictions": [
+    {
+      "created": 1700000000,
+      "nhsNumber": "9449305943",
+      "patientFamilyName": "schauffer",
+      "patientGivenName": [
+        "goodwin",
+        "harley"
+      ],
+      "restrictedUser": "123456789012",
+      "restrictedUserFirstName": "John",
+      "restrictedUserLastName": "Doe"
+    },
+    {
+      "created": 1700000000,
+      "nhsNumber": "9449305943",
+      "patientFamilyName": "schauffer",
+      "patientGivenName": [
+        "goodwin",
+        "harley"
+      ],
+      "restrictedUser": "123456789012",
+      "restrictedUserFirstName": "John",
+      "restrictedUserLastName": "Doe"
+    }
+  ]
+}

@@ -36,7 +36,7 @@ def extract_ods_code_from_request_context() -> str:
         return ods_code
 
     except AttributeError:
-        raise OdsErrorException()
+        raise OdsErrorException("No ODS code found in request context")
 
 
 def extract_creator_and_ods_code_from_request_context() -> tuple[str, str]:

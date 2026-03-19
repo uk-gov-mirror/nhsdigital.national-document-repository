@@ -29,6 +29,7 @@ class LoggingAppInteraction(Enum):
     SSH_KEY_MANAGEMENT = "SSH Key Management"
     UPDATE_REVIEW = "Update review"
     GET_USER_INFO = "Get user information"
+    SEARCH_USER_RESTRICTION = "Search user restriction"
     ACCESS_AUDIT = "Access audit"
     BULK_UPLOAD = "Bulk upload"
     MANIFEST_JOB = "Manifest job"
