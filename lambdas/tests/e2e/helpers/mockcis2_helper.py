@@ -11,18 +11,17 @@ data_helper = LloydGeorgeDataHelper()
 
 
 class MockCis2Helper:
-    def __init__(self, ods, repository_role):
+    def __init__(self, ods, repository_role, smartcard_id: str = ""):
         self.mock_key = os.environ.get("MOCK_CIS2_KEY") or ""
         self.api_endpoint = data_helper.api_endpoint
         self.ods = ods
         self.repository_role = repository_role
-        pass
+        self.smartcard_id = smartcard_id
 
     def generate_mockcis2_token(self):
         self.get_state()
         self.setup_token_request_uri()
         self.get_auth_token()
-        pass
 
     def get_state(self):
         login_response = requests.get(
@@ -42,7 +41,7 @@ class MockCis2Helper:
             "key": self.mock_key,
             "odsCode": self.ods,
             "repositoryRole": self.repository_role,
-            "smartcardId": "",
+            "smartcardId": self.smartcard_id,
         }
 
         token_request_params_json = json.dumps(token_request_param)

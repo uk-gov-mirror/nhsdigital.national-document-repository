@@ -8,8 +8,6 @@ from syrupy.filters import props
 from tests.e2e.helpers.data_helper import UserRestrictionDataHelper
 from tests.e2e.helpers.mockcis2_helper import MockCis2Helper
 
-data_helper = UserRestrictionDataHelper()
-
 TEST_ODS_CODE = "H81109"
 TEST_NHS_NUMBER = "9449305943"
 TEST_SMARTCARD_ID = "123456789012"
@@ -18,9 +16,18 @@ ANOTHER_SMARTCARD_ID = "323456789033"
 EXCLUDE_IDS = props("id")
 
 
-@pytest.fixture(scope="module")
-def auth_token():
-    login_helper = MockCis2Helper(ods=TEST_ODS_CODE, repository_role="gp_admin")
+@pytest.fixture
+def data_helper():
+    return UserRestrictionDataHelper()
+
+
+@pytest.fixture
+def auth_token(data_helper):
+    login_helper = MockCis2Helper(
+        ods=TEST_ODS_CODE,
+        repository_role="gp_admin",
+        smartcard_id=TEST_SMARTCARD_ID,
+    )
     login_helper.generate_mockcis2_token()
     return login_helper.user_token
 
@@ -50,16 +57,20 @@ def _build_restriction(
 
 
 @pytest.fixture
-def test_restrictions():
+def test_restrictions(data_helper):
     created = []
     yield created
     for record in created:
-        data_helper.tidyup(record)
+        try:
+            data_helper.tidyup(record)
+        except Exception as e:
+            logging.warning(f"Failed to clean up restriction {record.get('ID')}: {e}")
 
 
 def test_search_user_restriction_returns_200_with_restrictions(
     test_restrictions,
     auth_token,
+    data_helper,
     snapshot_json,
 ):
     restriction = _build_restriction()
@@ -79,6 +90,7 @@ def test_search_user_restriction_returns_200_with_restrictions(
 def test_search_user_restriction_filters_by_smartcard_id(
     test_restrictions,
     auth_token,
+    data_helper,
     snapshot_json,
 ):
     target_restriction = _build_restriction(smartcard_id=TEST_SMARTCARD_ID)
@@ -106,6 +118,7 @@ def test_search_user_restriction_filters_by_smartcard_id(
 def test_search_user_restriction_filters_by_nhs_number(
     test_restrictions,
     auth_token,
+    data_helper,
     snapshot_json,
 ):
     target_nhs = "9449305943"
@@ -136,6 +149,7 @@ def test_search_user_restriction_filters_by_nhs_number(
 def test_search_user_restriction_returns_empty_list_when_no_matches(
     test_restrictions,
     auth_token,
+    data_helper,
     snapshot_json,
 ):
     non_existent_smartcard = f"NONEXISTENT_{uuid.uuid4().hex[:8]}"
@@ -157,6 +171,7 @@ def test_search_user_restriction_returns_empty_list_when_no_matches(
 def test_search_user_restriction_does_not_return_inactive_restrictions(
     test_restrictions,
     auth_token,
+    data_helper,
     snapshot_json,
 ):
     inactive_restriction = _build_restriction(is_active=False)
@@ -181,6 +196,7 @@ def test_search_user_restriction_paginates_with_limit_and_next_page_token(
     test_restrictions,
     auth_token,
     snapshot_json,
+    data_helper,
 ):
     restrictions = [_build_restriction() for _ in range(3)]
     for r in restrictions:
@@ -207,7 +223,7 @@ def test_search_user_restriction_paginates_with_limit_and_next_page_token(
         assert next_body == snapshot_json(exclude=EXCLUDE_IDS)
 
 
-def test_search_user_restriction_returns_401_without_auth(snapshot_json):
+def test_search_user_restriction_returns_401_without_auth(data_helper, snapshot_json):
     url = f"https://{data_helper.api_endpoint}/UserRestriction"
     response = requests.get(url)
 

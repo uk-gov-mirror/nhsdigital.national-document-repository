@@ -73,7 +73,7 @@ def test_process_request_calls_query_restrictions_and_enriches(mock_service, moc
 
     mock_query.assert_called_once_with(
         ods_code=TEST_CURRENT_GP_ODS,
-        smartcard_id=None,
+        smart_card_id=None,
         nhs_number=None,
         limit=DEFAULT_LIMIT,
         start_key=None,
@@ -97,7 +97,7 @@ def test_process_request_passes_next_page_token_as_start_key(mock_service, mocke
 
     mock_query.assert_called_once_with(
         ods_code=TEST_CURRENT_GP_ODS,
-        smartcard_id=None,
+        smart_card_id=None,
         nhs_number=None,
         limit=DEFAULT_LIMIT,
         start_key=TEST_NEXT_PAGE_TOKEN,
