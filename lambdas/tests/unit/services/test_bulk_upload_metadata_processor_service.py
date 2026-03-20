@@ -36,6 +36,7 @@ from utils.exceptions import (
     BulkUploadMetadataException,
     InvalidFileNameException,
     LGInvalidFilesException,
+    OdsErrorException,
     VirusScanFailedException,
 )
 
@@ -856,7 +857,7 @@ def test_handle_expedite_event_rejects_non_1of1(test_service, mocker):
     mocker.patch.object(BulkUploadMetadataProcessorService, "check_file_status")
     mocked_send = mocker.patch.object(
         BulkUploadMetadataProcessorService,
-        "send_metadata_to_fifo_sqs",
+        "send_metadata_to_expedite_sqs",
     )
     key = "expedite/A12345/2of3_1234567890_record.pdf"
     event = {"detail": {"object": {"key": key}}}
@@ -1152,12 +1153,16 @@ def test_validate_expedite_file_happy_path_returns_expected_tuple(test_service):
     ],
 )
 def test_validate_expedite_file_rejects_non_1of1(test_service, key):
-    with pytest.raises(BulkUploadMetadataException):
+    with pytest.raises(InvalidFileNameException) as exc:
         test_service.validate_expedite_file(key)
+
+    assert "not being a 1of1" in str(exc.value)
 
 
 def test_handle_expedite_event_calls_enforce_for_expedite_key(mocker, test_service):
-    encoded_key = urllib.parse.quote_plus("expedite/folder/some file.pdf")
+    encoded_key = urllib.parse.quote_plus(
+        "expedite/folder/G12345/1of1_1234567890_some_file.pdf",
+    )
     event = {"detail": {"object": {"key": encoded_key}}}
 
     mocker.patch.object(
@@ -1169,7 +1174,7 @@ def test_handle_expedite_event_calls_enforce_for_expedite_key(mocker, test_servi
 
     test_service.handle_expedite_event(event)
 
-    decoded_key = "expedite/folder/some file.pdf"
+    decoded_key = "expedite/folder/G12345/1of1_1234567890_some_file.pdf"
     mocked_enforce.assert_called_once_with(decoded_key)
     mocked_check_status.assert_called_once_with(decoded_key)
 
@@ -1451,3 +1456,142 @@ def test_apply_fixed_values_returns_valid_metadata_file(mocker, base_metadata_fi
     # Ensure it can be validated again
     validated = MetadataFile.model_validate(result.model_dump(by_alias=True))
     assert validated.section == "AR"
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "expedite/folder/G12345/1of1_file.pdf",
+        "ABC/XPTO/expedite/folder/G12345/1of1_file.pdf",
+    ],
+)
+def test_validate_ods_code_format_in_expedite_folder_accepts_valid_ods_code(
+    test_service,
+    key,
+):
+    test_service.validate_ods_code_format_in_expedite_folder(key)
+
+
+@pytest.mark.parametrize(
+    "key, expected_ods_code",
+    [
+        ("expedite/folder/g12345/1of1_file.pdf", "g12345"),
+        ("expedite/folder/G1234/1of1_file.pdf", "G1234"),
+        ("expedite/folder/G123456/1of1_file.pdf", "G123456"),
+        ("expedite/folder/AB1234/1of1_file.pdf", "AB1234"),
+        ("expedite/folder/123456/1of1_file.pdf", "123456"),
+    ],
+)
+def test_validate_ods_code_format_in_expedite_folder_rejects_invalid_ods_code(
+    test_service,
+    key,
+    expected_ods_code,
+):
+    with pytest.raises(OdsErrorException) as exc:
+        test_service.validate_ods_code_format_in_expedite_folder(key)
+
+    assert expected_ods_code in str(exc.value)
+    assert "Invalid ODS code folder" in str(exc.value)
+
+
+def test_handle_expedite_event_logs_marker_and_raises_for_invalid_ods_folder(
+    test_service,
+    mocker,
+    caplog,
+):
+    key = "expedite/folder/invalid/1of1_1234567890_record.pdf"
+    event = {"detail": {"object": {"key": key}}}
+
+    mocked_enforce = mocker.patch.object(test_service, "enforce_virus_scanner")
+    mocked_check = mocker.patch.object(test_service, "check_file_status")
+    mocked_send = mocker.patch.object(test_service, "send_metadata_to_expedite_sqs")
+
+    with pytest.raises(BulkUploadMetadataException) as exc:
+        test_service.handle_expedite_event(event)
+
+    assert "Expedite upload validation failed" in str(exc.value)
+    assert "Invalid ODS code folder" in str(exc.value)
+    assert any(
+        "EXPEDITE_UPLOAD_VALIDATION_FAILED" in record.message
+        for record in caplog.records
+    )
+    mocked_enforce.assert_not_called()
+    mocked_check.assert_not_called()
+    mocked_send.assert_not_called()
+
+
+def test_handle_expedite_event_logs_marker_and_raises_for_non_1of1_file(
+    test_service,
+    mocker,
+    caplog,
+):
+    key = "expedite/folder/G12345/2of3_1234567890_record.pdf"
+    event = {"detail": {"object": {"key": key}}}
+
+    mocker.patch.object(test_service, "enforce_virus_scanner")
+    mocker.patch.object(test_service, "check_file_status")
+    mocked_send = mocker.patch.object(test_service, "send_metadata_to_expedite_sqs")
+
+    with pytest.raises(BulkUploadMetadataException) as exc:
+        test_service.handle_expedite_event(event)
+
+    assert "Expedite upload validation failed" in str(exc.value)
+    assert "not being a 1of1" in str(exc.value)
+    assert any(
+        "EXPEDITE_UPLOAD_VALIDATION_FAILED" in record.message
+        for record in caplog.records
+    )
+    mocked_send.assert_not_called()
+
+
+def test_handle_expedite_event_logs_marker_and_raises_for_invalid_nhs_number(
+    test_service,
+    mocker,
+    caplog,
+):
+    key = "expedite/folder/G12345/1of1_no_nhs_here.pdf"
+    event = {"detail": {"object": {"key": key}}}
+
+    mocker.patch.object(test_service, "enforce_virus_scanner")
+    mocker.patch.object(test_service, "check_file_status")
+    mocked_send = mocker.patch.object(test_service, "send_metadata_to_expedite_sqs")
+
+    with pytest.raises(BulkUploadMetadataException) as exc:
+        test_service.handle_expedite_event(event)
+
+    assert "Expedite upload validation failed" in str(exc.value)
+    assert "Invalid NHS number" in str(exc.value)
+    assert any(
+        "EXPEDITE_UPLOAD_VALIDATION_FAILED" in record.message
+        for record in caplog.records
+    )
+    mocked_send.assert_not_called()
+
+
+def test_handle_expedite_event_logs_marker_and_raises_for_invalid_filename_validation(
+    test_service,
+    mocker,
+    caplog,
+):
+    key = "expedite/folder/G12345/1of1_1234567890_record.pdf"
+    event = {"detail": {"object": {"key": key}}}
+
+    mocker.patch.object(test_service, "enforce_virus_scanner")
+    mocker.patch.object(test_service, "check_file_status")
+    mocker.patch.object(
+        test_service.metadata_formatter_service,
+        "validate_record_filename",
+        side_effect=InvalidFileNameException("invalid filename"),
+    )
+    mocked_send = mocker.patch.object(test_service, "send_metadata_to_expedite_sqs")
+
+    with pytest.raises(BulkUploadMetadataException) as exc:
+        test_service.handle_expedite_event(event)
+
+    assert "Expedite upload validation failed" in str(exc.value)
+    assert "invalid filename" in str(exc.value)
+    assert any(
+        "EXPEDITE_UPLOAD_VALIDATION_FAILED" in record.message
+        for record in caplog.records
+    )
+    mocked_send.assert_not_called()

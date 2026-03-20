@@ -1,5 +1,6 @@
 import csv
 import os
+import re
 import shutil
 import tempfile
 import urllib.parse
@@ -42,6 +43,7 @@ from utils.exceptions import (
     BulkUploadMetadataException,
     InvalidFileNameException,
     LGInvalidFilesException,
+    OdsErrorException,
     VirusScanFailedException,
 )
 from utils.filename_utils import extract_nhs_number_from_bulk_upload_file_name
@@ -50,6 +52,7 @@ from utils.utilities import get_virus_scan_service
 
 logger = LoggingService(__name__)
 UNSUCCESSFUL = "Unsuccessful bulk upload"
+EXPEDITE_UPLOAD_VALIDATION_FAILED_LOG_MARKER = "EXPEDITE_UPLOAD_VALIDATION_FAILED"
 
 
 class BulkUploadMetadataProcessorService:
@@ -299,7 +302,7 @@ class BulkUploadMetadataProcessorService:
                 "Failed processing expedite event due to file not being a 1of1"
             )
             logger.error(failure_msg)
-            raise BulkUploadMetadataException(failure_msg)
+            raise InvalidFileNameException(failure_msg)
 
         nhs_number = extract_nhs_number_from_bulk_upload_file_name(file_path)[0]
         file_name = self.metadata_formatter_service.validate_record_filename(
@@ -308,6 +311,15 @@ class BulkUploadMetadataProcessorService:
         ods_code = Path(s3_object_key).parent.name
         scan_date = datetime.now().strftime("%Y-%m-%d")
         return nhs_number, file_name, ods_code, scan_date
+
+    def validate_ods_code_format_in_expedite_folder(self, s3_object_key: str) -> None:
+        """Ensure the parent directory of the expedite file is a valid ODS code."""
+        ods_code = Path(s3_object_key).parent.name
+
+        if not re.fullmatch(r"^[A-Z]\d{5}$", ods_code):
+            failure_msg = f"Invalid ODS code folder '{ods_code}' in expedite path: {s3_object_key}"
+            logger.error(failure_msg)
+            raise OdsErrorException(failure_msg)
 
     def handle_expedite_event(self, event):
         """Process S3 EventBridge expedite uploads: enforce virus scan, ensure 1of1, extract identifiers,
@@ -321,14 +333,22 @@ class BulkUploadMetadataProcessorService:
 
             if s3_object_key.startswith("expedite/"):
                 logger.info("Processing file from expedite folder")
+                try:
+                    self.validate_ods_code_format_in_expedite_folder(s3_object_key)
 
-                self.enforce_virus_scanner(s3_object_key)
-                self.check_file_status(s3_object_key)
+                    self.enforce_virus_scanner(s3_object_key)
+                    self.check_file_status(s3_object_key)
 
-                sqs_metadata = self.create_expedite_sqs_metadata(s3_object_key)
+                    sqs_metadata = self.create_expedite_sqs_metadata(s3_object_key)
 
-                self.send_metadata_to_expedite_sqs(sqs_metadata)
-                logger.info("Successfully processed expedite event")
+                    self.send_metadata_to_expedite_sqs(sqs_metadata)
+                    logger.info("Successfully processed expedite event")
+
+                except (InvalidFileNameException, OdsErrorException) as error:
+                    logger.info(EXPEDITE_UPLOAD_VALIDATION_FAILED_LOG_MARKER)
+                    failure_msg = f"Expedite upload validation failed for '{s3_object_key}': {error}"
+                    raise BulkUploadMetadataException(failure_msg)
+
             else:
                 failure_msg = f"Unexpected directory or file location received from EventBridge: {s3_object_key}"
                 logger.error(failure_msg)
