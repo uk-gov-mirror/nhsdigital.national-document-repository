@@ -415,11 +415,14 @@ class BulkUploadMetadataProcessorService:
         """Copy processed metadata CSV into a dated archive folder in S3."""
         logger.info("Copying metadata CSV to dated folder")
         current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        original_path_directory = str(Path(self.file_key).parent)
+        logger.info(f"Original file key is {self.file_key}")
+        destination_key = f"metadata/{original_path_directory}_{current_datetime}.csv"
         self.s3_service.copy_across_bucket(
             self.staging_bucket_name,
             self.file_key,
             self.staging_bucket_name,
-            f"metadata/{current_datetime}.csv",
+            destination_key,
         )
         self.s3_service.delete_object(self.staging_bucket_name, self.file_key)
 
