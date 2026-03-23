@@ -11,11 +11,17 @@ type Props = {
 const PatientGuard = ({ children, navigationPath }: Props): React.JSX.Element => {
     const patient = usePatient();
     const navigate = useNavigate();
+
     useEffect(() => {
         if (!patient) {
             navigate(navigationPath || routes.SEARCH_PATIENT);
         }
     }, [patient, navigate, navigationPath]);
+
+    if (!patient) {
+        return <></>;
+    }
+
     return <>{children}</>;
 };
 

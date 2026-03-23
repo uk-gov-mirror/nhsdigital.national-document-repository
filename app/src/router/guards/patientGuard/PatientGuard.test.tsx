@@ -1,4 +1,4 @@
-import { render, RenderResult, waitFor } from '@testing-library/react';
+import { render, RenderResult, waitFor, screen } from '@testing-library/react';
 import { routes } from '../../../types/generic/routes';
 import PatientGuard from './PatientGuard';
 import { buildPatientDetails } from '../../../helpers/test/testBuilders';
@@ -24,6 +24,10 @@ describe('AuthGuard', () => {
         mockedUsePatient.mockReturnValue(null);
 
         renderGuard();
+
+        expect(screen.queryAllByText(`patient number: ${patientDetails?.nhsNumber}`)).toHaveLength(
+            0,
+        );
 
         await waitFor(async () => {
             expect(mockedUseNavigate).toHaveBeenCalledWith(routes.SEARCH_PATIENT);
