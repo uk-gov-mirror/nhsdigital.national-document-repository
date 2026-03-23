@@ -1,6 +1,5 @@
 import csv
 import os
-import re
 import shutil
 import tempfile
 import urllib.parse
@@ -48,6 +47,7 @@ from utils.exceptions import (
 )
 from utils.filename_utils import extract_nhs_number_from_bulk_upload_file_name
 from utils.lloyd_george_validator import validate_file_name
+from utils.ods_utils import is_valid_ods_code
 from utils.utilities import get_virus_scan_service
 
 logger = LoggingService(__name__)
@@ -316,7 +316,7 @@ class BulkUploadMetadataProcessorService:
         """Ensure the parent directory of the expedite file is a valid ODS code."""
         ods_code = Path(s3_object_key).parent.name
 
-        if not re.fullmatch(r"^[A-Z]\d{5}$", ods_code):
+        if not is_valid_ods_code(ods_code):
             failure_msg = f"Invalid ODS code folder '{ods_code}' in expedite path: {s3_object_key}"
             logger.error(failure_msg)
             raise OdsErrorException(failure_msg)

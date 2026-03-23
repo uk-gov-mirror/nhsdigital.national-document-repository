@@ -661,8 +661,16 @@ def test_handle_invalid_filename_sets_sent_to_review_true_when_review_enabled(
 def test_csv_to_sqs_metadata_sends_failed_files_to_review_queue_when_enabled(
     mocker,
     test_service_with_review_enabled,
+    mock_csv_content,
 ):
-    """Test that failed files are sent to review queue when flag is enabled"""
+    mocker.patch("builtins.open", mocker.mock_open(read_data=mock_csv_content))
+
+    mocker.patch.object(
+        test_service_with_review_enabled.metadata_mapping_validator_service,
+        "validate_and_normalize_metadata",
+        side_effect=lambda records, fixed_values, remappings: (records, [], []),
+    )
+
     mocker.patch.object(
         test_service_with_review_enabled,
         "validate_and_correct_filename",
@@ -671,18 +679,25 @@ def test_csv_to_sqs_metadata_sends_failed_files_to_review_queue_when_enabled(
 
     result = test_service_with_review_enabled.csv_to_sqs_metadata(MOCK_METADATA_CSV)
 
-    # Should have sent to review queue
     assert (
         test_service_with_review_enabled.sqs_repository.send_message_to_review_queue.called
     )
-    assert len(result) == 0  # No valid patients
+    assert len(result) == 0
 
 
 def test_csv_to_sqs_metadata_does_not_send_to_review_when_disabled(
     mocker,
     test_service,
+    mock_csv_content,
 ):
-    """Test that failed files are NOT sent to review queue when flag is disabled"""
+    mocker.patch("builtins.open", mocker.mock_open(read_data=mock_csv_content))
+
+    mocker.patch.object(
+        test_service.metadata_mapping_validator_service,
+        "validate_and_normalize_metadata",
+        side_effect=lambda records, fixed_values, remappings: (records, [], []),
+    )
+
     mocker.patch.object(
         test_service,
         "validate_and_correct_filename",
@@ -691,19 +706,26 @@ def test_csv_to_sqs_metadata_does_not_send_to_review_when_disabled(
 
     result = test_service.csv_to_sqs_metadata(MOCK_METADATA_CSV)
 
-    # Should NOT have sent to review queue
     assert not test_service.sqs_repository.send_message_to_review_queue.called
-    assert len(result) == 0  # No valid patients
+    assert len(result) == 0
 
 
 def test_csv_to_sqs_metadata_does_not_send_to_review_when_no_failures(
     mocker,
     test_service,
+    mock_csv_content,
 ):
-    """Test that review queue is not called when there are no failures"""
+    mocker.patch("builtins.open", mocker.mock_open(read_data=mock_csv_content))
+
     mock_send_to_review = mocker.patch.object(
         test_service.sqs_repository,
         "send_message_to_review_queue",
+    )
+
+    mocker.patch.object(
+        test_service.metadata_mapping_validator_service,
+        "validate_and_normalize_metadata",
+        side_effect=lambda records, fixed_values, remappings: (records, [], []),
     )
 
     mocker.patch(
@@ -713,9 +735,8 @@ def test_csv_to_sqs_metadata_does_not_send_to_review_when_no_failures(
 
     result = test_service.csv_to_sqs_metadata(MOCK_METADATA_CSV)
 
-    # Should not send to review when all files succeed
     assert not mock_send_to_review.called
-    assert len(result) > 0  # Should have valid patients
+    assert len(result) > 0
 
 
 def test_csv_to_sqs_metadata_groups_multiple_failed_files_by_nhs_number(
@@ -1478,8 +1499,6 @@ def test_validate_ods_code_format_in_expedite_folder_accepts_valid_ods_code(
         ("expedite/folder/g12345/1of1_file.pdf", "g12345"),
         ("expedite/folder/G1234/1of1_file.pdf", "G1234"),
         ("expedite/folder/G123456/1of1_file.pdf", "G123456"),
-        ("expedite/folder/AB1234/1of1_file.pdf", "AB1234"),
-        ("expedite/folder/123456/1of1_file.pdf", "123456"),
     ],
 )
 def test_validate_ods_code_format_in_expedite_folder_rejects_invalid_ods_code(

@@ -1,4 +1,5 @@
 import pytest
+
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from tests.unit.conftest import TEST_CURRENT_GP_ODS
 from utils.exceptions import OdsErrorException
@@ -6,6 +7,7 @@ from utils.ods_utils import (
     extract_ods_code_from_request_context,
     extract_ods_role_code_with_r_prefix_from_role_codes_string,
     is_ods_code_active,
+    is_valid_ods_code,
 )
 
 
@@ -59,3 +61,23 @@ def test_get_ods_code_from_request_throws_exception_no_auth(mocker):
 
     with pytest.raises(OdsErrorException):
         extract_ods_code_from_request_context()
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ["G12345", True],
+        ["A00001", True],
+        ["g12345", False],
+        ["GG2345", True],
+        ["G1234", False],
+        ["G123456", False],
+        ["123456", True],
+        ["", False],
+        [None, False],
+    ],
+)
+def test_is_valid_ods_code(value, expected):
+    actual = is_valid_ods_code(value)
+
+    assert actual == expected

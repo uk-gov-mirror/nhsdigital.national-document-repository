@@ -1,3 +1,5 @@
+import re
+
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from utils.exceptions import OdsErrorException
 from utils.request_context import request_context
@@ -10,6 +12,7 @@ Sometimes, a patient will not have a generalPractitioner on PDS. Internally, we 
 patients for reporting purposes. The only values that should be considered 'active' are valid ODS codes.
 """
 PCSE_ODS_CODE = "8JD29"
+ODS_CODE_REGEX = r"^[A-Z\d]{6}$"
 
 
 def is_ods_code_active(gp_ods) -> bool:
@@ -51,3 +54,7 @@ def extract_creator_and_ods_code_from_request_context() -> tuple[str, str]:
 
     except (AttributeError, OdsErrorException):
         raise OdsErrorException()
+
+
+def is_valid_ods_code(value: str) -> bool:
+    return bool(re.fullmatch(ODS_CODE_REGEX, value or ""))
