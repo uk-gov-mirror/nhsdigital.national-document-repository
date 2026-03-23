@@ -50,3 +50,17 @@ export const getFormattedDateTimeFromString = (dateString: string | undefined): 
 
     return getFormattedDateTime(getDateFromString(dateString));
 };
+
+// Example:
+// Input: "2024-01-01T14:30:00Z"
+// Output: "1 January 2024 at 2:30 pm"
+export const getFormatDateWithAtTime = (isoDate: string): string => {
+    const date = new Date(isoDate);
+    const day = date.getDate();
+    const month = date.toLocaleString('en-GB', { month: 'long' });
+    const year = date.getFullYear();
+    const time = date
+        .toLocaleString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true })
+        .toLowerCase();
+    return `${day} ${month} ${year} at ${time}`;
+};

@@ -18,7 +18,12 @@ import {
     DeceasedAccessAuditReasons,
     PatientAccessAudit,
 } from '../../types/generic/accessAudit';
-import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../utils/documentType';
+import {
+    DOCUMENT_TYPE,
+    DOCUMENT_TYPE_CONFIG,
+    DOCUMENT_TYPE_CONFIG_GENERIC,
+    LGContentKeys,
+} from '../utils/documentType';
 import { ReviewsResponse } from '../../types/generic/reviews';
 import { DocumentReference } from '../../types/pages/documentSearchResultsPage/types';
 
@@ -179,7 +184,7 @@ const buildPatientAccessAudit = (): PatientAccessAudit[] => {
 
 const buildDocumentConfig = (
     configOverride?: Partial<DOCUMENT_TYPE_CONFIG>,
-): DOCUMENT_TYPE_CONFIG => {
+): DOCUMENT_TYPE_CONFIG | DOCUMENT_TYPE_CONFIG_GENERIC<LGContentKeys> => {
     return {
         snomedCode: DOCUMENT_TYPE.LLOYD_GEORGE,
         displayName: 'Scanned Paper Notes',

@@ -11,7 +11,11 @@ import { MemoryRouter } from 'react-router-dom';
 import { fileUploadErrorMessages } from '../../../../helpers/utils/fileUploadErrorMessages';
 import { buildDocumentConfig, buildLgFile } from '../../../../helpers/test/testBuilders';
 import { Mock } from 'vitest';
-import { DOCUMENT_TYPE, DOCUMENT_TYPE_CONFIG } from '../../../../helpers/utils/documentType';
+import {
+    AllContentKeys,
+    DOCUMENT_TYPE,
+    DOCUMENT_TYPE_CONFIG_GENERIC,
+} from '../../../../helpers/utils/documentType';
 
 const mockNavigate = vi.fn();
 const mockSetDocuments = vi.fn();
@@ -54,7 +58,7 @@ vi.mock('../documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview', 
     },
 }));
 
-let docConfig: DOCUMENT_TYPE_CONFIG;
+let docConfig: DOCUMENT_TYPE_CONFIG_GENERIC<AllContentKeys>;
 
 describe('DocumentSelectOrderStage', () => {
     let documents: UploadDocument[] = [];

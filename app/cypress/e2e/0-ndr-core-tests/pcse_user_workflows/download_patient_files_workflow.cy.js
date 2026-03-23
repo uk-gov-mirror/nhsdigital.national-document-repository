@@ -11,15 +11,15 @@ describe('PCSE Workflow: Access and download found files', () => {
             fileName: 'Screenshot 2023-09-11 at 16.06.40.png',
             virusScannerResult: 'Not Scanned',
             created: new Date('2023-09-12T10:41:41.747836Z'),
+            documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
         },
         {
             fileName: 'Screenshot 2023-09-08 at 14.53.47.png',
             virusScannerResult: 'Not Scanned',
             created: new Date('2023-09-12T10:41:41.749341Z'),
+            documentSnomedCodeType: DOCUMENT_TYPE.EHR,
         },
     ];
-
-    const homeUrl = '/';
 
     beforeEach(() => {
         cy.login(Roles.PCSE);

@@ -34,6 +34,7 @@ import ProgressBar from '../../components/generic/progressBar/ProgressBar';
 import DeleteSubmitStage from '../../components/blocks/_delete/deleteSubmitStage/DeleteSubmitStage';
 import { Button, WarningCallout } from 'nhsuk-react-components';
 import getReviews from '../../helpers/requests/getReviews';
+import DocumentVersionHistoryPage from '../documentVersionHistoryPage/DocumentVersionHistoryPage';
 
 const DocumentSearchResultsPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
@@ -191,6 +192,12 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                                 onViewDocument={onViewDocument}
                                 hasReviews={hasReviews.current}
                             />
+                        }
+                    />
+                    <Route
+                        path={getLastURLPath(routeChildren.DOCUMENT_VERSION_HISTORY) + '/*'}
+                        element={
+                            <DocumentVersionHistoryPage documentReference={documentReference} />
                         }
                     />
                     <Route

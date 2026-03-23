@@ -13,7 +13,7 @@ type ActionRoute = routeChildren | routes;
 export type LGRecordActionLink = {
     index: number;
     label: string;
-    key: string;
+    key: ACTION_LINK_KEY;
     stage?: LG_RECORD_STAGE;
     href?: ActionRoute;
     onClick?: () => void;
@@ -28,30 +28,89 @@ export enum ACTION_LINK_KEY {
     DELETE = 'delete-files-link',
     REASSIGN = 'reassign-pages-link',
     ADD = 'add-files-link',
+    HISTORY = 'view-document-history-link',
 }
+const RemoveAction: LGRecordActionLink = {
+    index: 1,
+    label: 'Remove this document',
+    key: ACTION_LINK_KEY.DELETE,
+    type: RECORD_ACTION.UPDATE,
+    unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
+    href: routeChildren.LLOYD_GEORGE_DELETE,
+    showIfRecordInStorage: true,
+    description: 'This action will remove all pages of this document from storage in this service.',
+};
 
-export const lloydGeorgeRecordLinks: Array<LGRecordActionLink> = [
-    {
-        index: 1,
-        label: 'Remove this document',
-        key: ACTION_LINK_KEY.DELETE,
+const DownloadAction: LGRecordActionLink = {
+    index: 0,
+    label: 'Download this document',
+    key: ACTION_LINK_KEY.DOWNLOAD,
+    type: RECORD_ACTION.DOWNLOAD,
+    unauthorised: [],
+    href: routeChildren.LLOYD_GEORGE_DOWNLOAD,
+    showIfRecordInStorage: true,
+};
+
+export const AddAction = (label: string, onClick: () => void): LGRecordActionLink => {
+    return {
+        index: 2,
+        label: label,
+        key: ACTION_LINK_KEY.ADD,
         type: RECORD_ACTION.UPDATE,
-        unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
-        href: routeChildren.LLOYD_GEORGE_DELETE,
-        showIfRecordInStorage: true,
-        description:
-            'This action will remove all pages of this document from storage in this service.',
-    },
-    {
-        index: 0,
-        label: 'Download this document',
-        key: ACTION_LINK_KEY.DOWNLOAD,
-        type: RECORD_ACTION.DOWNLOAD,
         unauthorised: [],
-        href: routeChildren.LLOYD_GEORGE_DOWNLOAD,
         showIfRecordInStorage: true,
-    },
-];
+        onClick,
+    };
+};
+
+export const ReassignAction = (label: string, onClick: () => void): LGRecordActionLink => {
+    return {
+        index: 3,
+        label: label,
+        key: ACTION_LINK_KEY.REASSIGN,
+        type: RECORD_ACTION.UPDATE,
+        unauthorised: [],
+        onClick,
+        showIfRecordInStorage: true,
+    };
+};
+
+export const VersionHistoryAction = (
+    label: string,
+    description: string,
+    onClick: () => void,
+): LGRecordActionLink => {
+    return {
+        index: 4,
+        label: label,
+        key: ACTION_LINK_KEY.HISTORY,
+        type: RECORD_ACTION.UPDATE, // This could be a different type if needed
+        unauthorised: [],
+        onClick,
+        showIfRecordInStorage: true,
+        description,
+    };
+};
+
+export const lloydGeorgeRecordLinks: Array<LGRecordActionLink> = [RemoveAction, DownloadAction];
+
+export type getLloydGeorgeRecordLinksProps = {
+    key: ACTION_LINK_KEY;
+    onClick: () => void;
+};
+
+export function getLloydGeorgeRecordLinks(
+    mapper: getLloydGeorgeRecordLinksProps[],
+): Array<LGRecordActionLink> {
+    const lgRecordLinks: Array<LGRecordActionLink> = lloydGeorgeRecordLinks.map((link) => {
+        const mappedLink = mapper.find((m) => m.key === link.key);
+        if (mappedLink) {
+            return { ...link, onClick: mappedLink.onClick };
+        }
+        return link;
+    });
+    return lgRecordLinks;
+}
 
 type Args = {
     role: REPOSITORY_ROLE | null;

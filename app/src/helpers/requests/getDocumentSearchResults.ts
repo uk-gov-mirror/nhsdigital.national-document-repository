@@ -47,7 +47,7 @@ const getDocumentSearchResults = async ({
                     author: 'Y12345',
                     id: 'mock-document-id-1',
                     fileSize: 1024,
-                    version: '1.0',
+                    version: '1',
                     documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
                     contentType: 'application/pdf',
                 },

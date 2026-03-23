@@ -1,0 +1,161 @@
+{
+    "resourceType": "Bundle",
+    "type": "history",
+    "timestamp": "2026-02-26T10:29:57Z",
+    "total": 3,
+    "entry": [
+        {
+            "resource": {
+                "id": "16521000000101~311bc253-1bb5-4d0c-ab21-0900133cfb14",
+                "resourceType": "DocumentReference",
+                "docStatus": "final",
+                "status": "current",
+                "type": {
+                    "coding": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "code": "16521000000101",
+                            "display": "Lloyd George record folder"
+                        }
+                    ]
+                },
+                "subject": {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/nhs-number",
+                        "value": "9730153817"
+                    }
+                },
+                "date": "2026-02-26T04:55:14.582406Z",
+                "author": [
+                    {
+                        "identifier": {
+                            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                            "value": "H81109"
+                        }
+                    }
+                ],
+                "custodian": {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "H81109"
+                    }
+                },
+                "content": [
+                    {
+                        "attachment": {
+                            "contentType": "application/pdf",
+                            "language": "en-GB",
+                            "title": "1of1_Lloyd_George_Record_[Haley Glenda RUDKIN]_[9730153817]_[07-08-2023].pdf",
+                            "creation": "2026-02-26"
+                        }
+                    }
+                ],
+                "meta": {
+                    "versionId": "3"
+                }
+            }
+        },
+        {
+            "resource": {
+                "id": "16521000000101~f9818e29-0421-4d14-91f5-eca2889f16f4",
+                "resourceType": "DocumentReference",
+                "docStatus": "deprecated",
+                "status": "current",
+                "type": {
+                    "coding": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "code": "16521000000101",
+                            "display": "Lloyd George record folder"
+                        }
+                    ]
+                },
+                "subject": {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/nhs-number",
+                        "value": "9730153817"
+                    }
+                },
+                "date": "2026-02-26T02:53:55.481331Z",
+                "author": [
+                    {
+                        "identifier": {
+                            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                            "value": "H81109"
+                        }
+                    }
+                ],
+                "custodian": {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "H81109"
+                    }
+                },
+                "content": [
+                    {
+                        "attachment": {
+                            "contentType": "application/pdf",
+                            "language": "en-GB",
+                            "title": "1of1_Lloyd_George_Record_[Haley Glenda RUDKIN]_[9730153817]_[07-08-2023].pdf",
+                            "creation": "2026-02-26"
+                        }
+                    }
+                ],
+                "meta": {
+                    "versionId": "1"
+                }
+            }
+        },
+        {
+            "resource": {
+                "id": "16521000000101~c8df691c-322b-4e7d-9dc0-bc1337ed535e",
+                "resourceType": "DocumentReference",
+                "docStatus": "deprecated",
+                "status": "current",
+                "type": {
+                    "coding": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "code": "16521000000101",
+                            "display": "Lloyd George record folder"
+                        }
+                    ]
+                },
+                "subject": {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/nhs-number",
+                        "value": "9730153817"
+                    }
+                },
+                "date": "2026-02-26T02:54:27.620982Z",
+                "author": [
+                    {
+                        "identifier": {
+                            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                            "value": "H81109"
+                        }
+                    }
+                ],
+                "custodian": {
+                    "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "H81109"
+                    }
+                },
+                "content": [
+                    {
+                        "attachment": {
+                            "contentType": "application/pdf",
+                            "language": "en-GB",
+                            "title": "1of1_Lloyd_George_Record_[Haley Glenda RUDKIN]_[9730153817]_[07-08-2023].pdf",
+                            "creation": "2026-02-26"
+                        }
+                    }
+                ],
+                "meta": {
+                    "versionId": "2"
+                }
+            }
+        }
+    ]
+}

@@ -1,7 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import RecordMenuCard from './RecordMenuCard';
 import useRole from '../../../helpers/hooks/useRole';
-import { LGRecordActionLink, RECORD_ACTION } from '../../../types/blocks/lloydGeorgeActions';
+import {
+    ACTION_LINK_KEY,
+    LGRecordActionLink,
+    RECORD_ACTION,
+} from '../../../types/blocks/lloydGeorgeActions';
 import { REPOSITORY_ROLE } from '../../../types/generic/authRole';
 import { LinkProps } from 'react-router-dom';
 import { LG_RECORD_STAGE } from '../../../types/blocks/lloydGeorgeStages';
@@ -17,7 +21,7 @@ const mockLinks: Array<LGRecordActionLink> = [
     {
         index: 1,
         label: 'Remove files',
-        key: 'delete-all-files-link',
+        key: ACTION_LINK_KEY.DELETE,
         type: RECORD_ACTION.UPDATE,
         stage: LG_RECORD_STAGE.DELETE_ALL,
         unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
@@ -26,7 +30,7 @@ const mockLinks: Array<LGRecordActionLink> = [
     {
         index: 0,
         label: 'Download files',
-        key: 'download-all-files-link',
+        key: ACTION_LINK_KEY.DOWNLOAD,
         type: RECORD_ACTION.DOWNLOAD,
         stage: LG_RECORD_STAGE.DOWNLOAD_ALL,
         unauthorised: [],

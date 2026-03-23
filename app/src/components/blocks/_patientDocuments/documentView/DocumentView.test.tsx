@@ -3,7 +3,11 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import DocumentView from './DocumentView';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import useTitle from '../../../../helpers/hooks/useTitle';
-import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
+import {
+    DOCUMENT_TYPE,
+    GetConfigForDocTypeGenericType,
+    getConfigForDocTypeGeneric,
+} from '../../../../helpers/utils/documentType';
 import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import { buildDocumentConfig, buildPatientDetails } from '../../../../helpers/test/testBuilders';
@@ -22,11 +26,16 @@ vi.mock('../../../../helpers/hooks/usePatient');
 vi.mock('../../../../helpers/hooks/useConfig');
 vi.mock('../../../../helpers/hooks/useTitle');
 vi.mock('../../../../helpers/hooks/useRole');
+var realGetConfigForDocTypeGeneric: GetConfigForDocTypeGenericType;
+
 vi.mock('../../../../helpers/utils/documentType', async () => {
-    const actual = await vi.importActual('../../../../helpers/utils/documentType');
+    const actual = await vi.importActual<typeof import('../../../../helpers/utils/documentType')>(
+        '../../../../helpers/utils/documentType',
+    );
+    realGetConfigForDocTypeGeneric = actual.getConfigForDocTypeGeneric;
     return {
         ...actual,
-        getConfigForDocType: vi.fn(),
+        getConfigForDocTypeGeneric: vi.fn(actual.getConfigForDocTypeGeneric),
     };
 });
 vi.mock('../../../../providers/analyticsProvider/AnalyticsProvider', () => ({
@@ -129,10 +138,12 @@ describe('DocumentView', () => {
         mockUseConfig.mockReturnValue({
             featureFlags: {
                 documentCorrectEnabled: false,
+                versionHistoryEnabled: false,
             },
         });
         mockUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
-        vi.mocked(getConfigForDocType).mockReturnValue(buildDocumentConfig());
+
+        vi.mocked(getConfigForDocTypeGeneric).mockImplementation(realGetConfigForDocTypeGeneric);
 
         // Mock fullscreen API
         Object.defineProperty(document, 'fullscreenEnabled', {
@@ -349,8 +360,12 @@ describe('DocumentView', () => {
         ])(
             'displays add button when %s',
             async ({ canBeUpdated, role, deceased, fullscreen, addBtnVisible }) => {
-                vi.mocked(getConfigForDocType).mockReturnValue(
-                    buildDocumentConfig({ canBeUpdated }),
+                vi.mocked(getConfigForDocTypeGeneric).mockImplementation(
+                    (docType) =>
+                        ({
+                            ...realGetConfigForDocTypeGeneric(docType),
+                            canBeUpdated,
+                        }) as any,
                 );
 
                 mockUseRole.mockReturnValue(role);
@@ -397,8 +412,12 @@ describe('DocumentView', () => {
         });
 
         it('does not show reassign button when document type does not support it', () => {
-            vi.mocked(getConfigForDocType).mockReturnValue(
-                buildDocumentConfig({ canBeUpdated: false }),
+            vi.mocked(getConfigForDocTypeGeneric).mockImplementation(
+                (docType) =>
+                    ({
+                        ...realGetConfigForDocTypeGeneric(docType),
+                        canBeUpdated: false,
+                    }) as any,
             );
 
             renderComponent();
@@ -445,6 +464,32 @@ describe('DocumentView', () => {
                     }),
                 }),
             );
+        });
+
+        it('navigates to version history page when version history action is triggered', async () => {
+            mockUseConfig.mockReturnValue({
+                featureFlags: {
+                    versionHistoryEnabled: true,
+                },
+            });
+
+            renderComponent();
+
+            const versionHistoryLink = screen.getByTestId(ACTION_LINK_KEY.HISTORY);
+            await userEvent.click(versionHistoryLink);
+
+            await waitFor(() => {
+                expect(mockUseNavigate).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        pathname: routeChildren.DOCUMENT_VERSION_HISTORY,
+                    }),
+                    expect.objectContaining({
+                        state: expect.objectContaining({
+                            documentReference: mockDocumentReference,
+                        }),
+                    }),
+                );
+            });
         });
     });
 

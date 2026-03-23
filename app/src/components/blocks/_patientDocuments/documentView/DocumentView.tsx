@@ -1,15 +1,21 @@
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
-import { DOCUMENT_TYPE, getConfigForDocType } from '../../../../helpers/utils/documentType';
+import {
+    DOCUMENT_TYPE,
+    getConfigForDocTypeGeneric,
+    LGContentKeys,
+} from '../../../../helpers/utils/documentType';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
 import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
 import {
     ACTION_LINK_KEY,
+    AddAction,
+    getLloydGeorgeRecordLinks,
     getRecordActionLinksAllowedForRole,
     LGRecordActionLink,
-    lloydGeorgeRecordLinks,
-    RECORD_ACTION,
+    ReassignAction,
+    VersionHistoryAction,
 } from '../../../../types/blocks/lloydGeorgeActions';
 import { createSearchParams, NavigateOptions, To, useNavigate } from 'react-router-dom';
 import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
@@ -39,7 +45,7 @@ const DocumentView = ({
     const showMenu = role === REPOSITORY_ROLE.GP_ADMIN && !session.isFullscreen;
     const patientDetails = usePatient();
     const config = useConfig();
-    const documentConfig = getConfigForDocType(
+    const documentConfig = getConfigForDocTypeGeneric(
         documentReference?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
     );
 
@@ -126,35 +132,44 @@ const DocumentView = ({
             !patientDetails?.deceased &&
             (role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL);
 
-        const inputLinks = lloydGeorgeRecordLinks.map((link) => {
-            return {
-                ...link,
-                href: undefined,
-                onClick: link.type === RECORD_ACTION.DOWNLOAD ? downloadClicked : removeClicked,
-            } as LGRecordActionLink;
-        });
+        const inputLinks = getLloydGeorgeRecordLinks([
+            {
+                key: ACTION_LINK_KEY.DOWNLOAD,
+                onClick: downloadClicked,
+            },
+            {
+                key: ACTION_LINK_KEY.DELETE,
+                onClick: removeClicked,
+            },
+        ]);
 
         if (canAddFiles) {
-            inputLinks.push({
-                index: 2,
-                label: documentConfig.content.addFilesLinkLabel as string,
-                key: ACTION_LINK_KEY.ADD,
-                type: RECORD_ACTION.UPDATE,
-                unauthorised: [],
-                onClick: handleAddFilesClick,
-                showIfRecordInStorage: true,
-            });
+            inputLinks.push(
+                AddAction(
+                    documentConfig.content.getValue<string>('addFilesLinkLabel')!,
+                    handleAddFilesClick,
+                ),
+            );
 
             if (config.featureFlags.documentCorrectEnabled) {
-                inputLinks.push({
-                    index: 3,
-                    label: documentConfig.content.reassignPagesLinkLabel as string,
-                    key: ACTION_LINK_KEY.REASSIGN,
-                    type: RECORD_ACTION.UPDATE,
-                    unauthorised: [],
-                    onClick: handleReassignPagesClick,
-                    showIfRecordInStorage: true,
-                });
+                const label = documentConfig.content.getValue<string>('reassignPagesLinkLabel')!;
+                inputLinks.push(ReassignAction(label, handleReassignPagesClick));
+            }
+
+            if (config.featureFlags.versionHistoryEnabled) {
+                const versionHistoryLabel = documentConfig.content.getValue<string, LGContentKeys>(
+                    'versionHistoryLinkLabel',
+                )!;
+                const vhDescription = documentConfig.content.getValue<string, LGContentKeys>(
+                    'versionHistoryLinkDescription',
+                )!;
+                inputLinks.push(
+                    VersionHistoryAction(
+                        versionHistoryLabel,
+                        vhDescription,
+                        handleVersionHistoryClick,
+                    ),
+                );
             }
         }
 
@@ -213,6 +228,22 @@ const DocumentView = ({
         navigate(to, options);
     };
 
+    const handleVersionHistoryClick = (): void => {
+        const to: To = {
+            pathname: routeChildren.DOCUMENT_VERSION_HISTORY,
+        };
+
+        const options: NavigateOptions = {
+            state: {
+                documentReference,
+            },
+        };
+
+        setTimeout(() => {
+            navigate(to, options);
+        }, 0);
+    };
+
     const handleReassignPagesClick = (): void => {
         const to: To = {
             pathname: routeChildren.DOCUMENT_REASSIGN_SELECT_PAGES,
@@ -228,10 +259,13 @@ const DocumentView = ({
         }, 0);
     };
 
-    const getRecordCard = (): React.JSX.Element => {
+    const GetRecordCard = (): React.JSX.Element => {
+        const heading = documentConfig.content.getValueFormatString<string>('viewDocumentTitle', {
+            version: documentReference.version,
+        })!;
         const card = (
             <RecordCard
-                heading={documentConfig.content.viewDocumentTitle as string}
+                heading={heading}
                 fullScreenHandler={enableFullscreen}
                 detailsElement={details()}
                 isFullScreen={session.isFullscreen!}
@@ -336,7 +370,7 @@ const DocumentView = ({
                     {session.isFullscreen && showMenu && recordCardLinks()}
                 </div>
 
-                {documentReference.url ? getRecordCard() : <Spinner status="Loading document" />}
+                {documentReference.url ? <GetRecordCard /> : <Spinner status="Loading document" />}
             </div>
         </div>
     );

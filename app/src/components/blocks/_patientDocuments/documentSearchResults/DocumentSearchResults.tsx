@@ -3,7 +3,11 @@ import { SearchResult } from '../../../../types/generic/searchResult';
 import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
 import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
-import { DOCUMENT_TYPE_CONFIG, getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
+import {
+    DOCUMENT_TYPE_CONFIG,
+    getConfigForDocTypeGeneric,
+    getDocumentTypeLabel,
+} from '../../../../helpers/utils/documentType';
 import LinkButton from '../../../generic/linkButton/LinkButton';
 
 type Props = {
@@ -22,6 +26,19 @@ const DocumentSearchResults = ({
     const canViewFiles =
         session.auth!.role === REPOSITORY_ROLE.GP_ADMIN ||
         session.auth!.role === REPOSITORY_ROLE.GP_CLINICAL;
+
+    const documentTypeLabel = (doc: SearchResult): string => {
+        let docconfig = getConfigForDocTypeGeneric(doc.documentSnomedCodeType);
+
+        const heading = docconfig.content.getValueFormatString<string>(
+            'searchResultDocumentTypeLabel',
+            {
+                version: doc.version,
+            },
+        );
+
+        return heading ?? getDocumentTypeLabel(doc.documentSnomedCodeType) ?? 'Documents';
+    };
 
     return (
         <div className="document-search-results">
@@ -54,7 +71,7 @@ const DocumentSearchResults = ({
                                     id={`available-files-row-${index}-document-type`}
                                     data-testid="doctype"
                                 >
-                                    {getDocumentTypeLabel(result.documentSnomedCodeType) ?? 'Other'}
+                                    {documentTypeLabel(result)}
                                 </Table.Cell>
                                 <Table.Cell
                                     id={`available-files-row-${index}-filename`}

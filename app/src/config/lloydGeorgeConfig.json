@@ -16,7 +16,7 @@
         "PDF"
     ],
     "content": {
-        "viewDocumentTitle": "Scanned paper notes",
+        "viewDocumentTitle": "Scanned paper notes: Version {version}",
         "addFilesSelectTitle": "Add files to these scanned paper notes",
         "uploadFilesSelectTitle": "Choose scanned paper notes to upload",
         "uploadFilesBulletPoints": [
@@ -43,6 +43,9 @@
         "choosePagesToRemoveWarning": "These notes may contain pages for more than one other patient that you want to remove. Only remove pages for one patient at a time.",
         "addFilesLinkLabel": "Add files to this patient's notes",
         "reassignPagesLinkLabel": "Reassign pages in these notes to another patient",
-        "chosenToRemovePagesSubtitle": "You have chosen to remove these pages from the scanned paper notes:"
+        "chosenToRemovePagesSubtitle": "You have chosen to remove these pages from the scanned paper notes:",
+        "versionHistoryLinkLabel": "View version history for these notes",
+        "versionHistoryLinkDescription": "View or restore other versions if, for example, there's a mistake in these notes.",
+        "searchResultDocumentTypeLabel": "Scanned paper notes V{version}"
     }
 }

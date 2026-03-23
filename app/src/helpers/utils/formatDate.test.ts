@@ -5,6 +5,7 @@ import {
     formatDateWithDashes,
     getFormattedDateFromString,
     getFormattedDateTimeFromString,
+    getFormatDateWithAtTime,
 } from './formatDate';
 
 describe('formatDate.ts', () => {
@@ -66,6 +67,24 @@ describe('formatDate.ts', () => {
             const result = getFormattedDateTimeFromString(ts);
             expect(result).toContain('21 July 2024');
             expect(/\d{1,2}:[0-5][0-9]/.test(result)).toBe(true);
+        });
+    });
+
+    describe('getFormatDateWithAtTime', () => {
+        it('formats a midday ISO date as "D Month YYYY at H:MM am/pm"', () => {
+            const result = getFormatDateWithAtTime('2024-01-01T14:30:00Z');
+            expect(result).toMatch(/^1 January 2024 at \d{1,2}:\d{2} (am|pm)$/);
+        });
+
+        it('includes the correct day, month and year', () => {
+            const result = getFormatDateWithAtTime('2025-12-15T10:30:00Z');
+            expect(result).toContain('15 December 2025');
+        });
+
+        it('formats the time in 12-hour lower-case notation', () => {
+            const result = getFormatDateWithAtTime('2024-06-20T00:00:00Z');
+            expect(result).toMatch(/(am|pm)$/);
+            expect(result).not.toMatch(/(AM|PM)/);
         });
     });
 

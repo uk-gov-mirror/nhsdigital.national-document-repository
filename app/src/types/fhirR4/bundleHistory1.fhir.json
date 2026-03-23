@@ -1,0 +1,125 @@
+{
+  "resourceType": "Bundle",
+  "type": "history",
+  "timestamp": "2026-02-17T00:00:00Z",
+  "total": 2,
+  "entry": [
+    {
+      "fullUrl": "https://example.org/fhir/DocumentReference/LG-12345/_history/1",
+      "resource": {
+        "resourceType": "DocumentReference",
+        "id": "LG-12345",
+        "meta": {
+          "versionId": "1"
+        },
+        "subject": {
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/nhs-number",
+            "value": "9999999999"
+          }
+        },
+        "date": "2024-01-10T09:15:00Z",
+        "author": [
+          {
+            "identifier": {
+              "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+              "value": "A12345"
+            }
+          }
+        ],
+        "custodian": {
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "A12345"
+          }
+        },
+        "content": [
+          {
+            "attachment": {
+              "url": "https://example.org/fhir/Binary/abcd",
+              "contentType": "application/pdf",
+              "title": "Lloyd George Record",
+              "creation": "2024-01-10T09:15:00Z",
+              "size": 120456
+            },
+            "format": {
+              "system": "https://fhir.nhs.uk/England/CodeSystem/England-NRLFormatCode"
+            },
+            "extension": [
+              {
+                "url": "https://fhir.nhs.uk/England/StructureDefinition/Extension-England-DocumentReferenceContentStability",
+                "valueCodeableConcept": {
+                  "coding": [
+                    {
+                      "system": "https://fhir.nhs.uk/England/CodeSystem/England-DocumentReferenceContentStability",
+                      "code": "static"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "https://example.org/fhir/DocumentReference/LG-12345/_history/2",
+      "resource": {
+        "resourceType": "DocumentReference",
+        "id": "LG-12345",
+        "meta": {
+          "versionId": "2"
+        },
+        "subject": {
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/nhs-number",
+            "value": "9999999999"
+          }
+        },
+        "date": "2024-02-12T14:05:00Z",
+        "author": [
+          {
+            "identifier": {
+              "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+              "value": "A12345"
+            }
+          }
+        ],
+        "custodian": {
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "A12345"
+          }
+        },
+        "content": [
+          {
+            "attachment": {
+              "url": "https://example.org/fhir/Binary/abcd",
+              "contentType": "application/pdf",
+              "title": "Lloyd George Record",
+              "creation": "2024-01-10T09:15:00Z",
+              "size": 120456
+            },
+            "format": {
+              "system": "https://fhir.nhs.uk/England/CodeSystem/England-NRLFormatCode"
+            },
+            "extension": [
+              {
+                "url": "https://fhir.nhs.uk/England/StructureDefinition/Extension-England-DocumentReferenceContentStability",
+                "valueCodeableConcept": {
+                  "coding": [
+                    {
+                      "system": "https://fhir.nhs.uk/England/CodeSystem/England-DocumentReferenceContentStability",
+                      "code": "static"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+

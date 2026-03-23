@@ -439,7 +439,6 @@ describe('<DocumentSearchResultsPage />', () => {
                 <ReactRouter.Router navigator={history} location={history.location}>
                     <DocumentSearchResultsPage />
                 </ReactRouter.Router>
-                ,
             </SessionProvider>,
         );
     };
