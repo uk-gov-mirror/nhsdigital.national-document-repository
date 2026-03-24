@@ -23,7 +23,9 @@ export type LGContentKeys =
     | ContentKeys
     | 'versionHistoryLinkLabel'
     | 'versionHistoryLinkDescription'
-    | 'searchResultDocumentTypeLabel';
+    | 'searchResultDocumentTypeLabel'
+    | 'versionHistoryHeader'
+    | 'versionHistoryTimelineHeader';
 /** Content keys available to Electronic Health Record documents. */
 export type EhrContentKeys = ContentKeys;
 /** Content keys available to EHR Attachments documents. */

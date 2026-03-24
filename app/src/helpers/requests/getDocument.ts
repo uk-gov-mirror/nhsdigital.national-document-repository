@@ -8,6 +8,7 @@ export type GetDocumentArgs = {
     baseUrl: string;
     baseHeaders: AuthHeaders;
     documentId: string;
+    version?: string;
 };
 
 export type GetDocumentResponse = {
@@ -20,6 +21,7 @@ const getDocument = async ({
     baseUrl,
     baseHeaders,
     documentId,
+    version,
 }: GetDocumentArgs): Promise<GetDocumentResponse> => {
     if (isLocal) {
         return {
@@ -28,7 +30,9 @@ const getDocument = async ({
         };
     }
 
-    const gatewayUrl = baseUrl + endpoints.DOCUMENT_REFERENCE + `/${documentId}`;
+    const gatewayUrl = version
+        ? `${baseUrl}${endpoints.DOCUMENT_REFERENCE}/${documentId}/_history/${version}`
+        : `${baseUrl}${endpoints.DOCUMENT_REFERENCE}/${documentId}`;
 
     try {
         const { data } = await axios.get<GetDocumentResponse>(gatewayUrl, {

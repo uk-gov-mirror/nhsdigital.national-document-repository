@@ -46,6 +46,26 @@ describe('getDocument', () => {
         expect(result).toEqual(mockResponse);
     });
 
+    it('should use the version history route when version is provided', async () => {
+        mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
+
+        const result = await getDocument({
+            ...mockArgs,
+            version: '7',
+        });
+
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+            `${mockArgs.baseUrl}${endpoints.DOCUMENT_REFERENCE}/${mockArgs.documentId}/_history/7`,
+            {
+                headers: mockArgs.baseHeaders,
+                params: {
+                    patientId: mockArgs.nhsNumber,
+                },
+            },
+        );
+        expect(result).toEqual(mockResponse);
+    });
+
     it('should throw AxiosError when request fails', async () => {
         const mockError = new Error('Network Error');
         mockedAxios.get.mockRejectedValueOnce(mockError);

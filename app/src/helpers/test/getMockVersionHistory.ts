@@ -53,7 +53,7 @@ export const mockDocumentVersionHistoryResponse: Bundle<FhirDocumentReference> =
                     {
                         attachment: {
                             contentType: 'application/pdf',
-                            url: 'https://documents.example.com/2a7a270e-aa1d-532e-8648-d5d8e3defb82',
+                            url: '/dev/testFile1.pdf',
                             size: 3072,
                             title: 'document_v3.pdf',
                             creation: '2025-12-15T10:30:00Z',
@@ -108,7 +108,7 @@ export const mockDocumentVersionHistoryResponse: Bundle<FhirDocumentReference> =
                     {
                         attachment: {
                             contentType: 'application/pdf',
-                            url: 'https://documents.example.com/c889dbbf-2e3a-5860-ab90-9421b5e29b86',
+                            url: '/dev/testFile.pdf',
                             size: 2048,
                             title: 'document_v2.pdf',
                             creation: '2025-11-10T14:00:00Z',
@@ -163,7 +163,7 @@ export const mockDocumentVersionHistoryResponse: Bundle<FhirDocumentReference> =
                     {
                         attachment: {
                             contentType: 'application/pdf',
-                            url: 'https://documents.example.com/232865e2-c1b5-58c5-bc1c-9d355907b649',
+                            url: '/dev/testFile3.pdf',
                             size: 1024,
                             title: 'document_v1.pdf',
                             creation: '2025-10-01T09:00:00Z',

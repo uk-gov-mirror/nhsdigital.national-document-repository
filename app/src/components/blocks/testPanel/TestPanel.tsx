@@ -2,8 +2,8 @@ import 'react-toggle/style.css';
 import { isLocal } from '../../../helpers/utils/isLocal';
 import { LocalFlags, useConfigContext } from '../../../providers/configProvider/ConfigProvider';
 import { REPOSITORY_ROLE } from '../../../types/generic/authRole';
-import { FeatureFlags } from '../../../types/generic/featureFlags';
 import TestToggle, { ToggleProps } from './TestToggle';
+import { FeatureFlags } from '../../../types/generic/featureFlags';
 
 const TestPanel = (): React.JSX.Element => {
     const [config, setConfig] = useConfigContext();

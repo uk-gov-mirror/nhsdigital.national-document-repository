@@ -26,7 +26,9 @@ import useConfig from '../../helpers/hooks/useConfig';
 import { buildSearchResult } from '../../helpers/test/testBuilders';
 import { useSessionContext } from '../../providers/sessionProvider/SessionProvider';
 import { REPOSITORY_ROLE } from '../../types/generic/authRole';
-import DocumentView from '../../components/blocks/_patientDocuments/documentView/DocumentView';
+import DocumentView, {
+    DOCUMENT_VIEW_STATE,
+} from '../../components/blocks/_patientDocuments/documentView/DocumentView';
 import getDocument, { GetDocumentResponse } from '../../helpers/requests/getDocument';
 import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
 import BackButton from '../../components/generic/backButton/BackButton';
@@ -34,7 +36,6 @@ import ProgressBar from '../../components/generic/progressBar/ProgressBar';
 import DeleteSubmitStage from '../../components/blocks/_delete/deleteSubmitStage/DeleteSubmitStage';
 import { Button, WarningCallout } from 'nhsuk-react-components';
 import getReviews from '../../helpers/requests/getReviews';
-import DocumentVersionHistoryPage from '../documentVersionHistoryPage/DocumentVersionHistoryPage';
 
 const DocumentSearchResultsPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
@@ -195,15 +196,10 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                         }
                     />
                     <Route
-                        path={getLastURLPath(routeChildren.DOCUMENT_VERSION_HISTORY) + '/*'}
-                        element={
-                            <DocumentVersionHistoryPage documentReference={documentReference} />
-                        }
-                    />
-                    <Route
                         path={getLastURLPath(routeChildren.DOCUMENT_VIEW) + '/*'}
                         element={
                             <DocumentView
+                                viewState={DOCUMENT_VIEW_STATE.DOCUMENT}
                                 documentReference={documentReference}
                                 removeDocument={removeDocument}
                             />

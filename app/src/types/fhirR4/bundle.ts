@@ -131,12 +131,6 @@ export interface BundleEntry<T extends Resource> {
     fullUrl?: string;
     /** A resource in the bundle */
     resource: T;
-    /** Search related information */
-    search?: BundleEntrySearch;
-    /** Additional execution information (transaction/batch/history) */
-    request?: BundleEntryRequest;
-    /** Results of execution (transaction/batch/history) */
-    response?: BundleEntryResponse;
 }
 
 // ─── Bundle Resource ─────────────────────────────────────────────────────────

@@ -30,6 +30,9 @@ export enum routes {
     DOCUMENT_REASSIGN_PAGES = '/patient/document-reassign-pages',
     DOCUMENT_REASSIGN_PAGES_WILDCARD = '/patient/document-reassign-pages/*',
 
+    DOCUMENT_VERSION_HISTORY = '/patient/documents/version-history',
+    DOCUMENT_VERSION_HISTORY_WILDCARD = '/patient/documents/version-history/*',
+
     MOCK_LOGIN = 'Auth/MockLogin',
 
     ADMIN_ROUTE = '/admin',
@@ -75,7 +78,7 @@ export enum routeChildren {
     DOCUMENT_REASSIGN_UPLOADING = '/patient/document-reassign-pages/uploading',
     DOCUMENT_REASSIGN_COMPLETE = '/patient/document-reassign-pages/complete',
 
-    DOCUMENT_VIEW_VERSION_HISTORY = '/patient/documents/version-history-view',
+    DOCUMENT_VIEW_VERSION_HISTORY = '/patient/documents/version-history/view',
     DOCUMENT_VERSION_HISTORY = '/patient/documents/version-history',
 
     DOCUMENT_VIEW = '/patient/documents/view',
