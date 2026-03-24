@@ -70,6 +70,7 @@ const {
     DOCUMENT_REASSIGN_PAGES,
     DOCUMENT_REASSIGN_PAGES_WILDCARD,
     USER_PATIENT_RESTRICTIONS,
+    USER_PATIENT_RESTRICTIONS_WILDCARD,
 } = routes;
 
 type Routes = {
@@ -261,6 +262,18 @@ export const childRoutes = [
         route: routeChildren.DOCUMENT_REASSIGN_COMPLETE,
         parent: DOCUMENT_REASSIGN_PAGES,
     },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_ADD,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_VIEW,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_LIST,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
 ];
 
 export const routeMap: Routes = {
@@ -415,6 +428,10 @@ export const routeMap: Routes = {
         type: ROUTE_TYPE.PATIENT,
     },
     [USER_PATIENT_RESTRICTIONS]: {
+        page: <UserPatientRestrictionsPage />,
+        type: ROUTE_TYPE.PRIVATE,
+    },
+    [USER_PATIENT_RESTRICTIONS_WILDCARD]: {
         page: <UserPatientRestrictionsPage />,
         type: ROUTE_TYPE.PRIVATE,
     },

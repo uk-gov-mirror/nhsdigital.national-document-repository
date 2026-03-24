@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import UserPatientRestrictionsIndex from './UserPatientRestrictionsIndex';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
-import { routes } from '../../../../types/generic/routes';
+import { routeChildren, routes } from '../../../../types/generic/routes';
 
 vi.mock('../../../helpers/hooks/useTitle');
 vi.mock('../../../../styles/right-chevron-circle.svg', () => ({
@@ -58,6 +58,16 @@ describe('UserRestrictionsPage', (): void => {
         it('navigates back to admin route when back button is clicked', (): void => {
             screen.getByTestId('user-restrictions-back-btn').click();
             expect(mockNavigate).toHaveBeenCalledWith(routes.ADMIN_ROUTE);
+        });
+
+        it('navigates to add restriction page when add restriction button is clicked', (): void => {
+            screen.getByTestId('add-user-restriction-btn').click();
+            expect(mockNavigate).toHaveBeenCalledWith(routeChildren.USER_PATIENT_RESTRICTIONS_ADD);
+        });
+
+        it('navigates to view restrictions page when view restrictions button is clicked', (): void => {
+            screen.getByTestId('view-user-restrictions-btn').click();
+            expect(mockNavigate).toHaveBeenCalledWith(routeChildren.USER_PATIENT_RESTRICTIONS_LIST);
         });
     });
 

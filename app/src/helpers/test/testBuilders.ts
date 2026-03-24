@@ -26,6 +26,7 @@ import {
 } from '../utils/documentType';
 import { ReviewsResponse } from '../../types/generic/reviews';
 import { DocumentReference } from '../../types/pages/documentSearchResultsPage/types';
+import { UserPatientRestriction } from '../../types/generic/userPatientRestriction';
 
 const buildUserAuth = (userAuthOverride?: Partial<UserAuth>): UserAuth => {
     const auth: UserAuth = {
@@ -258,6 +259,51 @@ const buildDocumentReference = (override: Partial<DocumentReference> = {}): Docu
     };
 };
 
+const buildUserRestrictions = (patientCount?: number): UserPatientRestriction[] => {
+    return [
+        {
+            id: 'restriction-123',
+            nhsNumber: '9000000009',
+            patientGivenName: ['John'],
+            patientFamilyName: 'Doe',
+            restrictedUser: '123456789012',
+            restrictedUserFirstName: 'John',
+            restrictedUserLastName: 'Smith',
+            created: '2024-01-01T12:00:00Z',
+        },
+        {
+            id: 'restriction-456',
+            nhsNumber: '9000000009',
+            patientGivenName: ['John'],
+            patientFamilyName: 'Doe',
+            restrictedUser: '123456789012',
+            restrictedUserFirstName: 'Chuck',
+            restrictedUserLastName: 'Norris',
+            created: '2024-01-01T12:00:00Z',
+        },
+        {
+            id: 'restriction-789',
+            nhsNumber: '9000000009',
+            patientGivenName: ['John'],
+            patientFamilyName: 'Doe',
+            restrictedUser: '123456789012',
+            restrictedUserFirstName: 'Barry',
+            restrictedUserLastName: 'Allen',
+            created: '2024-01-01T12:00:00Z',
+        },
+        {
+            id: 'restriction-101',
+            nhsNumber: '9000000009',
+            patientGivenName: ['John'],
+            patientFamilyName: 'Doe',
+            restrictedUser: '123456789012',
+            restrictedUserFirstName: 'Tom',
+            restrictedUserLastName: 'Jones',
+            created: '2024-01-01T12:00:00Z',
+        },
+    ];
+};
+
 export {
     buildPatientDetails,
     buildTextFile,
@@ -273,4 +319,5 @@ export {
     buildMockUploadSession,
     buildMockReviewResponse,
     buildDocumentReference,
+    buildUserRestrictions,
 };

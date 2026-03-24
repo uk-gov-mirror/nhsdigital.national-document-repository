@@ -21,4 +21,6 @@ export enum endpoints {
     MOCK_LOGIN = 'Auth/MockLogin',
 
     DOCUMENT_REVIEW = '/DocumentReview',
+
+    USER_PATIENT_RESTRICTIONS = '/UserRestriction',
 }

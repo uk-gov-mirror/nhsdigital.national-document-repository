@@ -1,4 +1,4 @@
-import type { MutableRefObject } from 'react';
+import type { RefObject } from 'react';
 import type { RefCallBack } from 'react-hook-form';
 
-export interface InputRef extends MutableRefObject<HTMLInputElement | null>, RefCallBack {}
+export interface InputRef extends RefObject<HTMLInputElement | null>, RefCallBack {}

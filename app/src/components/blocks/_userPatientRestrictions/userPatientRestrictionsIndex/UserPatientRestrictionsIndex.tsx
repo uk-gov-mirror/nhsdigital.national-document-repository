@@ -3,9 +3,11 @@ import { JSX } from 'react';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { ReactComponent as RightCircleIcon } from '../../../../styles/right-chevron-circle.svg';
 import BackButton from '../../../generic/backButton/BackButton';
-import { routes } from '../../../../types/generic/routes';
+import { routeChildren, routes } from '../../../../types/generic/routes';
+import { useNavigate } from 'react-router-dom';
 
 const UserPatientRestrictionsIndex = (): JSX.Element => {
+    const navigate = useNavigate();
     useTitle({ pageTitle: 'Restrict staff from accessing patient records' });
 
     return (
@@ -17,7 +19,14 @@ const UserPatientRestrictionsIndex = (): JSX.Element => {
                     <Card clickable cardType="primary">
                         <Card.Content>
                             <Card.Heading className="nhsuk-heading-m">
-                                <Card.Link data-testid="add-user-restriction-btn" href="#">
+                                <Card.Link
+                                    data-testid="add-user-restriction-btn"
+                                    href="#"
+                                    onClick={(e): void => {
+                                        e.preventDefault();
+                                        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ADD);
+                                    }}
+                                >
                                     Add a restriction
                                 </Card.Link>
                             </Card.Heading>
@@ -32,7 +41,14 @@ const UserPatientRestrictionsIndex = (): JSX.Element => {
                     <Card clickable cardType="primary">
                         <Card.Content>
                             <Card.Heading className="nhsuk-heading-m">
-                                <Card.Link data-testid="view-user-restrictions-btn" href="#">
+                                <Card.Link
+                                    data-testid="view-user-restrictions-btn"
+                                    href="#"
+                                    onClick={(e): void => {
+                                        e.preventDefault();
+                                        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_LIST);
+                                    }}
+                                >
                                     View and remove a restriction
                                 </Card.Link>
                             </Card.Heading>
