@@ -40,9 +40,7 @@ if __name__ == "__main__":
     payload = {}
     if args.lambda_type == "BulkUploadMetadataProcessor":
         lambda_name = f"{args.environment}_BulkUploadMetadataProcessor"
-        payload = {
-            "inputFileLocation": "metadata.csv"
-        }
+        payload = {"inputFileLocation": "ingestor/metadata.csv"}
     else:
         lambda_name = f"{args.environment}_BulkUploadMetadataLambda"
 

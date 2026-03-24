@@ -393,16 +393,15 @@ def upload_lg_files_to_staging():
         client.upload_file(
             Filename=file,
             Bucket=STAGING_BUCKET,
-            Key=file,
+            Key=f"ingestor/{file}",
             ExtraArgs={"StorageClass": "INTELLIGENT_TIERING"},
         )
-
         scan_result = "Clean"
         if file.startswith(tuple(NHS_NUMBER_INFECTED)):
             scan_result = "Infected"
         client.put_object_tagging(
             Bucket=STAGING_BUCKET,
-            Key=file,
+            Key=f"ingestor/{file}",
             Tagging={
                 "TagSet": [
                     {"Key": "scan-result", "Value": scan_result},
