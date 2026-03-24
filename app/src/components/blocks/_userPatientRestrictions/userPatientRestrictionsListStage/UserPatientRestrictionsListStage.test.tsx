@@ -2,9 +2,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import UserPatientRestrictionsListStage from './UserPatientRestrictionsListStage';
 import userEvent from '@testing-library/user-event';
 import { Mock } from 'vitest';
-import { routeChildren } from '../../../../types/generic/routes';
+import { routeChildren, routes } from '../../../../types/generic/routes';
 import getUserPatientRestrictions from '../../../../helpers/requests/userPatientRestrictions/getUserPatientRestrictions';
-import { buildUserRestrictions } from '../../../../helpers/test/testBuilders';
+import { buildPatientDetails, buildUserRestrictions } from '../../../../helpers/test/testBuilders';
+import { UserPatientRestrictionsSubRoute } from '../../../../types/generic/userPatientRestriction';
+import { useState } from 'react';
+import getPatientDetails from '../../../../helpers/requests/getPatientDetails';
+import { UIErrorCode } from '../../../../types/generic/errors';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -27,21 +31,32 @@ vi.mock('react-router-dom', async () => {
     };
 });
 vi.mock('../../../../helpers/requests/userPatientRestrictions/getUserPatientRestrictions');
+vi.mock('../../../../helpers/requests/getPatientDetails');
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
+vi.mock('../../../../providers/patientProvider/PatientProvider', () => ({
+    usePatientDetailsContext: (): Mock => mockUsePatientDetailsContext(),
+}));
 
 const mockNavigate = vi.fn();
 const mockGetUserPatientRestrictions = getUserPatientRestrictions as Mock;
+const mockGetPatientDetails = getPatientDetails as Mock;
+const mockUsePatientDetailsContext = vi.fn();
+const mockSetPatientDetails = vi.fn();
 
 describe('UserPatientRestrictionsListStage', () => {
+    const mockPatientDetails = buildPatientDetails();
+
     beforeEach(() => {
         mockGetUserPatientRestrictions.mockResolvedValue({
             restrictions: buildUserRestrictions(),
         });
+        mockUsePatientDetailsContext.mockReturnValue([mockPatientDetails, mockSetPatientDetails]);
+        mockGetPatientDetails.mockResolvedValue(mockPatientDetails);
     });
 
     it('renders correctly', () => {
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         expect(
             screen.getByText('Manage restrictions on access to patient records'),
@@ -49,7 +64,7 @@ describe('UserPatientRestrictionsListStage', () => {
     });
 
     it('should navigate to add restrictions stage when add restriction button is clicked', async () => {
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         const addRestrictionButton = screen.getByRole('button', { name: 'Add a restriction' });
         expect(addRestrictionButton).toBeInTheDocument();
@@ -65,7 +80,7 @@ describe('UserPatientRestrictionsListStage', () => {
             restrictions,
         });
 
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         await waitFor(async () => {
             const viewRestrictionButton = screen.getByTestId(
@@ -77,10 +92,7 @@ describe('UserPatientRestrictionsListStage', () => {
         });
 
         expect(mockNavigate).toHaveBeenCalledWith(
-            routeChildren.USER_PATIENT_RESTRICTIONS_VIEW.replace(
-                ':restrictionId',
-                restrictions[0].id,
-            ),
+            routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_PATIENT,
         );
     });
 
@@ -89,7 +101,7 @@ describe('UserPatientRestrictionsListStage', () => {
             new Error('Failed to load restrictions'),
         );
 
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         await waitFor(() => {
             expect(screen.getByTestId('failed-to-load-error')).toBeInTheDocument();
@@ -103,7 +115,7 @@ describe('UserPatientRestrictionsListStage', () => {
             }),
         );
 
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         await waitFor(() => {
             expect(screen.getByText('Searching...')).toBeInTheDocument();
@@ -116,7 +128,7 @@ describe('UserPatientRestrictionsListStage', () => {
             restrictions: [],
         });
 
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         await waitFor(() => {
             expect(screen.getByText('No user patient restrictions found')).toBeInTheDocument();
@@ -130,7 +142,7 @@ describe('UserPatientRestrictionsListStage', () => {
             nextPageToken: 'next-page-token',
         });
 
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         await waitFor(() => {
             expect(screen.getByText('Next')).toBeInTheDocument();
@@ -144,7 +156,7 @@ describe('UserPatientRestrictionsListStage', () => {
             nextPageToken: 'next-page-token',
         });
 
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         await waitFor(async () => {
             const nextButton = screen.getByTestId('next-page-link');
@@ -168,7 +180,7 @@ describe('UserPatientRestrictionsListStage', () => {
             nextPageToken: 'next-page-token',
         });
 
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         await waitFor(() => {
             expect(screen.getByText('Next')).toBeInTheDocument();
@@ -197,7 +209,7 @@ describe('UserPatientRestrictionsListStage', () => {
             nextPageToken: 'next-page-token',
         });
 
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         await waitFor(async () => {
             const nextButton = screen.getByText('Next');
@@ -230,7 +242,7 @@ describe('UserPatientRestrictionsListStage', () => {
             nextPageToken: 'next-page-token',
         });
 
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         await waitFor(async () => {
             const nextButton = screen.getByText('Next');
@@ -257,7 +269,7 @@ describe('UserPatientRestrictionsListStage', () => {
     });
 
     it('should send nhsNumber parameter when searching by valid nhs number', async () => {
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         const nhsNumber = '2222222222';
         await userEvent.click(screen.getByTestId('nhs-number-radio-button'));
@@ -275,7 +287,7 @@ describe('UserPatientRestrictionsListStage', () => {
     });
 
     it('should send smartcardNumber parameter when searching by valid smartcard number', async () => {
-        render(<UserPatientRestrictionsListStage />);
+        renderPage();
 
         const smartcardNumber = '123456789012';
         await userEvent.click(screen.getByTestId('smartcard-number-radio-button'));
@@ -295,7 +307,7 @@ describe('UserPatientRestrictionsListStage', () => {
     it.each(['123', 'abc', '123456789', '12345678901', '1234567890'])(
         'should show validation error when searching by invalid nhs number: %s',
         async (invalidNhsNumber) => {
-            render(<UserPatientRestrictionsListStage />);
+            renderPage();
 
             await userEvent.click(screen.getByTestId('nhs-number-radio-button'));
             await userEvent.type(screen.getByTestId('search-input'), invalidNhsNumber);
@@ -312,7 +324,7 @@ describe('UserPatientRestrictionsListStage', () => {
     it.each(['123', 'abc', '123456789', '12345678901', '1234567890', '12345678901a'])(
         'should show validation error when searching by invalid smartcard number: %s',
         async (invalidSmartcardNumber) => {
-            render(<UserPatientRestrictionsListStage />);
+            renderPage();
 
             await userEvent.click(screen.getByTestId('smartcard-number-radio-button'));
             await userEvent.type(screen.getByTestId('search-input'), invalidSmartcardNumber);
@@ -325,4 +337,85 @@ describe('UserPatientRestrictionsListStage', () => {
             });
         },
     );
+
+    it('should navigate to error page when viewing restriction for patient you are restricted from viewing', async () => {
+        const restrictions = buildUserRestrictions();
+        mockGetUserPatientRestrictions.mockResolvedValueOnce({
+            restrictions,
+        });
+        mockGetPatientDetails.mockRejectedValueOnce({
+            response: {
+                data: {
+                    err_code: 'SP_4006',
+                },
+            },
+        });
+
+        renderPage();
+
+        await waitFor(async () => {
+            const viewRestrictionButton = screen.getByTestId(
+                `view-record-link-${restrictions[0].id}`,
+            );
+            expect(viewRestrictionButton).toBeInTheDocument();
+            await userEvent.click(viewRestrictionButton);
+        });
+
+        expect(mockNavigate).toHaveBeenCalledWith(
+            routes.GENERIC_ERROR + '?errorCode=' + UIErrorCode.PATIENT_ACCESS_RESTRICTED,
+        );
+    });
+
+    it('should navigate to session expired page when viewing restriction and receiving 403 error', async () => {
+        const restrictions = buildUserRestrictions();
+        mockGetUserPatientRestrictions.mockResolvedValueOnce({
+            restrictions,
+        });
+        mockGetPatientDetails.mockRejectedValueOnce({
+            response: {
+                status: 403,
+            },
+        });
+
+        renderPage();
+
+        await waitFor(async () => {
+            const viewRestrictionButton = screen.getByTestId(
+                `view-record-link-${restrictions[0].id}`,
+            );
+            expect(viewRestrictionButton).toBeInTheDocument();
+            await userEvent.click(viewRestrictionButton);
+        });
+
+        expect(mockNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
+    });
+
+    it('should navigate to server error page when viewing restriction and receiving unexpected error', async () => {
+        const restrictions = buildUserRestrictions();
+        mockGetUserPatientRestrictions.mockResolvedValueOnce({
+            restrictions,
+        });
+        mockGetPatientDetails.mockRejectedValueOnce(new Error('Unexpected error'));
+
+        renderPage();
+
+        await waitFor(async () => {
+            const viewRestrictionButton = screen.getByTestId(
+                `view-record-link-${restrictions[0].id}`,
+            );
+            expect(viewRestrictionButton).toBeInTheDocument();
+            await userEvent.click(viewRestrictionButton);
+        });
+
+        expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining(routes.SERVER_ERROR));
+    });
 });
+
+const TestApp = (): React.JSX.Element => {
+    const [, setSubRoute] = useState<UserPatientRestrictionsSubRoute | null>(null);
+    return <UserPatientRestrictionsListStage setSubRoute={setSubRoute} />;
+};
+
+const renderPage = (): void => {
+    render(<TestApp />);
+};

@@ -40,6 +40,7 @@ const errorCodes: { [key: string]: string } = {
     SP_4002: 'The NHS number entered could not be found in the Personal Demographics Service',
     SP_4003:
         "You cannot access this patient's record because they are not registered at your practice. The patient's current practice can access this record if it's stored in this service.",
+    SP_4006: 'You are restricted from accessing this patient record.',
     UC_4002: 'There was an issue when attempting to virus scan your uploaded files',
     UC_4004: technicalIssueMsg,
     UC_4006:

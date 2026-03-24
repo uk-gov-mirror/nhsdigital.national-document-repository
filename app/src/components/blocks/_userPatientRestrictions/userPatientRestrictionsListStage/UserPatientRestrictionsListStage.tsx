@@ -5,9 +5,12 @@ import { routeChildren, routes } from '../../../../types/generic/routes';
 import { Button, ErrorMessage, Fieldset, Radios, Table, TextInput } from 'nhsuk-react-components';
 import { useForm } from 'react-hook-form';
 import { InputRef } from '../../../../types/generic/inputRef';
-import { useEffect, useRef, useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
-import { UserPatientRestriction } from '../../../../types/generic/userPatientRestriction';
+import {
+    UserPatientRestriction,
+    UserPatientRestrictionsSubRoute,
+} from '../../../../types/generic/userPatientRestriction';
 import { Pagination } from '../../../generic/paginationV2/Pagination';
 import SpinnerV2 from '../../../generic/spinnerV2/SpinnerV2';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
@@ -20,10 +23,15 @@ import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import validateNhsNumber from '../../../../helpers/utils/nhsNumberValidator';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import { AxiosError } from 'axios';
-import { buildUserRestrictions } from '../../../../helpers/test/testBuilders';
-import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPatientFullName';
+import { buildPatientDetails, buildUserRestrictions } from '../../../../helpers/test/testBuilders';
+import getPatientDetails from '../../../../helpers/requests/getPatientDetails';
+import { usePatientDetailsContext } from '../../../../providers/patientProvider/PatientProvider';
 import { PatientDetails } from '../../../../types/generic/patientDetails';
 import formatSmartcardNumber from '../../../../helpers/utils/formatSmartcardNumber';
+import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPatientFullName';
+import { ErrorResponse } from '../../../../types/generic/errorResponse';
+import { errorToParams } from '../../../../helpers/utils/errorToParams';
+import { UIErrorCode } from '../../../../types/generic/errors';
 
 enum Fields {
     searchType = 'searchType',
@@ -40,7 +48,11 @@ type FormData = {
     [Fields.searchText]: string;
 };
 
-const UserPatientRestrictionsListStage = (): React.JSX.Element => {
+type Props = {
+    setSubRoute: Dispatch<SetStateAction<UserPatientRestrictionsSubRoute | null>>;
+};
+
+const UserPatientRestrictionsListStage = ({ setSubRoute }: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const pageTitle = 'Manage restrictions on access to patient records';
     useTitle({ pageTitle });
@@ -252,6 +264,7 @@ const UserPatientRestrictionsListStage = (): React.JSX.Element => {
                             restrictions={restrictions}
                             isLoading={isLoading}
                             failedLoading={failedLoading}
+                            setSubRoute={setSubRoute}
                         />
                     </Table.Body>
                 </Table>
@@ -307,13 +320,60 @@ type TableRowsProps = {
     restrictions: UserPatientRestriction[];
     isLoading: boolean;
     failedLoading: boolean;
+    setSubRoute: Dispatch<SetStateAction<UserPatientRestrictionsSubRoute | null>>;
 };
 const TableRows = ({
     restrictions,
     isLoading,
     failedLoading,
+    setSubRoute,
 }: TableRowsProps): React.JSX.Element => {
+    const [, setPatientDetails] = usePatientDetailsContext();
     const navigate = useNavigate();
+    const baseUrl = useBaseAPIUrl();
+    const baseHeaders = useBaseAPIHeaders();
+
+    const [loadingPatient, setLoadingPatient] = useState(false);
+
+    const onViewClicked = async (nhsNumber: string): Promise<void> => {
+        setLoadingPatient(true);
+        try {
+            const patientDetails = await getPatientDetails({
+                nhsNumber,
+                baseUrl,
+                baseHeaders,
+            });
+
+            handleSuccess(patientDetails);
+        } catch (e) {
+            const error = e as AxiosError;
+            const errorResponse = error.response?.data as ErrorResponse;
+            if (isMock(error)) {
+                handleSuccess(
+                    buildPatientDetails({
+                        nhsNumber,
+                        active: true,
+                    }),
+                );
+            } else if (errorResponse?.err_code === 'SP_4006') {
+                navigate(
+                    routes.GENERIC_ERROR + '?errorCode=' + UIErrorCode.PATIENT_ACCESS_RESTRICTED,
+                );
+            } else if (error.response?.status === 403) {
+                navigate(routes.SESSION_EXPIRED);
+            } else {
+                navigate(routes.SERVER_ERROR + errorToParams(error));
+            }
+        } finally {
+            setLoadingPatient(false);
+        }
+    };
+
+    const handleSuccess = (patientDetails: PatientDetails): void => {
+        setSubRoute(UserPatientRestrictionsSubRoute.VIEW);
+        setPatientDetails(patientDetails);
+        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_PATIENT);
+    };
 
     if (failedLoading) {
         return (
@@ -348,21 +408,20 @@ const TableRows = ({
                                 {getFormattedDateFromString(`${restriction.created}`)}
                             </Table.Cell>
                             <Table.Cell className="nowrap">
-                                <Link
-                                    to="#"
-                                    data-testid={`view-record-link-${restriction.id}`}
-                                    onClick={(e): void => {
-                                        e.preventDefault();
-                                        navigate(
-                                            routeChildren.USER_PATIENT_RESTRICTIONS_VIEW.replace(
-                                                ':restrictionId',
-                                                restriction.id,
-                                            ),
-                                        );
-                                    }}
-                                >
-                                    View
-                                </Link>
+                                {loadingPatient ? (
+                                    <SpinnerV2 status="Loading..." />
+                                ) : (
+                                    <Link
+                                        to="#"
+                                        data-testid={`view-record-link-${restriction.id}`}
+                                        onClick={(e): void => {
+                                            e.preventDefault();
+                                            onViewClicked(restriction.nhsNumber);
+                                        }}
+                                    >
+                                        View
+                                    </Link>
+                                )}
                             </Table.Cell>
                         </Table.Row>
                     );

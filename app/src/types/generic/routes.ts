@@ -10,6 +10,7 @@ export enum routes {
     AUTH_ERROR = '/auth-error',
     UNAUTHORISED_LOGIN = '/unauthorised-login',
     SERVER_ERROR = '/server-error',
+    GENERIC_ERROR = '/error',
     SESSION_EXPIRED = '/session-expired',
     PRIVACY_POLICY = '/privacy-policy',
     LOGOUT = '/logout',
@@ -111,11 +112,11 @@ export enum routeChildren {
 
     USER_PATIENT_RESTRICTIONS_ADD = '/user-patient-restrictions/add',
     USER_PATIENT_RESTRICTIONS_CONFIRM_ADD = '/user-patient-restrictions/confirm-add',
-    USER_PATIENT_RESTRICTIONS_VIEW = '/user-patient-restrictions/:restrictionId',
+    USER_PATIENT_RESTRICTIONS_VIEW = '/user-patient-restrictions/view',
     USER_PATIENT_RESTRICTIONS_LIST = '/user-patient-restrictions/list',
     USER_PATIENT_RESTRICTIONS_VERIFY_PATIENT = '/user-patient-restrictions/verify-patient',
     USER_PATIENT_RESTRICTIONS_VERIFY_STAFF = '/user-patient-restrictions/verify-staff',
-    USER_PATIENT_RESTRICTIONS_RESTRICTED = '/user-patient-restrictions/restricted',
+    USER_PATIENT_RESTRICTIONS_REMOVE_CONFIRM = '/user-patient-restrictions/remove-confirm',
     USER_PATIENT_RESTRICTIONS_REMOVE_COMPLETE = '/user-patient-restrictions/remove-complete',
     USER_PATIENT_RESTRICTIONS_CANCEL = '/user-patient-restrictions/add-cancel',
 }

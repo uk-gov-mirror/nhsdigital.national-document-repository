@@ -8,3 +8,9 @@ export type UserPatientRestriction = {
     restrictedUserLastName: string;
     created: string;
 };
+
+export enum UserPatientRestrictionsSubRoute {
+    ADD = 'add',
+    VIEW = 'view',
+    REMOVE = 'remove',
+}

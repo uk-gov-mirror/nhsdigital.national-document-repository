@@ -31,7 +31,8 @@ import { UserPatientRestriction } from '../../types/generic/userPatientRestricti
 const buildUserAuth = (userAuthOverride?: Partial<UserAuth>): UserAuth => {
     const auth: UserAuth = {
         role: REPOSITORY_ROLE.GP_ADMIN,
-        authorisation_token: '111xxx222',
+        authorisation_token:
+            'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzM3NDA1MjUsImlzcyI6Im5ocyByZXBvIiwic21hcnRfY2FyZF9yb2xlIjoiUjgwMTMiLCJzZWxlY3RlZF9vcmdhbmlzYXRpb24iOnsibmFtZSI6IkNBUEVMRklFTEQgU1VSR0VSWSIsIm9yZ19vZHNfY29kZSI6Ikg4MTEwOSIsInJvbGVfY29kZSI6IlJPNzYiLCJpY2Jfb2RzX2NvZGUiOiI5MkEifSwicmVwb3NpdG9yeV9yb2xlIjoiR1BfQURNSU4iLCJuZHJfc2Vzc2lvbl9pZCI6IjZjNmZjNWNlLTU1MzAtNGNmMS04MzcxLTM1M2E5OTZiYWM3NyIsIm5oc191c2VyX2lkIjoiMTIzNDU2Nzg5MDEyIn0.Nb0cIIFSNjL-zIAlYFnkFOWK3Ywh1X4XXfT8lcyWQGdFJ4x2_3K85u21Al-_xbO6xfTxHS29O6ggeaA_0nJ5EU2AE_xnIJnMs4E536avxDetHa3Hdg01ifsItzLgY8ET70I-C-7yn23GtcK8FSAYdz_1NN46m0Rg4ne_u6cI28GvzQRMZtQp2uANXcaOgB9yLMre5JC_su_oIylivmJGAQG3C7Akp-7w27thCRA1-OSMznC9LIQzMG4Ow-3c8QDrQeeqZiej-5yAlhquMe77S89oTCMcElREkChLqBpTgbzh9Ce84kR9RXFmeTNckL0_iRvU9XylMZnNKTho5Oiue0204DOrFMgAyRDxsxxUaUuIoh2XqeksNvjh5yNvimb7VBeDMYx4v77gfjYJIaHzRY-haHHDigR21na3DQeluiCYSRM-jSg1km3vTGmCyVRcZQTjvQ_lQ-XvKCG0VXzSHubKVbtZS_9UdkNM2gD4gnnxDxHPqe8EX917yE0pItFDNZYOq8NzKJrCV7QOa2zE9zo4dqnmacyNsqvdsF4_g46kGUIXi0jQQgcFtv3ttlLcwwAaR0EjsC6Hf56uVu4AfTyqq8PiOfjMrym-ENQV2AaiH4Pr_35SUdJUs5uywCSB5xVsfWZ-yC3W6nVWR9PIAiaSbZ5nlH19qWESc632N3A',
         ...userAuthOverride,
     };
     return auth;
@@ -266,7 +267,7 @@ const buildUserRestrictions = (patientCount?: number): UserPatientRestriction[] 
             nhsNumber: '9000000009',
             patientGivenName: ['John'],
             patientFamilyName: 'Doe',
-            restrictedUser: '123456789012',
+            restrictedUser: '123456789013',
             restrictedUserFirstName: 'John',
             restrictedUserLastName: 'Smith',
             created: '2024-01-01T12:00:00Z',

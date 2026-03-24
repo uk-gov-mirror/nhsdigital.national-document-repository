@@ -1,16 +1,21 @@
-import { render, RenderResult, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import UserPatientRestrictionsPage from './UserPatientRestrictionsPage';
 import { afterEach, describe, expect, it, Mock, vi } from 'vitest';
 import { routes } from '../../types/generic/routes';
-import useConfig from '../../helpers/hooks/useConfig';
-import { defaultFeatureFlags } from '../../types/generic/featureFlags';
 import * as ReactRouter from 'react-router-dom';
-import { createMemoryHistory } from 'history';
+import { createMemoryHistory, MemoryHistory } from 'history';
+import usePatient from '../../helpers/hooks/usePatient';
+import { buildPatientDetails } from '../../helpers/test/testBuilders';
+import useUserPatientRestrictionsPage from './useUserPatientRestrictionsPage';
 
-vi.mock('../../helpers/hooks/useTitle');
 vi.mock('../../styles/right-chevron-circle.svg', () => ({
     ReactComponent: (): string => 'svg',
 }));
+vi.mock('../../helpers/hooks/useTitle');
+vi.mock('../../helpers/hooks/useConfig');
+vi.mock('../../helpers/hooks/usePatient');
+vi.mock('./useUserPatientRestrictionsPage');
+
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
     return {
@@ -18,25 +23,22 @@ vi.mock('react-router-dom', async () => {
         useNavigate: (): Mock => mockNavigate,
     };
 });
-vi.mock('../../helpers/hooks/useConfig');
-const mockUseConfig = useConfig as Mock;
+
+const mockUsePatient = usePatient as Mock;
 const mockNavigate = vi.fn();
+const mockUseUserPatientRestrictionsPage = useUserPatientRestrictionsPage as Mock;
 
-const renderWithFlag = async (userRestrictionEnabled = true): Promise<RenderResult> => {
-    mockUseConfig.mockReturnValue({
-        featureFlags: { ...defaultFeatureFlags, userRestrictionEnabled },
-    });
-
-    const history = createMemoryHistory({
+const renderPage = (): void => {
+    const history: MemoryHistory = createMemoryHistory({
         initialEntries: ['/user-patient-restrictions'],
         initialIndex: 0,
     });
 
-    return render(
+    render(
         <ReactRouter.Router location={history.location} navigator={history}>
             <ReactRouter.Routes>
                 <ReactRouter.Route
-                    path="/user-patient-restrictions"
+                    path="/user-patient-restrictions/*"
                     element={<UserPatientRestrictionsPage />}
                 />
             </ReactRouter.Routes>
@@ -44,14 +46,34 @@ const renderWithFlag = async (userRestrictionEnabled = true): Promise<RenderResu
     );
 };
 
-describe('UserRestrictionsPage', (): void => {
+const pageHookResult = {
+    isEnabled: true,
+    subRoute: null,
+    setSubRoute: (): void => {},
+    restrictionToRemove: null,
+    confirmVerifyPatientDetails: (): void => {},
+    onRemoveRestriction: (): void => {},
+};
+
+describe('UserRestrictionsPage', () => {
+    beforeEach(() => {
+        mockUsePatient.mockReturnValue(buildPatientDetails());
+        mockUseUserPatientRestrictionsPage.mockReturnValue(pageHookResult);
+    });
+
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    describe('Rendering', (): void => {
-        it('renders user patient restrictions index stage, feature flag enabled', (): void => {
-            renderWithFlag();
+    describe('Rendering', () => {
+        it('renders user patient restrictions index stage, feature flag enabled', () => {
+            mockUseUserPatientRestrictionsPage.mockReturnValueOnce({
+                ...pageHookResult,
+                isEnabled: true,
+            });
+
+            renderPage();
+
             expect(
                 screen.getByRole('heading', {
                     name: 'Restrict staff from accessing patient records',
@@ -59,22 +81,15 @@ describe('UserRestrictionsPage', (): void => {
             ).toBeInTheDocument();
         });
 
-        it('does not render user patient restrictions index stage, feature flag disabled', (): void => {
-            renderWithFlag(false);
-            expect(
-                screen.queryByRole('heading', {
-                    name: 'Restrict staff from accessing patient records',
-                }),
-            ).not.toBeInTheDocument();
-        });
-    });
-
-    describe('Navigation', (): void => {
-        it('navigates to not found when feature flag is disabled', async (): Promise<void> => {
-            renderWithFlag(false);
-            await waitFor(() => {
-                expect(mockNavigate).toHaveBeenCalledWith(routes.HOME, { replace: true });
+        it('navigates to home when feature flag is disabled', () => {
+            mockUseUserPatientRestrictionsPage.mockReturnValueOnce({
+                ...pageHookResult,
+                isEnabled: false,
             });
+
+            renderPage();
+
+            expect(mockNavigate).toHaveBeenCalledWith(routes.HOME, { replace: true });
         });
     });
 });

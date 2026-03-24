@@ -34,6 +34,7 @@ import DocumentCorrectPage from '../pages/documentCorrectPage/DocumentCorrectPag
 import { AdminPage } from '../pages/adminPage/AdminPage';
 import UserPatientRestrictionsPage from '../pages/userPatientRestrictionsPage/UserPatientRestrictionsPage';
 import DocumentVersionRestorePage from '../pages/documentVersionPage/DocumentVersionRestorePage';
+import GenericErrorPage from '../pages/genericErrorPage/GenericErrorPage';
 
 const {
     START,
@@ -44,6 +45,7 @@ const {
     UNAUTHORISED_LOGIN,
     AUTH_ERROR,
     SERVER_ERROR,
+    GENERIC_ERROR,
     SESSION_EXPIRED,
     FEEDBACK,
     FEEDBACK_CONFIRMATION,
@@ -277,6 +279,18 @@ export const childRoutes = [
         route: routeChildren.USER_PATIENT_RESTRICTIONS_LIST,
         parent: USER_PATIENT_RESTRICTIONS,
     },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_PATIENT,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_CONFIRM,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_COMPLETE,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
 ];
 
 export const routeMap: Routes = {
@@ -314,6 +328,10 @@ export const routeMap: Routes = {
     },
     [SERVER_ERROR]: {
         page: <ServerErrorPage />,
+        type: ROUTE_TYPE.PUBLIC,
+    },
+    [GENERIC_ERROR]: {
+        page: <GenericErrorPage />,
         type: ROUTE_TYPE.PUBLIC,
     },
     [SESSION_EXPIRED]: {

@@ -1294,6 +1294,19 @@ progress:not(.continuous-progress-bar) {
     color: #757575;
 }
 
+.inline-block {
+    display: inline-block;
+}
+
+.action-button-group {
+        display: flex;
+        align-items: center;
+
+        .nhsuk-button {
+            margin-bottom: 0;
+        }
+    }
+
 @import '../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults.scss';
 @import '../components/blocks/_documentManagement/documentUploadCompleteStage/DocumentUploadCompleteStage.scss';
 @import '../components/blocks/_reviews/reviewsPageIndex/ReviewsPageIndex.scss';
