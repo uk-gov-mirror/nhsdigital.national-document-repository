@@ -4,7 +4,6 @@ import logging
 import os
 
 from tests.e2e.api.fhir.conftest import (
-    PDM_SNOMED,
     TEST_NHS_NUMBER,
     retrieve_document_with_retry,
     upload_document,
@@ -47,7 +46,7 @@ def test_create_document_base64(test_data):
     # Validate attachment URL
     attachment_url = upload_response["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{upload_response['id']}"
         in attachment_url
     )
 
@@ -96,7 +95,7 @@ def test_create_document_base64_medium_file(test_data):
 
     attachment_url = upload_response["content"][0]["attachment"]["url"]
     assert (
-        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{PDM_SNOMED}~"
+        f"https://{APIM_ENDPOINT}/national-document-repository/FHIR/R4/DocumentReference/{upload_response['id']}"
         in attachment_url
     )
 

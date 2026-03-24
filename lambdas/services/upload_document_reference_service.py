@@ -58,14 +58,10 @@ class UploadDocumentReferenceService:
         try:
             object_parts = object_key.split("/")
             document_key = object_parts[-1]
-            nhs_number = None
-            if len(object_parts) > 1:
-                nhs_number = object_parts[-2]
             self._get_infrastructure_for_document_key(object_parts)
 
             preliminary_document_reference = self._fetch_preliminary_document_reference(
                 document_key,
-                nhs_number,
             )
             if not preliminary_document_reference:
                 return
@@ -102,43 +98,47 @@ class UploadDocumentReferenceService:
     def _fetch_preliminary_document_reference(
         self,
         document_key: str,
-        nhs_number: str | None = None,
     ) -> Optional[DocumentReference]:
         """Fetch document reference from the database"""
         try:
             if self.doc_type.code != SnomedCodes.PATIENT_DATA.value.code:
                 search_key = "ID"
                 search_condition = document_key
-            else:
-                if not nhs_number:
+                documents = self.document_service.fetch_documents_from_table(
+                    search_key=search_key,
+                    search_condition=search_condition,
+                    table_name=self.table_name,
+                    query_filter=PreliminaryStatus,
+                )
+                if not documents:
                     logger.error(
-                        f"Failed to process object key with ID: {document_key}",
+                        f"No document with the following key found in {self.table_name} table: {document_key}",
                     )
-                    raise FileProcessingException(400, LambdaError.DocRefInvalidFiles)
+                    logger.info("Skipping this object")
+                    return None
 
-                search_key = ["NhsNumber", "ID"]
-                search_condition = [nhs_number, document_key]
+                if len(documents) > 1:
+                    logger.warning(
+                        f"Multiple documents found for key {document_key}, using first one",
+                    )
 
-            documents = self.document_service.fetch_documents_from_table(
-                search_key=search_key,
-                search_condition=search_condition,
+                return documents[0]
+
+            document = self.document_service.get_item(
+                document_id=document_key,
                 table_name=self.table_name,
-                query_filter=PreliminaryStatus,
+                return_deleted=False,
+                filters=[{"DocStatus": "preliminary"}],
             )
 
-            if not documents:
+            if not document:
                 logger.error(
                     f"No document with the following key found in {self.table_name} table: {document_key}",
                 )
                 logger.info("Skipping this object")
                 return None
 
-            if len(documents) > 1:
-                logger.warning(
-                    f"Multiple documents found for key {document_key}, using first one",
-                )
-
-            return documents[0]
+            return document
 
         except ClientError as e:
             logger.error(
@@ -484,7 +484,6 @@ class UploadDocumentReferenceService:
             if self.doc_type.code == SnomedCodes.PATIENT_DATA.value.code:
                 update_fields.add("s3_file_key")
                 update_key = {
-                    DocumentReferenceMetadataFields.NHS_NUMBER.value: document.nhs_number,
                     DocumentReferenceMetadataFields.ID.value: document.id,
                 }
 

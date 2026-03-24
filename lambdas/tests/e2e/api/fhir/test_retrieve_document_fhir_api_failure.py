@@ -76,11 +76,11 @@ def test_retrieve_non_existant_document_reference(
 @pytest.mark.parametrize(
     "param,expected_status,expected_code",
     [
-        (f"{pdm_data_helper.snomed_code}-{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
-        (f"{pdm_data_helper.snomed_code}+{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
-        (f"{pdm_data_helper.snomed_code}&{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
-        (f"{pdm_data_helper.snomed_code}{str(uuid.uuid4())}", 400, "MISSING_VALUE"),
-        (f"{str(uuid.uuid4())}~{pdm_data_helper.snomed_code}", 500, "exception"),
+        (f"{pdm_data_helper.snomed_code}-{str(uuid.uuid4())}", 400, "invalid"),
+        (f"{pdm_data_helper.snomed_code}+{str(uuid.uuid4())}", 400, "invalid"),
+        (f"{pdm_data_helper.snomed_code}&{str(uuid.uuid4())}", 400, "invalid"),
+        (f"{pdm_data_helper.snomed_code}{str(uuid.uuid4())}", 400, "invalid"),
+        (f"{str(uuid.uuid4())}~{pdm_data_helper.snomed_code}", 400, "invalid"),
     ],
 )
 def test_incorrectly_formatted_path_param_id(
@@ -96,18 +96,6 @@ def test_incorrectly_formatted_path_param_id(
     body = response.json()
     assert response.status_code == expected_status
     _assert_operation_outcome(body=body, code=expected_code)
-
-
-def test_no_snomed_code_in_path_param_id(test_data):
-    pdm_record = create_and_store_pdm_record(test_data)
-    response = get_pdm_document_reference(
-        record_id=pdm_record["id"],
-        pdm_snomed="",
-    )
-
-    body = response.json()
-    assert response.status_code == 400
-    _assert_operation_outcome(body=body, code="MISSING_VALUE")
 
 
 def test_no_document_id_in_path_param_id():
@@ -137,4 +125,4 @@ def test_extra_parameter_in_id_in_path_param_id(test_data):
 
     body = response.json()
     assert response.status_code == 400
-    _assert_operation_outcome(body=body, code="MISSING_VALUE")
+    _assert_operation_outcome(body=body, code="invalid")

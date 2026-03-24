@@ -47,7 +47,7 @@ def mock_item():
 def mock_bundle_entry():
     return {
         "resource": {
-            "id": "16521000000101~1234-4567-8912-HSDF-TEST",
+            "id": f"16521000000101~{TEST_UUID}",
             "resourceType": "DocumentReference",
             "docStatus": "preliminary",
             "status": "current",

@@ -4,6 +4,7 @@ import uuid
 
 import requests
 from syrupy.filters import paths
+
 from tests.e2e.conftest import API_ENDPOINT, API_KEY, APIM_ENDPOINT, LLOYD_GEORGE_SNOMED
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 

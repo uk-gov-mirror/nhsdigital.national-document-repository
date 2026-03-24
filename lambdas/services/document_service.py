@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timezone
-from typing import Optional
+from typing import List, Optional
 
 from boto3.dynamodb.conditions import Attr, ConditionBase
 from botocore.exceptions import ClientError
@@ -106,24 +106,41 @@ class DocumentService:
                 continue
         return documents
 
-    def _get_item(self, table_name, key, model_class):
+    def filter_item(self, response, filters=[]):
+        if len(filters) > 0:
+            for filter in filters:
+                for key in filter:
+                    attribute = response.get("Item").get(key, None)
+                    if attribute != filter[key]:
+                        return False
+        return True
+
+    def _get_item(self, table_name, key, model_class, return_deleted=False, filters=[]):
         try:
             response = self.dynamo_service.get_item(table_name=table_name, key=key)
             if "Item" not in response:
                 logger.info("No document found")
                 return None
 
-            document = model_class.model_validate(response["Item"])
-            return document
+            if not return_deleted:
+                deleted = response.get("Item").get("Deleted", None)
+                if deleted not in (None, ""):
+                    return None
+
+            if self.filter_item(response, filters):
+                document = model_class.model_validate(response.get("Item"))
+                return document
+
+            return None
 
         except ValidationError as e:
-            logger.error(f"Validation error on document: {response.get('Item')}")
+            logger.error(f"Validation error on document: {response.get('Item') or ''}")
             logger.error(f"{e}")
             return None
 
     def get_item_agnostic(
         self,
-        partion_key: dict,
+        partition_key: dict,
         sort_key: dict | None = None,
         table_name: str | None = None,
         model_class: type[BaseModel] | None = None,
@@ -133,7 +150,7 @@ class DocumentService:
 
         return self._get_item(
             table_name=table_name,
-            key=(partion_key or {}) | (sort_key or {}),
+            key=(partition_key or {}) | (sort_key or {}),
             model_class=model_class,
         )
 
@@ -143,6 +160,8 @@ class DocumentService:
         sort_key: dict | None = None,
         table_name: str = None,
         model_class: type[BaseModel] = None,
+        return_deleted: bool = False,
+        filters: List[dict] = [],
     ) -> Optional[BaseModel]:
         """Fetch a single document by ID from a specified or configured table.
 
@@ -164,6 +183,8 @@ class DocumentService:
             table_name=table_to_use,
             key=document_key,
             model_class=model_to_use,
+            return_deleted=return_deleted,
+            filters=filters,
         )
 
     def get_nhs_numbers_based_on_ods_code(

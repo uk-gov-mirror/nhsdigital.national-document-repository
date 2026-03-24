@@ -723,3 +723,164 @@ def test_get_item_document_id_with_sort_key(mock_service, mock_dynamo_service):
         table_name=MOCK_LG_TABLE_NAME,
         key={"ID": document_id, **sort_key},
     )
+
+
+@pytest.mark.parametrize(
+    "document_id,table_name,file_name,expected_table,return_deleted",
+    [
+        (
+            "test-doc-id-123",
+            MOCK_LG_TABLE_NAME,
+            "test-file.pdf",
+            MOCK_LG_TABLE_NAME,
+            False,
+        ),
+        ("test-doc-id-456", MOCK_TABLE_NAME, "lg-file.pdf", MOCK_TABLE_NAME, False),
+        (
+            "test-doc-id-123",
+            MOCK_LG_TABLE_NAME,
+            "test-file.pdf",
+            MOCK_LG_TABLE_NAME,
+            True,
+        ),
+        ("test-doc-id-456", MOCK_TABLE_NAME, "lg-file.pdf", MOCK_TABLE_NAME, True),
+    ],
+)
+def test_get_item_returns_deleted(
+    mock_service,
+    mock_dynamo_service,
+    document_id,
+    table_name,
+    file_name,
+    expected_table,
+    return_deleted,
+):
+    """Test successful retrieval of a document with default or custom table."""
+    mock_dynamo_response = {
+        "Item": {
+            "ID": document_id,
+            "NhsNumber": TEST_NHS_NUMBER,
+            "FileName": file_name,
+            "Created": "2023-01-01T00:00:00Z",
+            "Deleted": "foobar",
+            "VirusScannerResult": "Clean",
+        },
+    }
+
+    mock_dynamo_service.get_item.return_value = mock_dynamo_response
+
+    result = mock_service._get_item(
+        table_name=table_name,
+        key={"ID": document_id},
+        model_class=DocumentReference,
+        return_deleted=return_deleted,
+    )
+
+    mock_dynamo_service.get_item.assert_called_once_with(
+        table_name=expected_table,
+        key={"ID": document_id},
+    )
+    if return_deleted:
+        assert result is not None
+        assert isinstance(result, DocumentReference)
+        assert result.id == document_id
+        assert result.nhs_number == TEST_NHS_NUMBER
+    else:
+        assert result is None
+
+
+@pytest.mark.parametrize(
+    "filters",
+    [
+        ([{"DocStatus": "preliminary"}]),
+        ([{"DocStatus": "current"}]),
+    ],
+)
+def test_filters_on_get_item(
+    mock_service,
+    filters,
+):
+    mock_dynamo_response = {
+        "Item": {
+            "ID": "test-doc-id-123",
+            "NhsNumber": TEST_NHS_NUMBER,
+            "FileName": "test-file.pdf",
+            "Created": "2023-01-01T00:00:00Z",
+            "Deleted": "foobar",
+            "VirusScannerResult": "Clean",
+            "DocStatus": "preliminary",
+        },
+    }
+
+    result = mock_service.filter_item(response=mock_dynamo_response, filters=filters)
+    if filters[0].get("DocStatus") == "preliminary":
+        assert result is True
+    else:
+        assert result is False
+
+
+@pytest.mark.parametrize(
+    "document_id,table_name,file_name,expected_table,return_deleted,filters",
+    [
+        (
+            "test-doc-id-123",
+            MOCK_LG_TABLE_NAME,
+            "test-file.pdf",
+            MOCK_LG_TABLE_NAME,
+            False,
+            [{"DocStatus": "preliminary"}],
+        ),
+        (
+            "test-doc-id-456",
+            MOCK_TABLE_NAME,
+            "lg-file.pdf",
+            MOCK_TABLE_NAME,
+            False,
+            [{"DocStatus": "current"}],
+        ),
+    ],
+)
+def test_get_item_returns_filtered(
+    mock_service,
+    mock_dynamo_service,
+    document_id,
+    table_name,
+    file_name,
+    expected_table,
+    return_deleted,
+    filters,
+):
+    """Test successful retrieval of a document with default or custom table."""
+    mock_dynamo_response = {
+        "Item": {
+            "ID": document_id,
+            "NhsNumber": TEST_NHS_NUMBER,
+            "FileName": file_name,
+            "Created": "2023-01-01T00:00:00Z",
+            "Deleted": "",
+            "VirusScannerResult": "Clean",
+            "DocStatus": "preliminary",
+        },
+    }
+
+    mock_dynamo_service.get_item.return_value = mock_dynamo_response
+
+    result = mock_service._get_item(
+        table_name=table_name,
+        key={"ID": document_id},
+        model_class=DocumentReference,
+        return_deleted=return_deleted,
+        filters=filters,
+    )
+
+    mock_dynamo_service.get_item.assert_called_once_with(
+        table_name=expected_table,
+        key={"ID": document_id},
+    )
+    if filters[0].get("DocStatus") == "preliminary":
+        assert result is not None
+        assert isinstance(result, DocumentReference)
+        assert result.id == document_id
+        assert result.nhs_number == TEST_NHS_NUMBER
+    else:
+        assert result is None
