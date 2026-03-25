@@ -23,7 +23,6 @@ logger = LoggingService(__name__)
 @ensure_environment_variables(
     names=[
         "HEALTHCARE_WORKER_API_URL",
-        "USE_MOCK_HEALTHCARE_SERVICE",
     ],
 )
 @handle_lambda_exceptions
