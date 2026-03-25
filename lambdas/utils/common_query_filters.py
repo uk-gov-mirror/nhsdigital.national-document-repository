@@ -72,7 +72,7 @@ def get_doc_status_final_filter(filter_builder: DynamoQueryFilterBuilder):
 
 
 def not_superseded(filter_builder: DynamoQueryFilterBuilder):
-    filter_builder.add_condition("Status", AttributeOperator.NOT_EQUAL, "superceded")
+    filter_builder.add_condition("Status", AttributeOperator.NOT_EQUAL, "superseded")
     return filter_builder.build()
 
 

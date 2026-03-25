@@ -2,6 +2,10 @@ import os
 import tempfile
 from datetime import datetime
 
+from openpyxl.workbook import Workbook
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+
 from enums.dynamo_filter import AttributeOperator
 from enums.file_type import FileType
 from enums.lambda_error import LambdaError
@@ -10,14 +14,14 @@ from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.report_type import ReportType
 from enums.repository_role import RepositoryRole
 from models.document_review import DocumentUploadReviewReference
-from openpyxl.workbook import Workbook
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from services.search_document_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
-from utils.common_query_filters import NotDeleted, get_not_deleted_filter
+from utils.common_query_filters import (
+    FinalStatusAndNotSuperseded,
+    get_not_deleted_filter,
+)
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.lambda_exceptions import OdsReportException
 from utils.request_context import request_context
@@ -59,7 +63,9 @@ class OdsReportService:
         )
 
     def get_documents_for_review(
-        self, ods_code: str, output_file_type: FileType = FileType.CSV
+        self,
+        ods_code: str,
+        output_file_type: FileType = FileType.CSV,
     ):
         if output_file_type != FileType.CSV:
             raise OdsReportException(400, LambdaError.UnsupportedFileType)
@@ -136,7 +142,7 @@ class OdsReportService:
                 index_name="OdsCodeIndex",
                 search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
                 search_condition=ods_code,
-                query_filter=NotDeleted,
+                query_filter=FinalStatusAndNotSuperseded,
             )
             results += response
 
@@ -155,7 +161,10 @@ class OdsReportService:
         report_type: ReportType = ReportType.PATIENT,
     ):
         file_name, local_file_path = self.create_ods_report(
-            ods_code, data, file_type_output, report_type
+            ods_code,
+            data,
+            file_type_output,
+            report_type,
         )
 
         if upload_to_s3:
@@ -172,7 +181,10 @@ class OdsReportService:
         report_type: ReportType = ReportType.PATIENT,
     ):
         file_name = self.get_file_name_for_report_type(
-            report_type, ods_code, len(data), file_type_output
+            report_type,
+            ods_code,
+            len(data),
+            file_type_output,
         )
 
         local_file_path = os.path.join(self.temp_output_dir, file_name)
@@ -223,13 +235,15 @@ class OdsReportService:
     def create_csv_report(self, file_name: str, nhs_numbers: set[str], ods_code: str):
         with open(file_name, "w") as f:
             f.write(
-                f"Total number of patients for ODS code {ods_code}: {len(nhs_numbers)}\n"
+                f"Total number of patients for ODS code {ods_code}: {len(nhs_numbers)}\n",
             )
             f.write("NHS Numbers:\n")
             f.writelines(f"{nhs_number}\n" for nhs_number in nhs_numbers)
 
     def create_review_csv_report(
-        self, file_name: str, data: list[DocumentUploadReviewReference]
+        self,
+        file_name: str,
+        data: list[DocumentUploadReviewReference],
     ):
         headers = [
             "nhs_number",
@@ -258,7 +272,7 @@ class OdsReportService:
                     + line.author
                     + ","
                     + upload_date
-                    + "\n"
+                    + "\n",
                 )
 
     def create_xlsx_report(self, file_name: str, nhs_numbers: set[str], ods_code: str):

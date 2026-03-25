@@ -4,6 +4,10 @@ from datetime import datetime
 from unittest.mock import call
 
 import pytest
+from freezegun import freeze_time
+from openpyxl.reader.excel import load_workbook
+from pypdf import PdfReader
+
 from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.dynamo_filter import AttributeOperator
@@ -11,15 +15,12 @@ from enums.file_type import FileType
 from enums.lambda_error import LambdaError
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
-from freezegun import freeze_time
 from models.document_review import (
     DocumentReviewFileDetails,
     DocumentUploadReviewReference,
 )
-from openpyxl.reader.excel import load_workbook
-from pypdf import PdfReader
 from services.ods_report_service import OdsReportService
-from utils.common_query_filters import NotDeleted
+from utils.common_query_filters import FinalStatusAndNotSuperseded
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.lambda_exceptions import OdsReportException
 
@@ -53,7 +54,8 @@ def mocked_pcse_context(mocker):
         "repository_role": "PCSE",
     }
     yield mocker.patch(
-        "services.ods_report_service.request_context", mocked_pcse_context
+        "services.ods_report_service.request_context",
+        mocked_pcse_context,
     )
 
 
@@ -67,8 +69,9 @@ def mock_review_result():
         upload_date=int(datetime.now().timestamp()),
         files=[
             DocumentReviewFileDetails(
-                file_name="mock_file_name", file_location="mock_file_location"
-            )
+                file_name="mock_file_name",
+                file_location="mock_file_location",
+            ),
         ],
         custodian="mock_custodian",
     )
@@ -125,7 +128,9 @@ def mock_create_review_csv_report(mocker, ods_report_service):
 
 
 def test_get_nhs_numbers_by_ods(
-    ods_report_service, mock_query_table_by_index, mock_create_and_save_ods_report
+    ods_report_service,
+    mock_query_table_by_index,
+    mock_create_and_save_ods_report,
 ):
     mock_query_table_by_index.return_value = [
         {DocumentReferenceMetadataFields.NHS_NUMBER.value: "NHS123"},
@@ -136,12 +141,18 @@ def test_get_nhs_numbers_by_ods(
 
     mock_query_table_by_index.assert_called_once_with("ODS123")
     mock_create_and_save_ods_report.assert_called_once_with(
-        "ODS123", {"NHS123", "NHS456"}, False, False, "csv"
+        "ODS123",
+        {"NHS123", "NHS456"},
+        False,
+        False,
+        "csv",
     )
 
 
 def test_get_nhs_numbers_by_ods_with_temp_folder(
-    ods_report_service, mock_query_table_by_index, mock_create_and_save_ods_report
+    ods_report_service,
+    mock_query_table_by_index,
+    mock_create_and_save_ods_report,
 ):
     mock_query_table_by_index.return_value = [
         {DocumentReferenceMetadataFields.NHS_NUMBER.value: "NHS123"},
@@ -152,13 +163,19 @@ def test_get_nhs_numbers_by_ods_with_temp_folder(
 
     mock_query_table_by_index.assert_called_once_with("ODS123")
     mock_create_and_save_ods_report.assert_called_once_with(
-        "ODS123", {"NHS123", "NHS456"}, False, True, "csv"
+        "ODS123",
+        {"NHS123", "NHS456"},
+        False,
+        True,
+        "csv",
     )
     assert ods_report_service.temp_output_dir != ""
 
 
 def test_scan_table_with_filter(
-    ods_report_service, mocked_context, mock_dynamo_service_scan_table
+    ods_report_service,
+    mocked_context,
+    mock_dynamo_service_scan_table,
 ):
     mock_dynamo_service_scan_table.return_value = [
         {DocumentReferenceMetadataFields.NHS_NUMBER.value: "NHS123"},
@@ -173,7 +190,9 @@ def test_scan_table_with_filter(
 
 
 def test_scan_table_with_filter_no_results(
-    ods_report_service, mocked_context, mock_dynamo_service_scan_table
+    ods_report_service,
+    mocked_context,
+    mock_dynamo_service_scan_table,
 ):
     mock_dynamo_service_scan_table.return_value = []
 
@@ -194,11 +213,16 @@ def test_create_and_save_ods_report_create_csv(
     temp_file_path = os.path.join(ods_report_service.temp_output_dir, file_name)
 
     result = ods_report_service.create_and_save_ods_report(
-        ods_code, nhs_numbers, upload_to_s3=True, file_type_output=FileType.CSV
+        ods_code,
+        nhs_numbers,
+        upload_to_s3=True,
+        file_type_output=FileType.CSV,
     )
 
     mock_create_report_csv.assert_called_once_with(
-        temp_file_path, nhs_numbers, ods_code
+        temp_file_path,
+        nhs_numbers,
+        ods_code,
     )
     mock_save_report_to_s3.assert_called_once_with(ods_code, file_name, temp_file_path)
     mock_get_pre_signed_url.assert_not_called()
@@ -219,11 +243,16 @@ def test_create_and_save_ods_report_create_pdf(
     temp_file_path = os.path.join(ods_report_service.temp_output_dir, file_name)
 
     ods_report_service.create_and_save_ods_report(
-        ods_code, nhs_numbers, upload_to_s3=True, file_type_output=FileType.PDF
+        ods_code,
+        nhs_numbers,
+        upload_to_s3=True,
+        file_type_output=FileType.PDF,
     )
 
     mock_create_report_pdf.assert_called_once_with(
-        temp_file_path, nhs_numbers, ods_code
+        temp_file_path,
+        nhs_numbers,
+        ods_code,
     )
     mock_save_report_to_s3.assert_called_once_with(ods_code, file_name, temp_file_path)
     mock_get_pre_signed_url.assert_not_called()
@@ -242,11 +271,16 @@ def test_create_and_save_ods_report_create_xlsx(
     temp_file_path = os.path.join(ods_report_service.temp_output_dir, file_name)
 
     ods_report_service.create_and_save_ods_report(
-        ods_code, nhs_numbers, upload_to_s3=True, file_type_output=FileType.XLSX
+        ods_code,
+        nhs_numbers,
+        upload_to_s3=True,
+        file_type_output=FileType.XLSX,
     )
 
     mock_create_report_xlsx.assert_called_once_with(
-        temp_file_path, nhs_numbers, ods_code
+        temp_file_path,
+        nhs_numbers,
+        ods_code,
     )
     mock_save_report_to_s3.assert_called_once_with(ods_code, file_name, temp_file_path)
     mock_get_pre_signed_url.assert_not_called()
@@ -290,11 +324,16 @@ def test_create_and_save_ods_report_with_pre_sign_url(
     temp_file_path = os.path.join(ods_report_service.temp_output_dir, file_name)
 
     result = ods_report_service.create_and_save_ods_report(
-        ods_code, nhs_numbers, True, True
+        ods_code,
+        nhs_numbers,
+        True,
+        True,
     )
 
     mock_create_report_csv.assert_called_once_with(
-        temp_file_path, nhs_numbers, ods_code
+        temp_file_path,
+        nhs_numbers,
+        ods_code,
     )
     mock_save_report_to_s3.assert_called_once_with(ods_code, file_name, temp_file_path)
     mock_get_pre_signed_url.assert_called_once_with(ods_code, file_name)
@@ -408,7 +447,9 @@ def test_get_documents_for_review(
 
     query_builder = DynamoQueryFilterBuilder()
     query_builder.add_condition(
-        "ReviewStatus", AttributeOperator.EQUAL, DocumentReviewStatus.PENDING_REVIEW
+        "ReviewStatus",
+        AttributeOperator.EQUAL,
+        DocumentReviewStatus.PENDING_REVIEW,
     )
 
     expected_query_filter = query_builder.build()
@@ -441,7 +482,6 @@ def test_get_documents_for_review(
 
 
 def test_get_documents_for_review_unsupported_file_type(ods_report_service):
-
     with pytest.raises(OdsReportException) as excinfo:
         ods_report_service.get_documents_for_review("mock_ods_code", "pdf")
 
@@ -498,12 +538,14 @@ def test_query_table_by_index(ods_report_service, mocked_context, set_env):
         index_name="OdsCodeIndex",
         search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
         search_condition=mock_ods_code,
-        query_filter=NotDeleted,
+        query_filter=FinalStatusAndNotSuperseded,
     )
 
 
 def test_query_table_by_index_pcse_user(
-    ods_report_service, mocked_pcse_context, set_env
+    ods_report_service,
+    mocked_pcse_context,
+    set_env,
 ):
     mock_dynamo_results = [{"mock_database_field": "mock_database_value"}]
     mock_ods_code = "ODS123"
@@ -523,16 +565,16 @@ def test_query_table_by_index_pcse_user(
                 index_name="OdsCodeIndex",
                 search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
                 search_condition=PatientOdsInactiveStatus.SUSPENDED,
-                query_filter=NotDeleted,
+                query_filter=FinalStatusAndNotSuperseded,
             ),
             call(
                 table_name=os.getenv("LLOYD_GEORGE_DYNAMODB_NAME"),
                 index_name="OdsCodeIndex",
                 search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
                 search_condition=PatientOdsInactiveStatus.DECEASED,
-                query_filter=NotDeleted,
+                query_filter=FinalStatusAndNotSuperseded,
             ),
-        ]
+        ],
     )
 
 
