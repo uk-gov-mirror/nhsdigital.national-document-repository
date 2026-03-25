@@ -2,6 +2,7 @@ import json
 import logging
 
 import pytest
+
 from handlers.get_report_by_ods_handler import (
     handle_api_gateway_request,
     handle_manual_trigger,
@@ -18,28 +19,34 @@ logger = logging.getLogger()
 def mock_service(mocker):
     mock_service = mocker.Mock()
     mocker.patch(
-        "handlers.get_report_by_ods_handler.OdsReportService", return_value=mock_service
+        "handlers.get_report_by_ods_handler.OdsReportService",
+        return_value=mock_service,
     )
     return mock_service
 
 
 def test_lambda_handler_api_gateway_request(
-    mock_service, set_env, context, mock_jwt_encode
+    mock_service,
+    set_env,
+    context,
+    mock_jwt_encode,
 ):
     event = {
         "httpMethod": "GET",
         "headers": {"Authorization": "mock_token"},
         "queryStringParameters": {"odsReportType": "PATIENT"},
     }
-    mock_service.get_nhs_numbers_by_ods.return_value = "example.com/presigned-url"
+    mock_service.generate_ods_report.return_value = "example.com/presigned-url"
     expected = ApiGatewayResponse(
-        200, json.dumps({"url": "example.com/presigned-url"}), "GET"
+        200,
+        json.dumps({"url": "example.com/presigned-url"}),
+        "GET",
     ).create_api_gateway_response()
 
     result = lambda_handler(event, context)
     assert result == expected
 
-    mock_service.get_nhs_numbers_by_ods.assert_called_once_with(
+    mock_service.generate_ods_report.assert_called_once_with(
         ods_code="ODS123",
         is_pre_signed_needed=True,
         is_upload_to_s3_needed=True,
@@ -48,7 +55,10 @@ def test_lambda_handler_api_gateway_request(
 
 
 def test_lambda_handler_gateway_request_review(
-    mock_service, set_env, context, mock_jwt_encode
+    mock_service,
+    set_env,
+    context,
+    mock_jwt_encode,
 ):
     event = {
         "httpMethod": "GET",
@@ -57,7 +67,9 @@ def test_lambda_handler_gateway_request_review(
     }
     mock_service.get_documents_for_review.return_value = "example.com/presigned-url"
     expected = ApiGatewayResponse(
-        200, json.dumps({"url": "example.com/presigned-url"}), "GET"
+        200,
+        json.dumps({"url": "example.com/presigned-url"}),
+        "GET",
     ).create_api_gateway_response()
 
     result = lambda_handler(event, context)
@@ -68,20 +80,26 @@ def test_lambda_handler_gateway_request_review(
 
 def test_lambda_handler_manual_trigger(mock_service, set_env, context):
     event = {"odsCode": "ODS123,ODS456"}
-    mock_service.get_nhs_numbers_by_ods.return_value = None
+    mock_service.generate_ods_report.return_value = None
     expected = ApiGatewayResponse(
-        200, "Successfully created report", "GET"
+        200,
+        "Successfully created report",
+        "GET",
     ).create_api_gateway_response()
 
     result = lambda_handler(event, context)
 
     assert result == expected
-    assert mock_service.get_nhs_numbers_by_ods.call_count == 2
-    mock_service.get_nhs_numbers_by_ods.assert_any_call(
-        ods_code="ODS123", file_type_output="csv", is_upload_to_s3_needed=True
+    assert mock_service.generate_ods_report.call_count == 2
+    mock_service.generate_ods_report.assert_any_call(
+        ods_code="ODS123",
+        file_type_output="csv",
+        is_upload_to_s3_needed=True,
     )
-    mock_service.get_nhs_numbers_by_ods.assert_any_call(
-        ods_code="ODS456", file_type_output="csv", is_upload_to_s3_needed=True
+    mock_service.generate_ods_report.assert_any_call(
+        ods_code="ODS456",
+        file_type_output="csv",
+        is_upload_to_s3_needed=True,
     )
 
 
@@ -128,16 +146,18 @@ def test_lambda_handler_manual_trigger(mock_service, set_env, context):
     ],
 )
 def test_handle_api_gateway_request_handles_output_file_format(
-    mock_service, event, output
+    mock_service,
+    event,
+    output,
 ):
     request_context.authorization = {
-        "selected_organisation": {"org_ods_code": "ODS123"}
+        "selected_organisation": {"org_ods_code": "ODS123"},
     }
-    mock_service.get_nhs_numbers_by_ods.return_value = "example.com/presigned-url"
+    mock_service.generate_ods_report.return_value = "example.com/presigned-url"
 
     handle_api_gateway_request(event)
 
-    mock_service.get_nhs_numbers_by_ods.assert_called_once_with(
+    mock_service.generate_ods_report.assert_called_once_with(
         ods_code="ODS123",
         is_pre_signed_needed=True,
         is_upload_to_s3_needed=True,
@@ -156,10 +176,10 @@ def test_handle_api_gateway_request_no_ods_code_raises_exception(mock_service):
 def test_handle_api_gateway_request_invalid_ods_code_raises_exception(mock_service):
     event = {"httpMethod": "GET", "queryStringParameters": {"odsReportType": "PATIENT"}}
     request_context.authorization = {
-        "selected_organisation": {"org_ods_code": "ODS123"}
+        "selected_organisation": {"org_ods_code": "ODS123"},
     }
-    mock_service.get_nhs_numbers_by_ods.side_effect = OdsErrorException(
-        "Invalid ODS code format"
+    mock_service.generate_ods_report.side_effect = OdsErrorException(
+        "Invalid ODS code format",
     )
 
     with pytest.raises(OdsErrorException, match="Invalid ODS code format"):
@@ -191,24 +211,28 @@ def test_handle_api_gateway_request_incorrect_report_type_raises_exception(
 
 def test_handle_manual_trigger_single_ods_code(mock_service):
     event = {"odsCode": "ODS123", "outputFileFormat": "pdf"}
-    mock_service.get_nhs_numbers_by_ods.return_value = None
+    mock_service.generate_ods_report.return_value = None
     expected = ApiGatewayResponse(
-        200, "Successfully created report", "GET"
+        200,
+        "Successfully created report",
+        "GET",
     ).create_api_gateway_response()
 
     result = handle_manual_trigger(event)
 
     assert result == expected
-    assert mock_service.get_nhs_numbers_by_ods.call_count == 1
-    mock_service.get_nhs_numbers_by_ods.assert_called_once_with(
-        ods_code="ODS123", file_type_output="pdf", is_upload_to_s3_needed=True
+    assert mock_service.generate_ods_report.call_count == 1
+    mock_service.generate_ods_report.assert_called_once_with(
+        ods_code="ODS123",
+        file_type_output="pdf",
+        is_upload_to_s3_needed=True,
     )
 
 
 def test_handle_manual_trigger_invalid_ods_code_format(mock_service):
     event = {"odsCode": "ODS123,ODS456,ODS789"}
-    mock_service.get_nhs_numbers_by_ods.side_effect = OdsErrorException(
-        "Invalid ODS code format"
+    mock_service.generate_ods_report.side_effect = OdsErrorException(
+        "Invalid ODS code format",
     )
 
     with pytest.raises(OdsErrorException, match="Invalid ODS code format"):

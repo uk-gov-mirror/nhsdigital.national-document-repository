@@ -74,7 +74,7 @@ def create_report(ods_code: str, file_type: FileType, report_type: str):
 
 def create_patient_report(ods_code: str, file_type: FileType):
     service = OdsReportService()
-    return service.get_nhs_numbers_by_ods(
+    return service.generate_ods_report(
         ods_code=ods_code,
         is_pre_signed_needed=True,
         is_upload_to_s3_needed=True,
@@ -96,7 +96,7 @@ def handle_manual_trigger(event):
     service = OdsReportService()
     for ods_code in ods_codes:
         logger.info(f"Starting process for ods code: {ods_code}")
-        service.get_nhs_numbers_by_ods(
+        service.generate_ods_report(
             ods_code=ods_code,
             is_upload_to_s3_needed=True,
             file_type_output=file_type,
