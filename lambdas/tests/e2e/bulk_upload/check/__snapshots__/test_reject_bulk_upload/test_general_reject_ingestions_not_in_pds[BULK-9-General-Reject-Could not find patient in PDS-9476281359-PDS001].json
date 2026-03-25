@@ -1,0 +1,28 @@
+{
+  "_description": "BULK-9-General-Reject-Could not find patient in PDS",
+  "bulk_upload_report": {
+    "FilePath": "reject/test/9730787271/1of1_Lloyd_George_Record_[Kate SUMMER]_[9476281359]_[27-08-2019].pdf",
+    "NhsNumber": "9476281359",
+    "PdsOdsCode": "",
+    "Reason": "Could not find the given patient on PDS",
+    "SentToReview": true,
+    "StoredFileName": "test/9730787271/1of1_Lloyd_George_Record_[Kate SUMMER]_[9476281359]_[27-08-2019].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "PDS001"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "PDS001",
+    "Custodian": "PDS001",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "1of1_Lloyd_George_Record_[Kate SUMMER]_[9476281359]_[27-08-2019].pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

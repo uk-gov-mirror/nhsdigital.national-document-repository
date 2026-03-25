@@ -1,0 +1,29 @@
+{
+  "_description": "General-Accept-Processed-Hyphenated Nhs Number",
+  "bulk_upload_report": {
+    "FilePath": "accept/01 of 01_Lloyd_George_Record_MEIXIANG XIAOLIAN FONG_973-0154-406_27-11-1944.pdf",
+    "NhsNumber": "9730154406",
+    "PdsOdsCode": "H81109",
+    "Reason": "Patient matched on full match 3/3, matched on 1 family_name and 2 given name",
+    "SentToReview": false,
+    "StoredFileName": "1of1_Lloyd_George_Record_[MEIXIANG XIAOLIAN FONG]_[9730154406]_[27-11-1944].pdf",
+    "UploadStatus": "complete",
+    "UploaderOdsCode": "H81109"
+  },
+  "metadata": {
+    "Author": "H81109",
+    "ContentType": "application/pdf",
+    "CurrentGpOds": "H81109",
+    "Custodian": "H81109",
+    "DocStatus": "final",
+    "DocumentScanCreation": "2023-01-01",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileName": "1of1_Lloyd_George_Record_[MEIXIANG XIAOLIAN FONG]_[9730154406]_[27-11-1944].pdf",
+    "FileSize": "Decimal('173760')",
+    "NhsNumber": "9730154406",
+    "Status": "current",
+    "Uploaded": true,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+  }
+}

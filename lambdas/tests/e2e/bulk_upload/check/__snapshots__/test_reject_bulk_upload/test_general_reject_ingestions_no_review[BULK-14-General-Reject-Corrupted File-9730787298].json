@@ -1,0 +1,15 @@
+{
+  "_description": "BULK-14-General-Reject-Corrupted File",
+  "bulk_upload_report": {
+    "FilePath": "reject/test/9730787298/1of1_Lloyd_George_Record_[Hazel DOYLE]_[9730787298]_[08-02-2020].pdf",
+    "NhsNumber": "9730787298",
+    "PdsOdsCode": "M85143",
+    "Reason": "One or more of the files were corrupt",
+    "SentToReview": false,
+    "StoredFileName": "test/9730787298/1of1_Lloyd_George_Record_[Hazel DOYLE]_[9730787298]_[08-02-2020].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "review": null
+}

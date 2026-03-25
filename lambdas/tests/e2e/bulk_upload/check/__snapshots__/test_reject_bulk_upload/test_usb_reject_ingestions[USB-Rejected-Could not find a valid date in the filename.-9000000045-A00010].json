@@ -1,0 +1,28 @@
+{
+  "_description": "USB-Rejected-Could not find a valid date in the filename.",
+  "bulk_upload_report": {
+    "FilePath": "reject-usb/1232323232 12-Aug-1999 Catherine Higgins/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000045.pdf",
+    "NhsNumber": "9000000045",
+    "PdsOdsCode": "",
+    "Reason": "Could not find a valid date in the filename",
+    "SentToReview": true,
+    "StoredFileName": "1232323232 12-Aug-1999 Catherine Higgins/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000045.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "A00010"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "A00010",
+    "Custodian": "A00010",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000045.pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

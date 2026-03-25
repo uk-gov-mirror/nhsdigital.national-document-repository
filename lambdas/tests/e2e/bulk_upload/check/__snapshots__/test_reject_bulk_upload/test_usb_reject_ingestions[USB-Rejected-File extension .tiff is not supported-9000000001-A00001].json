@@ -1,0 +1,28 @@
+{
+  "_description": "USB-Rejected-File extension .tiff is not supported",
+  "bulk_upload_report": {
+    "FilePath": "reject-usb/9730153752 Dawn FLING 19-Sep-2011/fgdgdf2f4e4dtd_B_1_Lloyd_George_tiff_NOS_9730153752.tiff",
+    "NhsNumber": "9000000001",
+    "PdsOdsCode": "",
+    "Reason": "File extension .tiff is not supported",
+    "SentToReview": true,
+    "StoredFileName": "9730153752 Dawn FLING 19-Sep-2011/fgdgdf2f4e4dtd_B_1_Lloyd_George_tiff_NOS_9730153752.tiff",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "A00001"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "A00001",
+    "Custodian": "A00001",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "fgdgdf2f4e4dtd_B_1_Lloyd_George_tiff_NOS_9730153752.tiff"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "_description": "USB-Rejected-Invalid patient name",
+  "bulk_upload_report": {
+    "FilePath": "reject-usb/12-Aug-1944 Catherine Higgins 1992323232/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000067.pdf",
+    "NhsNumber": "9000000067",
+    "PdsOdsCode": "",
+    "Reason": "Invalid patient name",
+    "SentToReview": true,
+    "StoredFileName": "12-Aug-1944 Catherine Higgins 1992323232/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000067.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "A00011"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "A00011",
+    "Custodian": "A00011",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000067.pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

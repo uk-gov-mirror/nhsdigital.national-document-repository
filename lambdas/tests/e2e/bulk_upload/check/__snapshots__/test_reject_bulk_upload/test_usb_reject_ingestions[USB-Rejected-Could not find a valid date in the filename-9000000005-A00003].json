@@ -1,0 +1,28 @@
+{
+  "_description": "USB-Rejected-Could not find a valid date in the filename?",
+  "bulk_upload_report": {
+    "FilePath": "reject-usb/9730153819 07-Aug-2020/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000005.pdf",
+    "NhsNumber": "9000000005",
+    "PdsOdsCode": "",
+    "Reason": "Could not find a valid date in the filename",
+    "SentToReview": true,
+    "StoredFileName": "9730153819 07-Aug-2020/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000005.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "A00003"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "A00003",
+    "Custodian": "A00003",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000005.pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

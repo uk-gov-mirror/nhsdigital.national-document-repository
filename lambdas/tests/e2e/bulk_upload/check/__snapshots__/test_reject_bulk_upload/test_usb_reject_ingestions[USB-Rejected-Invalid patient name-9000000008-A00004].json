@@ -1,0 +1,28 @@
+{
+  "_description": "USB-Rejected-Invalid patient name",
+  "bulk_upload_report": {
+    "FilePath": "reject-usb/9730153 Louisa Gables 07-Nov-1999/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000008.pdf",
+    "NhsNumber": "9000000008",
+    "PdsOdsCode": "",
+    "Reason": "Invalid NHS number",
+    "SentToReview": true,
+    "StoredFileName": "9730153 Louisa Gables 07-Nov-1999/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000008.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "A00004"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "A00004",
+    "Custodian": "A00004",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000008.pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

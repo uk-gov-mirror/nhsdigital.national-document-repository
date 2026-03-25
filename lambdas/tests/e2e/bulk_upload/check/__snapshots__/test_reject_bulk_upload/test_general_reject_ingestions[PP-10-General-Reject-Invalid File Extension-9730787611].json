@@ -1,0 +1,28 @@
+{
+  "_description": "PP-10-General-Reject-Invalid File Extension",
+  "bulk_upload_report": {
+    "FilePath": "reject/test/9730787611/1of1_Lloyd_George_Record_[Gary Jack INSKIP]_[9730787611]_[04-09-1960]",
+    "NhsNumber": "9730787611",
+    "PdsOdsCode": "",
+    "Reason": "Invalid file extension",
+    "SentToReview": true,
+    "StoredFileName": "test/9730787611/1of1_Lloyd_George_Record_[Gary Jack INSKIP]_[9730787611]_[04-09-1960]",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "M85143",
+    "Custodian": "M85143",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "1of1_Lloyd_George_Record_[Gary Jack INSKIP]_[9730787611]_[04-09-1960]"
+      }
+    ],
+    "NhsNumber": "9730787611",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

@@ -1,10 +1,10 @@
 from pathlib import Path
 
 import pytest
-from services.base.dynamo_service import DynamoDBService
 from syrupy.filters import paths
+
+from services.base.dynamo_service import DynamoDBService
 from tests.e2e.bulk_upload.conftest import (
-    get_all_entries_from_table_by_nhs_number,
     get_entry_from_table_by_nhs_number,
     read_metadata_csv,
 )
@@ -32,7 +32,6 @@ def bulk_upload_table_records():
     return {
         "lloyd_george_records": lloyd_george_data_helper.scan_lloyd_george_table(),
         "bulk_upload_report_records": lloyd_george_data_helper.scan_bulk_upload_report_table(),
-        "unstitched_records": lloyd_george_data_helper.scan_unstitch_table(),
     }
 
 
@@ -49,30 +48,14 @@ def test_general_accepted_ingestions(
     records_by_num = {
         "_description": description,
         "metadata": get_entry_from_table_by_nhs_number(
-            nhs_number, bulk_upload_table_records["lloyd_george_records"]
+            nhs_number,
+            bulk_upload_table_records["lloyd_george_records"],
         ),
         "bulk_upload_report": get_entry_from_table_by_nhs_number(
-            nhs_number, bulk_upload_table_records["bulk_upload_report_records"]
-        ),
-        "unstitched": get_all_entries_from_table_by_nhs_number(
-            nhs_number, bulk_upload_table_records["unstitched_records"]
+            nhs_number,
+            bulk_upload_table_records["bulk_upload_report_records"],
         ),
     }
-
-    def generate_unstitched_exclusions(num):
-        return [
-            f"unstitched.{i}.{key}"
-            for i in range(num)
-            for key in [
-                "Created",
-                "FileLocation",
-                "ID",
-                "S3VersionID",
-                "S3FileKey",
-                "LastUpdated",
-                "FileName",
-            ]
-        ]
 
     assert records_by_num == snapshot_json(
         exclude=paths(
@@ -85,17 +68,15 @@ def test_general_accepted_ingestions(
             "bulk_upload_report.Date",
             "bulk_upload_report.ID",
             "bulk_upload_report.Timestamp",
-            "bulk_upload_report.FilePath",
-            "bulk_upload_report.StoredFileName",
             "bulk_upload_report.Created",
-            *generate_unstitched_exclusions(3),
-        )
+        ),
     )
     metadata = records_by_num.get("metadata") or {}
     metadata_s3_key = str(metadata.get("S3FileKey"))
     metadata_s3_version = str(metadata.get("S3VersionID"))
     assert lloyd_george_data_helper.check_record_exists_in_s3_with_version(
-        metadata_s3_key, metadata_s3_version
+        metadata_s3_key,
+        metadata_s3_version,
     )
 
 
@@ -112,13 +93,12 @@ def test_usb_accepted_ingestions(
     records_by_num = {
         "_description": description,
         "metadata": get_entry_from_table_by_nhs_number(
-            nhs_number, bulk_upload_table_records["lloyd_george_records"]
+            nhs_number,
+            bulk_upload_table_records["lloyd_george_records"],
         ),
         "bulk_upload_report": get_entry_from_table_by_nhs_number(
-            nhs_number, bulk_upload_table_records["bulk_upload_report_records"]
-        ),
-        "unstitched": get_all_entries_from_table_by_nhs_number(
-            nhs_number, bulk_upload_table_records["unstitched_records"]
+            nhs_number,
+            bulk_upload_table_records["bulk_upload_report_records"],
         ),
     }
     assert records_by_num == snapshot_json(
@@ -132,13 +112,14 @@ def test_usb_accepted_ingestions(
             "bulk_upload_report.Date",
             "bulk_upload_report.ID",
             "bulk_upload_report.Timestamp",
-        )
+        ),
     )
     metadata = records_by_num.get("metadata") or {}
     metadata_s3_key = str(metadata.get("S3FileKey"))
     metadata_s3_version = str(metadata.get("S3VersionID"))
     assert lloyd_george_data_helper.check_record_exists_in_s3_with_version(
-        metadata_s3_key, metadata_s3_version
+        metadata_s3_key,
+        metadata_s3_version,
     )
 
 
@@ -152,13 +133,12 @@ def test_remap_and_fixed(
     records_by_num = {
         "_description": description,
         "metadata": get_entry_from_table_by_nhs_number(
-            nhs_number, bulk_upload_table_records["lloyd_george_records"]
+            nhs_number,
+            bulk_upload_table_records["lloyd_george_records"],
         ),
         "bulk_upload_report": get_entry_from_table_by_nhs_number(
-            nhs_number, bulk_upload_table_records["bulk_upload_report_records"]
-        ),
-        "unstitched": get_all_entries_from_table_by_nhs_number(
-            nhs_number, bulk_upload_table_records["unstitched_records"]
+            nhs_number,
+            bulk_upload_table_records["bulk_upload_report_records"],
         ),
     }
     assert records_by_num == snapshot_json(
@@ -172,11 +152,12 @@ def test_remap_and_fixed(
             "bulk_upload_report.Date",
             "bulk_upload_report.ID",
             "bulk_upload_report.Timestamp",
-        )
+        ),
     )
     metadata = records_by_num.get("metadata") or {}
     metadata_s3_key = str(metadata.get("S3FileKey"))
     metadata_s3_version = str(metadata.get("S3VersionID"))
     assert lloyd_george_data_helper.check_record_exists_in_s3_with_version(
-        metadata_s3_key, metadata_s3_version
+        metadata_s3_key,
+        metadata_s3_version,
     )

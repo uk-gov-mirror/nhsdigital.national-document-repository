@@ -1,0 +1,28 @@
+{
+  "_description": "BULK-6-General-Reject-NHS Number metadata mismatch",
+  "bulk_upload_report": {
+    "FilePath": "reject/test/9730787352/1of1_Lloyd_George_Record_[Clara Kylie HOOD]_[9730787352]_[02-12-2010].pdf",
+    "NhsNumber": "9434765919",
+    "PdsOdsCode": "P87016",
+    "Reason": "NHS number in file names does not match the given NHS number",
+    "SentToReview": true,
+    "StoredFileName": "test/9730787352/1of1_Lloyd_George_Record_[Clara Kylie HOOD]_[9730787352]_[02-12-2010].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "M85143",
+    "Custodian": "P87016",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "1of1_Lloyd_George_Record_[Clara Kylie HOOD]_[9730787352]_[02-12-2010].pdf"
+      }
+    ],
+    "NhsNumber": "9434765919",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

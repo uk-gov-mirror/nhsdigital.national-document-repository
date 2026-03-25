@@ -1,0 +1,28 @@
+{
+  "_description": "USB-Rejected-Invalid NHS number",
+  "bulk_upload_report": {
+    "FilePath": "reject-usb/Stewart Smith 07-Sep-1998/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000088.pdf",
+    "NhsNumber": "9000000088",
+    "PdsOdsCode": "",
+    "Reason": "Invalid NHS number",
+    "SentToReview": true,
+    "StoredFileName": "Stewart Smith 07-Sep-1998/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000088.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "A00008"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "A00008",
+    "Custodian": "A00008",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000088.pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

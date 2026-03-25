@@ -3,6 +3,7 @@ from pathlib import Path
 
 import boto3
 import pytest
+
 from tests.e2e.bulk_upload.conftest import empty_table, read_metadata_csv
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
@@ -18,6 +19,7 @@ def cleanup_databases():
     empty_table(lloyd_george_helper.bulk_upload_table)
     empty_table(lloyd_george_helper.unstitched_table)
     empty_table(lloyd_george_helper.dynamo_table)
+    empty_table(lloyd_george_helper.review_table)
 
 
 def upload_record(record: str, pdf_path: Path, prefix=None, infected=False):
@@ -32,7 +34,9 @@ def upload_record(record: str, pdf_path: Path, prefix=None, infected=False):
     with open(pdf_path, "rb") as f:
         lloyd_george_helper.upload_to_staging_directory(s3_key, f.read())
         lloyd_george_helper.add_virus_scan_tag(
-            s3_key, virus_scanner_result_value, virus_scanner_date_value
+            s3_key,
+            virus_scanner_result_value,
+            virus_scanner_date_value,
         )
 
 
@@ -58,18 +62,23 @@ def upload_corrupted_record(record: str, pdf_path: Path, prefix="reject"):
     with open(path, "rb") as f:
         lloyd_george_helper.upload_to_staging_directory(s3_key, f.read())
         lloyd_george_helper.add_virus_scan_tag(
-            s3_key, virus_scanner_result_value, virus_scanner_date_value
+            s3_key,
+            virus_scanner_result_value,
+            virus_scanner_date_value,
         )
 
 
 def run_bulk_upload(metadata_filename, pre_format_type="general"):
+    print(f"Running bulk upload with metadata file: {metadata_filename}")
     payload = {"inputFileLocation": metadata_filename, "preFormatType": pre_format_type}
     response = lloyd_george_helper.run_bulk_upload(payload=payload)
     return response
 
 
 def run_bulk_upload_with_remappings_and_fixes(
-    metada_filename, remappings, fixed_values
+    metada_filename,
+    remappings,
+    fixed_values,
 ):
     payload = {
         "inputFileLocation": metada_filename,
@@ -109,23 +118,37 @@ def test_run_bulk_upload_accepted_usb():
 
 
 def test_run_bulk_upload_rejected():
-    rows = read_metadata_csv(datadir, "reject-metadata.csv")
+    def load_all_metadata(reject_filenames):
+        reject_rows = []
+        for name in reject_filenames:
+            file_rows = read_metadata_csv(datadir, name)
+            reject_rows.extend(file_rows)
+        return reject_rows
+
+    reject_metadata_files = [
+        "reject-metadata.csv",
+        "reject-metadata-no-nhs-no.csv",
+        "reject-metadata-no-record.csv",
+    ]
+    rows = load_all_metadata(reject_metadata_files)
     for row in rows:
         pdf_filepath = datadir / "pdf" / "valid.pdf"
-        if "Infected" in row["Test-Description"]:
-            upload_record(row["FILEPATH"], pdf_filepath, "reject", True)
-        elif "Corrupted" in row["Test-Description"]:
+        if "BULK-13" in row["Test-Description"]:
+            pass
+        elif "BULK-14" in row["Test-Description"]:
             upload_corrupted_record(row["FILEPATH"], pdf_filepath, "reject")
         else:
             upload_record(row["FILEPATH"], pdf_filepath, "reject")
-    metadata_filepath = datadir / "reject-metadata.csv"
-    s3_key = "reject/index.csv"
 
-    with open(metadata_filepath, "rb") as file:
-        file_content = file.read()
-        lloyd_george_helper.upload_to_staging_directory(s3_key, file_content)
+    for filename in reject_metadata_files:
+        metadata_filepath = datadir / filename
+        s3_key = "reject/" + filename
 
-    run_bulk_upload(s3_key)
+        with open(metadata_filepath, "rb") as file:
+            file_content = file.read()
+            lloyd_george_helper.upload_to_staging_directory(s3_key, file_content)
+
+        run_bulk_upload(s3_key)
 
 
 def test_run_bulk_upload_rejected_usb():
@@ -160,7 +183,9 @@ def test_run_bulk_upload_remap_and_fixed():
     }
     fixed_values = {"GP-PRACTICE-CODE": "M85143", "SCAN-DATE": "01/01/2022"}
     run_bulk_upload_with_remappings_and_fixes(
-        s3_key, metdata_field_remappings, fixed_values
+        s3_key,
+        metdata_field_remappings,
+        fixed_values,
     )
 
 
@@ -180,7 +205,9 @@ def test_run_bulk_upload_fixed_reject():
 
     fixed_values = {"NHS-NO": "123456789", "FILEPATH": "myfile.pdf"}
     run_bulk_upload_with_remappings_and_fixes(
-        s3_key, metdata_field_remappings, fixed_values
+        s3_key,
+        metdata_field_remappings,
+        fixed_values,
     )
 
 

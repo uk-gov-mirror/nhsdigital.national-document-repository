@@ -1,0 +1,28 @@
+{
+  "_description": "PP-4-General-Reject-Not a Lloyd George Record",
+  "bulk_upload_report": {
+    "FilePath": "reject/test/9730787751/1of1_Floyd_George_Record_[Rachel STILL]_[9730787751]_[01-01-2002].pdf",
+    "NhsNumber": "9730787751",
+    "PdsOdsCode": "",
+    "Reason": "Invalid Lloyd_George_Record separator",
+    "SentToReview": true,
+    "StoredFileName": "test/9730787751/1of1_Floyd_George_Record_[Rachel STILL]_[9730787751]_[01-01-2002].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "M85143",
+    "Custodian": "M85143",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "1of1_Floyd_George_Record_[Rachel STILL]_[9730787751]_[01-01-2002].pdf"
+      }
+    ],
+    "NhsNumber": "9730787751",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

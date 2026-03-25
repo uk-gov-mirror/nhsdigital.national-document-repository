@@ -260,10 +260,15 @@ class LloydGeorgeDataHelper(DataHelper):
         self.bulk_upload_table_name = "BulkUploadReport"
         self.metadata_processor_lambda_name = "BulkUploadMetadataProcessor"
         self.unstitched_table_name = "UnstitchedLloydGeorgeReferenceMetadata"
-        self.staging_bucket = "staging-bulk-store"
+        self.review_table_name = "DocumentUploadReview"
+        self.review_bucket_name = "document-pending-review-store"
+        self.staging_bucket_name = "staging-bulk-store"
+
+        self.staging_bucket = None
         self.bulk_upload_table = None
         self.unstitched_table = None
         self.metadata_processor_lambda = None
+        self.review_bucket = None
 
         self.lambda_client = boto3.client("lambda")
         self.s3_client = boto3.client("s3")
@@ -282,13 +287,18 @@ class LloydGeorgeDataHelper(DataHelper):
             f"{self.workspace}_{self.metadata_processor_lambda_name}"
         )
         self.unstitched_table = f"{self.workspace}_{self.unstitched_table_name}"
-        self.staging_bucket = f"{self.workspace}-{self.staging_bucket}"
+        self.staging_bucket = f"{self.workspace}-{self.staging_bucket_name}"
+        self.review_table = f"{self.workspace}_{self.review_table_name}"
+        self.review_bucket = f"{self.workspace}-{self.review_bucket_name}"
 
     def scan_bulk_upload_report_table(self):
         return self.dynamo_service.scan_whole_table(self.bulk_upload_table or "")
 
     def scan_unstitch_table(self):
         return self.dynamo_service.scan_whole_table(self.unstitched_table or "")
+
+    def scan_review_table(self):
+        return self.dynamo_service.scan_whole_table(self.review_table or "")
 
     def run_bulk_upload(self, payload):
         payload = json.dumps(payload)
@@ -331,6 +341,17 @@ class LloydGeorgeDataHelper(DataHelper):
                 )
             else:
                 _ = s3_client.head_object(Bucket=self.s3_bucket, Key=key)
+            return True
+        except s3_client.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] == "404":
+                return False
+            raise
+
+    def check_review_record_exists_in_s3_with_version(self, s3_url):
+        s3_client = boto3.client("s3")
+        try:
+            bucket, key = s3_url.replace("s3://", "").split("/", 1)
+            s3_client.head_object(Bucket=bucket, Key=key)
             return True
         except s3_client.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "404":

@@ -1,0 +1,28 @@
+{
+  "_description": "BULK-3-General-Reject-Missing Files",
+  "bulk_upload_report": {
+    "FilePath": "reject/test/9730787328/1of2_Lloyd_George_Record_[Agnes Gaynor MULLEN]_[9730787328]_[30-03-2017].pdf",
+    "NhsNumber": "9730787328",
+    "PdsOdsCode": "M85143",
+    "Reason": "There are missing file(s) in the request",
+    "SentToReview": true,
+    "StoredFileName": "test/9730787328/1of2_Lloyd_George_Record_[Agnes Gaynor MULLEN]_[9730787328]_[30-03-2017].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "M85143",
+    "Custodian": "M85143",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "1of2_Lloyd_George_Record_[Agnes Gaynor MULLEN]_[9730787328]_[30-03-2017].pdf"
+      }
+    ],
+    "NhsNumber": "9730787328",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

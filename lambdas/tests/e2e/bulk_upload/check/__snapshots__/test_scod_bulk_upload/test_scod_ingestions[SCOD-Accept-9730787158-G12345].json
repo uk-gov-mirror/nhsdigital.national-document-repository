@@ -1,0 +1,43 @@
+{
+  "_description": "SCOD-Accept",
+  "bulk_upload_report": {
+    "FilePath": "expedite/G12345/1of1_Lloyd_George_Record_[Felix Alfred VOS]_[9730787158]_[03-01-2016].pdf",
+    "NhsNumber": "9730787158",
+    "PdsOdsCode": "M85143",
+    "Reason": "Patient matched on full match 3/3, matched on 1 family_name and 2 given name",
+    "SentToReview": false,
+    "StoredFileName": "expedite/G12345/1of1_Lloyd_George_Record_[Felix Alfred VOS]_[9730787158]_[03-01-2016].pdf",
+    "UploadStatus": "complete",
+    "UploaderOdsCode": "G12345"
+  },
+  "metadata": {
+    "Author": "G12345",
+    "ContentType": "application/pdf",
+    "CurrentGpOds": "M85143",
+    "Custodian": "M85143",
+    "DocStatus": "final",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileName": "1of1_Lloyd_George_Record_[Felix Alfred VOS]_[9730787158]_[03-01-2016].pdf",
+    "FileSize": "Decimal('173760')",
+    "NhsNumber": "9730787158",
+    "Status": "current",
+    "Uploaded": true,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+  },
+  "review": {
+    "Author": "G12345",
+    "Custodian": "G12345",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "1of1_Lloyd_George_Record_[Felix Alfred VOS]_[9730787159]_[03-01-2016].pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  },
+  "unstitched": []
+}
