@@ -43,7 +43,7 @@ class SearchUserRestrictionService:
         logger.info(f"Querying user restrictions for ODS code {ods_code}")
         restrictions, next_token = self.dynamo_service.query_restrictions(
             ods_code=ods_code,
-            smart_card_id=smartcard_id,
+            smartcard_id=smartcard_id,
             nhs_number=nhs_number,
             limit=limit,
             start_key=next_page_token,

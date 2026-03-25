@@ -35,3 +35,4 @@ class LoggingAppInteraction(Enum):
     MANIFEST_JOB = "Manifest job"
     RESTRICTION_SOFT_DELETE = "User restrictions - soft-delete"
     SEARCH_HISTORY = "Search document reference history"
+    USER_RESTRICTION = "User restriction"

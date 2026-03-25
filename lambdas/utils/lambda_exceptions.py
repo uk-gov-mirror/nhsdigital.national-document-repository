@@ -144,3 +144,7 @@ class UserRestrictionsException(LambdaException):
 
 class SearchUserRestrictionException(LambdaException):
     pass
+
+
+class CreateUserRestrictionLambdaException(LambdaException):
+    pass

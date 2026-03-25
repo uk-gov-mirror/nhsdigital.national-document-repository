@@ -14,6 +14,7 @@ class ErrorMessage(StrEnum):
     FAILED_TO_VALIDATE = "Failed to validate data"
     FAILED_TO_UPDATE_DYNAMO = "Failed to update DynamoDB"
     FAILED_TO_CREATE_TRANSACTION = "Failed to create transaction"
+    INVALID_REQUEST_BODY = "Invalid request body"
 
 
 class LambdaError(Enum):
@@ -503,7 +504,7 @@ class LambdaError(Enum):
     }
     UpdateUploadStateInvalidBody = {
         "err_code": "US_4005",
-        "message": "Invalid request body",
+        "message": ErrorMessage.INVALID_REQUEST_BODY,
     }
     UpdateUploadStateFieldType = {
         "err_code": "US_4006",
@@ -565,7 +566,7 @@ class LambdaError(Enum):
 
     DocumentReviewInvalidBody = {
         "err_code": "DRV_4004",
-        "message": "Invalid request body",
+        "message": ErrorMessage.INVALID_REQUEST_BODY,
     }
 
     DocumentReviewInvalidNhsNumber = {
@@ -753,6 +754,54 @@ class LambdaError(Enum):
     SqsInvalidEvent = {
         "err_code": "SQS_4001",
         "message": "Failed to parse SQS event",
+    }
+
+    """
+       Errors for UserRestriction lambda
+    """
+    CreateRestrictionMissingBody = {
+        "err_code": "UR_4001",
+        "message": "Missing request body",
+    }
+    CreateRestrictionMissingFields = {
+        "err_code": "UR_4002",
+        "message": "Missing required fields",
+    }
+    CreateRestrictionPatientIdMismatch = {
+        "err_code": "UR_4003",
+        "message": "patientId does not match nhs_number",
+    }
+    CreateRestrictionMissingContext = {
+        "err_code": "UR_4004",
+        "message": "Missing user context",
+    }
+    CreateRestrictionInvalidWorker = {
+        "err_code": "UR_4005",
+        "message": "Invalid Worker",
+    }
+    CreateRestrictionPractitionerModelError = {
+        "err_code": "UR_4006",
+        "message": "Unable to process restricted user information",
+    }
+    CreateRestrictionSelfRestriction = {
+        "err_code": "UR_4007",
+        "message": "You cannot create a restriction for yourself",
+    }
+    CreateRestrictionAlreadyExists = {
+        "err_code": "UR_4009",
+        "message": "A restriction already exists for this user and patient",
+    }
+    CreateRestrictionInvalidBody = {
+        "err_code": "UR_4008",
+        "message": ErrorMessage.INVALID_REQUEST_BODY,
+    }
+    CreateRestrictionPatientOdsMismatch = {
+        "err_code": "UR_4010",
+        "message": "Patient's general practice ODS does not match request context ODS",
+    }
+    CreateRestrictionPatientNotFound = {
+        "err_code": "UR_4011",
+        "message": "Patient not found in PDS",
     }
 
     MockError = {

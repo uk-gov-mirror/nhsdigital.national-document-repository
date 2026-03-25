@@ -58,10 +58,6 @@ class DocumentServiceException(Exception):
     pass
 
 
-class UserRestrictionValidationException(Exception):
-    pass
-
-
 class DocumentReviewException(Exception):
     pass
 
@@ -228,6 +224,14 @@ class HealthcareWorkerAPIException(Exception):
 
 
 class HealthcareWorkerPractitionerModelException(Exception):
+    pass
+
+
+class UserRestrictionAlreadyExistsException(Exception):
+    pass
+
+
+class UserRestrictionValidationException(Exception):
     pass
 
 

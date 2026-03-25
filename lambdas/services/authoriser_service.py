@@ -148,6 +148,12 @@ class AuthoriserService:
             case "/DocumentReview":
                 deny_resource = False
 
+            case "/UserRestriction":
+                if http_verb == HttpVerb.POST:
+                    deny_resource = not patient_access_is_allowed
+                else:
+                    deny_resource = False
+
             case "/UploadState":
                 deny_resource = (
                     not patient_access_is_allowed or is_user_gp_clinical or is_user_pcse

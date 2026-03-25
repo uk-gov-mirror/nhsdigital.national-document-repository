@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timezone
 from enum import StrEnum
 
+from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 from pydantic import ValidationError
 
@@ -36,10 +37,35 @@ class UserRestrictionDynamoService:
         self.dynamo_service = DynamoDBService()
         self.table_name = os.environ["RESTRICTIONS_TABLE_NAME"]
 
+    def create_restriction_item(self, restriction: UserRestriction) -> None:
+        self.dynamo_service.create_item(
+            table_name=self.table_name,
+            item=restriction.model_dump(by_alias=True, exclude_none=True),
+            key_name=UserRestrictionsFields.ID.value,
+        )
+
+    def get_active_restriction(
+        self,
+        nhs_number: str,
+        restricted_user: str,
+    ) -> dict | None:
+        query_filter = Attr(UserRestrictionsFields.RESTRICTED_USER).eq(
+            restricted_user,
+        ) & Attr(UserRestrictionsFields.IS_ACTIVE).eq(True)
+
+        results = self.dynamo_service.query_table(
+            table_name=self.table_name,
+            index_name=UserRestrictionIndexes.NHS_NUMBER_INDEX,
+            search_key=UserRestrictionsFields.NHS_NUMBER,
+            search_condition=nhs_number,
+            query_filter=query_filter,
+        )
+        return results[0] if results else None
+
     def query_restrictions(
         self,
         ods_code: str,
-        smart_card_id: str | None = None,
+        smartcard_id: str | None = None,
         nhs_number: str | None = None,
         limit: int = DEFAULT_LIMIT,
         start_key: str | None = None,
@@ -48,22 +74,28 @@ class UserRestrictionDynamoService:
 
         filter_expression, expression_attribute_names, expression_attribute_values = (
             self._build_query_filter(
-                smart_card_id=smart_card_id,
+                smartcard_id=smartcard_id,
                 nhs_number=nhs_number,
             )
         )
 
-        response = self.dynamo_service.query_table_with_paginator(
-            table_name=self.table_name,
-            index_name=UserRestrictionIndexes.CUSTODIAN_INDEX,
-            key=UserRestrictionsFields.CUSTODIAN,
-            condition=ods_code,
-            filter_expression=filter_expression,
-            expression_attribute_names=expression_attribute_names,
-            expression_attribute_values=expression_attribute_values,
-            limit=limit,
-            start_key=start_key,
-        )
+        try:
+            response = self.dynamo_service.query_table_with_paginator(
+                table_name=self.table_name,
+                index_name=UserRestrictionIndexes.CUSTODIAN_INDEX,
+                key=UserRestrictionsFields.CUSTODIAN,
+                condition=ods_code,
+                filter_expression=filter_expression,
+                expression_attribute_names=expression_attribute_names,
+                expression_attribute_values=expression_attribute_values,
+                limit=limit,
+                start_key=start_key,
+            )
+        except ClientError as e:
+            logger.error(f"DynamoDB ClientError when querying restrictions: {e}")
+            raise UserRestrictionValidationException(
+                f"Failed to query user restrictions from DynamoDB: {e}",
+            ) from e
 
         items = response.get("Items", [])
         restrictions = self._validate_restrictions(items)
@@ -115,7 +147,7 @@ class UserRestrictionDynamoService:
 
     @staticmethod
     def _build_query_filter(
-        smart_card_id: str | None,
+        smartcard_id: str | None,
         nhs_number: str | None,
     ) -> tuple[str, dict, dict]:
         conditions = [
@@ -125,12 +157,12 @@ class UserRestrictionDynamoService:
                 "value": True,
             },
         ]
-        if smart_card_id:
+        if smartcard_id:
             conditions.append(
                 {
                     "field": UserRestrictionsFields.RESTRICTED_USER,
                     "operator": ConditionOperator.EQUAL.value,
-                    "value": smart_card_id,
+                    "value": smartcard_id,
                 },
             )
         if nhs_number:

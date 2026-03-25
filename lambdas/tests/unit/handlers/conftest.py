@@ -1,8 +1,18 @@
+import json
+
 import pytest
+
 from enums.feature_flags import FeatureFlags
 from enums.report_distribution_action import ReportDistributionAction
+from models.pds_models import PatientDetails
 from repositories.reporting.reporting_dynamo_repository import ReportingDynamoRepository
 from services.feature_flags_service import FeatureFlagService
+from tests.unit.conftest import (
+    MOCK_CREATOR_ID,
+    MOCK_SMART_CARD_ID,
+    TEST_CURRENT_GP_ODS,
+    TEST_NHS_NUMBER,
+)
 
 
 @pytest.fixture
@@ -321,3 +331,68 @@ def mock_report_orchestration_wiring(mocker):
         "mock_window": mock_window,
         "mock_report_date": mock_report_date,
     }
+
+
+@pytest.fixture
+def mock_user_restriction_enabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_feature_flag = mock_function.return_value = {
+        FeatureFlags.USER_RESTRICTION_ENABLED: True,
+        FeatureFlags.USE_SMARTCARD_AUTH: False,
+    }
+    yield mock_feature_flag
+
+
+@pytest.fixture
+def mock_user_restriction_disabled(mocker):
+    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
+    mock_feature_flag = mock_function.return_value = {
+        FeatureFlags.USER_RESTRICTION_ENABLED: False,
+    }
+    yield mock_feature_flag
+
+
+@pytest.fixture
+def valid_create_restriction_event():
+    yield {
+        "httpMethod": "POST",
+        "headers": {"Authorization": "test_token"},
+        "queryStringParameters": {"patientId": TEST_NHS_NUMBER},
+        "body": json.dumps(
+            {"smartcardId": MOCK_SMART_CARD_ID, "nhsNumber": TEST_NHS_NUMBER},
+        ),
+    }
+
+
+@pytest.fixture
+def mock_request_context(mocker):
+    mock_context = mocker.patch("utils.ods_utils.request_context")
+    mock_context.authorization = {
+        "nhs_user_id": MOCK_CREATOR_ID,
+        "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS},
+    }
+    yield mock_context
+
+
+@pytest.fixture
+def mock_pds_service_with_matching_ods(mocker):
+    """
+    Mock PDS service to return patient with ODS code matching TEST_CURRENT_GP_ODS.
+    Use this fixture in tests that need ODS validation to pass.
+    """
+    mock_patient_details = PatientDetails(
+        nhsNumber=TEST_NHS_NUMBER,
+        givenName=["Jane"],
+        familyName="Smith",
+        birthDate="2010-10-22",
+        postalCode="LS1 6AE",
+        superseded=False,
+        restricted=False,
+        generalPracticeOds=TEST_CURRENT_GP_ODS,  # Y12345 - matches request context
+        active=True,
+    )
+    mock_service = mocker.patch(
+        "services.user_restrictions.create_user_restriction_service.get_pds_service",
+    )
+    mock_service.return_value.fetch_patient_details.return_value = mock_patient_details
+    yield mock_service
