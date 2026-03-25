@@ -58,7 +58,7 @@ export const handleSearch = async ({
         if (isMock(error)) {
             handleSuccess(
                 buildPatientDetails({
-                    nhsNumber,
+                    nhsNumber: cleanedNhsNumber,
                     active: mockLocal.patientIsActive,
                     deceased: mockLocal.patientIsDeceased,
                 }),

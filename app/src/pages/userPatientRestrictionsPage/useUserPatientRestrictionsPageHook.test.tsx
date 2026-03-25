@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, Mock, vi } from 'vitest';
 import { routeChildren } from '../../types/generic/routes';
-import useUserPatientRestrictionsPage from './useUserPatientRestrictionsPage';
+import useUserPatientRestrictionsPage from './useUserPatientRestrictionsPageHook';
 import { UserPatientRestrictionsSubRoute } from '../../types/generic/userPatientRestriction';
 import useConfig from '../../helpers/hooks/useConfig';
 import { buildUserRestrictions } from '../../helpers/test/testBuilders';
@@ -64,10 +64,24 @@ describe('useUserPatientRestrictionsPage', () => {
             expect(mockNavigate).toHaveBeenCalledWith(routeChildren.USER_PATIENT_RESTRICTIONS_VIEW);
         });
 
-        it('does not navigate when subRoute is not VIEW', async () => {
+        it('navigates to existing restrictions page when subRoute is ADD', async () => {
             const { result, rerender } = renderHook(() => useUserPatientRestrictionsPage());
 
             result.current.setSubRoute(UserPatientRestrictionsSubRoute.ADD);
+
+            rerender();
+
+            result.current.confirmVerifyPatientDetails();
+
+            expect(mockNavigate).toHaveBeenCalledWith(
+                routeChildren.USER_PATIENT_RESTRICTIONS_EXISTING_RESTRICTIONS,
+            );
+        });
+
+        it('does not navigate when subRoute is not VIEW or ADD', async () => {
+            const { result, rerender } = renderHook(() => useUserPatientRestrictionsPage());
+
+            result.current.setSubRoute(UserPatientRestrictionsSubRoute.REMOVE);
 
             rerender();
 

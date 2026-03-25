@@ -6,8 +6,8 @@ import userEvent from '@testing-library/user-event';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import deleteUserPatientRestriction from '../../../../helpers/requests/userPatientRestrictions/deleteUserPatientRestriction';
 
-vi.mock('react-router-dom', () => ({
-    ...vi.importActual('react-router-dom'),
+vi.mock('react-router-dom', async () => ({
+    ...(await vi.importActual('react-router-dom')),
     Link: ({
         children,
         onClick,

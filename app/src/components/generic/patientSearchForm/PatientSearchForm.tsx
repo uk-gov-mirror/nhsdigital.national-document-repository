@@ -19,12 +19,14 @@ import ErrorBox from '../../layout/errorBox/ErrorBox';
 import { InputRef } from '../../../types/generic/inputRef';
 import SpinnerButton from '../spinnerButton/SpinnerButton';
 import PatientSummary, { PatientInfo } from '../patientSummary/PatientSummary';
+import { AxiosError } from 'axios';
 
 type Props = {
     title: string;
     subtitle: string;
     displayPatientDetails?: boolean;
     onSuccess: (patientDetails: PatientDetails) => void;
+    onError?: (error: AxiosError) => void;
     secondaryActionText?: string;
     onSecondaryActionClicked?: () => void;
 };
@@ -38,6 +40,7 @@ const PatientSearchForm = ({
     subtitle,
     displayPatientDetails = false,
     onSuccess,
+    onError,
     secondaryActionText,
     onSecondaryActionClicked,
 }: Props): React.JSX.Element => {
@@ -89,6 +92,10 @@ const PatientSearchForm = ({
         if (result) {
             const [errorCode, statusCode, error] = result;
             if (error) {
+                if (onError) {
+                    onError(error);
+                }
+
                 if (errorCode) {
                     setInputError(errorCode ?? 'Sorry, patient data not found.');
                 } else {

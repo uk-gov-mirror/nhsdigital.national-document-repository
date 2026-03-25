@@ -110,11 +110,13 @@ export enum routeChildren {
 
     COOKIES_POLICY_UPDATED = '/cookies-policy/confirmation',
 
-    USER_PATIENT_RESTRICTIONS_ADD = '/user-patient-restrictions/add',
     USER_PATIENT_RESTRICTIONS_CONFIRM_ADD = '/user-patient-restrictions/confirm-add',
     USER_PATIENT_RESTRICTIONS_VIEW = '/user-patient-restrictions/view',
     USER_PATIENT_RESTRICTIONS_LIST = '/user-patient-restrictions/list',
+    USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT = '/user-patient-restrictions/search-patient',
     USER_PATIENT_RESTRICTIONS_VERIFY_PATIENT = '/user-patient-restrictions/verify-patient',
+    USER_PATIENT_RESTRICTIONS_EXISTING_RESTRICTIONS = '/user-patient-restrictions/existing-restrictions',
+    USER_PATIENT_RESTRICTIONS_SEARCH_STAFF = '/user-patient-restrictions/search-staff',
     USER_PATIENT_RESTRICTIONS_VERIFY_STAFF = '/user-patient-restrictions/verify-staff',
     USER_PATIENT_RESTRICTIONS_REMOVE_CONFIRM = '/user-patient-restrictions/remove-confirm',
     USER_PATIENT_RESTRICTIONS_REMOVE_COMPLETE = '/user-patient-restrictions/remove-complete',

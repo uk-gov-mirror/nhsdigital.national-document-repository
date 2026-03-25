@@ -260,7 +260,7 @@ const buildDocumentReference = (override: Partial<DocumentReference> = {}): Docu
     };
 };
 
-const buildUserRestrictions = (patientCount?: number): UserPatientRestriction[] => {
+const buildUserRestrictions = (): UserPatientRestriction[] => {
     return [
         {
             id: 'restriction-123',

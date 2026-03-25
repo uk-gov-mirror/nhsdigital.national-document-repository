@@ -8,8 +8,8 @@ import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
 
-vi.mock('react-router-dom', () => ({
-    ...vi.importActual('react-router-dom'),
+vi.mock('react-router-dom', async () => ({
+    ...(await vi.importActual('react-router-dom')),
     useNavigate: (): Mock => mockNavigate,
 }));
 

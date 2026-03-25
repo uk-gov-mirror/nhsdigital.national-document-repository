@@ -3,6 +3,7 @@ import UserPatientRestrictionsIndex from './UserPatientRestrictionsIndex';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { routeChildren, routes } from '../../../../types/generic/routes';
+import { UserPatientRestrictionsSubRoute } from '../../../../types/generic/userPatientRestriction';
 
 vi.mock('../../../helpers/hooks/useTitle');
 vi.mock('../../../../styles/right-chevron-circle.svg', () => ({
@@ -17,8 +18,9 @@ vi.mock('react-router-dom', async () => {
 });
 const mockNavigate = vi.fn();
 
+const setSubRoute = vi.fn();
 const renderComponent = (): void => {
-    render(<UserPatientRestrictionsIndex />);
+    render(<UserPatientRestrictionsIndex setSubRoute={setSubRoute} />);
 };
 
 describe('UserRestrictionsPage', (): void => {
@@ -62,7 +64,10 @@ describe('UserRestrictionsPage', (): void => {
 
         it('navigates to add restriction page when add restriction button is clicked', (): void => {
             screen.getByTestId('add-user-restriction-btn').click();
-            expect(mockNavigate).toHaveBeenCalledWith(routeChildren.USER_PATIENT_RESTRICTIONS_ADD);
+            expect(setSubRoute).toHaveBeenCalledWith(UserPatientRestrictionsSubRoute.ADD);
+            expect(mockNavigate).toHaveBeenCalledWith(
+                routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT,
+            );
         });
 
         it('navigates to view restrictions page when view restrictions button is clicked', (): void => {

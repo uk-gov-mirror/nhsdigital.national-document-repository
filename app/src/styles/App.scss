@@ -1299,13 +1299,13 @@ progress:not(.continuous-progress-bar) {
 }
 
 .action-button-group {
-        display: flex;
-        align-items: center;
+    display: flex;
+    align-items: center;
 
-        .nhsuk-button {
-            margin-bottom: 0;
-        }
+    .nhsuk-button {
+        margin-bottom: 0;
     }
+}
 
 @import '../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults.scss';
 @import '../components/blocks/_documentManagement/documentUploadCompleteStage/DocumentUploadCompleteStage.scss';
@@ -1318,3 +1318,4 @@ progress:not(.continuous-progress-bar) {
 @import '../components/blocks/_patientDocuments/documentView/DocumentView.scss';
 @import '../components/blocks/_documentManagement/documentSelectOrderStage/DocumentSelectOrderStage.scss';
 @import '../components/blocks/_userPatientRestrictions/userPatientRestrictionsListStage/UserPatientRestrictionsListStage.scss';
+@import '../components/blocks/_userPatientRestrictions/userPatientRestrictionsExistingStage/UserPatientRestrictionsExistingStage.scss';

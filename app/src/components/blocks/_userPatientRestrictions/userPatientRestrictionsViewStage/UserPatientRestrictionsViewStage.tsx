@@ -86,7 +86,7 @@ const UserPatientRestrictionsViewStage = ({
 
     const addRestrictionClicked = (): void => {
         setSubRoute(UserPatientRestrictionsSubRoute.ADD);
-        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ADD);
+        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF);
     };
 
     return (

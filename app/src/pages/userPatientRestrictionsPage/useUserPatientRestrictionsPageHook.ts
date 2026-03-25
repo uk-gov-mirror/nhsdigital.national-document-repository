@@ -14,6 +14,8 @@ export type UseUserPatientRestrictionsPageReturn = {
     restrictionToRemove: UserPatientRestriction | null;
     confirmVerifyPatientDetails: () => void;
     onRemoveRestriction: (restriction: UserPatientRestriction) => void;
+    existingRestrictions: UserPatientRestriction[];
+    setExistingRestrictions: React.Dispatch<React.SetStateAction<UserPatientRestriction[]>>;
 };
 
 const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn => {
@@ -24,9 +26,12 @@ const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn 
     const [restrictionToRemove, setRestrictionToRemove] = useState<UserPatientRestriction | null>(
         null,
     );
+    const [existingRestrictions, setExistingRestrictions] = useState<UserPatientRestriction[]>([]);
 
     const confirmVerifyPatientDetails = (): void => {
-        if (subRoute === UserPatientRestrictionsSubRoute.VIEW) {
+        if (subRoute === UserPatientRestrictionsSubRoute.ADD) {
+            navigate(routeChildren.USER_PATIENT_RESTRICTIONS_EXISTING_RESTRICTIONS);
+        } else if (subRoute === UserPatientRestrictionsSubRoute.VIEW) {
             navigate(routeChildren.USER_PATIENT_RESTRICTIONS_VIEW);
         }
     };
@@ -46,6 +51,8 @@ const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn 
         restrictionToRemove,
         confirmVerifyPatientDetails,
         onRemoveRestriction,
+        existingRestrictions,
+        setExistingRestrictions,
     };
 };
 

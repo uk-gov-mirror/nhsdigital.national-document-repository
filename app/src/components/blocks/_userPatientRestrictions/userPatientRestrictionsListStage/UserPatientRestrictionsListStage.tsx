@@ -184,7 +184,8 @@ const UserPatientRestrictionsListStage = ({ setSubRoute }: Props): React.JSX.Ele
             <Button
                 onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
                     e.preventDefault();
-                    navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ADD);
+                    setSubRoute(UserPatientRestrictionsSubRoute.ADD);
+                    navigate(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT);
                 }}
             >
                 Add a restriction

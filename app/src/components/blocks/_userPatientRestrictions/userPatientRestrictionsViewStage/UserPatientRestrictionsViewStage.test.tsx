@@ -136,7 +136,9 @@ describe('UserPatientRestrictionsViewStage', () => {
 
         await waitFor(() => {
             expect(mockSetSubRoute).toHaveBeenCalledWith(UserPatientRestrictionsSubRoute.ADD);
-            expect(mockNavigate).toHaveBeenCalledWith(routeChildren.USER_PATIENT_RESTRICTIONS_ADD);
+            expect(mockNavigate).toHaveBeenCalledWith(
+                routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF,
+            );
         });
     });
 });

@@ -7,8 +7,8 @@ import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import userEvent from '@testing-library/user-event';
 import { routes } from '../../../../types/generic/routes';
 
-vi.mock('react-router-dom', () => ({
-    ...vi.importActual('react-router-dom'),
+vi.mock('react-router-dom', async () => ({
+    ...(await vi.importActual('react-router-dom')),
     useNavigate: (): Mock => mockNavigate,
 }));
 vi.mock('../../../../helpers/hooks/usePatient');

@@ -6,7 +6,7 @@ import * as ReactRouter from 'react-router-dom';
 import { createMemoryHistory, MemoryHistory } from 'history';
 import usePatient from '../../helpers/hooks/usePatient';
 import { buildPatientDetails } from '../../helpers/test/testBuilders';
-import useUserPatientRestrictionsPage from './useUserPatientRestrictionsPage';
+import useUserPatientRestrictionsPage from './useUserPatientRestrictionsPageHook';
 
 vi.mock('../../styles/right-chevron-circle.svg', () => ({
     ReactComponent: (): string => 'svg',
@@ -14,7 +14,7 @@ vi.mock('../../styles/right-chevron-circle.svg', () => ({
 vi.mock('../../helpers/hooks/useTitle');
 vi.mock('../../helpers/hooks/useConfig');
 vi.mock('../../helpers/hooks/usePatient');
-vi.mock('./useUserPatientRestrictionsPage');
+vi.mock('./useUserPatientRestrictionsPageHook');
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');

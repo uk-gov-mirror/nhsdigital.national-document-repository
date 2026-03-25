@@ -4,12 +4,14 @@ import UserPatientRestrictionsIndex from '../../components/blocks/_userPatientRe
 import { getLastURLPath } from '../../helpers/utils/urlManipulations';
 import UserPatientRestrictionsListStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsListStage/UserPatientRestrictionsListStage';
 import UserPatientRestrictionsViewStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsViewStage/UserPatientRestrictionsViewStage';
-import UserPatientRestrictionsAddStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsAddStage/UserPatientRestrictionsAddStage';
 import UserPatientRestrictionsRemoveConfirmStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsRemoveConfirmStage/UserPatientRestrictionsRemoveConfirmStage';
 import UserPatientRestrictionsVerifyPatientStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsVerifyPatientStage/UserPatientRestrictionsVerifyPatientStage';
 import UserPatientRestrictionsCompleteStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsCompleteStage/UserPatientRestrictionsCompleteStage';
-import useUserPatientRestrictionsPage from './useUserPatientRestrictionsPage';
+import useUserPatientRestrictionsPage from './useUserPatientRestrictionsPageHook';
 import { useEffect } from 'react';
+import UserPatientRestrictionsSearchPatientStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsSearchPatientStage/UserPatientRestrictionsSearchPatientStage';
+import UserPatientRestrictionsExistingStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsExistingStage/UserPatientRestrictionsExistingStage';
+import UserPatientRestrictionsSearchStaffStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsSearchStaffStage/UserPatientRestrictionsSearchStaffStage';
 
 const UserPatientRestrictionsPage = (): React.JSX.Element => {
     const {
@@ -19,6 +21,8 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
         restrictionToRemove,
         confirmVerifyPatientDetails,
         onRemoveRestriction,
+        existingRestrictions,
+        setExistingRestrictions,
     } = useUserPatientRestrictionsPage();
 
     const navigate = useNavigate();
@@ -36,7 +40,7 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
     return (
         <>
             <Routes>
-                <Route index element={<UserPatientRestrictionsIndex />} />
+                <Route index element={<UserPatientRestrictionsIndex setSubRoute={setSubRoute} />} />
 
                 <Route
                     path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_LIST)}
@@ -78,8 +82,25 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
                 />
 
                 <Route
-                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_ADD)}
-                    element={<UserPatientRestrictionsAddStage />}
+                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT)}
+                    element={<UserPatientRestrictionsSearchPatientStage />}
+                />
+
+                <Route
+                    path={getLastURLPath(
+                        routeChildren.USER_PATIENT_RESTRICTIONS_EXISTING_RESTRICTIONS,
+                    )}
+                    element={
+                        <UserPatientRestrictionsExistingStage
+                            existingRestrictions={existingRestrictions}
+                            setExistingRestrictions={setExistingRestrictions}
+                        />
+                    }
+                />
+
+                <Route
+                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF)}
+                    element={<UserPatientRestrictionsSearchStaffStage />}
                 />
             </Routes>
 

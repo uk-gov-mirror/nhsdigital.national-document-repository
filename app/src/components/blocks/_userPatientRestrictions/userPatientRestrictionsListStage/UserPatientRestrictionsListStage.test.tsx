@@ -6,7 +6,6 @@ import { routeChildren, routes } from '../../../../types/generic/routes';
 import getUserPatientRestrictions from '../../../../helpers/requests/userPatientRestrictions/getUserPatientRestrictions';
 import { buildPatientDetails, buildUserRestrictions } from '../../../../helpers/test/testBuilders';
 import { UserPatientRestrictionsSubRoute } from '../../../../types/generic/userPatientRestriction';
-import { useState } from 'react';
 import getPatientDetails from '../../../../helpers/requests/getPatientDetails';
 import { UIErrorCode } from '../../../../types/generic/errors';
 
@@ -71,7 +70,10 @@ describe('UserPatientRestrictionsListStage', () => {
 
         await userEvent.click(addRestrictionButton);
 
-        expect(mockNavigate).toHaveBeenCalledWith(routeChildren.USER_PATIENT_RESTRICTIONS_ADD);
+        expect(setSubRoute).toHaveBeenCalledWith(UserPatientRestrictionsSubRoute.ADD);
+        expect(mockNavigate).toHaveBeenCalledWith(
+            routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT,
+        );
     });
 
     it('should navigate to view restrictions stage when view restriction button is clicked', async () => {
@@ -411,11 +413,8 @@ describe('UserPatientRestrictionsListStage', () => {
     });
 });
 
-const TestApp = (): React.JSX.Element => {
-    const [, setSubRoute] = useState<UserPatientRestrictionsSubRoute | null>(null);
-    return <UserPatientRestrictionsListStage setSubRoute={setSubRoute} />;
-};
+const setSubRoute = vi.fn();
 
 const renderPage = (): void => {
-    render(<TestApp />);
+    render(<UserPatientRestrictionsListStage setSubRoute={setSubRoute} />);
 };

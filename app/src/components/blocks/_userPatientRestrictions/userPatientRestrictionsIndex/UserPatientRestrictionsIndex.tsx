@@ -1,12 +1,17 @@
 import { Card } from 'nhsuk-react-components';
-import { JSX } from 'react';
+import { Dispatch, JSX, SetStateAction } from 'react';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { ReactComponent as RightCircleIcon } from '../../../../styles/right-chevron-circle.svg';
 import BackButton from '../../../generic/backButton/BackButton';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import { useNavigate } from 'react-router-dom';
+import { UserPatientRestrictionsSubRoute } from '../../../../types/generic/userPatientRestriction';
 
-const UserPatientRestrictionsIndex = (): JSX.Element => {
+type Props = {
+    setSubRoute: Dispatch<SetStateAction<UserPatientRestrictionsSubRoute | null>>;
+};
+
+const UserPatientRestrictionsIndex = ({ setSubRoute }: Props): JSX.Element => {
     const navigate = useNavigate();
     useTitle({ pageTitle: 'Restrict staff from accessing patient records' });
 
@@ -21,10 +26,13 @@ const UserPatientRestrictionsIndex = (): JSX.Element => {
                             <Card.Heading className="nhsuk-heading-m">
                                 <Card.Link
                                     data-testid="add-user-restriction-btn"
-                                    href="#"
+                                    href={routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT}
                                     onClick={(e): void => {
                                         e.preventDefault();
-                                        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ADD);
+                                        setSubRoute(UserPatientRestrictionsSubRoute.ADD);
+                                        navigate(
+                                            routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT,
+                                        );
                                     }}
                                 >
                                     Add a restriction
@@ -43,7 +51,7 @@ const UserPatientRestrictionsIndex = (): JSX.Element => {
                             <Card.Heading className="nhsuk-heading-m">
                                 <Card.Link
                                     data-testid="view-user-restrictions-btn"
-                                    href="#"
+                                    href={routeChildren.USER_PATIENT_RESTRICTIONS_LIST}
                                     onClick={(e): void => {
                                         e.preventDefault();
                                         navigate(routeChildren.USER_PATIENT_RESTRICTIONS_LIST);
