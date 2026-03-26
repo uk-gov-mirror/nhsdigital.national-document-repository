@@ -4,7 +4,7 @@ import tempfile
 import urllib
 import urllib.parse
 from collections import defaultdict
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 import pytest
 from botocore.exceptions import ClientError
@@ -656,6 +656,31 @@ def test_handle_invalid_filename_sets_sent_to_review_true_when_review_enabled(
         str(error),
         sent_to_review=True,
     )
+
+
+def test_handle_invalid_filename_preserves_original_nhs_number_in_report(
+    test_service,
+    base_metadata_file,
+):
+    non_numeric_nhs = "ABC1234567"
+    ods_code = "Y12345"
+    failed_files = defaultdict(list)
+    error = InvalidFileNameException("Invalid filename format")
+
+    base_metadata_file.nhs_number = non_numeric_nhs
+    mock_write = MagicMock()
+    test_service.dynamo_repository.write_report_upload_to_dynamo = mock_write
+
+    test_service.handle_invalid_filename(
+        base_metadata_file,
+        error,
+        non_numeric_nhs,
+        ods_code,
+        failed_files,
+    )
+
+    written_staging_metadata = mock_write.call_args[0][0]
+    assert written_staging_metadata.nhs_number == non_numeric_nhs
 
 
 def test_csv_to_sqs_metadata_sends_failed_files_to_review_queue_when_enabled(

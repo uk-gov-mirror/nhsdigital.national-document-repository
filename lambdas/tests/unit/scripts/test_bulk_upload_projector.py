@@ -213,12 +213,12 @@ def test_log_summary_infers_top_level_folders(projector, monkeypatch):
     monkeypatch.setenv("STAGING_STORE_BUCKET_NAME", "my-staging-bucket")
     file_paths = ["abc123/1of1_file.pdf", "def456/1of1_file.pdf"]
     # Should not raise and should log folder names
-    projector._log_summary([], {}, 0, file_paths)
+    projector._log_summary([], {}, 0, 0, file_paths)
 
 
 def test_log_summary_handles_flat_file_paths(projector):
     # File paths with no subdirectory — should not raise
-    projector._log_summary([], {}, 0, ["flat_file.pdf"])
+    projector._log_summary([], {}, 0, 0, ["flat_file.pdf"])
 
 
 # --- run ---
@@ -272,7 +272,7 @@ def test_run_writes_summary_file(projector, tmp_path):
 
     summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
     content = summary_file.read_text()
-    assert "PROJECTION SUMMARY" in content
+    assert "METADATA PROJECTION SUMMARY" in content
     assert "Patients to be ingested" in content
 
 
@@ -307,3 +307,110 @@ def test_rows_file_captures_hard_rejected(projector, tmp_path):
     statuses = [r["status"] for r in result_rows]
     assert "hard_rejected" in statuses
     assert "to_be_ingested" in statuses
+
+
+# --- _count_patients_per_ods ---
+
+
+def test_count_patients_per_ods_ingested(projector):
+    row_results = [
+        {"nhs_number": "9000000009", "gp_practice_code": "Y12345", "status": "to_be_ingested"},
+        {"nhs_number": "9000000025", "gp_practice_code": "Y12345", "status": "to_be_ingested"},
+        {"nhs_number": "9000000033", "gp_practice_code": "Z99999", "status": "to_be_ingested"},
+    ]
+    ingested, review = projector._count_patients_per_ods(row_results)
+    assert ingested["Y12345"] == 2
+    assert ingested["Z99999"] == 1
+    assert len(review) == 0
+
+
+def test_count_patients_per_ods_review(projector):
+    row_results = [
+        {"nhs_number": "9000000009", "gp_practice_code": "Y12345", "status": "sent_for_review"},
+        {"nhs_number": "9000000025", "gp_practice_code": "Z99999", "status": "sent_for_review"},
+    ]
+    ingested, review = projector._count_patients_per_ods(row_results)
+    assert len(ingested) == 0
+    assert review["Y12345"] == 1
+    assert review["Z99999"] == 1
+
+
+def test_count_patients_per_ods_deduplicates_same_patient(projector):
+    row_results = [
+        {"nhs_number": "9000000009", "gp_practice_code": "Y12345", "status": "to_be_ingested"},
+        {"nhs_number": "9000000009", "gp_practice_code": "Y12345", "status": "to_be_ingested"},
+    ]
+    ingested, _ = projector._count_patients_per_ods(row_results)
+    assert ingested["Y12345"] == 1
+
+
+def test_count_patients_per_ods_skips_hard_rejected(projector):
+    row_results = [
+        {"nhs_number": "", "gp_practice_code": "", "status": "hard_rejected"},
+    ]
+    ingested, review = projector._count_patients_per_ods(row_results)
+    assert len(ingested) == 0
+    assert len(review) == 0
+
+
+# --- per-ODS in summary output ---
+
+
+def test_summary_file_includes_ods_breakdown(projector, tmp_path):
+    second_ods = "Z99999"
+    rows = [
+        BASE_ROW,
+        {
+            "NHS-NO": "9000000025",
+            "FILEPATH": "9000000025/1of1_Lloyd_George_Record_[Jane Doe]_[9000000025]_[01-01-2020].pdf",
+            "GP-PRACTICE-CODE": second_ods,
+            "SCAN-DATE": "2020-01-01",
+        },
+    ]
+    csv_path = make_csv(tmp_path, rows)
+    projector.run(str(csv_path))
+
+    summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
+    content = summary_file.read_text()
+    assert "Per ODS code:" in content
+    assert VALID_ODS in content
+    assert second_ods in content
+
+
+def test_summary_file_ods_counts_correct(projector, tmp_path):
+    rows = [BASE_ROW, {**BASE_ROW, "NHS-NO": "9000000025",
+                       "FILEPATH": "9000000025/1of1_Lloyd_George_Record_[Jane Doe]_[9000000025]_[01-01-2020].pdf"}]
+    csv_path = make_csv(tmp_path, rows)
+    projector.run(str(csv_path))
+
+    summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
+    content = summary_file.read_text()
+    assert f"{VALID_ODS}: 2 to be ingested" in content
+
+
+# --- pre-processed file count ---
+
+
+def test_summary_shows_preprocessed_count(projector, tmp_path):
+    projector.metadata_formatter_service.validate_record_filename.return_value = (
+        VALID_FILENAME
+    )
+    rows = [
+        BASE_ROW,
+        {**BASE_ROW, "NHS-NO": "9000000025", "FILEPATH": "not_a_valid_lloyd_george_file.pdf"},
+    ]
+    csv_path = make_csv(tmp_path, rows)
+    projector.run(str(csv_path))
+
+    summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
+    content = summary_file.read_text()
+    assert "Files pre-processed     : 1" in content
+
+
+def test_no_preprocessed_files_shows_zero(projector, tmp_path):
+    csv_path = make_csv(tmp_path, [BASE_ROW])
+    projector.run(str(csv_path))
+
+    summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
+    content = summary_file.read_text()
+    assert "Files pre-processed     : 0" in content
