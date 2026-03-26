@@ -1,6 +1,6 @@
 import csv as csv_module
 import os
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime
 
 from models.staging_metadata import (
@@ -71,6 +71,8 @@ class BulkUploadProjector:
         hard_rejected_count = sum(
             1 for r in row_results if r["status"] == "hard_rejected"
         )
+        preprocessed_count = sum(1 for r in row_results if r["stored_file_name"])
+        ods_ingested, ods_review = self._count_patients_per_ods(row_results)
         rows_filename, summary_filename = _output_filenames(local_csv_path)
 
         self._write_rows_file(output_dir, rows_filename, row_results)
@@ -80,13 +82,19 @@ class BulkUploadProjector:
             staging_metadata_list,
             review_patients,
             hard_rejected_count,
+            preprocessed_count,
             file_paths,
+            ods_ingested,
+            ods_review,
         )
         self._log_summary(
             staging_metadata_list,
             review_patients,
             hard_rejected_count,
+            preprocessed_count,
             file_paths,
+            ods_ingested,
+            ods_review,
         )
 
         return staging_metadata_list
@@ -218,6 +226,27 @@ class BulkUploadProjector:
             },
         )
 
+    def _count_patients_per_ods(
+        self, row_results: list[dict]
+    ) -> tuple[Counter, Counter]:
+        ods_ingested: Counter = Counter()
+        ods_review: Counter = Counter()
+        seen_ingested: set = set()
+        seen_review: set = set()
+        for r in row_results:
+            nhs = r["nhs_number"]
+            ods = r["gp_practice_code"]
+            if not nhs or not ods:
+                continue
+            key = (nhs, ods)
+            if r["status"] == "to_be_ingested" and key not in seen_ingested:
+                ods_ingested[ods] += 1
+                seen_ingested.add(key)
+            elif r["status"] == "sent_for_review" and key not in seen_review:
+                ods_review[ods] += 1
+                seen_review.add(key)
+        return ods_ingested, ods_review
+
     def _apply_fixed_values(self, file_metadata: MetadataFile) -> MetadataFile:
         metadata_dict = file_metadata.model_dump(by_alias=True)
         for field_name, fixed_value in self.fixed_values.items():
@@ -257,7 +286,10 @@ class BulkUploadProjector:
         staging_metadata_list: list[StagingSqsMetadata],
         review_patients: dict,
         hard_rejected_count: int,
+        preprocessed_count: int,
         file_paths: list[str],
+        ods_ingested: Counter = None,
+        ods_review: Counter = None,
     ) -> None:
         all_top_level_folders = sorted(
             {p.lstrip("/").split("/")[0] for p in file_paths if "/" in p.lstrip("/")},
@@ -276,12 +308,30 @@ class BulkUploadProjector:
         if self.fixed_values:
             payload["fixedValues"] = self.fixed_values
 
+        ods_ingested = ods_ingested or Counter()
+        ods_review = ods_review or Counter()
+        all_ods_codes = sorted(set(ods_ingested) | set(ods_review))
+
         lines = [
-            "PROJECTION SUMMARY",
+            "METADATA PROJECTION SUMMARY",
             "=" * 60,
             f"Patients to be ingested : {len(staging_metadata_list)}",
             f"Patients sent for review: {len(review_patients)}",
             f"Hard rejected rows      : {hard_rejected_count}",
+            f"Files pre-processed     : {preprocessed_count}",
+            "",
+            "Per ODS code:",
+        ]
+        for ods in all_ods_codes:
+            ingested = ods_ingested.get(ods, 0)
+            review = ods_review.get(ods, 0)
+            parts = []
+            if ingested:
+                parts.append(f"{ingested} to be ingested")
+            if review:
+                parts.append(f"{review} for review")
+            lines.append(f"  {ods}: {', '.join(parts)}")
+        lines += [
             "",
             "Where to place metadata file in S3:",
             "  Place your metadata file one level above these folder(s):",
@@ -307,7 +357,10 @@ class BulkUploadProjector:
         staging_metadata_list: list[StagingSqsMetadata],
         review_patients: dict,
         hard_rejected_count: int,
+        preprocessed_count: int,
         file_paths: list[str],
+        ods_ingested: Counter = None,
+        ods_review: Counter = None,
     ) -> None:
         all_top_level_folders = sorted(
             {p.lstrip("/").split("/")[0] for p in file_paths if "/" in p.lstrip("/")},
@@ -315,11 +368,26 @@ class BulkUploadProjector:
         top_level_folders = all_top_level_folders[:5]
         extra_folders = len(all_top_level_folders) - len(top_level_folders)
 
+        ods_ingested = ods_ingested or Counter()
+        ods_review = ods_review or Counter()
+        all_ods_codes = sorted(set(ods_ingested) | set(ods_review))
+
         logger.info("=" * 60)
-        logger.info("PROJECTION SUMMARY")
+        logger.info("METADATA PROJECTION SUMMARY")
         logger.info(f"  Patients to be ingested : {len(staging_metadata_list)}")
         logger.info(f"  Patients sent for review: {len(review_patients)}")
         logger.info(f"  Hard rejected rows      : {hard_rejected_count}")
+        logger.info(f"  Files pre-processed     : {preprocessed_count}")
+        logger.info("  Per ODS code:")
+        for ods in all_ods_codes:
+            ingested = ods_ingested.get(ods, 0)
+            review = ods_review.get(ods, 0)
+            parts = []
+            if ingested:
+                parts.append(f"{ingested} to be ingested")
+            if review:
+                parts.append(f"{review} for review")
+            logger.info(f"    {ods}: {', '.join(parts)}")
         import json
 
         payload = {
