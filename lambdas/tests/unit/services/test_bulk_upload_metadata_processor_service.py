@@ -585,6 +585,8 @@ def test_handle_invalid_filename_writes_failed_entry_to_dynamo(
     failed_files = defaultdict(list)
     error = InvalidFileNameException("Invalid filename format")
 
+    test_service.s3_repo.file_exists_on_staging_bucket.return_value = True
+
     mock_staging_metadata = mocker.patch(
         "services.bulk_upload_metadata_processor_service.StagingSqsMetadata",
     )
@@ -636,6 +638,9 @@ def test_handle_invalid_filename_sets_sent_to_review_true_when_review_enabled(
     failed_files = defaultdict(list)
     error = InvalidFileNameException("Invalid filename format")
 
+    test_service_with_review_enabled.s3_repo.file_exists_on_staging_bucket.return_value = (
+        True
+    )
     mock_write = mocker.patch.object(
         test_service_with_review_enabled.dynamo_repository,
         "write_report_upload_to_dynamo",
@@ -656,6 +661,43 @@ def test_handle_invalid_filename_sets_sent_to_review_true_when_review_enabled(
         str(error),
         sent_to_review=True,
     )
+    assert (nhs_number, ods_code) in failed_files
+
+
+def test_handle_invalid_filename_does_not_send_to_review_when_file_missing(
+    mocker,
+    test_service_with_review_enabled,
+    base_metadata_file,
+):
+    nhs_number = "1234567890"
+    ods_code = "Y12345"
+    failed_files = defaultdict(list)
+    error = InvalidFileNameException("Invalid filename format")
+
+    test_service_with_review_enabled.s3_repo.file_exists_on_staging_bucket.return_value = (
+        False
+    )
+    mock_write = mocker.patch.object(
+        test_service_with_review_enabled.dynamo_repository,
+        "write_report_upload_to_dynamo",
+    )
+    mocker.patch("services.bulk_upload_metadata_processor_service.StagingSqsMetadata")
+
+    test_service_with_review_enabled.handle_invalid_filename(
+        base_metadata_file,
+        error,
+        nhs_number,
+        ods_code,
+        failed_files,
+    )
+
+    mock_write.assert_called_once_with(
+        mocker.ANY,
+        UploadStatus.FAILED,
+        str(error),
+        sent_to_review=False,
+    )
+    assert (nhs_number, ods_code) not in failed_files
 
 
 def test_csv_to_sqs_metadata_sends_failed_files_to_review_queue_when_enabled(
@@ -675,6 +717,9 @@ def test_csv_to_sqs_metadata_sends_failed_files_to_review_queue_when_enabled(
         test_service_with_review_enabled,
         "validate_and_correct_filename",
         side_effect=InvalidFileNameException("invalid"),
+    )
+    test_service_with_review_enabled.s3_repo.file_exists_on_staging_bucket.return_value = (
+        True
     )
 
     result = test_service_with_review_enabled.csv_to_sqs_metadata(MOCK_METADATA_CSV)

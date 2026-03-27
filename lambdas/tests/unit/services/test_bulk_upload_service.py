@@ -511,35 +511,35 @@ def test_handle_sqs_message_report_failure_when_document_is_infected(
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
 
-def test_handle_sqs_message_report_failure_when_document_not_exist(
-    repo_under_test,
+def test_handle_sqs_message_fails_before_nhs_validation_when_file_missing(
+    repo_with_review_enabled,
     set_env,
     mocker,
-    mock_uuid,
-    mock_validate_files,
-    mock_check_virus_result,
-    mock_pds_service,
-    mock_pds_validation_strict,
-    mock_ods_validation,
 ):
     TEST_STAGING_METADATA.retries = 0
-    repo_under_test.bulk_upload_s3_repository.check_virus_result.side_effect = (
-        S3FileNotFoundException
+    repo_with_review_enabled.bulk_upload_s3_repository.file_exists_on_staging_bucket.return_value = (
+        False
     )
-    mock_report_upload_failure = mocker.patch.object(
-        repo_under_test.dynamo_repository,
+    mock_pds = mocker.patch(
+        "services.bulk_upload_service.getting_patient_info_from_pds",
+    )
+    mock_report_failure = mocker.patch.object(
+        repo_with_review_enabled.dynamo_repository,
         "write_report_upload_to_dynamo",
     )
 
-    repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
+    repo_with_review_enabled.handle_sqs_message(message=TEST_SQS_MESSAGE)
 
-    mock_report_upload_failure.assert_called_with(
+    mock_pds.assert_not_called()
+    mock_report_failure.assert_called_with(
         TEST_STAGING_METADATA,
         UploadStatus.FAILED,
         "One or more of the files is not accessible from staging bucket",
-        "Y12345",
+        "",
+        sent_to_review=False,
     )
-    repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
+    repo_with_review_enabled.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
+    repo_with_review_enabled.sqs_repository.send_message_to_review_queue.assert_not_called()
 
 
 def test_handle_sqs_message_calls_report_upload_successful_when_patient_is_formally_deceased(
@@ -855,19 +855,38 @@ def test_reports_failure_when_max_retries_reached(
     repo_under_test.dynamo_repository.write_report_upload_to_dynamo.assert_called()
 
 
-def test_resolve_source_file_path_when_filenames_dont_have_accented_chars(
+def test_prepare_file_paths_and_check_existence_when_filenames_dont_have_accented_chars(
     set_env,
     repo_under_test,
 ):
+    repo_under_test.bulk_upload_s3_repository.file_exists_on_staging_bucket.return_value = (
+        True
+    )
     expected = {
         file.file_path: file.file_path.lstrip("/")
         for file in TEST_STAGING_METADATA.files
     }
 
-    repo_under_test.resolve_source_file_path(TEST_STAGING_METADATA)
+    repo_under_test.prepare_file_paths_and_check_existence(TEST_STAGING_METADATA)
     actual = repo_under_test.file_path_cache
 
     assert actual == expected
+    assert (
+        repo_under_test.bulk_upload_s3_repository.file_exists_on_staging_bucket.call_count
+        == len(TEST_STAGING_METADATA.files)
+    )
+
+
+def test_prepare_file_paths_and_check_existence_raises_S3FileNotFoundException_for_missing_non_accented_file(
+    set_env,
+    repo_under_test,
+):
+    repo_under_test.bulk_upload_s3_repository.file_exists_on_staging_bucket.return_value = (
+        False
+    )
+
+    with pytest.raises(S3FileNotFoundException):
+        repo_under_test.prepare_file_paths_and_check_existence(TEST_STAGING_METADATA)
 
 
 @pytest.mark.parametrize(
@@ -880,7 +899,7 @@ def test_resolve_source_file_path_when_filenames_dont_have_accented_chars(
     ],
     ids=["NFC --> NFC", "NFC --> NFD", "NFD --> NFC", "NFD --> NFD"],
 )
-def test_resolve_source_file_path_when_filenames_have_accented_chars(
+def test_prepare_file_paths_and_check_existence_when_filenames_have_accented_chars(
     set_env,
     mocker,
     patient_name_on_s3,
@@ -901,13 +920,13 @@ def test_resolve_source_file_path_when_filenames_have_accented_chars(
     test_staging_metadata = build_test_staging_metadata_from_patient_name(
         patient_name_in_metadata_file,
     )
-    repo_under_test.resolve_source_file_path(test_staging_metadata)
+    repo_under_test.prepare_file_paths_and_check_existence(test_staging_metadata)
     actual = repo_under_test.file_path_cache
 
     assert actual == expected_cache
 
 
-def test_resolves_source_file_path_raise_S3FileNotFoundException_if_filename_cant_match(
+def test_prepare_file_paths_and_check_existence_raises_S3FileNotFoundException_if_accented_filename_cant_match(
     set_env,
     mocker,
     repo_under_test,
@@ -924,7 +943,7 @@ def test_resolves_source_file_path_raise_S3FileNotFoundException_if_filename_can
     )
 
     with pytest.raises(S3FileNotFoundException):
-        repo_under_test.resolve_source_file_path(test_staging_metadata)
+        repo_under_test.prepare_file_paths_and_check_existence(test_staging_metadata)
 
 
 def test_create_lg_records_and_copy_files(set_env, mocker, mock_uuid, repo_under_test):
@@ -935,8 +954,11 @@ def test_create_lg_records_and_copy_files(set_env, mocker, mock_uuid, repo_under
     repo_under_test.bulk_upload_s3_repository.copy_to_lg_bucket = mocker.MagicMock(
         return_value=MOCK_COPY_OBJECT_RESPONSE,
     )
+    repo_under_test.bulk_upload_s3_repository.file_exists_on_staging_bucket.return_value = (
+        True
+    )
     TEST_STAGING_METADATA.retries = 0
-    repo_under_test.resolve_source_file_path(TEST_STAGING_METADATA)
+    repo_under_test.prepare_file_paths_and_check_existence(TEST_STAGING_METADATA)
 
     repo_under_test.create_lg_records_and_copy_files(
         TEST_STAGING_METADATA,
@@ -1343,8 +1365,8 @@ def test_handle_sqs_message_report_failure_when_pdf_integrity_check_file_not_fou
         repo_under_test.bulk_upload_s3_repository,
         "remove_ingested_file_from_source_bucket",
     )
-    repo_under_test.bulk_upload_s3_repository.check_pdf_integrity.side_effect = (
-        S3FileNotFoundException("Failed to access file")
+    repo_under_test.bulk_upload_s3_repository.file_exists_on_staging_bucket.side_effect = S3FileNotFoundException(
+        "Failed to access file",
     )
 
     repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
@@ -1353,7 +1375,8 @@ def test_handle_sqs_message_report_failure_when_pdf_integrity_check_file_not_fou
         TEST_STAGING_METADATA,
         UploadStatus.FAILED,
         "One or more of the files is not accessible from staging bucket",
-        "Y12345",
+        "",
+        sent_to_review=False,
     )
     mock_create_lg_records_and_copy_files.assert_not_called()
     mock_remove_ingested_file_from_source_bucket.assert_not_called()
@@ -1503,7 +1526,7 @@ def test_does_not_send_to_review_queue_when_s3_file_not_found(
 ):
     mocker.patch.object(
         repo_with_review_enabled.bulk_upload_s3_repository,
-        "check_virus_result",
+        "file_exists_on_staging_bucket",
         side_effect=S3FileNotFoundException("File not found"),
     )
 

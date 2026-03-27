@@ -138,7 +138,27 @@ class BulkUploadService:
             logger.error(e)
             raise InvalidMessageException(str(e))
 
-        logger.info("SQS event is valid. Validating NHS number and file names")
+        logger.info(
+            "SQS event is valid. Checking files exist on staging bucket before further validation",
+        )
+        try:
+            self.prepare_file_paths_and_check_existence(staging_metadata)
+        except S3FileNotFoundException as e:
+            logger.info(e)
+            logger.info(
+                f"One or more of the files is not accessible from S3 bucket for patient {staging_metadata.nhs_number}",
+            )
+            logger.info("Will stop processing Lloyd George record for this patient")
+            self.dynamo_repository.write_report_upload_to_dynamo(
+                staging_metadata,
+                UploadStatus.FAILED,
+                "One or more of the files is not accessible from staging bucket",
+                patient_ods_code,
+                sent_to_review=False,
+            )
+            return
+
+        logger.info("File existence check passed. Validating NHS number and file names")
 
         try:
             validate_nhs_number(staging_metadata.nhs_number)
@@ -154,9 +174,6 @@ class BulkUploadService:
             for file_metadata in staging_metadata.files:
                 file_names.append(os.path.basename(file_metadata.stored_file_name))
                 file_metadata.scan_date = validate_scan_date(file_metadata.scan_date)
-                file_metadata.file_path = self.strip_leading_slash(
-                    file_metadata.file_path,
-                )
 
             validate_lg_file_names(file_names, staging_metadata.nhs_number)
 
@@ -249,7 +266,6 @@ class BulkUploadService:
         )
 
         try:
-            self.resolve_source_file_path(staging_metadata)
             self.bulk_upload_s3_repository.check_virus_result(
                 staging_metadata,
                 self.file_path_cache,
@@ -302,20 +318,6 @@ class BulkUploadService:
                 staging_metadata,
                 UploadStatus.FAILED,
                 "One or more of the files were corrupt",
-                patient_ods_code,
-            )
-            return
-        except S3FileNotFoundException as e:
-            logger.info(e)
-            logger.info(
-                f"One or more of the files is not accessible from S3 bucket for patient {staging_metadata.nhs_number}",
-            )
-            logger.info("Will stop processing Lloyd George record for this patient")
-
-            self.dynamo_repository.write_report_upload_to_dynamo(
-                staging_metadata,
-                UploadStatus.FAILED,
-                "One or more of the files is not accessible from staging bucket",
                 patient_ods_code,
             )
             return
@@ -383,41 +385,42 @@ class BulkUploadService:
             f"Message sent to stitching queue for patient {staging_metadata.nhs_number}",
         )
 
-    def resolve_source_file_path(self, staging_metadata: StagingSqsMetadata):
-        sample_file_path = staging_metadata.files[0].file_path
-
-        if not contains_accent_char(sample_file_path):
-            logger.info("No accented character detected in file path.")
-            self.file_path_cache = {
-                file.file_path: file.file_path for file in staging_metadata.files
-            }
-            return
-
-        logger.info("Detected accented character in file path.")
-        logger.info("Will take special steps to handle file names.")
-
+    def prepare_file_paths_and_check_existence(
+        self,
+        staging_metadata: StagingSqsMetadata,
+    ):
         resolved_file_paths = {}
-        for file in staging_metadata.files:
-            file_path_in_metadata = file.file_path
-            file_path_in_nfc_form = convert_to_nfc_form(file_path_in_metadata)
-            file_path_in_nfd_form = convert_to_nfd_form(file_path_in_metadata)
+        for file_metadata in staging_metadata.files:
+            file_metadata.file_path = self.strip_leading_slash(file_metadata.file_path)
+            file_path = file_metadata.file_path
 
-            if self.bulk_upload_s3_repository.file_exists_on_staging_bucket(
-                file_path_in_nfc_form,
-            ):
-                resolved_file_paths[file_path_in_metadata] = file_path_in_nfc_form
-            elif self.bulk_upload_s3_repository.file_exists_on_staging_bucket(
-                file_path_in_nfd_form,
-            ):
-                resolved_file_paths[file_path_in_metadata] = file_path_in_nfd_form
+            if contains_accent_char(file_path):
+                nfc_path = convert_to_nfc_form(file_path)
+                nfd_path = convert_to_nfd_form(file_path)
+                if self.bulk_upload_s3_repository.file_exists_on_staging_bucket(
+                    nfc_path,
+                ):
+                    resolved_file_paths[file_path] = nfc_path
+                elif self.bulk_upload_s3_repository.file_exists_on_staging_bucket(
+                    nfd_path,
+                ):
+                    resolved_file_paths[file_path] = nfd_path
+                else:
+                    logger.info(
+                        "No file matching the provided file path was found on S3 bucket",
+                    )
+                    logger.info("Please check whether files are named correctly")
+                    raise S3FileNotFoundException(
+                        f"Failed to access file {file_path}",
+                    )
             else:
-                logger.info(
-                    "No file matching the provided file path was found on S3 bucket",
-                )
-                logger.info("Please check whether files are named correctly")
-                raise S3FileNotFoundException(
-                    f"Failed to access file {sample_file_path}",
-                )
+                if not self.bulk_upload_s3_repository.file_exists_on_staging_bucket(
+                    file_path,
+                ):
+                    raise S3FileNotFoundException(
+                        f"Failed to access file {file_path}",
+                    )
+                resolved_file_paths[file_path] = file_path
 
         self.file_path_cache = resolved_file_paths
 

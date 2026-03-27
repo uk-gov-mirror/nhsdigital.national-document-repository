@@ -366,7 +366,10 @@ class BulkUploadMetadataProcessorService:
         ods_code: str,
         failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]],
     ) -> None:
-        """Handle invalid filenames by logging, storing failure in Dynamo, and tracking for review."""
+        """Handle invalid filenames by logging, storing failure in Dynamo, and tracking for review.
+        Files that do not exist on the staging bucket are marked as failed only —
+        they are never added to the review queue since they cannot be reviewed.
+        """
         logger.error(
             f"Failed to process {file_metadata.file_path} due to error: {error}",
         )
@@ -375,14 +378,21 @@ class BulkUploadMetadataProcessorService:
             file_metadata.file_path,
         )
         failed_file.file_path = self.add_directory_path_to_file_path(file_metadata)
-        failed_files[(nhs_number, ods_code)].append(failed_file)
+
+        file_exists = self.s3_repo.file_exists_on_staging_bucket(failed_file.file_path)
+        if not file_exists:
+            logger.info(
+                f"File {failed_file.file_path} not found on staging bucket. Will not send to review.",
+            )
+        else:
+            failed_files[(nhs_number, ods_code)].append(failed_file)
 
         failed_entry = StagingSqsMetadata(nhs_number=nhs_number, files=[failed_file])
         self.dynamo_repository.write_report_upload_to_dynamo(
             failed_entry,
             UploadStatus.FAILED,
             str(error),
-            sent_to_review=self.send_to_review_enabled,
+            sent_to_review=self.send_to_review_enabled and file_exists,
         )
 
     def send_failed_files_to_review_queue(
