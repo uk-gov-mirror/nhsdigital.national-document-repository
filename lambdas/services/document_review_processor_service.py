@@ -25,6 +25,8 @@ from utils.utilities import get_pds_service, validate_nhs_number
 
 logger = LoggingService(__name__)
 
+S3_STORAGE_NAMESPACE = uuid.UUID("fb0e6109-abd7-4531-b0f2-c6e5be5861b0")
+
 
 class ReviewProcessorService:
 
@@ -113,10 +115,20 @@ class ReviewProcessorService:
         message_data: ReviewMessageBody,
         review_record_id: str,
     ) -> list[DocumentReviewFileDetails]:
+        seen_source_paths: set[str] = set()
         new_file_keys: list[DocumentReviewFileDetails] = []
-
         for file in message_data.files:
-            object_key = uuid.uuid4()
+            if file.file_path in seen_source_paths:
+                logger.warning(
+                    f"Duplicate source file path detected, skipping: {file.file_path}",
+                )
+                continue
+            seen_source_paths.add(file.file_path)
+
+            object_key = uuid.uuid5(
+                S3_STORAGE_NAMESPACE,
+                f"{review_record_id}/{file.file_path}",
+            )
             new_file_key = f"{review_record_id}/{object_key}"
 
             logger.info(
