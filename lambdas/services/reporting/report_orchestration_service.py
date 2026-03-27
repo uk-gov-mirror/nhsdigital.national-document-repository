@@ -28,6 +28,12 @@ class ReportOrchestrationService:
             logger.info("No records found for reporting window")
             return {}
 
+        records = [
+            record
+            for record in records
+            if "expedite" not in (record.get("FilePath") or "").lower()
+        ]
+
         records_by_ods = self.group_records_by_ods(records)
         generated_files: Dict[str, str] = {}
 
