@@ -97,6 +97,8 @@ class BulkUploadReportService:
             total_successful_percentage=ods_report.get_total_successful_percentage(),
             total_registered_elsewhere=ods_report.get_total_registered_elsewhere_count(),
             total_suspended=ods_report.get_total_suspended_count(),
+            total_in_review=ods_report.get_total_in_review_count(),
+            total_in_review_percentage=ods_report.get_total_in_review_percentage(),
             total_deceased=ods_report.get_total_deceased_count(),
             extra_rows=ods_report.get_unsuccessful_reasons_data_rows(),
         )
@@ -127,6 +129,8 @@ class BulkUploadReportService:
             total_successful_percentage=summary_report.get_total_successful_percentage(),
             total_registered_elsewhere=summary_report.get_total_registered_elsewhere_count(),
             total_suspended=summary_report.get_total_suspended_count(),
+            total_in_review=summary_report.get_total_in_review_count(),
+            total_in_review_percentage=summary_report.get_total_in_review_percentage(),
             total_deceased=summary_report.get_total_deceased_count(),
             total_restricted=summary_report.get_total_restricted_count(),
             extra_rows=summary_report.success_summary + summary_report.reason_summary,
@@ -335,6 +339,8 @@ class BulkUploadReportService:
         total_successful_percentage: str,
         total_registered_elsewhere: int,
         total_suspended: int,
+        total_in_review: int = None,
+        total_in_review_percentage: str = None,
         total_deceased: int = None,
         total_restricted: int = None,
         extra_rows: list = [],
@@ -345,6 +351,15 @@ class BulkUploadReportService:
             writer.writerow(["Type", "Description", "Count"])
             writer.writerow(["Total", "Total Ingested", total_ingested])
             writer.writerow(["Total", "Total Successful", total_successful])
+
+            if total_in_review is not None:
+                writer.writerow(["Total", "Total In Review", total_in_review])
+
+            if total_in_review_percentage is not None:
+                writer.writerow(
+                    ["Total", "Review Percentage", total_in_review_percentage],
+                )
+
             writer.writerow(
                 ["Total", "Successful Percentage", total_successful_percentage],
             )

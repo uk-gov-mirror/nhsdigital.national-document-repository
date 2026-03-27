@@ -21,6 +21,7 @@ class ReportBase:
         self.total_deceased = set()
         self.total_restricted = set()
         self.total_ingested = set()
+        self.total_in_review = set()
 
     def get_total_successful_nhs_numbers(self) -> list:
         if self.total_successful:
@@ -51,6 +52,16 @@ class ReportBase:
 
     def get_total_ingested_count(self) -> int:
         return len(self.total_ingested)
+
+    def get_total_in_review_count(self) -> int:
+        return len(self.total_in_review)
+
+    def get_total_in_review_percentage(self) -> str:
+        review_percentage = "0"
+        if self.total_ingested:
+            review_rate = (len(self.total_in_review) / len(self.total_ingested)) * 100
+            review_percentage = f"{review_rate:.2f}".rstrip("0").rstrip(".")
+        return f"{review_percentage}%"
 
     @staticmethod
     def get_sorted(to_sort: set) -> list:
@@ -144,9 +155,12 @@ class OdsReport(ReportBase):
         for patient in patients_to_remove:
             self.failures_per_patient.pop(patient)
 
-        for patient_data in self.failures_per_patient.values():
-            reason = patient_data.get(MetadataReport.Reason)
-            self.unique_failures[reason] = self.unique_failures.get(reason, 0) + 1
+        for nhs_number, patient_data in self.failures_per_patient.items():
+            if patient_data.get(MetadataReport.SentToReview):
+                self.total_in_review.add(nhs_number)
+            else:
+                reason = patient_data.get(MetadataReport.Reason)
+                self.unique_failures[reason] = self.unique_failures.get(reason, 0) + 1
 
     def get_unsuccessful_reasons_data_rows(self):
         return [
@@ -174,6 +188,7 @@ class SummaryReport(ReportBase):
             self.total_suspended.update(report.total_suspended)
             self.total_deceased.update(report.total_deceased)
             self.total_restricted.update(report.total_restricted)
+            self.total_in_review.update(report.total_in_review)
             ods_code_success_total[report.uploader_ods_code] = report.total_successful
 
             for reason, count in report.unique_failures.items():

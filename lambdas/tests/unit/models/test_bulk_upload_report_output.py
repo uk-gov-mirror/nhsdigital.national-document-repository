@@ -116,6 +116,76 @@ def test_report_base_total_successful_percentage_returns_correct_single_percenta
     assert actual == expected
 
 
+def test_report_base_get_total_in_review_percentage_returns_correct_percentage_to_two_decimal_places():
+    base = ReportBase(generated_at=get_timestamp())
+    base.total_ingested = {
+        "9000000000",
+        "9000000001",
+        "9000000002",
+        "9000000003",
+        "9000000004",
+        "9000000005",
+        "9000000006",
+        "9000000007",
+        "9000000008",
+        "9000000009",
+        "90000000010",
+    }
+    base.total_in_review = {
+        "9000000000",
+        "9000000003",
+        "9000000001",
+        "9000000002",
+    }
+
+    expected = "36.36%"
+    actual = base.get_total_in_review_percentage()
+    assert actual == expected
+
+
+def test_report_base_get_total_in_review_percentage_returns_correct_whole_percentage():
+    base = ReportBase(generated_at=get_timestamp())
+    base.total_ingested = {
+        "9000000000",
+        "9000000001",
+        "9000000002",
+        "9000000003",
+        "9000000004",
+        "9000000005",
+        "9000000006",
+        "9000000007",
+        "9000000008",
+        "9000000009",
+    }
+    base.total_in_review = {
+        "9000000000",
+    }
+
+    expected = "10%"
+    actual = base.get_total_in_review_percentage()
+    assert actual == expected
+
+
+def test_report_base_get_total_in_review_percentage_given_empty_input_returns_correctly():
+    base = ReportBase(generated_at=get_timestamp())
+    base.total_ingested = {}
+    base.total_in_review = {}
+
+    expected = "0%"
+    actual = base.get_total_in_review_percentage()
+    assert actual == expected
+
+
+def test_report_base_total_in_review_percentage_returns_correct_single_percentage():
+    base = ReportBase(generated_at=get_timestamp())
+    base.total_ingested = {f"{9000000000 + i}" for i in range(100)}
+    print(len(base.total_ingested))
+    base.total_in_review = {"9000000000"}
+    expected = "1%"
+    actual = base.get_total_in_review_percentage()
+    assert actual == expected
+
+
 def test_report_base_get_sorted_sorts_successfully():
     to_sort = {
         ("9000000000", "2012-01-13"),
@@ -172,6 +242,7 @@ def test_ods_report_populate_report_populates_successfully():
             ("9000000001", "2012-01-13", "Patient is deceased - INFORMAL", False),
         },
         "total_restricted": {("9000000002", "2012-01-13", False)},
+        "total_in_review": set(),
         "report_items": MOCK_REPORT_ITEMS_UPLOADER_1,
         "failures_per_patient": {
             "9000000005": {
@@ -310,6 +381,7 @@ def test_ods_report_populate_report_empty_list_populates_successfully():
         "total_suspended": set(),
         "total_deceased": set(),
         "total_restricted": set(),
+        "total_in_review": set(),
         "report_items": [],
         "failures_per_patient": {},
         "unique_failures": {},
@@ -338,6 +410,8 @@ def test_ods_report_populate_report_returns_correct_statistics():
     assert actual.get_total_suspended_count() == 1
     assert actual.get_total_restricted_count() == 1
     assert actual.get_total_registered_elsewhere_count() == 1
+    assert actual.get_total_in_review_count() == 0
+    assert actual.get_total_in_review_percentage() == "0%"
 
 
 def test_ods_report_populate_report_empty_list_returns_correct_statistics():
@@ -353,6 +427,99 @@ def test_ods_report_populate_report_empty_list_returns_correct_statistics():
     assert actual.get_total_suspended_count() == 0
     assert actual.get_total_restricted_count() == 0
     assert actual.get_total_registered_elsewhere_count() == 0
+    assert actual.get_total_in_review_count() == 0
+    assert actual.get_total_in_review_percentage() == "0%"
+
+
+def test_ods_report_populate_report_counts_reviewed_failures_and_excludes_them_from_reason_summary():
+    test_items = [
+        BulkUploadReport(
+            nhs_number="9000000020",
+            timestamp=1698661500,
+            date="2023-10-30",
+            upload_status=UploadStatus.FAILED,
+            file_path="/9000000020/1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000020]_[25-12-2019].pdf",
+            reason="Could not find the given patient on PDS",
+            pds_ods_code=TEST_UPLOADER_ODS_1,
+            uploader_ods_code=TEST_UPLOADER_ODS_1,
+            sent_to_review=True,
+        ),
+        BulkUploadReport(
+            nhs_number="9000000021",
+            timestamp=1698661501,
+            date="2023-10-30",
+            upload_status=UploadStatus.FAILED,
+            file_path="/9000000021/1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000021]_[25-12-2019].pdf",
+            reason="Lloyd George file already exists",
+            pds_ods_code=TEST_UPLOADER_ODS_1,
+            uploader_ods_code=TEST_UPLOADER_ODS_1,
+            sent_to_review=False,
+        ),
+        BulkUploadReport(
+            nhs_number="9000000022",
+            timestamp=1698661502,
+            date="2023-10-30",
+            upload_status=UploadStatus.FAILED,
+            file_path="/9000000022/1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000022]_[25-12-2019].pdf",
+            reason="Invalid NHS number format",
+            pds_ods_code=TEST_UPLOADER_ODS_1,
+            uploader_ods_code=TEST_UPLOADER_ODS_1,
+            sent_to_review=True,
+        ),
+    ]
+
+    actual = OdsReport(
+        get_timestamp(),
+        TEST_UPLOADER_ODS_1,
+        test_items,
+    )
+
+    assert actual.total_in_review == {"9000000020", "9000000022"}
+    assert actual.get_total_in_review_count() == 2
+    assert actual.get_total_in_review_percentage() == "66.67%"
+    assert actual.unique_failures == {"Lloyd George file already exists": 1}
+    assert actual.get_unsuccessful_reasons_data_rows() == [
+        [MetadataReport.Reason, "Lloyd George file already exists", 1],
+    ]
+
+
+def test_ods_report_populate_report_same_patient_failed_to_review_then_succeeded_removes_from_review_and_reasons():
+    test_items = [
+        BulkUploadReport(
+            nhs_number="9000000030",
+            timestamp=1698661500,
+            date="2023-10-30",
+            upload_status=UploadStatus.FAILED,
+            file_path="/9000000030/1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000030]_[25-12-2019].pdf",
+            reason="Could not find the given patient on PDS",
+            pds_ods_code=TEST_UPLOADER_ODS_1,
+            uploader_ods_code=TEST_UPLOADER_ODS_1,
+            sent_to_review=True,
+        ),
+        BulkUploadReport(
+            nhs_number="9000000030",
+            timestamp=1698661501,
+            date="2023-10-30",
+            upload_status=UploadStatus.COMPLETE,
+            file_path="/9000000030/1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000030]_[25-12-2019].pdf",
+            reason="",
+            pds_ods_code=TEST_UPLOADER_ODS_1,
+            uploader_ods_code=TEST_UPLOADER_ODS_1,
+            sent_to_review=False,
+        ),
+    ]
+
+    actual = OdsReport(
+        get_timestamp(),
+        TEST_UPLOADER_ODS_1,
+        test_items,
+    )
+
+    assert actual.failures_per_patient == {}
+    assert actual.total_in_review == set()
+    assert actual.unique_failures == {}
+    assert actual.get_total_in_review_count() == 0
+    assert actual.get_total_in_review_percentage() == "0%"
 
 
 def test_summary_report_populate_report_populates_successfully():
@@ -414,6 +581,7 @@ def test_summary_report_populate_report_populates_successfully():
             ("9000000002", "2012-01-13", False),
             ("9000000011", "2012-01-13", False),
         },
+        "total_in_review": set(),
         "ods_reports": test_uploader_reports,
         "success_summary": [
             ["Success by ODS", "Y12345", 5],
@@ -457,6 +625,7 @@ def test_summary_report_populate_report_empty_reports_objects_populate_successfu
         "total_suspended": set(),
         "total_deceased": set(),
         "total_restricted": set(),
+        "total_in_review": set(),
         "ods_reports": test_uploader_reports,
         "success_summary": [
             ["Success by ODS", "Y12345", 0],
@@ -482,6 +651,7 @@ def test_summary_report_populate_report_no_report_objects_populate_successfully(
         "total_suspended": set(),
         "total_deceased": set(),
         "total_restricted": set(),
+        "total_in_review": set(),
         "ods_reports": [],
         "success_summary": [["Success by ODS", "No ODS codes found", 0]],
         "reason_summary": [],
@@ -490,3 +660,80 @@ def test_summary_report_populate_report_no_report_objects_populate_successfully(
     actual = SummaryReport(generated_at=get_timestamp(), ods_reports=[]).__dict__
 
     assert actual == expected
+
+
+def test_summary_report_populate_report_aggregates_total_in_review_and_only_non_review_reasons():
+    uploader_1_report = OdsReport(
+        get_timestamp(),
+        TEST_UPLOADER_ODS_1,
+        [
+            BulkUploadReport(
+                nhs_number="9000000040",
+                timestamp=1698661500,
+                date="2023-10-30",
+                upload_status=UploadStatus.FAILED,
+                file_path="/9000000040/1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000040]_[25-12-2019].pdf",
+                reason="Could not find the given patient on PDS",
+                pds_ods_code=TEST_UPLOADER_ODS_1,
+                uploader_ods_code=TEST_UPLOADER_ODS_1,
+                sent_to_review=True,
+            ),
+            BulkUploadReport(
+                nhs_number="9000000041",
+                timestamp=1698661501,
+                date="2023-10-30",
+                upload_status=UploadStatus.FAILED,
+                file_path="/9000000041/1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000041]_[25-12-2019].pdf",
+                reason="Lloyd George file already exists",
+                pds_ods_code=TEST_UPLOADER_ODS_1,
+                uploader_ods_code=TEST_UPLOADER_ODS_1,
+                sent_to_review=False,
+            ),
+        ],
+    )
+
+    uploader_2_report = OdsReport(
+        get_timestamp(),
+        TEST_UPLOADER_ODS_2,
+        [
+            BulkUploadReport(
+                nhs_number="9000000050",
+                timestamp=1698661502,
+                date="2023-10-30",
+                upload_status=UploadStatus.FAILED,
+                file_path="/9000000050/1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000050]_[25-12-2019].pdf",
+                reason="Invalid NHS number format",
+                pds_ods_code=TEST_UPLOADER_ODS_2,
+                uploader_ods_code=TEST_UPLOADER_ODS_2,
+                sent_to_review=True,
+            ),
+            BulkUploadReport(
+                nhs_number="9000000051",
+                timestamp=1698661503,
+                date="2023-10-30",
+                upload_status=UploadStatus.FAILED,
+                file_path="/9000000051/1of1_Lloyd_George_Record_[Joe Bloggs]_[9000000051]_[25-12-2019].pdf",
+                reason="Fail to parse the patient detail response from PDS API.",
+                pds_ods_code=TEST_UPLOADER_ODS_2,
+                uploader_ods_code=TEST_UPLOADER_ODS_2,
+                sent_to_review=False,
+            ),
+        ],
+    )
+
+    actual = SummaryReport(
+        generated_at=get_timestamp(),
+        ods_reports=[uploader_1_report, uploader_2_report],
+    )
+
+    assert actual.total_in_review == {"9000000040", "9000000050"}
+    assert actual.get_total_in_review_count() == 2
+    assert actual.get_total_in_review_percentage() == "50%"
+    assert actual.reason_summary == [
+        ["Reason for Y12345", "Lloyd George file already exists", 1],
+        [
+            "Reason for Z12345",
+            "Fail to parse the patient detail response from PDS API.",
+            1,
+        ],
+    ]
