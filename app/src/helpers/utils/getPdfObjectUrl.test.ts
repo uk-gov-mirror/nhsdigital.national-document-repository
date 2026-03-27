@@ -8,15 +8,14 @@ vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;
 
 describe('getPdfObjectUrl.ts', () => {
+    const mockSetPdfObjectUrl = vi.fn();
+    const mockSetDownloadStage = vi.fn();
+    const testCloudFrontUrl = 'https://cloudfront.example.com/test-file.pdf';
+
+    const mockObjectUrl = 'blob:http://localhost:3000/test-blob-id';
+    const originalCreateObjectURL = URL.createObjectURL;
+
     describe('getPdfObjectUrl', () => {
-        const mockSetPdfObjectUrl = vi.fn();
-        const mockSetDownloadStage = vi.fn();
-        const testCloudFrontUrl = 'https://cloudfront.example.com/test-file.pdf';
-
-        // Mock URL.createObjectURL
-        const mockObjectUrl = 'blob:http://localhost:3000/test-blob-id';
-        const originalCreateObjectURL = URL.createObjectURL;
-
         beforeEach(() => {
             vi.clearAllMocks();
             URL.createObjectURL = vi.fn((): string => mockObjectUrl);
@@ -337,6 +336,56 @@ describe('getPdfObjectUrl.ts', () => {
             mockedAxios.get.mockRejectedValue(new Error('Network error'));
 
             await expect(getObjectUrl(testCloudFrontUrl)).rejects.toThrow('Network error');
+
+            expect(URL.createObjectURL).not.toHaveBeenCalled();
+        });
+
+        it('handles blob without explicit type', async () => {
+            const mockBlob = new Blob(['test data']);
+            mockedAxios.get.mockResolvedValue({ data: mockBlob });
+
+            const result = await getObjectUrl(testCloudFrontUrl);
+
+            expect(URL.createObjectURL).toHaveBeenCalledWith(mockBlob);
+            expect(result).toBe(mockObjectUrl);
+        });
+    });
+
+    describe('Different URLs', () => {
+        it('handles different CloudFront URLs', async () => {
+            const differentUrl = 'https://cdn.example.com/documents/patient123.pdf';
+            const mockBlob = new Blob(['test pdf data'], { type: 'application/pdf' });
+            mockedAxios.get.mockResolvedValue({ data: mockBlob });
+
+            await getPdfObjectUrl(differentUrl, mockSetPdfObjectUrl, mockSetDownloadStage);
+
+            expect(mockedAxios.get).toHaveBeenCalledWith(differentUrl, {
+                responseType: 'blob',
+            });
+        });
+
+        it('handles URLs with query parameters', async () => {
+            const urlWithParams = 'https://cloudfront.example.com/file.pdf?token=abc&expires=123';
+            const mockBlob = new Blob(['test pdf data'], { type: 'application/pdf' });
+            mockedAxios.get.mockResolvedValue({ data: mockBlob });
+
+            await getPdfObjectUrl(urlWithParams, mockSetPdfObjectUrl, mockSetDownloadStage);
+
+            expect(mockedAxios.get).toHaveBeenCalledWith(urlWithParams, {
+                responseType: 'blob',
+            });
+        });
+
+        it('handles URLs with special characters', async () => {
+            const specialUrl = 'https://cloudfront.example.com/files/patient%20record%20(1).pdf';
+            const mockBlob = new Blob(['test pdf data'], { type: 'application/pdf' });
+            mockedAxios.get.mockResolvedValue({ data: mockBlob });
+
+            await getPdfObjectUrl(specialUrl, mockSetPdfObjectUrl, mockSetDownloadStage);
+
+            expect(mockedAxios.get).toHaveBeenCalledWith(specialUrl, {
+                responseType: 'blob',
+            });
         });
     });
 });

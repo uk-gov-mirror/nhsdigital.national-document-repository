@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import DocumentView, { DOCUMENT_VIEW_STATE } from './DocumentView';
+import DocumentView from './DocumentView';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import {
@@ -104,41 +104,18 @@ const simulateFullscreenChange = (isFullscreen: boolean): void => {
     });
 };
 
-type Props = {
-    documentReference: DocumentReference | null;
-};
-
-const TestApp = ({ documentReference }: Props): React.JSX.Element => {
-    const history = createMemoryHistory();
-    return (
-        <ReactRouter.Router navigator={history} location={history.location}>
-            <DocumentView
-                documentReference={documentReference}
-                removeDocument={mockRemoveDocument}
-            />
-        </ReactRouter.Router>
-    );
-};
-
-const TestAppViewState = ({ documentReference }: Props): React.JSX.Element => {
-    const history = createMemoryHistory();
-    return (
-        <ReactRouter.Router navigator={history} location={history.location}>
-            <DocumentView
-                viewState={DOCUMENT_VIEW_STATE.VERSION_HISTORY}
-                documentReference={documentReference}
-                removeDocument={mockRemoveDocument}
-            />
-        </ReactRouter.Router>
-    );
-};
-
 const renderComponent = (
     documentReference: DocumentReference | null = mockDocumentReference,
 ): void => {
+    const history = createMemoryHistory();
     render(
         <SessionProvider sessionOverride={{ isLoggedIn: true }}>
-            <TestApp documentReference={documentReference} />
+            <ReactRouter.Router navigator={history} location={history.location}>
+                <DocumentView
+                    documentReference={documentReference}
+                    removeDocument={mockRemoveDocument}
+                />
+            </ReactRouter.Router>
         </SessionProvider>,
     );
 };
@@ -483,6 +460,7 @@ describe('DocumentView', () => {
             mockUseConfig.mockReturnValue({
                 featureFlags: {
                     versionHistoryEnabled: true,
+                    documentCorrectEnabled: true,
                 },
             });
 
@@ -526,18 +504,6 @@ describe('DocumentView', () => {
             // Check that fullscreen layout is different
             expect(screen.getByText('Exit full screen')).toBeInTheDocument();
             expect(screen.queryByTestId('record-menu-card')).not.toBeInTheDocument();
-        });
-    });
-
-    describe('Document view state', () => {
-        it('renders version history view when viewState is set to VERSION_HISTORY', () => {
-            render(
-                <SessionProvider sessionOverride={{ isLoggedIn: true }}>
-                    <TestAppViewState documentReference={mockDocumentReference} />
-                </SessionProvider>,
-            );
-
-            expect(screen.getByText('Lloyd George records')).toBeInTheDocument();
         });
     });
 });

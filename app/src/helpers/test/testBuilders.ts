@@ -200,6 +200,12 @@ const buildDocumentConfig = (
         stitchedFilenamePrefix: '1of1_Lloyd_George_Record',
         acceptedFileTypes: ['PDF'],
         content: {
+            getValue: (key: LGContentKeys) => {
+                const content: Record<string, string> = {
+                    restoreProgressingPageTitle: 'Restoring scanned paper notes',
+                };
+                return content[key];
+            },
             viewDocumentTitle: 'Scanned paper notes',
             addFilesSelectTitle: 'Add scanned paper notes to this record',
             uploadFilesSelectTitle: 'Choose scanned paper notes to upload',

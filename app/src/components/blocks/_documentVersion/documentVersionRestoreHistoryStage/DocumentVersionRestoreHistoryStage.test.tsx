@@ -8,11 +8,10 @@ import usePatient from '../../../../helpers/hooks/usePatient';
 import getDocument from '../../../../helpers/requests/getDocument';
 import getDocumentSearchResults from '../../../../helpers/requests/getDocumentSearchResults';
 import { getDocumentVersionHistoryResponse } from '../../../../helpers/requests/getDocumentVersionHistory';
+import { getObjectUrl } from '../../../../helpers/utils/getPdfObjectUrl';
 import { mockDocumentVersionHistoryResponse } from '../../../../helpers/test/getMockVersionHistory';
 import { buildPatientDetails, buildSearchResult } from '../../../../helpers/test/testBuilders';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
-import * as fhirUtil from '../../../../helpers/utils/fhirUtil';
-import { getObjectUrl } from '../../../../helpers/utils/getPdfObjectUrl';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
 import DocumentVersionRestoreHistoryStage from './DocumentVersionRestoreHistoryStage';
@@ -42,9 +41,7 @@ vi.mock('../../../../helpers/requests/getDocument');
 vi.mock('../../../../helpers/requests/getDocumentSearchResults');
 vi.mock('../../../../helpers/hooks/useTitle');
 vi.mock('../../../../helpers/utils/getPdfObjectUrl');
-vi.mock('../../../../helpers/utils/isLocal', () => ({
-    isLocal: false,
-}));
+vi.mock('../../../../helpers/utils/isLocal', () => ({ isLocal: false }));
 
 const mockedUsePatient = usePatient as Mock;
 const mockUseBaseAPIUrl = useBaseAPIUrl as Mock;
@@ -236,13 +233,13 @@ describe('DocumentVersionRestoreHistoryStage', () => {
             renderApp();
 
             await waitFor(() => {
-                const viewCurrentLink = screen.getByTestId('view-version-3');
+                const viewCurrentLink = screen.getByTestId('view-version-5');
                 expect(viewCurrentLink.tagName.toLowerCase()).toBe('a');
                 expect(viewCurrentLink).toHaveTextContent('View');
             });
         });
 
-        it('renders a "View" button for each older version without a restore link', async () => {
+        it('renders a "View" button and a "Restore version" link for each older version', async () => {
             renderApp();
 
             await waitFor(() => {
@@ -254,12 +251,33 @@ describe('DocumentVersionRestoreHistoryStage', () => {
             });
         });
 
-        it('does not render any "Restore version" links', async () => {
+        it('does not render a "Restore version" link for the current version', async () => {
             renderApp();
 
             await waitFor(() => {
-                expect(screen.queryByText('Restore version')).not.toBeInTheDocument();
+                expect(screen.getByTestId('view-version-5')).toBeInTheDocument();
             });
+
+            expect(screen.queryByTestId('restore-version-5')).not.toBeInTheDocument();
+        });
+
+        it('navigates to restore confirm page when "Restore version" link is clicked', async () => {
+            renderApp();
+
+            await waitFor(() => {
+                expect(screen.getByTestId('restore-version-2')).toBeInTheDocument();
+            });
+
+            await userEvent.click(screen.getByTestId('restore-version-2'));
+
+            expect(mockNavigate).toHaveBeenCalledWith(
+                routeChildren.DOCUMENT_VERSION_RESTORE_CONFIRM,
+                expect.objectContaining({
+                    state: expect.objectContaining({
+                        documentReference: expect.any(Object),
+                    }),
+                }),
+            );
         });
     });
 
@@ -281,10 +299,10 @@ describe('DocumentVersionRestoreHistoryStage', () => {
             renderApp();
 
             await waitFor(() => {
-                expect(screen.getByTestId('view-version-3')).toBeInTheDocument();
+                expect(screen.getByTestId('view-version-5')).toBeInTheDocument();
             });
 
-            await user.click(screen.getByTestId('view-version-3'));
+            await user.click(screen.getByTestId('view-version-5'));
 
             await waitFor(() => {
                 expect(mockSetDocumentReference).toHaveBeenCalled();
@@ -313,11 +331,7 @@ describe('DocumentVersionRestoreHistoryStage', () => {
                 expect(mockSetDocumentReference).toHaveBeenCalled();
                 expect(mockNavigate).toHaveBeenCalledWith(
                     routeChildren.DOCUMENT_VIEW_VERSION_HISTORY,
-                    expect.objectContaining({
-                        state: expect.objectContaining({
-                            isActiveVersion: false,
-                        }),
-                    }),
+                    { state: { isActiveVersion: false } },
                 );
             });
         });
@@ -401,48 +415,6 @@ describe('DocumentVersionRestoreHistoryStage', () => {
                             typeof path === 'string' && /^\/server-error\?encodedError=/.test(path),
                     ),
                 ).toBe(true);
-            });
-        });
-
-        it('navigates to server error when getDocumentReferenceFromFhir throws', async () => {
-            const user = userEvent.setup();
-            vi.spyOn(fhirUtil, 'getDocumentReferenceFromFhir').mockImplementation(() => {
-                throw new Error('invalid fhir reference');
-            });
-
-            renderApp();
-
-            await waitFor(() => {
-                expect(screen.getByTestId('view-version-2')).toBeInTheDocument();
-            });
-
-            await user.click(screen.getByTestId('view-version-2'));
-
-            await waitFor(() => {
-                expect(mockNavigate).toHaveBeenCalledWith(routes.SERVER_ERROR);
-            });
-        });
-
-        it('navigates to session expired when handleViewVersion catches a 403 error', async () => {
-            const user = userEvent.setup();
-            vi.spyOn(fhirUtil, 'getDocumentReferenceFromFhir').mockImplementation(() => {
-                throw {
-                    response: {
-                        status: 403,
-                    },
-                };
-            });
-
-            renderApp();
-
-            await waitFor(() => {
-                expect(screen.getByTestId('view-version-2')).toBeInTheDocument();
-            });
-
-            await user.click(screen.getByTestId('view-version-2'));
-
-            await waitFor(() => {
-                expect(mockNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
             });
         });
     });

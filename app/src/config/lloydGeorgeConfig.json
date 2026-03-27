@@ -47,7 +47,9 @@
         "versionHistoryLinkLabel": "View version history for these notes",
         "versionHistoryLinkDescription": "View or restore other versions if, for example, there's a mistake in these notes.",
         "searchResultDocumentTypeLabel": "Scanned paper notes V{version}",
+        "versionHistoryCompleteLabel": "scanned paper notes V{version}",
         "versionHistoryHeader": "Version history for scanned paper notes",
-        "versionHistoryTimelineHeader": "Scanned paper notes: version {version}"
+        "versionHistoryTimelineHeader": "Scanned paper notes: version {version}",
+        "restoreProgressingPageTitle": "Restoring scanned paper notes"
     }
 }

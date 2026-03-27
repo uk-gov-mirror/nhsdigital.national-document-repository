@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { SearchResult } from '../../types/generic/searchResult';
 import DocumentSearchResults from '../../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults';
-import { Link, Outlet, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Outlet, Route, Routes, To, useNavigate } from 'react-router-dom';
 import { routeChildren, routes } from '../../types/generic/routes';
 import {
     DocumentReference,
@@ -39,12 +39,12 @@ import getReviews from '../../helpers/requests/getReviews';
 
 const DocumentSearchResultsPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
-
     const nhsNumber: string = patientDetails?.nhsNumber ?? '';
     const [searchResults, setSearchResults] = useState<Array<SearchResult>>([]);
     const [submissionState, setSubmissionState] = useState(SUBMISSION_STATE.INITIAL);
     const [downloadState, setDownloadState] = useState(SUBMISSION_STATE.INITIAL);
     const [documentReference, setDocumentReference] = useState<DocumentReference | null>(null);
+    const [redirect, setRedirect] = useState<To | null>(null);
     const navigate = useNavigate();
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
@@ -113,13 +113,19 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                 } else {
                     setSubmissionState(SUBMISSION_STATE.FAILED);
                 }
+            } finally {
+                if (redirect) {
+                    const to = redirect;
+                    setRedirect(null);
+                    navigate(to);
+                }
             }
         };
         if (!mounted.current) {
             mounted.current = true;
             void onPageLoad();
         }
-    }, [nhsNumber, navigate, baseUrl, baseHeaders, config]);
+    }, [redirect, nhsNumber, navigate, baseUrl, baseHeaders, config]);
 
     const onViewDocument = (documentItem: SearchResult): void => {
         activeSearchResult.current = documentItem;

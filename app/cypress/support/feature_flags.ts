@@ -8,4 +8,5 @@ export const defaultFeatureFlags: FeatureFlags = {
     uploadLambdaEnabled: true,
     uploadDocumentIteration2Enabled: true,
     uploadDocumentIteration3Enabled: false,
+    versionHistoryEnabled: true,
 };

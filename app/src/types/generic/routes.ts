@@ -79,8 +79,11 @@ export enum routeChildren {
     DOCUMENT_REASSIGN_UPLOADING = '/patient/document-reassign-pages/uploading',
     DOCUMENT_REASSIGN_COMPLETE = '/patient/document-reassign-pages/complete',
 
-    DOCUMENT_VIEW_VERSION_HISTORY = '/patient/documents/version-history/view',
     DOCUMENT_VERSION_HISTORY = '/patient/documents/version-history',
+    DOCUMENT_VIEW_VERSION_HISTORY = '/patient/documents/version-history/view',
+    DOCUMENT_VERSION_RESTORE_CONFIRM = '/patient/documents/version-history/restore-confirm',
+    DOCUMENT_VERSION_RESTORE_UPLOADING = '/patient/documents/version-history/restore-uploading',
+    DOCUMENT_VERSION_RESTORE_COMPLETE = '/patient/documents/version-history/restore-complete',
 
     DOCUMENT_VIEW = '/patient/documents/view',
     DOCUMENT_DELETE = '/patient/documents/delete',

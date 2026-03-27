@@ -271,8 +271,12 @@ const DocumentView = ({
     };
 
     const handleRestoreVersionClick = (): void => {
-        // eslint-disable-next-line no-console
-        console.log('Restore version clicked'); // implemented by PRMP-1411
+        navigate(routeChildren.DOCUMENT_VERSION_RESTORE_CONFIRM, {
+            replace: true,
+            state: {
+                documentReference,
+            },
+        });
     };
 
     const getRecordCard = (): React.JSX.Element => {
@@ -394,6 +398,7 @@ const DocumentView = ({
                         <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
                     </PatientSummary>
 
+                    {/* PRMP-1584 hide this button */}
                     {viewState === DOCUMENT_VIEW_STATE.VERSION_HISTORY && !isActiveVersion && (
                         <Button
                             data-testid="view-restore-version-button"

@@ -12,8 +12,6 @@ vi.mock('../utils/isLocal', () => ({
 }));
 const mockedAxios = axios as Mocked<typeof axios>;
 
-// ...
-
 describe('[GET] getDocumentSearchResults', () => {
     beforeEach(() => {
         vi.clearAllMocks();

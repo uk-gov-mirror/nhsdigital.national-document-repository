@@ -70,10 +70,10 @@ const {
     DOWNLOAD_COMPLETE,
     COOKIES_POLICY,
     COOKIES_POLICY_WILDCARD,
-    DOCUMENT_REASSIGN_PAGES,
-    DOCUMENT_REASSIGN_PAGES_WILDCARD,
     DOCUMENT_VERSION_HISTORY,
     DOCUMENT_VERSION_HISTORY_WILDCARD,
+    DOCUMENT_REASSIGN_PAGES,
+    DOCUMENT_REASSIGN_PAGES_WILDCARD,
     USER_PATIENT_RESTRICTIONS,
     USER_PATIENT_RESTRICTIONS_WILDCARD,
 } = routes;
@@ -126,6 +126,18 @@ export const childRoutes = [
     {
         route: routeChildren.DOCUMENT_DELETE_COMPLETE,
         parent: PATIENT_DOCUMENTS,
+    },
+    {
+        route: routeChildren.DOCUMENT_VERSION_RESTORE_CONFIRM,
+        parent: DOCUMENT_VERSION_HISTORY,
+    },
+    {
+        route: routeChildren.DOCUMENT_VERSION_RESTORE_UPLOADING,
+        parent: DOCUMENT_VERSION_HISTORY,
+    },
+    {
+        route: routeChildren.DOCUMENT_VERSION_RESTORE_COMPLETE,
+        parent: DOCUMENT_VERSION_HISTORY,
     },
     {
         route: routeChildren.REPORT_DOWNLOAD_COMPLETE,
@@ -428,6 +440,14 @@ export const routeMap: Routes = {
         page: <PatientAccessAuditPage />,
         type: ROUTE_TYPE.PATIENT,
     },
+    [DOCUMENT_VERSION_HISTORY]: {
+        page: <DocumentVersionRestorePage />,
+        type: ROUTE_TYPE.PATIENT,
+    },
+    [DOCUMENT_VERSION_HISTORY_WILDCARD]: {
+        page: <DocumentVersionRestorePage />,
+        type: ROUTE_TYPE.PATIENT,
+    },
     [DOCUMENT_UPLOAD]: {
         page: <DocumentUploadPage />,
         type: ROUTE_TYPE.PATIENT,
@@ -454,14 +474,6 @@ export const routeMap: Routes = {
     },
     [DOCUMENT_REASSIGN_PAGES_WILDCARD]: {
         page: <DocumentCorrectPage />,
-        type: ROUTE_TYPE.PATIENT,
-    },
-    [DOCUMENT_VERSION_HISTORY]: {
-        page: <DocumentVersionRestorePage />,
-        type: ROUTE_TYPE.PATIENT,
-    },
-    [DOCUMENT_VERSION_HISTORY_WILDCARD]: {
-        page: <DocumentVersionRestorePage />,
         type: ROUTE_TYPE.PATIENT,
     },
     [USER_PATIENT_RESTRICTIONS]: {

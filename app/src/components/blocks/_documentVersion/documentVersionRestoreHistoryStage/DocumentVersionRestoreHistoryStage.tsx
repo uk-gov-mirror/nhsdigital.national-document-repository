@@ -202,6 +202,20 @@ const DocumentVersionRestoreHistoryStage = ({
         }
     };
 
+    const handleRestoreVersion = (
+        e: React.MouseEvent<HTMLAnchorElement>,
+        doc: FhirDocumentReference,
+    ): void => {
+        e.preventDefault();
+        const documentRef = getDocumentReferenceFromFhir(doc);
+        setDocumentReferenceToRestore(documentRef);
+        navigate(routeChildren.DOCUMENT_VERSION_RESTORE_CONFIRM, {
+            state: {
+                documentReference: documentRef,
+            },
+        });
+    };
+
     if (loading) {
         return <Spinner status="Loading version history" />;
     }
@@ -287,6 +301,17 @@ const DocumentVersionRestoreHistoryStage = ({
                                     >
                                         View
                                     </Button>
+                                    {/* PRMP-1584 hide this button */}
+                                    <Link
+                                        to={routeChildren.DOCUMENT_VERSION_RESTORE_CONFIRM}
+                                        data-testid={`restore-version-${version}`}
+                                        className="nhsuk-link nhsuk-link--no-visited-state"
+                                        onClick={(e: React.MouseEvent<HTMLAnchorElement>): void =>
+                                            handleRestoreVersion(e, doc)
+                                        }
+                                    >
+                                        Restore version
+                                    </Link>
                                 </div>
                             )}
                         </Timeline.Item>
@@ -298,7 +323,7 @@ const DocumentVersionRestoreHistoryStage = ({
 
     return (
         <div>
-            <BackButton dataTestid="go-back-button" />
+            <BackButton toLocation={routes.PATIENT_DOCUMENTS} dataTestid="go-back-button" />
 
             <h1>{pageHeader}</h1>
 
