@@ -251,6 +251,12 @@ class UserRestrictionDataHelper:
             key={"ID": restriction_id},
         )
 
+    def delete_all_restrictions_for_ods(self, ods_code: str) -> None:
+        items = self.dynamo_service.scan_whole_table(self.dynamo_table)
+        for item in items:
+            if item.get("Custodian") == ods_code:
+                self.delete_restriction(item["ID"])
+
     def tidyup(self, record: dict) -> None:
         self.delete_restriction(record["ID"])
 
