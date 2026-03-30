@@ -482,6 +482,19 @@ describe('DocumentView', () => {
                 );
             });
         });
+
+        it('shows version history action for deceased patients when feature flag is enabled', () => {
+            mockUsePatient.mockReturnValue(buildPatientDetails({ deceased: true }));
+            mockUseConfig.mockReturnValue({
+                featureFlags: {
+                    versionHistoryEnabled: true,
+                },
+            });
+
+            renderComponent();
+
+            expect(screen.getByTestId(ACTION_LINK_KEY.HISTORY)).toBeInTheDocument();
+        });
     });
 
     describe('Role-based rendering', () => {

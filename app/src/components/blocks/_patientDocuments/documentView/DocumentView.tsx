@@ -148,7 +148,6 @@ const DocumentView = ({
         const canAddFiles =
             documentConfig.canBeUpdated &&
             documentReference.url &&
-            !patientDetails?.deceased &&
             (role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL);
 
         const inputLinks = getLloydGeorgeRecordLinks([
@@ -162,7 +161,7 @@ const DocumentView = ({
             },
         ]);
 
-        if (canAddFiles) {
+        if (canAddFiles && !patientDetails?.deceased) {
             inputLinks.push(
                 AddAction(
                     documentConfig.content.getValue<string>('addFilesLinkLabel')!,
@@ -174,22 +173,18 @@ const DocumentView = ({
                 const label = documentConfig.content.getValue<string>('reassignPagesLinkLabel')!;
                 inputLinks.push(ReassignAction(label, handleReassignPagesClick));
             }
+        }
 
-            if (config.featureFlags.versionHistoryEnabled) {
-                const versionHistoryLabel = documentConfig.content.getValue<string, LGContentKeys>(
-                    'versionHistoryLinkLabel',
-                )!;
-                const vhDescription = documentConfig.content.getValue<string, LGContentKeys>(
-                    'versionHistoryLinkDescription',
-                )!;
-                inputLinks.push(
-                    VersionHistoryAction(
-                        versionHistoryLabel,
-                        vhDescription,
-                        handleVersionHistoryClick,
-                    ),
-                );
-            }
+        if (canAddFiles && config.featureFlags.versionHistoryEnabled) {
+            const versionHistoryLabel = documentConfig.content.getValue<string, LGContentKeys>(
+                'versionHistoryLinkLabel',
+            )!;
+            const vhDescription = documentConfig.content.getValue<string, LGContentKeys>(
+                'versionHistoryLinkDescription',
+            )!;
+            inputLinks.push(
+                VersionHistoryAction(versionHistoryLabel, vhDescription, handleVersionHistoryClick),
+            );
         }
 
         const links = getRecordActionLinksAllowedForRole({
@@ -398,15 +393,16 @@ const DocumentView = ({
                         <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
                     </PatientSummary>
 
-                    {/* PRMP-1584 hide this button */}
-                    {viewState === DOCUMENT_VIEW_STATE.VERSION_HISTORY && !isActiveVersion && (
-                        <Button
-                            data-testid="view-restore-version-button"
-                            onClick={handleRestoreVersionClick}
-                        >
-                            Restore version
-                        </Button>
-                    )}
+                    {viewState === DOCUMENT_VIEW_STATE.VERSION_HISTORY &&
+                        !isActiveVersion &&
+                        !patientDetails?.deceased && (
+                            <Button
+                                data-testid="view-restore-version-button"
+                                onClick={handleRestoreVersionClick}
+                            >
+                                Restore version
+                            </Button>
+                        )}
 
                     {session.isFullscreen && showMenu && recordCardLinks()}
                 </div>

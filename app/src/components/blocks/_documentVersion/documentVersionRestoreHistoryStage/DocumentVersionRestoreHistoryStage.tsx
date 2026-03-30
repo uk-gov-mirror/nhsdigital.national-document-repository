@@ -301,17 +301,18 @@ const DocumentVersionRestoreHistoryStage = ({
                                     >
                                         View
                                     </Button>
-                                    {/* PRMP-1584 hide this button */}
-                                    <Link
-                                        to={routeChildren.DOCUMENT_VERSION_RESTORE_CONFIRM}
-                                        data-testid={`restore-version-${version}`}
-                                        className="nhsuk-link nhsuk-link--no-visited-state"
-                                        onClick={(e: React.MouseEvent<HTMLAnchorElement>): void =>
-                                            handleRestoreVersion(e, doc)
-                                        }
-                                    >
-                                        Restore version
-                                    </Link>
+                                    {!patientDetails?.deceased && (
+                                        <Link
+                                            to={routeChildren.DOCUMENT_VERSION_RESTORE_CONFIRM}
+                                            data-testid={`restore-version-${version}`}
+                                            className="nhsuk-link nhsuk-link--no-visited-state"
+                                            onClick={(
+                                                e: React.MouseEvent<HTMLAnchorElement>,
+                                            ): void => handleRestoreVersion(e, doc)}
+                                        >
+                                            Restore version
+                                        </Link>
+                                    )}
                                 </div>
                             )}
                         </Timeline.Item>
