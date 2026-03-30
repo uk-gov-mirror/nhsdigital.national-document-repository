@@ -12,6 +12,9 @@ import { useEffect } from 'react';
 import UserPatientRestrictionsSearchPatientStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsSearchPatientStage/UserPatientRestrictionsSearchPatientStage';
 import UserPatientRestrictionsExistingStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsExistingStage/UserPatientRestrictionsExistingStage';
 import UserPatientRestrictionsSearchStaffStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsSearchStaffStage/UserPatientRestrictionsSearchStaffStage';
+import UserPatientRestrictionsVerifyStaffStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsVerifyStaffStage/UserPatientRestrictionsVerifyStaffStage';
+import UserPatientRestrictionsAddConfirmStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsAddConfirmStage/UserPatientRestrictionsAddConfirmStage';
+import UserPatientRestrictionsAddCancelStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsAddCancelStage/UserPatientRestrictionsAddCancelStage';
 
 const UserPatientRestrictionsPage = (): React.JSX.Element => {
     const {
@@ -23,6 +26,8 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
         onRemoveRestriction,
         existingRestrictions,
         setExistingRestrictions,
+        userInformation,
+        setUserInformation,
     } = useUserPatientRestrictionsPage();
 
     const navigate = useNavigate();
@@ -100,7 +105,35 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
 
                 <Route
                     path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF)}
-                    element={<UserPatientRestrictionsSearchStaffStage />}
+                    element={
+                        <UserPatientRestrictionsSearchStaffStage
+                            existingRestrictions={existingRestrictions}
+                            setUserInformation={setUserInformation}
+                        />
+                    }
+                />
+
+                <Route
+                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_STAFF)}
+                    element={
+                        <UserPatientRestrictionsVerifyStaffStage
+                            userInformation={userInformation!}
+                        />
+                    }
+                />
+
+                <Route
+                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CONFIRM)}
+                    element={
+                        <UserPatientRestrictionsAddConfirmStage
+                            userInformation={userInformation!}
+                        />
+                    }
+                />
+
+                <Route
+                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CANCEL)}
+                    element={<UserPatientRestrictionsAddCancelStage />}
                 />
             </Routes>
 

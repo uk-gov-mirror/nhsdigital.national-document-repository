@@ -14,3 +14,9 @@ export enum UserPatientRestrictionsSubRoute {
     VIEW = 'view',
     REMOVE = 'remove',
 }
+
+export type UserInformation = {
+    smartcardId: string;
+    firstName: string;
+    lastName: string;
+};

@@ -26,7 +26,10 @@ import {
 } from '../utils/documentType';
 import { ReviewsResponse } from '../../types/generic/reviews';
 import { DocumentReference } from '../../types/pages/documentSearchResultsPage/types';
-import { UserPatientRestriction } from '../../types/generic/userPatientRestriction';
+import {
+    UserInformation,
+    UserPatientRestriction,
+} from '../../types/generic/userPatientRestriction';
 
 const buildUserAuth = (userAuthOverride?: Partial<UserAuth>): UserAuth => {
     const auth: UserAuth = {
@@ -311,6 +314,14 @@ const buildUserRestrictions = (): UserPatientRestriction[] => {
     ];
 };
 
+const buildUserInformation = (): UserInformation => {
+    return {
+        firstName: 'John',
+        lastName: 'Smith',
+        smartcardId: '123456789012',
+    };
+};
+
 export {
     buildPatientDetails,
     buildTextFile,
@@ -327,4 +338,5 @@ export {
     buildMockReviewResponse,
     buildDocumentReference,
     buildUserRestrictions,
+    buildUserInformation,
 };

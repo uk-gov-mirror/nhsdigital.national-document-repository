@@ -311,6 +311,14 @@ export const childRoutes = [
         route: routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF,
         parent: USER_PATIENT_RESTRICTIONS,
     },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_STAFF,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CONFIRM,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
 ];
 
 export const routeMap: Routes = {

@@ -3,6 +3,7 @@ import { routeChildren } from '../../types/generic/routes';
 import useConfig from '../../helpers/hooks/useConfig';
 import { useNavigate } from 'react-router-dom';
 import {
+    UserInformation,
     UserPatientRestriction,
     UserPatientRestrictionsSubRoute,
 } from '../../types/generic/userPatientRestriction';
@@ -16,6 +17,8 @@ export type UseUserPatientRestrictionsPageReturn = {
     onRemoveRestriction: (restriction: UserPatientRestriction) => void;
     existingRestrictions: UserPatientRestriction[];
     setExistingRestrictions: React.Dispatch<React.SetStateAction<UserPatientRestriction[]>>;
+    userInformation: UserInformation | null;
+    setUserInformation: React.Dispatch<React.SetStateAction<UserInformation | null>>;
 };
 
 const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn => {
@@ -27,6 +30,7 @@ const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn 
         null,
     );
     const [existingRestrictions, setExistingRestrictions] = useState<UserPatientRestriction[]>([]);
+    const [userInformation, setUserInformation] = useState<UserInformation | null>(null);
 
     const confirmVerifyPatientDetails = (): void => {
         if (subRoute === UserPatientRestrictionsSubRoute.ADD) {
@@ -53,6 +57,8 @@ const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn 
         onRemoveRestriction,
         existingRestrictions,
         setExistingRestrictions,
+        userInformation,
+        setUserInformation,
     };
 };
 

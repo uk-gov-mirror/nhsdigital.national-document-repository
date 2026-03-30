@@ -23,4 +23,5 @@ export enum endpoints {
     DOCUMENT_REVIEW = '/DocumentReview',
 
     USER_PATIENT_RESTRICTIONS = '/UserRestriction',
+    USER_PATIENT_RESTRICTIONS_SEARCH_USER = '/UserRestriction/SearchUser',
 }
