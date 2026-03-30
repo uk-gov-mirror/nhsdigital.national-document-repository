@@ -168,3 +168,30 @@ Cypress.Commands.add(
         });
     },
 );
+
+Cypress.Commands.add('pdfViewerPageShouldBeText', (pageNumber: number, expectedText: string) => {
+    cy.get('pdfjs-viewer-element')
+        .shadow()
+        .find('iframe')
+        .its('0.contentDocument.body')
+        .should('not.be.empty')
+        .then(cy.wrap)
+        .find('#viewerContainer')
+        .then(($container) => {
+            cy.wrap($container)
+                .find(`.page[data-page-number="${pageNumber}"]`)
+                .should('exist')
+                .then(($page) => {
+                    $page[0].scrollIntoView({ block: 'center' });
+                });
+        });
+
+    cy.get('pdfjs-viewer-element')
+        .shadow()
+        .find('iframe')
+        .its('0.contentDocument.body')
+        .then(cy.wrap)
+        .find(`.page[data-page-number="${pageNumber}"] .textLayer`)
+        .invoke('text')
+        .should('eq', expectedText);
+});

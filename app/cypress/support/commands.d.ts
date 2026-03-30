@@ -36,6 +36,8 @@ declare global {
                 attribute: string,
                 value: string,
             ): Chainable<void>;
+
+            pdfViewerPageShouldBeText(pageNumber: number, expectedText: string): Chainable<void>;
         }
     }
 }

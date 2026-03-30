@@ -224,6 +224,7 @@ declare global {
             navigateToPatientSearchPage(): Chainable<void>;
             navigateToDownloadReportPage(): Chainable<void>;
             declineCookies(): Chainable<void>;
+            pdfViewerPageShouldBeText(pageNumber: number, expectedText: string): Chainable<void>;
         }
     }
 }
