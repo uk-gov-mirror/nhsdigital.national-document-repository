@@ -33,7 +33,7 @@
         "confirmFilesTableParagraph": "",
         "beforeYouUploadTitle": "Before you upload",
         "previewUploadTitle": "Preview existing scanned paper notes record",
-        "uploadFilesExtraParagraph": "You can add a note to the patient's electronic health record to say their Lloyd George record is stored in this service. Use SNOMED code 16521000000101.",
+        "uploadFilesExtraParagraph": "",
         "reviewDocumentTitle": "Scanned paper notes",
         "addMoreFilesRadioNoText": "No, I don't have anymore scanned paper notes to add for this patient",
         "addMoreFilesRadioYesText": "Yes, I have more scanned paper notes to add for this patient",

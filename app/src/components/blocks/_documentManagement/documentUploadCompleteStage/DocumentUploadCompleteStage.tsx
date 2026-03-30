@@ -174,17 +174,8 @@ const DocumentUploadCompleteStage = ({ documents, documentConfig }: Props): Reac
                         <p>{documentConfig.content.uploadFilesExtraParagraph}</p>
                     )}
 
-                    <p>
-                        For information on destroying your paper records and removing the digital
-                        files from your system, read the article{' '}
-                        <Link
-                            to="https://future.nhs.uk/DigitalPC/view?objectId=185217477"
-                            data-testid="digitisation-link"
-                        >
-                            Digitisation of Lloyd George records
-                        </Link>
-                        {'.'}
-                    </p>
+                    <p>You can remove any digital copies of these files from your computer.</p>
+
                     <Button
                         data-testid="home-btn"
                         type="button"
