@@ -71,6 +71,17 @@ def get_doc_status_final_filter(filter_builder: DynamoQueryFilterBuilder):
     return doc_status_filter_expression & filter_not_deleted
 
 
+def get_doc_status_final_or_deprecated_filter(filter_builder: DynamoQueryFilterBuilder):
+    filter_builder.add_condition(
+        "DocStatus",
+        AttributeOperator.IN,
+        ["final", "deprecated"],
+    )
+    doc_status_filter_expression = filter_builder.build()
+    filter_not_deleted = get_not_deleted_filter(filter_builder)
+    return doc_status_filter_expression & filter_not_deleted
+
+
 def not_superseded(filter_builder: DynamoQueryFilterBuilder):
     filter_builder.add_condition("Status", AttributeOperator.NOT_EQUAL, "superseded")
     return filter_builder.build()
@@ -97,6 +108,10 @@ CurrentStatusFile = get_current_files_filter(DynamoQueryFilterBuilder())
 PreliminaryStatus = get_doc_status_preliminary_filter(DynamoQueryFilterBuilder())
 
 FinalStatusFilter = get_doc_status_final_filter(DynamoQueryFilterBuilder())
+
+FinalOrDeprecatedDocStatusFilter = get_doc_status_final_or_deprecated_filter(
+    DynamoQueryFilterBuilder(),
+)
 
 NotSuperseded = not_superseded(DynamoQueryFilterBuilder())
 

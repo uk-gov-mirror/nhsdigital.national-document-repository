@@ -6,7 +6,11 @@ from models.fhir.R4.bundle import Bundle, BundleEntry
 from models.fhir.R4.fhir_document_reference import Attachment, DocumentReferenceInfo
 from services.base.dynamo_service import DynamoDBService
 from utils.audit_logging_setup import LoggingService
-from utils.common_query_filters import FinalStatusFilter, patient_nhs_number_filter
+from utils.common_query_filters import (
+    FinalOrDeprecatedDocStatusFilter,
+    FinalStatusFilter,
+    patient_nhs_number_filter,
+)
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.exceptions import (
     InvalidDocumentReferenceException,
@@ -40,7 +44,7 @@ class GetFhirDocumentReferenceHistoryService:
             search_key=search_key,
             search_condition=s3_file_key,
             index_name=index_name,
-            query_filter=query_filter_by_nhs_number,
+            query_filter=FinalOrDeprecatedDocStatusFilter & query_filter_by_nhs_number,
         )
         return self.create_fhir_history_bundle(items)
 
