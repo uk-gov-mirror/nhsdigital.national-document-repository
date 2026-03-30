@@ -27,11 +27,13 @@ import SpinnerV2 from '../../../generic/spinnerV2/SpinnerV2';
 type Props = {
     setSubRoute: Dispatch<SetStateAction<UserPatientRestrictionsSubRoute | null>>;
     onRemoveRestriction: (restriction: UserPatientRestriction) => void;
+    setExistingRestrictions: Dispatch<SetStateAction<UserPatientRestriction[]>>;
 };
 
 const UserPatientRestrictionsViewStage = ({
     setSubRoute,
     onRemoveRestriction,
+    setExistingRestrictions,
 }: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const patientDetails = usePatient();
@@ -86,7 +88,10 @@ const UserPatientRestrictionsViewStage = ({
 
     const addRestrictionClicked = (): void => {
         setSubRoute(UserPatientRestrictionsSubRoute.ADD);
-        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF);
+        setExistingRestrictions(restrictions);
+        setTimeout(() => {
+            navigate(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF);
+        }, 2);
     };
 
     return (

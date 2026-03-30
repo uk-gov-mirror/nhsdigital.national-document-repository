@@ -95,6 +95,7 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
                             <UserPatientRestrictionsViewStage
                                 setSubRoute={setSubRoute}
                                 onRemoveRestriction={onRemoveRestriction}
+                                setExistingRestrictions={setExistingRestrictions}
                             />
                         }
                     />

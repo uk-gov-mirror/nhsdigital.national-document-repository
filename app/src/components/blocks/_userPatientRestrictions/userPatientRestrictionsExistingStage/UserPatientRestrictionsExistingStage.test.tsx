@@ -63,6 +63,7 @@ describe('UserPatientRestrictionsExistingStage', () => {
         renderComponent();
 
         await waitFor(() => {
+            expect(setExistingRestrictions).toHaveBeenCalledWith([]);
             expect(mockNavigate).toHaveBeenCalledWith(
                 routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF,
                 { replace: true },

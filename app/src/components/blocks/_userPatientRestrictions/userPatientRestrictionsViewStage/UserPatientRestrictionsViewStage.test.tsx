@@ -136,6 +136,7 @@ describe('UserPatientRestrictionsViewStage', () => {
 
         await waitFor(() => {
             expect(mockSetSubRoute).toHaveBeenCalledWith(UserPatientRestrictionsSubRoute.ADD);
+            expect(mockSetExistingRestrictions).toHaveBeenCalledWith(mockRestrictions);
             expect(mockNavigate).toHaveBeenCalledWith(
                 routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF,
             );
@@ -145,12 +146,14 @@ describe('UserPatientRestrictionsViewStage', () => {
 
 const onRemoveRestriction = vi.fn();
 const mockSetSubRoute = vi.fn();
+const mockSetExistingRestrictions = vi.fn();
 
 const renderComponent = (): void => {
     render(
         <UserPatientRestrictionsViewStage
             setSubRoute={mockSetSubRoute}
             onRemoveRestriction={onRemoveRestriction}
+            setExistingRestrictions={mockSetExistingRestrictions}
         />,
     );
 };

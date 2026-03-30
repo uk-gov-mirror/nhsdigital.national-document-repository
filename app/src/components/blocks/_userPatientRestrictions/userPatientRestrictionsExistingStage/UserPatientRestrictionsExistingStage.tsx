@@ -47,7 +47,12 @@ const UserPatientRestrictionsExistingStage = ({
             });
 
             if (restrictions.length === 0) {
-                navigate(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF, { replace: true });
+                setExistingRestrictions([]);
+                setTimeout(() => {
+                    navigate(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF, {
+                        replace: true,
+                    });
+                }, 2);
                 return;
             }
 
