@@ -280,10 +280,6 @@ export const childRoutes = [
         parent: DOCUMENT_REASSIGN_PAGES,
     },
     {
-        route: routeChildren.USER_PATIENT_RESTRICTIONS_VIEW,
-        parent: USER_PATIENT_RESTRICTIONS,
-    },
-    {
         route: routeChildren.USER_PATIENT_RESTRICTIONS_LIST,
         parent: USER_PATIENT_RESTRICTIONS,
     },
@@ -292,11 +288,15 @@ export const childRoutes = [
         parent: USER_PATIENT_RESTRICTIONS,
     },
     {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_VIEW,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
         route: routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_CONFIRM,
         parent: USER_PATIENT_RESTRICTIONS,
     },
     {
-        route: routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_COMPLETE,
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE,
         parent: USER_PATIENT_RESTRICTIONS,
     },
     {

@@ -59,7 +59,7 @@ describe('UserPatientRestrictionsRemoveConfirmStage', () => {
                 nhsNumber: mockRestriction.nhsNumber,
             });
             expect(mockNavigate).toHaveBeenCalledWith(
-                routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_COMPLETE,
+                routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE,
             );
         });
     });

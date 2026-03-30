@@ -15,6 +15,8 @@ import UserPatientRestrictionsSearchStaffStage from '../../components/blocks/_us
 import UserPatientRestrictionsVerifyStaffStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsVerifyStaffStage/UserPatientRestrictionsVerifyStaffStage';
 import UserPatientRestrictionsAddConfirmStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsAddConfirmStage/UserPatientRestrictionsAddConfirmStage';
 import UserPatientRestrictionsAddCancelStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsAddCancelStage/UserPatientRestrictionsAddCancelStage';
+import PatientGuard from '../../router/guards/patientGuard/PatientGuard';
+import NotFoundPage from '../notFoundPage/NotFoundPage';
 
 const UserPatientRestrictionsPage = (): React.JSX.Element => {
     const {
@@ -45,6 +47,8 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
     return (
         <>
             <Routes>
+                {/* routes that don't need patient context */}
+                <Route path="*" element={<NotFoundPage />} />
                 <Route index element={<UserPatientRestrictionsIndex setSubRoute={setSubRoute} />} />
 
                 <Route
@@ -53,88 +57,105 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
                 />
 
                 <Route
-                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_PATIENT)}
-                    element={
-                        <UserPatientRestrictionsVerifyPatientStage
-                            confirmClicked={confirmVerifyPatientDetails}
-                            route={subRoute!}
-                        />
-                    }
-                />
-
-                <Route
-                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_VIEW)}
-                    element={
-                        <UserPatientRestrictionsViewStage
-                            setSubRoute={setSubRoute}
-                            onRemoveRestriction={onRemoveRestriction}
-                        />
-                    }
-                />
-
-                <Route
-                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_CONFIRM)}
-                    element={
-                        <UserPatientRestrictionsRemoveConfirmStage
-                            restriction={restrictionToRemove!}
-                        />
-                    }
-                />
-
-                <Route
-                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_COMPLETE)}
-                    element={<UserPatientRestrictionsCompleteStage route={subRoute!} />}
-                />
-
-                <Route
                     path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT)}
                     element={<UserPatientRestrictionsSearchPatientStage />}
                 />
+                {/* routes that don't need patient context */}
 
+                {/* routes that need patient context */}
                 <Route
-                    path={getLastURLPath(
-                        routeChildren.USER_PATIENT_RESTRICTIONS_EXISTING_RESTRICTIONS,
-                    )}
                     element={
-                        <UserPatientRestrictionsExistingStage
-                            existingRestrictions={existingRestrictions}
-                            setExistingRestrictions={setExistingRestrictions}
-                        />
+                        <PatientGuard navigationPath={routes.USER_PATIENT_RESTRICTIONS}>
+                            <Outlet />
+                        </PatientGuard>
                     }
-                />
+                >
+                    <Route
+                        path={getLastURLPath(
+                            routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_PATIENT,
+                        )}
+                        element={
+                            <UserPatientRestrictionsVerifyPatientStage
+                                confirmClicked={confirmVerifyPatientDetails}
+                                route={subRoute!}
+                            />
+                        }
+                    />
 
-                <Route
-                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF)}
-                    element={
-                        <UserPatientRestrictionsSearchStaffStage
-                            existingRestrictions={existingRestrictions}
-                            setUserInformation={setUserInformation}
-                        />
-                    }
-                />
+                    <Route
+                        path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_VIEW)}
+                        element={
+                            <UserPatientRestrictionsViewStage
+                                setSubRoute={setSubRoute}
+                                onRemoveRestriction={onRemoveRestriction}
+                            />
+                        }
+                    />
 
-                <Route
-                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_STAFF)}
-                    element={
-                        <UserPatientRestrictionsVerifyStaffStage
-                            userInformation={userInformation!}
-                        />
-                    }
-                />
+                    <Route
+                        path={getLastURLPath(
+                            routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_CONFIRM,
+                        )}
+                        element={
+                            <UserPatientRestrictionsRemoveConfirmStage
+                                restriction={restrictionToRemove!}
+                            />
+                        }
+                    />
 
-                <Route
-                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CONFIRM)}
-                    element={
-                        <UserPatientRestrictionsAddConfirmStage
-                            userInformation={userInformation!}
-                        />
-                    }
-                />
+                    <Route
+                        path={getLastURLPath(
+                            routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE,
+                        )}
+                        element={<UserPatientRestrictionsCompleteStage route={subRoute!} />}
+                    />
 
-                <Route
-                    path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CANCEL)}
-                    element={<UserPatientRestrictionsAddCancelStage />}
-                />
+                    <Route
+                        path={getLastURLPath(
+                            routeChildren.USER_PATIENT_RESTRICTIONS_EXISTING_RESTRICTIONS,
+                        )}
+                        element={
+                            <UserPatientRestrictionsExistingStage
+                                existingRestrictions={existingRestrictions}
+                                setExistingRestrictions={setExistingRestrictions}
+                            />
+                        }
+                    />
+
+                    <Route
+                        path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF)}
+                        element={
+                            <UserPatientRestrictionsSearchStaffStage
+                                existingRestrictions={existingRestrictions}
+                                setUserInformation={setUserInformation}
+                            />
+                        }
+                    />
+
+                    <Route
+                        path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_STAFF)}
+                        element={
+                            <UserPatientRestrictionsVerifyStaffStage
+                                userInformation={userInformation!}
+                            />
+                        }
+                    />
+
+                    <Route
+                        path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CONFIRM)}
+                        element={
+                            <UserPatientRestrictionsAddConfirmStage
+                                userInformation={userInformation!}
+                            />
+                        }
+                    />
+
+                    <Route
+                        path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CANCEL)}
+                        element={<UserPatientRestrictionsAddCancelStage />}
+                    />
+                </Route>
+                {/* routes that need patient context */}
             </Routes>
 
             <Outlet />

@@ -1,21 +1,63 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { UserInformation } from '../../../../types/generic/userPatientRestriction';
 import BackButton from '../../../generic/backButton/BackButton';
 import PatientSummary from '../../../generic/patientSummary/PatientSummary';
 import StaffMemberDetails from '../../../generic/staffMemberDetails/StaffMemberDetails';
-import { routeChildren } from '../../../../types/generic/routes';
+import { routeChildren, routes } from '../../../../types/generic/routes';
 import { Button } from 'nhsuk-react-components';
+import postUserPatientRestriction from '../../../../helpers/requests/userPatientRestrictions/createUserPatientRestriction';
+import usePatient from '../../../../helpers/hooks/usePatient';
+import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
+import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
+import { AxiosError } from 'axios';
+import { isMock } from '../../../../helpers/utils/isLocal';
+import { errorToParams } from '../../../../helpers/utils/errorToParams';
+import { useState } from 'react';
+import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 
 type Props = {
     userInformation: UserInformation;
 };
 
 const UserPatientRestrictionsAddConfirmStage = ({ userInformation }: Props): React.JSX.Element => {
+    const navigate = useNavigate();
+    const patient = usePatient();
+    const baseAPIUrl = useBaseAPIUrl();
+    const baseAPIHeaders = useBaseAPIHeaders();
+
     const pageTitle = 'Check the details of the restriction';
     useTitle({ pageTitle });
 
-    const addRestriction = (): void => {};
+    const [creatingRestriction, setCreatingRestriction] = useState(false);
+
+    const addRestriction = async (): Promise<void> => {
+        setCreatingRestriction(true);
+
+        try {
+            await postUserPatientRestriction({
+                nhsNumber: patient!.nhsNumber,
+                smartcardId: userInformation.smartcardId,
+                baseAPIUrl,
+                baseAPIHeaders,
+            });
+
+            handleSuccess();
+        } catch (e) {
+            const error = e as AxiosError;
+            if (isMock(error)) {
+                handleSuccess();
+            } else if (error.response?.status === 403) {
+                navigate(routes.SESSION_EXPIRED);
+            } else {
+                navigate(routes.SERVER_ERROR + errorToParams(error));
+            }
+        }
+    };
+
+    const handleSuccess = (): void => {
+        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE);
+    };
 
     return (
         <>
@@ -34,14 +76,18 @@ const UserPatientRestrictionsAddConfirmStage = ({ userInformation }: Props): Rea
 
             <StaffMemberDetails userInformation={userInformation} />
 
-            <div className="action-button-group">
-                <Button data-testid="continue-button" onClick={addRestriction}>
-                    Continue to add this restriction
-                </Button>
-                <Link className="ml-4" to={routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CANCEL}>
-                    Cancel without adding a restriction
-                </Link>
-            </div>
+            {creatingRestriction ? (
+                <SpinnerButton id="creating-restriction-spinner" status="Processing..." />
+            ) : (
+                <div className="action-button-group">
+                    <Button data-testid="continue-button" onClick={addRestriction}>
+                        Continue to add this restriction
+                    </Button>
+                    <Link className="ml-4" to={routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CANCEL}>
+                        Cancel without adding a restriction
+                    </Link>
+                </div>
+            )}
         </>
     );
 };

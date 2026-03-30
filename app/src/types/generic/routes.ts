@@ -122,8 +122,8 @@ export enum routeChildren {
     USER_PATIENT_RESTRICTIONS_SEARCH_STAFF = '/user-patient-restrictions/search-staff',
     USER_PATIENT_RESTRICTIONS_VERIFY_STAFF = '/user-patient-restrictions/verify-staff',
     USER_PATIENT_RESTRICTIONS_REMOVE_CONFIRM = '/user-patient-restrictions/remove-confirm',
-    USER_PATIENT_RESTRICTIONS_REMOVE_COMPLETE = '/user-patient-restrictions/remove-complete',
     USER_PATIENT_RESTRICTIONS_ADD_CANCEL = '/user-patient-restrictions/add-cancel',
+    USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE = '/user-patient-restrictions/action-complete',
 }
 
 export const navigateUrlParam = (

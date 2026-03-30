@@ -51,7 +51,7 @@ const UserPatientRestrictionsRemoveConfirmStage = ({ restriction }: Props): Reac
             }
         }
 
-        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_COMPLETE);
+        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE);
     };
 
     return (
