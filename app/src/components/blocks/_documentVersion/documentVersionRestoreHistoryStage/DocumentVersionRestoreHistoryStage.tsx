@@ -57,6 +57,7 @@ const DocumentVersionRestoreHistoryStage = ({
     const [versionHistory, setVersionHistory] = useState<Bundle<FhirDocumentReference> | null>(
         null,
     );
+    const [errorState, setErrorState] = useState<string | null>(null);
 
     const docTypeLabel = documentReference
         ? getDocumentTypeLabel(documentReference.documentSnomedCodeType)
@@ -68,6 +69,12 @@ const DocumentVersionRestoreHistoryStage = ({
         docConfig?.content.getValue<string, LGContentKeys>('versionHistoryHeader') ||
         `Version history for ${docTypeLabel}`;
     useTitle({ pageTitle: pageHeader });
+
+    useEffect(() => {
+        if (errorState) {
+            navigate(errorState);
+        }
+    }, [errorState, navigate]);
 
     useEffect(() => {
         if (!versionHistoryRef.current) {
@@ -109,9 +116,9 @@ const DocumentVersionRestoreHistoryStage = ({
                         navigate(routes.SESSION_EXPIRED);
                     } else if (error.response?.status && error.response?.status >= 500) {
                         navigate(routes.SERVER_ERROR + errorToParams(error));
+                    } else {
+                        navigate(routes.SERVER_ERROR);
                     }
-
-                    navigate(routes.SERVER_ERROR);
                 }
             };
             void fetchVersionHistory();
@@ -147,11 +154,9 @@ const DocumentVersionRestoreHistoryStage = ({
             }
             const error = e as AxiosError;
             if (error.response?.status === 403) {
-                navigate(routes.SESSION_EXPIRED);
-            } else if (error.response?.status === 404) {
-                await handleViewDocSuccess({ url: '', contentType: '' }, baseRef);
+                setErrorState(routes.SESSION_EXPIRED);
             } else {
-                navigate(routes.SERVER_ERROR + errorToParams(error));
+                setErrorState(routes.SERVER_ERROR + errorToParams(error));
             }
         }
     };
