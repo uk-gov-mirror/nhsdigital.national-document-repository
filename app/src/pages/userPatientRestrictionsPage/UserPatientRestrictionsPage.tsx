@@ -30,6 +30,8 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
         setExistingRestrictions,
         userInformation,
         setUserInformation,
+        journeyState,
+        setJourneyState,
     } = useUserPatientRestrictionsPage();
 
     const navigate = useNavigate();
@@ -53,7 +55,12 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
 
                 <Route
                     path={getLastURLPath(routeChildren.USER_PATIENT_RESTRICTIONS_LIST)}
-                    element={<UserPatientRestrictionsListStage setSubRoute={setSubRoute} />}
+                    element={
+                        <UserPatientRestrictionsListStage
+                            setSubRoute={setSubRoute}
+                            setJourneyState={setJourneyState}
+                        />
+                    }
                 />
 
                 <Route
@@ -99,6 +106,8 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
                         element={
                             <UserPatientRestrictionsRemoveConfirmStage
                                 restriction={restrictionToRemove!}
+                                journeyState={journeyState}
+                                setJourneyState={setJourneyState}
                             />
                         }
                     />
@@ -107,7 +116,12 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
                         path={getLastURLPath(
                             routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE,
                         )}
-                        element={<UserPatientRestrictionsCompleteStage route={subRoute!} />}
+                        element={
+                            <UserPatientRestrictionsCompleteStage
+                                route={subRoute!}
+                                journeyState={journeyState}
+                            />
+                        }
                     />
 
                     <Route
@@ -137,6 +151,7 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
                         element={
                             <UserPatientRestrictionsVerifyStaffStage
                                 userInformation={userInformation!}
+                                setJourneyState={setJourneyState}
                             />
                         }
                     />
@@ -146,6 +161,8 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
                         element={
                             <UserPatientRestrictionsAddConfirmStage
                                 userInformation={userInformation!}
+                                journeyState={journeyState}
+                                setJourneyState={setJourneyState}
                             />
                         }
                     />

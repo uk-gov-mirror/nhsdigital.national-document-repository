@@ -13,14 +13,21 @@ import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import { AxiosError } from 'axios';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
-import { useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
+import { UserPatientRestrictionsJourneyState } from '../../../../pages/userPatientRestrictionsPage/useUserPatientRestrictionsPageHook';
 
 type Props = {
     userInformation: UserInformation;
+    journeyState: UserPatientRestrictionsJourneyState;
+    setJourneyState: Dispatch<SetStateAction<UserPatientRestrictionsJourneyState>>;
 };
 
-const UserPatientRestrictionsAddConfirmStage = ({ userInformation }: Props): React.JSX.Element => {
+const UserPatientRestrictionsAddConfirmStage = ({
+    userInformation,
+    journeyState,
+    setJourneyState,
+}: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const patient = usePatient();
     const baseAPIUrl = useBaseAPIUrl();
@@ -30,6 +37,12 @@ const UserPatientRestrictionsAddConfirmStage = ({ userInformation }: Props): Rea
     useTitle({ pageTitle });
 
     const [creatingRestriction, setCreatingRestriction] = useState(false);
+
+    useEffect(() => {
+        if (journeyState !== UserPatientRestrictionsJourneyState.CONFIRMING) {
+            navigate(routes.USER_PATIENT_RESTRICTIONS);
+        }
+    }, [journeyState, navigate]);
 
     const addRestriction = async (): Promise<void> => {
         setCreatingRestriction(true);
@@ -56,8 +69,15 @@ const UserPatientRestrictionsAddConfirmStage = ({ userInformation }: Props): Rea
     };
 
     const handleSuccess = (): void => {
-        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE);
+        setJourneyState(UserPatientRestrictionsJourneyState.COMPLETE);
+        setTimeout(() => {
+            navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE);
+        }, 2);
     };
+
+    if (journeyState !== UserPatientRestrictionsJourneyState.CONFIRMING) {
+        return <></>;
+    }
 
     return (
         <>

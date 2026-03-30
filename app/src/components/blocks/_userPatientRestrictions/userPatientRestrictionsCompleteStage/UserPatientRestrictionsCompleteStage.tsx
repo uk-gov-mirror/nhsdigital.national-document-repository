@@ -7,12 +7,18 @@ import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
 import { Button } from 'nhsuk-react-components';
 import { routeChildren } from '../../../../types/generic/routes';
+import { useEffect } from 'react';
+import { UserPatientRestrictionsJourneyState } from '../../../../pages/userPatientRestrictionsPage/useUserPatientRestrictionsPageHook';
 
 type Props = {
     route: UserPatientRestrictionsSubRoute;
+    journeyState: UserPatientRestrictionsJourneyState;
 };
 
-const UserPatientRestrictionsCompleteStage = ({ route }: Props): React.JSX.Element => {
+const UserPatientRestrictionsCompleteStage = ({
+    route,
+    journeyState,
+}: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const patientDetails = usePatient();
 
@@ -21,6 +27,16 @@ const UserPatientRestrictionsCompleteStage = ({ route }: Props): React.JSX.Eleme
             ? 'A restriction has been added to this patient record:'
             : 'A restriction on accessing this patient record has been removed:';
     useTitle({ pageTitle });
+
+    useEffect(() => {
+        if (journeyState !== UserPatientRestrictionsJourneyState.COMPLETE) {
+            navigate(-1);
+        }
+    }, [journeyState, navigate]);
+
+    if (journeyState !== UserPatientRestrictionsJourneyState.COMPLETE) {
+        return <></>;
+    }
 
     return (
         <>

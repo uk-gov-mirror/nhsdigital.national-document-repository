@@ -8,18 +8,25 @@ import deleteUserPatientRestriction from '../../../../helpers/requests/userPatie
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import { routeChildren, routes } from '../../../../types/generic/routes';
-import { useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import SpinnerButton from '../../../generic/spinnerButton/SpinnerButton';
 import { AxiosError } from 'axios';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
 import formatSmartcardNumber from '../../../../helpers/utils/formatSmartcardNumber';
+import { UserPatientRestrictionsJourneyState } from '../../../../pages/userPatientRestrictionsPage/useUserPatientRestrictionsPageHook';
 
 type Props = {
     restriction: UserPatientRestriction;
+    journeyState: UserPatientRestrictionsJourneyState;
+    setJourneyState: Dispatch<SetStateAction<UserPatientRestrictionsJourneyState>>;
 };
 
-const UserPatientRestrictionsRemoveConfirmStage = ({ restriction }: Props): React.JSX.Element => {
+const UserPatientRestrictionsRemoveConfirmStage = ({
+    restriction,
+    journeyState,
+    setJourneyState,
+}: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const baseUrl = useBaseAPIUrl();
     const baseAPIHeaders = useBaseAPIHeaders();
@@ -28,6 +35,12 @@ const UserPatientRestrictionsRemoveConfirmStage = ({ restriction }: Props): Reac
 
     const pageTitle = 'Are you sure you want to remove this restriction?';
     useTitle({ pageTitle });
+
+    useEffect(() => {
+        if (journeyState !== UserPatientRestrictionsJourneyState.CONFIRMING) {
+            navigate(routes.USER_PATIENT_RESTRICTIONS);
+        }
+    }, [journeyState, navigate]);
 
     const confirmRemove = async (): Promise<void> => {
         setRemoving(true);
@@ -51,8 +64,15 @@ const UserPatientRestrictionsRemoveConfirmStage = ({ restriction }: Props): Reac
             }
         }
 
-        navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE);
+        setJourneyState(UserPatientRestrictionsJourneyState.COMPLETE);
+        setTimeout(() => {
+            navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE);
+        }, 2);
     };
+
+    if (journeyState !== UserPatientRestrictionsJourneyState.CONFIRMING) {
+        return <></>;
+    }
 
     return (
         <>

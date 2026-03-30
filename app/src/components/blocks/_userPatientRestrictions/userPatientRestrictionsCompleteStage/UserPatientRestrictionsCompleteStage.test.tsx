@@ -6,6 +6,7 @@ import usePatient from '../../../../helpers/hooks/usePatient';
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import userEvent from '@testing-library/user-event';
 import { routeChildren } from '../../../../types/generic/routes';
+import { UserPatientRestrictionsJourneyState } from '../../../../pages/userPatientRestrictionsPage/useUserPatientRestrictionsPageHook';
 
 vi.mock('react-router-dom', async () => ({
     ...(await vi.importActual('react-router-dom')),
@@ -22,9 +23,7 @@ describe('UserPatientRestrictionsCompleteStage', () => {
     });
 
     it('renders the correct title and patient details when a restriction is added', () => {
-        render(
-            <UserPatientRestrictionsCompleteStage route={UserPatientRestrictionsSubRoute.ADD} />,
-        );
+        renderComponent(UserPatientRestrictionsSubRoute.ADD);
 
         expect(screen.getByTestId('page-title')).toHaveTextContent(
             'A restriction has been added to this patient record:',
@@ -33,9 +32,7 @@ describe('UserPatientRestrictionsCompleteStage', () => {
     });
 
     it('renders the correct title and patient details when a restriction is removed', () => {
-        render(
-            <UserPatientRestrictionsCompleteStage route={UserPatientRestrictionsSubRoute.REMOVE} />,
-        );
+        renderComponent(UserPatientRestrictionsSubRoute.REMOVE);
 
         expect(screen.getByTestId('page-title')).toHaveTextContent(
             'A restriction on accessing this patient record has been removed:',
@@ -44,13 +41,27 @@ describe('UserPatientRestrictionsCompleteStage', () => {
     });
 
     it('should navigate to user restrictions list page when the view restrictions button is clicked', async () => {
-        render(
-            <UserPatientRestrictionsCompleteStage route={UserPatientRestrictionsSubRoute.REMOVE} />,
-        );
+        renderComponent(UserPatientRestrictionsSubRoute.REMOVE);
 
         const viewRestrictionsButton = screen.getByTestId('view-restrictions-button');
         await userEvent.click(viewRestrictionsButton);
 
         expect(mockNavigate).toHaveBeenCalledWith(routeChildren.USER_PATIENT_RESTRICTIONS_LIST);
     });
+
+    it('should navigate back when the journey state is not complete', () => {
+        renderComponent(
+            UserPatientRestrictionsSubRoute.ADD,
+            UserPatientRestrictionsJourneyState.INITIAL,
+        );
+
+        expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
 });
+
+const renderComponent = (
+    route: UserPatientRestrictionsSubRoute,
+    journeyState: UserPatientRestrictionsJourneyState = UserPatientRestrictionsJourneyState.COMPLETE,
+): void => {
+    render(<UserPatientRestrictionsCompleteStage route={route} journeyState={journeyState} />);
+};

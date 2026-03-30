@@ -6,6 +6,7 @@ import postUserPatientRestriction from '../../../../helpers/requests/userPatient
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import { userEvent } from '@testing-library/user-event';
 import { routeChildren, routes } from '../../../../types/generic/routes';
+import { UserPatientRestrictionsJourneyState } from '../../../../pages/userPatientRestrictionsPage/useUserPatientRestrictionsPageHook';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -41,7 +42,7 @@ describe('UserPatientRestrictionsAddConfirmStage', () => {
     });
 
     it('renders correctly', () => {
-        render(<UserPatientRestrictionsAddConfirmStage userInformation={userInformation} />);
+        renderComponent();
 
         expect(screen.getByTestId('smartcard-id')).toHaveTextContent(userInformation.smartcardId);
         expect(screen.getByTestId('staff-member')).toHaveTextContent(
@@ -50,7 +51,7 @@ describe('UserPatientRestrictionsAddConfirmStage', () => {
     });
 
     it('submits new patient restriction and navigates to success page on button click', async () => {
-        render(<UserPatientRestrictionsAddConfirmStage userInformation={userInformation} />);
+        renderComponent();
 
         const button = screen.getByTestId('continue-button');
         await userEvent.click(button);
@@ -62,13 +63,16 @@ describe('UserPatientRestrictionsAddConfirmStage', () => {
             }),
         );
 
+        expect(mockSetJourneyState).toHaveBeenCalledWith(
+            UserPatientRestrictionsJourneyState.COMPLETE,
+        );
         expect(mockNavigate).toHaveBeenCalledWith(
             routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE,
         );
     });
 
     it('shows loading state when submitting restriction', async () => {
-        render(<UserPatientRestrictionsAddConfirmStage userInformation={userInformation} />);
+        renderComponent();
 
         mockPostUserPatientRestriction.mockReturnValue(new Promise(() => {}));
 
@@ -79,7 +83,7 @@ describe('UserPatientRestrictionsAddConfirmStage', () => {
     });
 
     it('navigates to error page on 500', async () => {
-        render(<UserPatientRestrictionsAddConfirmStage userInformation={userInformation} />);
+        renderComponent();
 
         mockPostUserPatientRestriction.mockRejectedValue({
             response: { status: 500 },
@@ -92,7 +96,7 @@ describe('UserPatientRestrictionsAddConfirmStage', () => {
     });
 
     it('navigates to session expired page on 403', async () => {
-        render(<UserPatientRestrictionsAddConfirmStage userInformation={userInformation} />);
+        renderComponent();
 
         mockPostUserPatientRestriction.mockRejectedValue({
             response: { status: 403 },
@@ -103,4 +107,23 @@ describe('UserPatientRestrictionsAddConfirmStage', () => {
 
         expect(mockNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
     });
+
+    it('navigates to restrictions index page if journey state is not confirming', () => {
+        renderComponent(UserPatientRestrictionsJourneyState.COMPLETE);
+
+        expect(mockNavigate).toHaveBeenCalledWith(routes.USER_PATIENT_RESTRICTIONS);
+    });
 });
+
+const mockSetJourneyState = vi.fn();
+const renderComponent = (
+    journeyState: UserPatientRestrictionsJourneyState = UserPatientRestrictionsJourneyState.CONFIRMING,
+): void => {
+    render(
+        <UserPatientRestrictionsAddConfirmStage
+            userInformation={userInformation}
+            journeyState={journeyState}
+            setJourneyState={mockSetJourneyState}
+        />,
+    );
+};

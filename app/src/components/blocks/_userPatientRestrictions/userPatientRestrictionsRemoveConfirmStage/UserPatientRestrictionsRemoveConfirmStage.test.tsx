@@ -5,6 +5,7 @@ import { Mock } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import deleteUserPatientRestriction from '../../../../helpers/requests/userPatientRestrictions/deleteUserPatientRestriction';
+import { UserPatientRestrictionsJourneyState } from '../../../../pages/userPatientRestrictionsPage/useUserPatientRestrictionsPageHook';
 
 vi.mock('react-router-dom', async () => ({
     ...(await vi.importActual('react-router-dom')),
@@ -38,7 +39,7 @@ describe('UserPatientRestrictionsRemoveConfirmStage', () => {
     });
 
     it('renders correctly', () => {
-        render(<UserPatientRestrictionsRemoveConfirmStage restriction={mockRestriction} />);
+        renderComponent();
 
         expect(
             screen.getByText(
@@ -48,7 +49,7 @@ describe('UserPatientRestrictionsRemoveConfirmStage', () => {
     });
 
     it('should call deleteUserPatientRestriction and navigate to complete on confirm', async () => {
-        render(<UserPatientRestrictionsRemoveConfirmStage restriction={mockRestriction} />);
+        renderComponent();
 
         const confirmButton = screen.getByTestId('confirm-remove-restriction-button');
         await userEvent.click(confirmButton);
@@ -58,6 +59,9 @@ describe('UserPatientRestrictionsRemoveConfirmStage', () => {
                 restrictionId: mockRestriction.id,
                 nhsNumber: mockRestriction.nhsNumber,
             });
+            expect(mockSetJourneyState).toHaveBeenCalledWith(
+                UserPatientRestrictionsJourneyState.COMPLETE,
+            );
             expect(mockNavigate).toHaveBeenCalledWith(
                 routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE,
             );
@@ -67,7 +71,7 @@ describe('UserPatientRestrictionsRemoveConfirmStage', () => {
     it('should navigate to server error on delete failure', async () => {
         mockDeleteUserPatientRestriction.mockRejectedValue({ response: { status: 500 } });
 
-        render(<UserPatientRestrictionsRemoveConfirmStage restriction={mockRestriction} />);
+        renderComponent();
 
         const confirmButton = screen.getByTestId('confirm-remove-restriction-button');
         await userEvent.click(confirmButton);
@@ -80,7 +84,7 @@ describe('UserPatientRestrictionsRemoveConfirmStage', () => {
     it('should navigate to session expired on 403 error', async () => {
         mockDeleteUserPatientRestriction.mockRejectedValue({ response: { status: 403 } });
 
-        render(<UserPatientRestrictionsRemoveConfirmStage restriction={mockRestriction} />);
+        renderComponent();
 
         const confirmButton = screen.getByTestId('confirm-remove-restriction-button');
         await userEvent.click(confirmButton);
@@ -91,7 +95,7 @@ describe('UserPatientRestrictionsRemoveConfirmStage', () => {
     });
 
     it('should navigate to user patient restrictions list page on cancel', async () => {
-        render(<UserPatientRestrictionsRemoveConfirmStage restriction={mockRestriction} />);
+        renderComponent();
 
         const cancelButton = screen.getByTestId('cancel-remove-button');
         await userEvent.click(cancelButton);
@@ -100,4 +104,23 @@ describe('UserPatientRestrictionsRemoveConfirmStage', () => {
             expect(mockNavigate).toHaveBeenCalledWith(routeChildren.USER_PATIENT_RESTRICTIONS_LIST);
         });
     });
+
+    it('navigates to restrictions index page if journey state is not confirming', () => {
+        renderComponent(UserPatientRestrictionsJourneyState.COMPLETE);
+
+        expect(mockNavigate).toHaveBeenCalledWith(routes.USER_PATIENT_RESTRICTIONS);
+    });
 });
+
+const mockSetJourneyState = vi.fn();
+const renderComponent = (
+    journeyState: UserPatientRestrictionsJourneyState = UserPatientRestrictionsJourneyState.CONFIRMING,
+): void => {
+    render(
+        <UserPatientRestrictionsRemoveConfirmStage
+            restriction={mockRestriction}
+            journeyState={journeyState}
+            setJourneyState={mockSetJourneyState}
+        />,
+    );
+};

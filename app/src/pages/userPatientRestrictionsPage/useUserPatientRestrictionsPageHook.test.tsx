@@ -1,7 +1,9 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, Mock, vi } from 'vitest';
 import { routeChildren } from '../../types/generic/routes';
-import useUserPatientRestrictionsPage from './useUserPatientRestrictionsPageHook';
+import useUserPatientRestrictionsPage, {
+    UserPatientRestrictionsJourneyState,
+} from './useUserPatientRestrictionsPageHook';
 import { UserPatientRestrictionsSubRoute } from '../../types/generic/userPatientRestriction';
 import useConfig from '../../helpers/hooks/useConfig';
 import { buildUserRestrictions } from '../../helpers/test/testBuilders';
@@ -30,6 +32,18 @@ describe('useUserPatientRestrictionsPage', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+    });
+
+    describe('initial state', () => {
+        it('sets initial state correctly', () => {
+            const { result } = renderHook(() => useUserPatientRestrictionsPage());
+
+            expect(result.current.subRoute).toBeNull();
+            expect(result.current.restrictionToRemove).toBeNull();
+            expect(result.current.existingRestrictions).toEqual([]);
+            expect(result.current.userInformation).toBeNull();
+            expect(result.current.journeyState).toBe(UserPatientRestrictionsJourneyState.INITIAL);
+        });
     });
 
     describe('feature flag', () => {
@@ -102,6 +116,9 @@ describe('useUserPatientRestrictionsPage', () => {
 
             expect(result.current.restrictionToRemove).toEqual(buildUserRestrictions()[0]);
             expect(result.current.subRoute).toBe(UserPatientRestrictionsSubRoute.REMOVE);
+            expect(result.current.journeyState).toBe(
+                UserPatientRestrictionsJourneyState.CONFIRMING,
+            );
 
             vi.advanceTimersByTime(10);
 

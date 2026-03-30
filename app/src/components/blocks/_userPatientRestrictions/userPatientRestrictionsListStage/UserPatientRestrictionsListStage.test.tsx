@@ -8,6 +8,7 @@ import { buildPatientDetails, buildUserRestrictions } from '../../../../helpers/
 import { UserPatientRestrictionsSubRoute } from '../../../../types/generic/userPatientRestriction';
 import getPatientDetails from '../../../../helpers/requests/getPatientDetails';
 import { UIErrorCode } from '../../../../types/generic/errors';
+import { UserPatientRestrictionsJourneyState } from '../../../../pages/userPatientRestrictionsPage/useUserPatientRestrictionsPageHook';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -60,6 +61,9 @@ describe('UserPatientRestrictionsListStage', () => {
         expect(
             screen.getByText('Manage restrictions on access to patient records'),
         ).toBeInTheDocument();
+        expect(mockSetJourneyState).toHaveBeenCalledWith(
+            UserPatientRestrictionsJourneyState.INITIAL,
+        );
     });
 
     it('should navigate to add restrictions stage when add restriction button is clicked', async () => {
@@ -70,7 +74,7 @@ describe('UserPatientRestrictionsListStage', () => {
 
         await userEvent.click(addRestrictionButton);
 
-        expect(setSubRoute).toHaveBeenCalledWith(UserPatientRestrictionsSubRoute.ADD);
+        expect(mockSetSubRoute).toHaveBeenCalledWith(UserPatientRestrictionsSubRoute.ADD);
         expect(mockNavigate).toHaveBeenCalledWith(
             routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT,
         );
@@ -413,8 +417,14 @@ describe('UserPatientRestrictionsListStage', () => {
     });
 });
 
-const setSubRoute = vi.fn();
+const mockSetSubRoute = vi.fn();
+const mockSetJourneyState = vi.fn();
 
 const renderPage = (): void => {
-    render(<UserPatientRestrictionsListStage setSubRoute={setSubRoute} />);
+    render(
+        <UserPatientRestrictionsListStage
+            setSubRoute={mockSetSubRoute}
+            setJourneyState={mockSetJourneyState}
+        />,
+    );
 };

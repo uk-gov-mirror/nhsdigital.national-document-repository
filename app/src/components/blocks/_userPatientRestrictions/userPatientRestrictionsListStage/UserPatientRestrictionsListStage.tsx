@@ -32,6 +32,7 @@ import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPat
 import { ErrorResponse } from '../../../../types/generic/errorResponse';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
 import { UIErrorCode } from '../../../../types/generic/errors';
+import { UserPatientRestrictionsJourneyState } from '../../../../pages/userPatientRestrictionsPage/useUserPatientRestrictionsPageHook';
 
 enum Fields {
     searchType = 'searchType',
@@ -50,9 +51,13 @@ type FormData = {
 
 type Props = {
     setSubRoute: Dispatch<SetStateAction<UserPatientRestrictionsSubRoute | null>>;
+    setJourneyState: Dispatch<SetStateAction<UserPatientRestrictionsJourneyState>>;
 };
 
-const UserPatientRestrictionsListStage = ({ setSubRoute }: Props): React.JSX.Element => {
+const UserPatientRestrictionsListStage = ({
+    setSubRoute,
+    setJourneyState,
+}: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const pageTitle = 'Manage restrictions on access to patient records';
     useTitle({ pageTitle });
@@ -163,6 +168,8 @@ const UserPatientRestrictionsListStage = ({ setSubRoute }: Props): React.JSX.Ele
             mounted.current = true;
             loadRestrictions(0);
         }
+
+        setJourneyState(UserPatientRestrictionsJourneyState.INITIAL);
     }, [mounted.current]);
 
     const handleSearch = async (): Promise<void> => {

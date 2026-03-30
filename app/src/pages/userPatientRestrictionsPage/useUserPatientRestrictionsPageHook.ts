@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 import { routeChildren } from '../../types/generic/routes';
 import useConfig from '../../helpers/hooks/useConfig';
 import { useNavigate } from 'react-router-dom';
@@ -8,17 +8,25 @@ import {
     UserPatientRestrictionsSubRoute,
 } from '../../types/generic/userPatientRestriction';
 
+export enum UserPatientRestrictionsJourneyState {
+    INITIAL,
+    CONFIRMING,
+    COMPLETE,
+}
+
 export type UseUserPatientRestrictionsPageReturn = {
     isEnabled: boolean | undefined;
     subRoute: UserPatientRestrictionsSubRoute | null;
-    setSubRoute: React.Dispatch<React.SetStateAction<UserPatientRestrictionsSubRoute | null>>;
+    setSubRoute: Dispatch<SetStateAction<UserPatientRestrictionsSubRoute | null>>;
     restrictionToRemove: UserPatientRestriction | null;
     confirmVerifyPatientDetails: () => void;
     onRemoveRestriction: (restriction: UserPatientRestriction) => void;
     existingRestrictions: UserPatientRestriction[];
-    setExistingRestrictions: React.Dispatch<React.SetStateAction<UserPatientRestriction[]>>;
+    setExistingRestrictions: Dispatch<SetStateAction<UserPatientRestriction[]>>;
     userInformation: UserInformation | null;
-    setUserInformation: React.Dispatch<React.SetStateAction<UserInformation | null>>;
+    setUserInformation: Dispatch<SetStateAction<UserInformation | null>>;
+    journeyState: UserPatientRestrictionsJourneyState;
+    setJourneyState: Dispatch<SetStateAction<UserPatientRestrictionsJourneyState>>;
 };
 
 const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn => {
@@ -32,6 +40,10 @@ const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn 
     const [existingRestrictions, setExistingRestrictions] = useState<UserPatientRestriction[]>([]);
     const [userInformation, setUserInformation] = useState<UserInformation | null>(null);
 
+    const [journeyState, setJourneyState] = useState<UserPatientRestrictionsJourneyState>(
+        UserPatientRestrictionsJourneyState.INITIAL,
+    );
+
     const confirmVerifyPatientDetails = (): void => {
         if (subRoute === UserPatientRestrictionsSubRoute.ADD) {
             navigate(routeChildren.USER_PATIENT_RESTRICTIONS_EXISTING_RESTRICTIONS);
@@ -43,6 +55,7 @@ const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn 
     const onRemoveRestriction = (restriction: UserPatientRestriction): void => {
         setRestrictionToRemove(restriction);
         setSubRoute(UserPatientRestrictionsSubRoute.REMOVE);
+        setJourneyState(UserPatientRestrictionsJourneyState.CONFIRMING);
         setTimeout(() => {
             navigate(routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_CONFIRM);
         }, 2);
@@ -59,6 +72,8 @@ const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn 
         setExistingRestrictions,
         userInformation,
         setUserInformation,
+        journeyState,
+        setJourneyState,
     };
 };
 

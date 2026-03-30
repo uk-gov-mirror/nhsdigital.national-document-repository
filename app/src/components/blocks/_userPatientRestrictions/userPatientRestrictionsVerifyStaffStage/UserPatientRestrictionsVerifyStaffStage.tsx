@@ -5,12 +5,18 @@ import { UserInformation } from '../../../../types/generic/userPatientRestrictio
 import { useNavigate } from 'react-router-dom';
 import { routeChildren } from '../../../../types/generic/routes';
 import StaffMemberDetails from '../../../generic/staffMemberDetails/StaffMemberDetails';
+import { UserPatientRestrictionsJourneyState } from '../../../../pages/userPatientRestrictionsPage/useUserPatientRestrictionsPageHook';
+import { Dispatch, SetStateAction } from 'react';
 
 type Props = {
     userInformation: UserInformation;
+    setJourneyState: Dispatch<SetStateAction<UserPatientRestrictionsJourneyState>>;
 };
 
-const UserPatientRestrictionsVerifyStaffStage = ({ userInformation }: Props): React.JSX.Element => {
+const UserPatientRestrictionsVerifyStaffStage = ({
+    userInformation,
+    setJourneyState,
+}: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const pageTitle = 'NHS smartcard details';
     useTitle({ pageTitle });
@@ -32,6 +38,7 @@ const UserPatientRestrictionsVerifyStaffStage = ({ userInformation }: Props): Re
                 data-testid="confirm-staff-details-button"
                 id="confirm-staff-details-button"
                 onClick={(): void => {
+                    setJourneyState(UserPatientRestrictionsJourneyState.CONFIRMING);
                     navigate(routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CONFIRM);
                 }}
             >
