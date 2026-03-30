@@ -282,6 +282,7 @@ class DocumentReferenceSearchService(DocumentService):
             filter_expression=filter_expression,
             expression_attribute_names=condition_attribute_names,
             expression_attribute_values=condition_attribute_values,
+            scan_index_forward=False,
         )
 
         logger.info("Validating upload status")

@@ -389,6 +389,7 @@ class DocumentService:
         index_name: str,
         search_key: str,
         search_condition: str,
+        scan_index_forward: bool | None = None,
         table_name: str | None = None,
         filter_expression: str | None = None,
         expression_attribute_names: dict | None = None,
@@ -414,6 +415,7 @@ class DocumentService:
                 limit=limit,
                 page_size=page_size,
                 start_key=start_key,
+                scan_index_forward=scan_index_forward,
             )
 
             references = [

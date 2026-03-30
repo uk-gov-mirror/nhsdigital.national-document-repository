@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, call
 import pytest
 from boto3.dynamodb.conditions import And, Attr, Equals, Key
 from botocore.exceptions import ClientError
+
 from enums.dynamo_filter import AttributeOperator
 from enums.metadata_field_names import DocumentReferenceMetadataFields
 from services.base.dynamo_service import DynamoDBService
@@ -1521,6 +1522,7 @@ def test_query_table_using_paginator(mock_service):
         index_name="NhsNumberIndex",
         key="NhsNumber",
         condition=TEST_NHS_NUMBER,
+        scan_index_forward=False,
     )
 
     mock_paginator.paginate.assert_called_with(
@@ -1529,6 +1531,7 @@ def test_query_table_using_paginator(mock_service):
         KeyConditionExpression="NhsNumber=:i",
         ExpressionAttributeValues={":i": {"S": TEST_NHS_NUMBER}},
         PaginationConfig={"MaxItems": 20, "PageSize": 1},
+        ScanIndexForward=False,
     )
 
     assert actual == expected

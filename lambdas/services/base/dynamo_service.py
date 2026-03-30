@@ -509,6 +509,7 @@ class DynamoDBService:
         limit: int = 20,
         page_size: int = 1,
         start_key: str | None = None,
+        scan_index_forward: bool | None = None,
     ) -> dict:
 
         try:
@@ -527,6 +528,9 @@ class DynamoDBService:
                 "KeyConditionExpression": f"{key}=:i",
                 "PaginationConfig": pagination_config,
             }
+
+            if scan_index_forward is not None:
+                query_params["ScanIndexForward"] = scan_index_forward
 
             if expression_attribute_values is None:
                 expression_attribute_values = {}
