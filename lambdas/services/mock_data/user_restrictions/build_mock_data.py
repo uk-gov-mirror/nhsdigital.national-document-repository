@@ -6,16 +6,16 @@ from utils.exceptions import HealthcareWorkerAPIException
 
 
 class MockValidIdentifier(StrEnum):
-    MULTIPLE_NAME_RESPOSNE = "777777777777"
-    SIMPLE_RESPOSNE = "123456789012"
+    MULTIPLE_NAME_RESPONSE = "777777777777"
+    SIMPLE_RESPONSE = "123456789012"
 
 
 def build_mock_response_and_practitioner(identifier: str):
 
     match identifier:
-        case MockValidIdentifier.MULTIPLE_NAME_RESPOSNE:
+        case MockValidIdentifier.MULTIPLE_NAME_RESPONSE:
             file = "hcw_api_multiple_names_response.json"
-        case MockValidIdentifier.SIMPLE_RESPOSNE:
+        case MockValidIdentifier.SIMPLE_RESPONSE:
             file = "hcw_api_practitioner_response.json"
         case _:
             raise HealthcareWorkerAPIException(status_code=404)

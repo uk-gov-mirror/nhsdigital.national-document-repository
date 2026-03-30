@@ -674,24 +674,6 @@ class LambdaError(Enum):
     EdgeDocNotFound = {"err_code": "CE_4001", "message": "Document not found"}
 
     """
-        Errors for User Restrictions feature
-    """
-    UserRestrictionInvalidEvent = {
-        "err_code": "UR_4001",
-        "message": "Malformed user restriction event",
-    }
-
-    UserRestrictionModelValidationError = {
-        "err_code": "UR_5001",
-        "message": "Malformed user restriction model error",
-    }
-
-    UserRestrictionDynamoDBConditionError = {
-        "err_code": "UR_4002",
-        "message": "Failed DynamoDB operation, bad request",
-    }
-
-    """
        Errors with no exception
     """
     DocDelNull = {
@@ -756,54 +738,6 @@ class LambdaError(Enum):
         "message": "Failed to parse SQS event",
     }
 
-    """
-       Errors for UserRestriction lambda
-    """
-    CreateRestrictionMissingBody = {
-        "err_code": "UR_4001",
-        "message": "Missing request body",
-    }
-    CreateRestrictionMissingFields = {
-        "err_code": "UR_4002",
-        "message": "Missing required fields",
-    }
-    CreateRestrictionPatientIdMismatch = {
-        "err_code": "UR_4003",
-        "message": "patientId does not match nhs_number",
-    }
-    CreateRestrictionMissingContext = {
-        "err_code": "UR_4004",
-        "message": "Missing user context",
-    }
-    CreateRestrictionInvalidWorker = {
-        "err_code": "UR_4005",
-        "message": "Invalid Worker",
-    }
-    CreateRestrictionPractitionerModelError = {
-        "err_code": "UR_4006",
-        "message": "Unable to process restricted user information",
-    }
-    CreateRestrictionSelfRestriction = {
-        "err_code": "UR_4007",
-        "message": "You cannot create a restriction for yourself",
-    }
-    CreateRestrictionAlreadyExists = {
-        "err_code": "UR_4009",
-        "message": "A restriction already exists for this user and patient",
-    }
-    CreateRestrictionInvalidBody = {
-        "err_code": "UR_4008",
-        "message": ErrorMessage.INVALID_REQUEST_BODY,
-    }
-    CreateRestrictionPatientOdsMismatch = {
-        "err_code": "UR_4010",
-        "message": "Patient's general practice ODS does not match request context ODS",
-    }
-    CreateRestrictionPatientNotFound = {
-        "err_code": "UR_4011",
-        "message": "Patient not found in PDS",
-    }
-
     MockError = {
         "message": "Client error",
         "err_code": "AB_XXXX",
@@ -827,19 +761,43 @@ class LambdaError(Enum):
     """
        Errors for User Restriction lambdas
     """
-    UserRestrictionMissingODS = {
-        "err_code": "SUR_4001",
-        "message": "No ODS code provided in request context",
+
+    UserRestrictionInvalidEvent = {
+        "err_code": "UR_4001",
+        "message": "Malformed user restriction event",
     }
-    UserRestrictionInvalidQueryString = {
-        "err_code": "SUR_4002",
-        "message": "Invalid query string parameter",
+
+    UserRestrictionModelValidationError = {
+        "err_code": "UR_5001",
+        "message": "Malformed user restriction model error",
     }
-    UserRestrictionDB = {
-        "err_code": "SUR_5001",
-        "message": "Failed to query user restrictions from DynamoDB",
+
+    UserRestrictionDynamoDBConditionError = {
+        "err_code": "UR_4002",
+        "message": "Failed DynamoDB operation, bad request",
     }
-    UserRestrictionInvalidQueryParameter = {
-        "err_code": "SUR_4003",
-        "message": "Invalid query parameter value: %(details)s",
+
+    UserRestrictionMissingContext = {
+        "err_code": "UR_4003",
+        "message": "Missing user context",
+    }
+
+    UserRestrictionSelfRestriction = {
+        "err_code": "UR_4031",
+        "message": "You cannot create a restriction for yourself",
+    }
+
+    UserRestrictionAlreadyExists = {
+        "err_code": "UR_4091",
+        "message": "A restriction already exists for this user and patient",
+    }
+
+    UserRestrictionPatientOdsMismatch = {
+        "err_code": "UR_4032",
+        "message": "Patient's general practice ODS does not match request context ODS",
+    }
+
+    GetUserInfoError = {
+        "err_code": "HCW_5021",
+        "message": "%(message)s with status code: %(code)s",
     }

@@ -31,7 +31,7 @@ class CreateUserRestrictionService:
             logger.error("You cannot create a restriction for yourself")
             raise LambdaException(
                 400,
-                LambdaError.CreateRestrictionSelfRestriction,
+                LambdaError.UserRestrictionSelfRestriction,
             )
 
         patient = self.pds_service.fetch_patient_details(nhs_number)

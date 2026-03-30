@@ -86,8 +86,8 @@ def test_lambda_handler_returns_400_when_body_missing(
     }
 
     body = {
-        "message": LambdaError.CreateRestrictionMissingBody.value["message"],
-        "err_code": LambdaError.CreateRestrictionMissingBody.value["err_code"],
+        "message": LambdaError.UserRestrictionInvalidEvent.value["message"],
+        "err_code": LambdaError.UserRestrictionInvalidEvent.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
     expected = ApiGatewayResponse(
@@ -115,8 +115,8 @@ def test_lambda_handler_returns_400_when_smart_card_id_missing(
     }
 
     body = {
-        "message": LambdaError.CreateRestrictionMissingFields.value["message"],
-        "err_code": LambdaError.CreateRestrictionMissingFields.value["err_code"],
+        "message": LambdaError.UserRestrictionInvalidEvent.value["message"],
+        "err_code": LambdaError.UserRestrictionInvalidEvent.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
     expected = ApiGatewayResponse(
@@ -144,8 +144,8 @@ def test_lambda_handler_returns_400_when_nhs_number_missing(
     }
 
     body = {
-        "message": LambdaError.CreateRestrictionMissingFields.value["message"],
-        "err_code": LambdaError.CreateRestrictionMissingFields.value["err_code"],
+        "message": LambdaError.UserRestrictionInvalidEvent.value["message"],
+        "err_code": LambdaError.UserRestrictionInvalidEvent.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
     expected = ApiGatewayResponse(
@@ -172,8 +172,8 @@ def test_lambda_handler_returns_400_when_creator_missing(
     }
 
     body = {
-        "message": LambdaError.CreateRestrictionMissingContext.value["message"],
-        "err_code": LambdaError.CreateRestrictionMissingContext.value["err_code"],
+        "message": LambdaError.UserRestrictionMissingContext.value["message"],
+        "err_code": LambdaError.UserRestrictionMissingContext.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
     expected = ApiGatewayResponse(
@@ -198,8 +198,8 @@ def test_lambda_handler_returns_400_when_ods_code_missing(
     mock_ctx.authorization = {"nhs_user_id": MOCK_CREATOR_ID}
 
     body = {
-        "message": LambdaError.CreateRestrictionMissingContext.value["message"],
-        "err_code": LambdaError.CreateRestrictionMissingContext.value["err_code"],
+        "message": LambdaError.UserRestrictionMissingContext.value["message"],
+        "err_code": LambdaError.UserRestrictionMissingContext.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
     expected = ApiGatewayResponse(
@@ -226,8 +226,8 @@ def test_lambda_handler_returns_409_when_restriction_already_exists(
     )
 
     body = {
-        "message": LambdaError.CreateRestrictionAlreadyExists.value["message"],
-        "err_code": LambdaError.CreateRestrictionAlreadyExists.value["err_code"],
+        "message": LambdaError.UserRestrictionAlreadyExists.value["message"],
+        "err_code": LambdaError.UserRestrictionAlreadyExists.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
     expected = ApiGatewayResponse(
@@ -256,8 +256,8 @@ def test_lambda_handler_returns_400_on_value_error(
     }
 
     body = {
-        "message": LambdaError.CreateRestrictionSelfRestriction.value["message"],
-        "err_code": LambdaError.CreateRestrictionSelfRestriction.value["err_code"],
+        "message": LambdaError.UserRestrictionSelfRestriction.value["message"],
+        "err_code": LambdaError.UserRestrictionSelfRestriction.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
     expected = ApiGatewayResponse(
@@ -284,12 +284,12 @@ def test_lambda_handler_returns_correct_status_on_healthcare_worker_api_exceptio
     )
 
     body = {
-        "message": LambdaError.CreateRestrictionInvalidWorker.value["message"],
-        "err_code": LambdaError.CreateRestrictionInvalidWorker.value["err_code"],
+        "message": "Healthcare Worker API unable to find practitioner with status code: 404",
+        "err_code": LambdaError.GetUserInfoError.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
     expected = ApiGatewayResponse(
-        status_code=400,
+        status_code=404,
         body=json.dumps(body),
         methods="POST",
     ).create_api_gateway_response()
@@ -330,7 +330,7 @@ def test_lambda_handler_returns_400_when_patient_id_does_not_match_nhs_number(
     assert actual == expected
 
 
-def test_lambda_handler_returns_400_on_practitioner_model_exception(
+def test_lambda_handler_returns_500_on_practitioner_model_exception(
     valid_create_restriction_event,
     context,
     mock_service,
@@ -343,14 +343,12 @@ def test_lambda_handler_returns_400_on_practitioner_model_exception(
     )
 
     body = {
-        "message": LambdaError.CreateRestrictionPractitionerModelError.value["message"],
-        "err_code": LambdaError.CreateRestrictionPractitionerModelError.value[
-            "err_code"
-        ],
+        "message": "Malformed user restriction model error: Failed to validate against practitioner model.",
+        "err_code": LambdaError.UserRestrictionModelValidationError.value["err_code"],
         "interaction_id": MOCK_INTERACTION_ID,
     }
     expected = ApiGatewayResponse(
-        status_code=400,
+        status_code=500,
         body=json.dumps(body),
         methods="POST",
     ).create_api_gateway_response()
@@ -473,7 +471,11 @@ def test_parse_body_raises_when_body_is_none():
         parse_body(None)
     assert (
         exc_info.value.err_code
-        == LambdaError.CreateRestrictionMissingBody.value["err_code"]
+        == LambdaError.UserRestrictionInvalidEvent.value["err_code"]
+    )
+    assert (
+        exc_info.value.message
+        == LambdaError.UserRestrictionInvalidEvent.value["message"]
     )
 
 
@@ -482,7 +484,7 @@ def test_parse_body_raises_when_smart_card_id_missing():
         parse_body(json.dumps({"nhsNumber": TEST_NHS_NUMBER}))
     assert (
         exc_info.value.err_code
-        == LambdaError.CreateRestrictionMissingFields.value["err_code"]
+        == LambdaError.UserRestrictionInvalidEvent.value["err_code"]
     )
 
 
@@ -491,5 +493,5 @@ def test_parse_body_raises_when_nhs_number_missing():
         parse_body(json.dumps({"smartcardId": MOCK_SMART_CARD_ID}))
     assert (
         exc_info.value.err_code
-        == LambdaError.CreateRestrictionMissingFields.value["err_code"]
+        == LambdaError.UserRestrictionInvalidEvent.value["err_code"]
     )

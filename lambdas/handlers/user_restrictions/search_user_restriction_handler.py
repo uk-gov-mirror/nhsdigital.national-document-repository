@@ -87,7 +87,7 @@ def lambda_handler(event, _context):
         logger.error(e)
         return ApiGatewayResponse(
             status_code=401,
-            body=LambdaError.UserRestrictionMissingODS.create_error_body(),
+            body=LambdaError.UserRestrictionMissingContext.create_error_body(),
             methods="GET",
         ).create_api_gateway_response()
 
@@ -95,7 +95,9 @@ def lambda_handler(event, _context):
         logger.error(f"Invalid query parameter: {e}")
         return ApiGatewayResponse(
             status_code=400,
-            body=LambdaError.UserRestrictionInvalidQueryParameter.create_error_body(),
+            body=LambdaError.UserRestrictionInvalidEvent.create_error_body(
+                details=str(e),
+            ),
             methods="GET",
         ).create_api_gateway_response()
 
@@ -103,7 +105,7 @@ def lambda_handler(event, _context):
         logger.error(f"Restriction model validation error: {e}")
         return ApiGatewayResponse(
             status_code=500,
-            body=LambdaError.UserRestrictionDB.create_error_body(),
+            body=LambdaError.UserRestrictionModelValidationError.create_error_body(),
             methods="GET",
         ).create_api_gateway_response()
 

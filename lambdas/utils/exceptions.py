@@ -220,7 +220,7 @@ class HealthcareWorkerAPIException(Exception):
             401: "Healthcare Worker API returned unauthenticated",
             403: "Healthcare Worker API returned unauthorized",
         }
-        return err_messages.get(status_code, "Healthcare Worker API search failed.")
+        return err_messages.get(status_code, "Healthcare Worker API search failed")
 
 
 class HealthcareWorkerPractitionerModelException(Exception):

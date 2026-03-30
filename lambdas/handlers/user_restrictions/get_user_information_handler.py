@@ -36,7 +36,9 @@ def lambda_handler(event, context):
         request_context.app_interaction = LoggingAppInteraction.GET_USER_INFO.value
 
         logger.info("Processing request to retrieve user information.")
-        identifier = event.get("queryStringParameters", {}).get("identifier")
+        identifier = None
+        if query_string_params := event.get("queryStringParameters", {}):
+            identifier = query_string_params.get("identifier")
 
         if not identifier:
             logger.error("No identifier provided.")
@@ -61,14 +63,19 @@ def lambda_handler(event, context):
             "GET",
         ).create_api_gateway_response()
     except HealthcareWorkerAPIException as e:
+        logger.error(e.message)
         return ApiGatewayResponse(
-            502,
-            json.dumps(e.message),
+            e.status_code,
+            LambdaError.GetUserInfoError.create_error_body(
+                {"message": e.message, "code": e.status_code},
+            ),
             "GET",
         ).create_api_gateway_response()
     except HealthcareWorkerPractitionerModelException:
         return ApiGatewayResponse(
             500,
-            LambdaError.UserRestrictionModelValidationError.create_error_body(),
+            LambdaError.UserRestrictionModelValidationError.create_error_body(
+                details="Failed to validate against practitioner model.",
+            ),
             "GET",
         ).create_api_gateway_response()

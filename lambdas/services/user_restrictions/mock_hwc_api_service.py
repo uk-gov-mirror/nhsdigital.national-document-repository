@@ -29,10 +29,10 @@ class MockHealthcareWorkerApiService(HealthCareWorkerApiService):
     def get_practitioner(self, identifier: str) -> Practitioner | None:
         logger.info("Using Mock Healthcare Worker API")
         match identifier:
-            case [
-                MockErrorIdentifiers.MOCK_USER_NOT_FOUND_ID,
-                MockErrorIdentifiers.MOCK_INVALID_ID,
-            ]:
+            case (
+                MockErrorIdentifiers.MOCK_USER_NOT_FOUND_ID
+                | MockErrorIdentifiers.MOCK_INVALID_ID
+            ):
                 raise HealthcareWorkerAPIException(status_code=404)
             case MockErrorIdentifiers.MOCK_API_ERROR_ID:
                 raise HealthcareWorkerAPIException(status_code=500)

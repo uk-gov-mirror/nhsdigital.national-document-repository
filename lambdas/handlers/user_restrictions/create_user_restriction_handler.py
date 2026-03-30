@@ -35,7 +35,7 @@ def parse_body(body: str | None) -> tuple[str, str]:
         logger.error("Missing request body")
         raise LambdaException(
             400,
-            LambdaError.CreateRestrictionMissingBody,
+            LambdaError.UserRestrictionInvalidEvent,
         )
 
     payload = json.loads(body)
@@ -46,7 +46,7 @@ def parse_body(body: str | None) -> tuple[str, str]:
         logger.error("Missing required fields")
         raise LambdaException(
             400,
-            LambdaError.CreateRestrictionMissingFields,
+            LambdaError.UserRestrictionInvalidEvent,
         )
 
     return restricted_smartcard_id, nhs_number
@@ -88,7 +88,7 @@ def lambda_handler(event, context):
         logger.error("Missing user context")
         raise LambdaException(
             400,
-            LambdaError.CreateRestrictionMissingContext,
+            LambdaError.UserRestrictionMissingContext,
         )
 
     service = CreateUserRestrictionService()
@@ -103,20 +103,26 @@ def lambda_handler(event, context):
         logger.error(exc)
         raise LambdaException(
             409,
-            LambdaError.CreateRestrictionAlreadyExists,
+            LambdaError.UserRestrictionAlreadyExists,
         )
     except HealthcareWorkerAPIException as exc:
         logger.error(exc)
-        raise LambdaException(
-            400,
-            LambdaError.CreateRestrictionInvalidWorker,
-        )
+        return ApiGatewayResponse(
+            exc.status_code,
+            LambdaError.GetUserInfoError.create_error_body(
+                {"message": exc.message, "code": exc.status_code},
+            ),
+            "POST",
+        ).create_api_gateway_response()
     except HealthcareWorkerPractitionerModelException as exc:
         logger.error(exc)
-        raise LambdaException(
-            400,
-            LambdaError.CreateRestrictionPractitionerModelError,
-        )
+        return ApiGatewayResponse(
+            500,
+            LambdaError.UserRestrictionModelValidationError.create_error_body(
+                details="Failed to validate against practitioner model.",
+            ),
+            "POST",
+        ).create_api_gateway_response()
 
     return ApiGatewayResponse(
         201,
