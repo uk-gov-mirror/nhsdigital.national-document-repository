@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import PatientDetailsProvider from '../../providers/patientProvider/PatientProvider';
 import { PatientDetails } from '../../types/generic/patientDetails';
-import PatientSearchPage, { incorrectFormatMessage } from './PatientSearchPage';
+import PatientSearchPage from './PatientSearchPage';
 import userEvent from '@testing-library/user-event';
 import { buildPatientDetails } from '../../helpers/test/testBuilders';
 import axios from 'axios';
@@ -12,6 +12,7 @@ import ConfigProvider from '../../providers/configProvider/ConfigProvider';
 import { runAxeTest } from '../../helpers/test/axeTestHelper';
 import waitForSeconds from '../../helpers/utils/waitForSeconds';
 import { afterEach, beforeEach, describe, expect, it, vi, Mock, Mocked } from 'vitest';
+import { incorrectFormatMessage } from '../../components/generic/patientSearchForm/PatientSearchForm';
 
 const mockedUseNavigate = vi.fn();
 vi.mock('../../helpers/hooks/useBaseAPIHeaders');
@@ -51,10 +52,12 @@ describe('PatientSearchPage', () => {
                 renderPatientSearchPage();
                 expect(screen.getByText('Search for a patient')).toBeInTheDocument();
                 expect(
-                    screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                    screen.getByRole('textbox', {
+                        name: 'Enter an NHS number to view or upload a record',
+                    }),
                 ).toBeInTheDocument();
                 expect(
-                    screen.getByText('A 10-digit number, for example, 485 777 3456'),
+                    screen.getByText('A 10-digit number, for example, 960 191 4948'),
                 ).toBeInTheDocument();
                 expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
                 expect(screen.getByText('Go to home')).toBeInTheDocument();
@@ -68,7 +71,9 @@ describe('PatientSearchPage', () => {
             renderPatientSearchPage();
 
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 '9000000009',
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -79,7 +84,9 @@ describe('PatientSearchPage', () => {
         it('displays an input error when user attempts to submit an invalid NHS number', async () => {
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 '21212',
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -101,7 +108,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 '0987654321',
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -123,7 +132,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 '0987654321',
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -144,7 +155,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 '9000000000',
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -165,7 +178,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 '0987654321',
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -190,13 +205,18 @@ describe('PatientSearchPage', () => {
                 response: {
                     status: 404,
                     message: '404 Not found.',
+                    data: {
+                        err_code: 'SP_4002',
+                    },
                 },
             };
             mockedAxios.get.mockImplementation(() => Promise.reject(errorResponse));
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 '0987654321',
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -217,7 +237,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 '9000000000',
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -236,7 +258,9 @@ describe('PatientSearchPage', () => {
                 mockedUseRole.mockReturnValue(role);
                 renderPatientSearchPage();
                 await userEvent.type(
-                    screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                    screen.getByRole('textbox', {
+                        name: 'Enter an NHS number to view or upload a record',
+                    }),
                     '9000000000',
                 );
                 await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -259,7 +283,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 '9000000000',
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -281,7 +307,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 '9000000000',
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -313,7 +341,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 testNumber,
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -332,7 +362,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 testNumber,
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -351,7 +383,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 testNumber,
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -370,7 +404,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 testNumber,
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -389,7 +425,9 @@ describe('PatientSearchPage', () => {
 
             renderPatientSearchPage();
             await userEvent.type(
-                screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                screen.getByRole('textbox', {
+                    name: 'Enter an NHS number to view or upload a record',
+                }),
                 testNumber,
             );
             await userEvent.click(screen.getByRole('button', { name: 'Search' }));
@@ -412,7 +450,9 @@ describe('PatientSearchPage', () => {
             async (nhsNumber) => {
                 renderPatientSearchPage();
                 await userEvent.type(
-                    screen.getByRole('textbox', { name: 'Enter NHS number' }),
+                    screen.getByRole('textbox', {
+                        name: 'Enter an NHS number to view or upload a record',
+                    }),
                     nhsNumber,
                 );
                 await userEvent.click(screen.getByRole('button', { name: 'Search' }));

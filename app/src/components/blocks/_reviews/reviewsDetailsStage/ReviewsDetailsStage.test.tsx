@@ -16,9 +16,10 @@ import {
     DOCUMENT_UPLOAD_STATE,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
-import * as handlePatientSearchModule from '../../../../helpers/utils/handlePatientSearch';
 import { routes } from '../../../../types/generic/routes';
 import useReviewId from '../../../../helpers/hooks/useReviewId';
+import getPatientDetails from '../../../../helpers/requests/getPatientDetails';
+import { UIErrorCode } from '../../../../types/generic/errors';
 
 vi.mock('react-router-dom', async (): Promise<unknown> => {
     const actual = await vi.importActual('react-router-dom');
@@ -66,7 +67,7 @@ vi.mock('../../../../helpers/requests/getReviews', () => ({
     }),
 }));
 
-vi.mock('../../../../helpers/utils/handlePatientSearch');
+vi.mock('../../../../helpers/requests/getPatientDetails');
 
 vi.mock('../../../../helpers/utils/waitForSeconds', () => ({
     default: vi.fn().mockResolvedValue(undefined),
@@ -79,6 +80,7 @@ const mockSetPatientDetails = vi.fn();
 const mockUsePatientDetailsContext = vi.fn();
 const mockUseSessionContext = vi.fn();
 const mockUseReviewId = useReviewId as Mock;
+const mockGetPatientDetails = getPatientDetails as Mock;
 
 const mockReviewId = 'test-review-123';
 
@@ -1171,7 +1173,7 @@ describe('ReviewDetailsStage', () => {
         });
 
         it('navigates to session expired page when patient search returns 403', async () => {
-            vi.spyOn(handlePatientSearchModule, 'handleSearch').mockRejectedValueOnce({
+            mockGetPatientDetails.mockRejectedValueOnce({
                 response: { status: 403 },
             });
 
@@ -1183,7 +1185,7 @@ describe('ReviewDetailsStage', () => {
         });
 
         it('navigates to server error page when patient search returns 500', async () => {
-            vi.spyOn(handlePatientSearchModule, 'handleSearch').mockRejectedValueOnce({
+            mockGetPatientDetails.mockRejectedValueOnce({
                 response: { status: 500 },
             });
 
@@ -1192,6 +1194,20 @@ describe('ReviewDetailsStage', () => {
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(
                     expect.stringContaining(routes.SERVER_ERROR),
+                );
+            });
+        });
+
+        it('navigates to error page when patient search returns 403 because of user restriction', async () => {
+            mockGetPatientDetails.mockRejectedValueOnce({
+                response: { status: 403, data: { err_code: 'SP_4006' } },
+            });
+
+            renderComponent(mockReviewData);
+
+            await waitFor(() => {
+                expect(mockNavigate).toHaveBeenCalledWith(
+                    routes.GENERIC_ERROR + `?errorCode=${UIErrorCode.PATIENT_ACCESS_RESTRICTED}`,
                 );
             });
         });

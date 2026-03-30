@@ -7,6 +7,7 @@ import {
 import getPatientDetails from '../requests/getPatientDetails';
 import errorCodes from './errorCodes';
 import { routes } from '../../types/generic/routes';
+import { UIErrorCode } from '../../types/generic/errors';
 
 vi.mock('../requests/getPatientDetails');
 
@@ -169,8 +170,8 @@ describe('handleSearch', () => {
         expect(result).toEqual([null, 403, error]);
     });
 
-    it('returns SP_4003 for 404', async () => {
-        const error = { response: { status: 404 } } as any;
+    it.each(['SP_4002', 'SP_4003'])('returns expected error message for 404', async (errCode) => {
+        const error = { response: { status: 404, data: { err_code: errCode } } } as any;
         mockGetPatientDetails.mockRejectedValueOnce(error);
 
         const result = await handleSearch({
@@ -182,7 +183,7 @@ describe('handleSearch', () => {
             mockLocal: { patientIsActive: true, patientIsDeceased: false } as any,
         });
 
-        expect(result).toEqual([errorCodes['SP_4003'], 404, error]);
+        expect(result).toEqual([errorCodes[errCode], 404, error]);
     });
 });
 
@@ -193,6 +194,22 @@ describe('handlePatientSearchError', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockErrorToParams.mockReturnValue('?x=1');
+    });
+
+    it('navigates to generic error page with restricted error code on 403 with SP_4006', () => {
+        const error = {
+            response: {
+                status: 403,
+                data: { err_code: 'SP_4006' },
+            },
+        } as any;
+
+        handlePatientSearchError(403, navigate, setFailedSubmitState, error);
+
+        expect(navigate).toHaveBeenCalledWith(
+            `${routes.GENERIC_ERROR}?errorCode=${UIErrorCode.PATIENT_ACCESS_RESTRICTED}`,
+        );
+        expect(setFailedSubmitState).toHaveBeenCalledWith(403);
     });
 
     it('navigates to session-expired on 403', () => {

@@ -65,6 +65,19 @@ describe('UserPatientRestrictionsSearchPatientStage', () => {
         mockUsePatientDetailsContext.mockReturnValue([{}, vi.fn()]);
     });
 
+    it('navigates to the error page if the patient is deceased', async () => {
+        mockPatientDetails = buildPatientDetails({ deceased: true });
+
+        render(<UserPatientRestrictionsSearchPatientStage />);
+
+        const successButton = screen.getByTestId('success-button');
+        await userEvent.click(successButton);
+
+        expect(mockNavigate).toHaveBeenCalledWith(
+            `${routes.GENERIC_ERROR}?errorCode=${UIErrorCode.PATIENT_DECEASED}`,
+        );
+    });
+
     it('navigates to the error page if the user is not the data controller', async () => {
         mockPatientDetails = buildPatientDetails({ canManageRecord: false });
 
@@ -91,17 +104,6 @@ describe('UserPatientRestrictionsSearchPatientStage', () => {
         expect(setPatientDetails).toHaveBeenCalledWith(mockPatientDetails);
         expect(mockNavigate).toHaveBeenCalledWith(
             routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_PATIENT,
-        );
-    });
-
-    it('navigates to the generic error page if patient access is restricted', async () => {
-        render(<UserPatientRestrictionsSearchPatientStage />);
-
-        const errorButton = screen.getByTestId('error-button');
-        await userEvent.click(errorButton);
-
-        expect(mockNavigate).toHaveBeenCalledWith(
-            `${routes.GENERIC_ERROR}?errorCode=${UIErrorCode.PATIENT_ACCESS_RESTRICTED}`,
         );
     });
 });

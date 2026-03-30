@@ -9,14 +9,13 @@ import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import * as documentTypeModule from '../../../../helpers/utils/documentType';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import { routes } from '../../../../types/generic/routes';
-import ReviewDetailsPatientSearchStage, {
-    incorrectFormatMessage,
-} from './ReviewDetailsPatientSearchStage';
+import ReviewDetailsPatientSearchStage from './ReviewDetailsPatientSearchStage';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 import {
     ReviewUploadDocument,
     DOCUMENT_UPLOAD_STATE,
 } from '../../../../types/pages/UploadDocumentsPage/types';
+import { incorrectFormatMessage } from '../../../generic/patientSearchForm/PatientSearchForm';
 
 const mockNavigate = vi.fn();
 const mockUseParams = vi.fn();
@@ -82,6 +81,10 @@ vi.mock('../../../generic/recordLoader/RecordLoader', () => ({
 
 vi.mock('../../../../helpers/requests/getPatientDetails');
 const mockGetPatientDetails = getPatientDetails as Mock;
+
+const expectedFormatErrorMessage =
+    incorrectFormatMessage +
+    ". If you keep getting this message, select 'I don't know the NHS number'.";
 
 describe('ReviewDetailsPatientSearchPage', () => {
     const mockReviewId = 'review-123';
@@ -155,7 +158,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
             );
 
             expect(screen.getByTestId('nhs-number-input')).toBeInTheDocument();
-            expect(screen.getByLabelText(/A 10-digit number/)).toBeInTheDocument();
+            expect(screen.getByText(/A 10-digit number/)).toBeInTheDocument();
         });
 
         it('renders continue button', () => {
@@ -167,7 +170,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
                 />,
             );
 
-            expect(screen.getByTestId('continue-button')).toBeInTheDocument();
+            expect(screen.getByTestId('search-submit-btn')).toBeInTheDocument();
             expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
         });
 
@@ -222,11 +225,11 @@ describe('ReviewDetailsPatientSearchPage', () => {
                 />,
             );
 
-            const continueButton = screen.getByTestId('continue-button');
+            const continueButton = screen.getByTestId('search-submit-btn');
             await userEvent.click(continueButton);
 
             await waitFor(() => {
-                const errorMessages = screen.getAllByText(incorrectFormatMessage);
+                const errorMessages = screen.getAllByText(expectedFormatErrorMessage);
                 expect(errorMessages.length).toBeGreaterThan(0);
             });
         });
@@ -241,7 +244,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
             );
 
             const input = screen.getByTestId('nhs-number-input');
-            const continueButton = screen.getByTestId('continue-button');
+            const continueButton = screen.getByTestId('search-submit-btn');
 
             // Submit with invalid NHS number
             await userEvent.type(input, '12345');
@@ -249,7 +252,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             await waitFor(() => {
                 // Check that incorrectFormatMessage appears twice (ErrorBox + TextInput)
-                const errorMessages = screen.getAllByText(incorrectFormatMessage);
+                const errorMessages = screen.getAllByText(expectedFormatErrorMessage);
                 expect(errorMessages).toHaveLength(2);
             });
         });
@@ -265,10 +268,10 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '123');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
-                const errorMessages = screen.getAllByText(incorrectFormatMessage);
+                const errorMessages = screen.getAllByText(expectedFormatErrorMessage);
                 expect(errorMessages.length).toBeGreaterThan(0);
             });
         });
@@ -287,7 +290,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(mockGetPatientDetails).toHaveBeenCalled();
@@ -308,7 +311,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '900 000 0009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(mockGetPatientDetails).toHaveBeenCalled();
@@ -329,7 +332,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '900-000-0009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(mockGetPatientDetails).toHaveBeenCalled();
@@ -347,10 +350,10 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '900000000A');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
-                const errorMessages = screen.getAllByText(incorrectFormatMessage);
+                const errorMessages = screen.getAllByText(expectedFormatErrorMessage);
                 expect(errorMessages.length).toBeGreaterThan(0);
             });
         });
@@ -366,10 +369,10 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '900000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
-                const errorMessages = screen.getAllByText(incorrectFormatMessage);
+                const errorMessages = screen.getAllByText(expectedFormatErrorMessage);
                 expect(errorMessages.length).toBeGreaterThan(0);
             });
         });
@@ -385,10 +388,10 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '90000000099');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
-                const errorMessages = screen.getAllByText(incorrectFormatMessage);
+                const errorMessages = screen.getAllByText(expectedFormatErrorMessage);
                 expect(errorMessages.length).toBeGreaterThan(0);
             });
         });
@@ -409,7 +412,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '900-000-0009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(mockGetPatientDetails).toHaveBeenCalledWith({
@@ -435,10 +438,10 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             expect(screen.getByText('Searching...')).toBeInTheDocument();
-            expect(screen.queryByTestId('continue-button')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('search-submit-btn')).not.toBeInTheDocument();
         });
 
         it('disables input during search', async () => {
@@ -456,7 +459,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             expect(input).toHaveAttribute('readonly');
         });
@@ -475,7 +478,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalled();
@@ -498,17 +501,17 @@ describe('ReviewDetailsPatientSearchPage', () => {
                 />,
             );
 
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
-                const errorMessages = screen.getAllByText(incorrectFormatMessage);
+                const errorMessages = screen.getAllByText(expectedFormatErrorMessage);
                 expect(errorMessages.length).toBeGreaterThan(0);
             });
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.clear(input);
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalled();
@@ -533,7 +536,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(screen.getByText('There is a problem')).toBeInTheDocument();
@@ -558,7 +561,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(routes.SESSION_EXPIRED);
@@ -569,7 +572,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
             const error = {
                 response: {
                     status: 404,
-                    data: { err_code: 'PATIENT_NOT_FOUND' },
+                    data: { err_code: 'SP_4003' },
                 },
             } as AxiosError;
             mockGetPatientDetails.mockRejectedValue(error);
@@ -584,7 +587,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(screen.getByText('There is a problem')).toBeInTheDocument();
@@ -608,7 +611,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(
@@ -633,7 +636,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith(
@@ -658,7 +661,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 const errorLinks = screen.getAllByText('Enter a valid patient NHS number.');
@@ -1071,7 +1074,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(mockSetNewPatientDetails).toHaveBeenCalledWith(mockPatient);
@@ -1081,7 +1084,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
         it('does not call setNewPatientDetails on search failure', async () => {
             const mockSetNewPatientDetails = vi.fn();
             const error = {
-                response: { status: 404, data: { err_code: 'PATIENT_NOT_FOUND' } },
+                response: { status: 404, data: { err_code: 'SP_4003' } },
             } as AxiosError;
             mockGetPatientDetails.mockRejectedValue(error);
 
@@ -1095,7 +1098,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(() => {
                 expect(screen.getByText('There is a problem')).toBeInTheDocument();
@@ -1209,7 +1212,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
                 />,
             );
 
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(async () => {
                 expect(screen.getByText('There is a problem')).toBeInTheDocument();
@@ -1234,7 +1237,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const input = screen.getByTestId('nhs-number-input');
             await userEvent.type(input, '9000000009');
-            await userEvent.click(screen.getByTestId('continue-button'));
+            await userEvent.click(screen.getByTestId('search-submit-btn'));
 
             await waitFor(async () => {
                 const errorMessages = screen.getAllByText('Enter a valid patient NHS number.');

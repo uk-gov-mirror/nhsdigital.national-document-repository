@@ -26,9 +26,7 @@ const GenericErrorPage = (): React.JSX.Element => {
 
             <h1>{error.title}</h1>
 
-            {error.messageParagraphs.map((msg, index) => (
-                <p key={`error-message-${index}`}>{msg}</p>
-            ))}
+            {error.messageParagraphs()}
 
             <Button
                 data-testid="go-to-home-button"

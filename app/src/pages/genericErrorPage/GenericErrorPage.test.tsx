@@ -22,9 +22,11 @@ describe('GenericErrorPage', () => {
         render(<GenericErrorPage />);
 
         expect(screen.getByRole('heading', { name: expectedError.title })).toBeInTheDocument();
-        expectedError.messageParagraphs.forEach((msg) => {
-            expect(screen.getByText(msg)).toBeInTheDocument();
-        });
+        expect(
+            screen.getByText(
+                "A member of staff at your practice has restricted your access to this patient's record.",
+            ),
+        ).toBeInTheDocument();
     });
 
     it('navigates to home when invalid error code is provided', async () => {

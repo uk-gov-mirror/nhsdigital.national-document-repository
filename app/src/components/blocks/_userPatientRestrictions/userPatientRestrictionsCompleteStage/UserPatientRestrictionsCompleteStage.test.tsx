@@ -5,7 +5,7 @@ import { UserPatientRestrictionsSubRoute } from '../../../../types/generic/userP
 import usePatient from '../../../../helpers/hooks/usePatient';
 import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 import userEvent from '@testing-library/user-event';
-import { routes } from '../../../../types/generic/routes';
+import { routeChildren } from '../../../../types/generic/routes';
 
 vi.mock('react-router-dom', async () => ({
     ...(await vi.importActual('react-router-dom')),
@@ -43,7 +43,7 @@ describe('UserPatientRestrictionsCompleteStage', () => {
         expect(screen.getByTestId('restriction-removed-message')).toBeInTheDocument();
     });
 
-    it('should navigate to user restrictions hub when the view restrictions button is clicked', async () => {
+    it('should navigate to user restrictions list page when the view restrictions button is clicked', async () => {
         render(
             <UserPatientRestrictionsCompleteStage route={UserPatientRestrictionsSubRoute.REMOVE} />,
         );
@@ -51,6 +51,6 @@ describe('UserPatientRestrictionsCompleteStage', () => {
         const viewRestrictionsButton = screen.getByTestId('view-restrictions-button');
         await userEvent.click(viewRestrictionsButton);
 
-        expect(mockNavigate).toHaveBeenCalledWith(routes.USER_PATIENT_RESTRICTIONS);
+        expect(mockNavigate).toHaveBeenCalledWith(routeChildren.USER_PATIENT_RESTRICTIONS_LIST);
     });
 });

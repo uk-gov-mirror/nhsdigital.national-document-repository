@@ -18,8 +18,6 @@ import { isMock } from '../../../../helpers/utils/isLocal';
 import { useNavigate } from 'react-router-dom';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
 import { buildUserInformation } from '../../../../helpers/test/testBuilders';
-import errorCodes from '../../../../helpers/utils/errorCodes';
-import { ErrorResponse } from '../../../../types/generic/errorResponse';
 import useSmartcardNumber from '../../../../helpers/hooks/useSmartcardNumber';
 import { UIErrorCode } from '../../../../types/generic/errors';
 import useTitle from '../../../../helpers/hooks/useTitle';
@@ -104,23 +102,17 @@ const UserPatientRestrictionsSearchStaffStage = ({
                 navigate(routes.SESSION_EXPIRED);
             } else if (error.response?.status === 404) {
                 setInputError(userRestrictionsStaffSearchNotFoundError);
-            } else if (error.response?.status === 500) {
-                navigate(routes.SERVER_ERROR + errorToParams(error));
             } else {
-                handleError(error);
+                navigate(routes.SERVER_ERROR + errorToParams(error));
             }
+        } finally {
+            setSearching(false);
         }
     };
 
     const handleSuccess = (userInfo: UserInformation): void => {
         setUserInformation(userInfo);
         navigate(routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_STAFF);
-    };
-
-    const handleError = (error: AxiosError): void => {
-        const errorData = error.response?.data as ErrorResponse;
-        const errorMessage = errorCodes[errorData.err_code!];
-        setInputError(errorMessage);
     };
 
     useEffect(() => {

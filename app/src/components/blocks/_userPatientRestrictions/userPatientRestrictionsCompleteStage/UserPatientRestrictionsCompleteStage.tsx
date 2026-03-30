@@ -6,7 +6,7 @@ import { getFormattedPatientFullName } from '../../../../helpers/utils/formatPat
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { getFormattedDateFromString } from '../../../../helpers/utils/formatDate';
 import { Button } from 'nhsuk-react-components';
-import { routes } from '../../../../types/generic/routes';
+import { routeChildren } from '../../../../types/generic/routes';
 
 type Props = {
     route: UserPatientRestrictionsSubRoute;
@@ -62,7 +62,7 @@ const UserPatientRestrictionsCompleteStage = ({ route }: Props): React.JSX.Eleme
             <Button
                 data-testid="view-restrictions-button"
                 onClick={(): void => {
-                    navigate(routes.USER_PATIENT_RESTRICTIONS);
+                    navigate(routeChildren.USER_PATIENT_RESTRICTIONS_LIST);
                 }}
             >
                 Go to view restrictions

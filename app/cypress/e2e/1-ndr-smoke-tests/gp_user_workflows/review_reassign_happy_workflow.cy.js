@@ -48,7 +48,7 @@ describe('GP Workflow: Review and Reassign', () => {
                 // find the textbox and search for the correct nhs number to reassign to
                 cy.getByTestId('nhs-number-input').should('exist').click();
                 cy.getByTestId('nhs-number-input').type('9730326983');
-                cy.getByTestId('continue-button').should('exist').click();
+                cy.getByTestId('search-submit-btn').should('exist').click();
 
                 // confirm demographics of the new patient and continue
                 cy.getByTestId('confirm-patient-details-btn').should('exist').click();

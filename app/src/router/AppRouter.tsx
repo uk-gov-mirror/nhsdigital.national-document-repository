@@ -416,6 +416,14 @@ export const routeMap: Routes = {
         page: <ReviewsPage />,
         type: ROUTE_TYPE.PRIVATE,
     },
+    [USER_PATIENT_RESTRICTIONS]: {
+        page: <UserPatientRestrictionsPage />,
+        type: ROUTE_TYPE.PRIVATE,
+    },
+    [USER_PATIENT_RESTRICTIONS_WILDCARD]: {
+        page: <UserPatientRestrictionsPage />,
+        type: ROUTE_TYPE.PRIVATE,
+    },
 
     // Patient guard routes
     [VERIFY_PATIENT]: {
@@ -483,14 +491,6 @@ export const routeMap: Routes = {
     [DOCUMENT_REASSIGN_PAGES_WILDCARD]: {
         page: <DocumentCorrectPage />,
         type: ROUTE_TYPE.PATIENT,
-    },
-    [USER_PATIENT_RESTRICTIONS]: {
-        page: <UserPatientRestrictionsPage />,
-        type: ROUTE_TYPE.PRIVATE,
-    },
-    [USER_PATIENT_RESTRICTIONS_WILDCARD]: {
-        page: <UserPatientRestrictionsPage />,
-        type: ROUTE_TYPE.PRIVATE,
     },
 };
 

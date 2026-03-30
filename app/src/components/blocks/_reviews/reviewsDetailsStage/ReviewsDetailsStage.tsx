@@ -9,7 +9,6 @@ import useTitle from '../../../../helpers/hooks/useTitle';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { getFormattedDateTimeFromString } from '../../../../helpers/utils/formatDate';
 import { setFullScreen } from '../../../../helpers/utils/fullscreen';
-import { handleSearch as handlePatientSearch } from '../../../../helpers/utils/handlePatientSearch';
 import { usePatientDetailsContext } from '../../../../providers/patientProvider/PatientProvider';
 import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
 import {
@@ -37,6 +36,11 @@ import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
 import { CreatedByCard } from '../../../generic/createdBy/createdBy';
 import DocumentUploadLloydGeorgePreview from '../../_documentManagement/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import useReviewId from '../../../../helpers/hooks/useReviewId';
+import { ErrorResponse } from '../../../../types/generic/errorResponse';
+import { UIErrorCode } from '../../../../types/generic/errors';
+import getPatientDetails from '../../../../helpers/requests/getPatientDetails';
+import { isMock } from '../../../../helpers/utils/isLocal';
+import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 
 export type ReviewsDetailsStageProps = {
     reviewData: ReviewDetails | null;
@@ -95,32 +99,45 @@ const ReviewsDetailsStage = ({
             return;
         }
 
-        const getPatientDetails = async (): Promise<void> => {
+        const loadPatientDetails = async (): Promise<void> => {
             try {
-                await handlePatientSearch({
+                const patientDetails = await getPatientDetails({
                     nhsNumber: reviewData.nhsNumber,
-                    setSearchingState: () => {},
-                    handleSuccess: (patientDetails) => {
-                        setPatientDetails(patientDetails);
-                    },
                     baseUrl,
                     baseHeaders,
-                    mockLocal: config.mockLocal,
                 });
+
+                setPatientDetails(patientDetails);
                 setisLoadingPatientDetails(false);
             } catch (error) {
-                const err = error as AxiosError;
-                if (err.response?.status === 403) {
+                const err = error as AxiosError<ErrorResponse>;
+
+                if (isMock(err)) {
+                    setPatientDetails(
+                        buildPatientDetails({
+                            nhsNumber: reviewData.nhsNumber,
+                            active: config.mockLocal.patientIsActive,
+                            deceased: config.mockLocal.patientIsDeceased,
+                        }),
+                    );
+                } else if (err.response?.data?.err_code === 'SP_4006') {
+                    navigate(
+                        routes.GENERIC_ERROR +
+                            `?errorCode=${UIErrorCode.PATIENT_ACCESS_RESTRICTED}`,
+                    );
+                } else if (err.response?.status === 403) {
                     navigate(routes.SESSION_EXPIRED);
                 } else {
                     navigate(routes.SERVER_ERROR + errorToParams(err));
                 }
+            } finally {
+                setisLoadingPatientDetails(false);
             }
         };
 
         if (!fetchingPatientDetailsRef.current) {
             fetchingPatientDetailsRef.current = true;
-            getPatientDetails();
+            loadPatientDetails();
         }
     }, [reviewId]);
 
@@ -160,7 +177,7 @@ const ReviewsDetailsStage = ({
             }
         };
 
-        if (!isFetchingReviewDetailsRef.current) {
+        if (!isFetchingReviewDetailsRef.current && patientDetails) {
             isFetchingReviewDetailsRef.current = true;
             loadData();
         }

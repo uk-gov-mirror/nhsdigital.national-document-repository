@@ -2,9 +2,10 @@ import { useNavigate } from 'react-router-dom';
 import { PatientDetails } from '../../../../types/generic/patientDetails';
 import PatientSearchForm from '../../../generic/patientSearchForm/PatientSearchForm';
 import { Dispatch, SetStateAction } from 'react';
-import { routeChildren } from '../../../../types/generic/routes';
+import { routeChildren, routes } from '../../../../types/generic/routes';
 import BackButton from '../../../generic/backButton/BackButton';
 import PdfViewer from '../../../generic/pdfViewer/PdfViewer';
+import { UIErrorCode } from '../../../../types/generic/errors';
 
 type Props = {
     reassignedPagesBlob: Blob;
@@ -18,6 +19,11 @@ const DocumentReassignSearchPatientStage = ({
     const navigate = useNavigate();
 
     const onSearchSuccess = (patientDetails: PatientDetails): void => {
+        if (patientDetails.deceased) {
+            navigate(routes.GENERIC_ERROR + `?errorCode=${UIErrorCode.PATIENT_DECEASED}`);
+            return;
+        }
+
         setPatientForReassign(patientDetails);
         navigate(routeChildren.DOCUMENT_REASSIGN_VERIFY_PATIENT_DETAILS);
     };
