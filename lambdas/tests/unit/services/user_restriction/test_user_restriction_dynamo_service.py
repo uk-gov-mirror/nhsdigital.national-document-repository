@@ -1,4 +1,5 @@
 import pytest
+from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from pydantic import ValidationError
@@ -12,6 +13,7 @@ from services.user_restrictions.user_restriction_dynamo_service import (
     UserRestrictionDynamoService,
 )
 from tests.unit.conftest import (
+    MOCK_USER_RESTRICTION_TABLE,
     TEST_CURRENT_GP_ODS,
     TEST_NEXT_PAGE_TOKEN,
     TEST_NHS_NUMBER,
@@ -21,10 +23,12 @@ from tests.unit.conftest import (
 from tests.unit.services.user_restriction.conftest import MOCK_IDENTIFIER
 from utils.exceptions import (
     UserRestrictionConditionCheckFailedException,
+    UserRestrictionDynamoDBException,
     UserRestrictionValidationException,
 )
 
-MOCK_USER_RESTRICTION_TABLE = "test_user_restriction_table"
+TEST_ODS_CODE = "Y12345"
+TEST_NEXT_TOKEN = "some-opaque-next-token"
 MOCK_TIME_STAMP = 1704110400
 
 
@@ -165,6 +169,42 @@ def test_query_restrictions_returns_empty_list_when_no_items(mock_service):
 
     assert results == []
     assert next_token is None
+
+
+def test_query_restrictions_by_nhs_number(mock_service, mocker):
+    mock_validate = mocker.patch.object(mock_service, "_validate_restrictions")
+    mock_service.dynamo_service.query_table.return_value = [MOCK_RESTRICTION_ITEM]
+
+    expected_filter = Attr("IsActive").eq(True)
+
+    mock_service.query_restrictions_by_nhs_number(nhs_number=TEST_NHS_NUMBER)
+
+    mock_service.dynamo_service.query_table.assert_called_with(
+        table_name=MOCK_USER_RESTRICTION_TABLE,
+        index_name=UserRestrictionIndexes.NHS_NUMBER_INDEX.value,
+        search_key=UserRestrictionsFields.NHS_NUMBER.value,
+        search_condition=TEST_NHS_NUMBER,
+        query_filter=expected_filter,
+    )
+
+    mock_validate.assert_called_with([MOCK_RESTRICTION_ITEM])
+
+
+def test_query_restrictions_by_nhs_number_handles_client_error(mock_service):
+    mock_service.dynamo_service.query_table.side_effect = ClientError(
+        {"Error": {"Code": "500", "Message": "DynamoDB error"}},
+        "query",
+    )
+
+    with pytest.raises(UserRestrictionDynamoDBException):
+        mock_service.query_restrictions_by_nhs_number(nhs_number=TEST_NHS_NUMBER)
+
+
+def test_query_restrictions_by_nhs_number_handles_validation_error(mock_service):
+    mock_service.dynamo_service.query_table.return_value = [{"invalid": "object"}]
+
+    with pytest.raises(UserRestrictionValidationException):
+        mock_service.query_restrictions_by_nhs_number(nhs_number=TEST_NHS_NUMBER)
 
 
 def test_validate_restrictions_raises_for_invalid_items():

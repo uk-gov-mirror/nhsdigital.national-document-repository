@@ -261,3 +261,7 @@ class UserRestrictionException(Exception):
 
 class UserRestrictionConditionCheckFailedException(Exception):
     pass
+
+
+class UserRestrictionDynamoDBException(Exception):
+    pass

@@ -1,8 +1,9 @@
 import json
 
+from pydantic import ValidationError
+
 from enums.mns_notification_types import MNSNotificationTypes
 from models.sqs.mns_sqs_message import MNSSQSMessage
-from pydantic import ValidationError
 from services.process_mns_message_service import MNSNotificationService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -21,7 +22,8 @@ logger = LoggingService(__name__)
         "LLOYD_GEORGE_DYNAMODB_NAME",
         "DOCUMENT_REVIEW_DYNAMODB_NAME",
         "MNS_NOTIFICATION_QUEUE_URL",
-    ]
+        "RESTRICTIONS_TABLE_NAME",
+    ],
 )
 @override_error_check
 def lambda_handler(event, context):
@@ -38,7 +40,7 @@ def lambda_handler(event, context):
 
             request_context.patient_nhs_no = mns_message.subject.nhs_number
             logger.info(
-                f"Processing SQS message for nhs number: {mns_message.subject.nhs_number}"
+                f"Processing SQS message for nhs number: {mns_message.subject.nhs_number}",
             )
 
             if mns_message.type in MNSNotificationTypes.__members__.values():

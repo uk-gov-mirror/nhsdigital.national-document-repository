@@ -10,11 +10,12 @@ class UserRestrictionsFields(StrEnum):
     ID = "ID"
     CREATOR = "CreatorSmartcard"
     RESTRICTED_USER = "RestrictedSmartcard"
-    REMOVED_BY = "RemoverSmartCard"
-    CUSTODIAN = "Custodian"
+    REMOVED_BY = "RemoverSmartcard"
     NHS_NUMBER = "NhsNumber"
+    CUSTODIAN = "Custodian"
     IS_ACTIVE = "IsActive"
     LAST_UPDATED = "LastUpdated"
+    CREATED = "Created"
 
 
 class UserRestrictionIndexes(StrEnum):
