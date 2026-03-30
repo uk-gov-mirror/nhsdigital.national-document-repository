@@ -473,6 +473,7 @@ def test_update_dynamo_table_clean_scan_result(
         update_fields_name={
             "virus_scanner_result",
             "doc_status",
+            "status",
             "file_location",
             "file_size",
             "uploaded",

@@ -189,12 +189,15 @@ class UploadDocumentReferenceService:
 
             preliminary_document_reference.virus_scanner_result = virus_scan_result
             preliminary_document_reference.file_size = object_size
-            preliminary_document_reference.uploaded = True
             preliminary_document_reference.uploading = False
 
-            preliminary_document_reference.doc_status = (
-                "cancelled" if virus_scan_result != VirusScanResult.CLEAN else "final"
-            )
+            if virus_scan_result == VirusScanResult.CLEAN:
+                preliminary_document_reference.uploaded = True
+                preliminary_document_reference.doc_status = "final"
+            else:
+                preliminary_document_reference.uploaded = False
+                preliminary_document_reference.doc_status = "cancelled"
+                preliminary_document_reference.status = "entered-in-error"
 
             if (
                 preliminary_document_reference.doc_status == "final"
@@ -252,6 +255,7 @@ class UploadDocumentReferenceService:
                 include={
                     "virus_scanner_result",
                     "doc_status",
+                    "status",
                     "file_location",
                     "file_size",
                     "uploaded",
@@ -276,6 +280,14 @@ class UploadDocumentReferenceService:
 
                 for doc in existing_docs:
                     if doc.id == new_document.id:
+                        continue
+
+                    # Skip documents with status "entered-in-error"
+                    # These should not be superseded when a new version is added
+                    if doc.status == "entered-in-error":
+                        logger.info(
+                            f"Skipping document {doc.id} with status 'entered-in-error' - will not supersede",
+                        )
                         continue
 
                     # Supersede logic differs based on whether the existing doc is preliminary or final
@@ -476,6 +488,7 @@ class UploadDocumentReferenceService:
             update_fields = {
                 "virus_scanner_result",
                 "doc_status",
+                "status",
                 "file_location",
                 "file_size",
                 "uploaded",
