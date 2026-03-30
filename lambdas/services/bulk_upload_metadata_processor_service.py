@@ -388,6 +388,7 @@ class BulkUploadMetadataProcessorService:
             failed_files[(nhs_number, ods_code)].append(failed_file)
 
         failed_entry = StagingSqsMetadata(nhs_number=nhs_number, files=[failed_file])
+        failed_entry.nhs_number = nhs_number
         self.dynamo_repository.write_report_upload_to_dynamo(
             failed_entry,
             UploadStatus.FAILED,

@@ -700,6 +700,34 @@ def test_handle_invalid_filename_does_not_send_to_review_when_file_missing(
     assert (nhs_number, ods_code) not in failed_files
 
 
+def test_handle_invalid_filename_preserves_original_nhs_number_in_report(
+    mocker,
+    test_service,
+    base_metadata_file,
+):
+    non_numeric_nhs = "ABC1234567"
+    ods_code = "Y12345"
+    failed_files = defaultdict(list)
+    error = InvalidFileNameException("Invalid filename format")
+
+    base_metadata_file.nhs_number = non_numeric_nhs
+    mock_write = mocker.patch.object(
+        test_service.dynamo_repository,
+        "write_report_upload_to_dynamo",
+    )
+
+    test_service.handle_invalid_filename(
+        base_metadata_file,
+        error,
+        non_numeric_nhs,
+        ods_code,
+        failed_files,
+    )
+
+    staging_metadata, *_ = mock_write.call_args[0]
+    assert staging_metadata.nhs_number == non_numeric_nhs
+
+
 def test_csv_to_sqs_metadata_sends_failed_files_to_review_queue_when_enabled(
     mocker,
     test_service_with_review_enabled,
