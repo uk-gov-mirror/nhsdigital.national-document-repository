@@ -28,7 +28,7 @@
     "versionId": "1"
   },
   "resourceType": "DocumentReference",
-  "status": "current",
+  "status": "entered-in-error",
   "subject": {
     "identifier": {
       "system": "https://fhir.nhs.uk/Id/nhs-number",

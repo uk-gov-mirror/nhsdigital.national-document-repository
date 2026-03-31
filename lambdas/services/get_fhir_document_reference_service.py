@@ -1,6 +1,8 @@
 import base64
 import os
 
+from boto3.dynamodb.conditions import Attr, ConditionBase
+
 from enums.file_size import FileSize
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCode, SnomedCodes
@@ -57,6 +59,7 @@ class GetFhirDocumentReferenceService:
             search_key="ID",
             search_condition=document_id,
             table=table,
+            query_filter=None,
         )
 
     def get_core_document_references(
@@ -81,13 +84,14 @@ class GetFhirDocumentReferenceService:
         search_condition: str | list[str],
         table,
         index_name: str | None = None,
+        query_filter: Attr | ConditionBase | None = CurrentStatusFile,
     ) -> DocumentReference:
         documents = self.document_service.fetch_documents_from_table(
             table_name=table,
             search_condition=search_condition,
             search_key=search_key,
             index_name=index_name,
-            query_filter=CurrentStatusFile,
+            query_filter=query_filter,
         )
         if len(documents) > 0:
             logger.info("Document found for given id")
@@ -141,7 +145,11 @@ class GetFhirDocumentReferenceService:
             or document_reference.created,
             contentType=document_reference.content_type,
         )
-        if document_reference.doc_status == "final":
+        if document_reference.doc_status == "deprecated":
+            logger.info(
+                "Document is deprecated. Skipping presigned URL and file content generation.",
+            )
+        elif document_reference.doc_status == "final":
             file_size = document_reference.file_size or self.s3_service.get_file_size(
                 s3_bucket_name=bucket_name,
                 object_key=file_location,

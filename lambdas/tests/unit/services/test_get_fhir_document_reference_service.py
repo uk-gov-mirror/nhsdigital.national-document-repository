@@ -4,6 +4,7 @@ import json
 from io import BytesIO
 
 import pytest
+
 from enums.infrastructure import DynamoTables
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCode, SnomedCodes
@@ -209,3 +210,22 @@ def test_create_document_reference_fhir_response_when_patient_is_deceased(
     result_json = json.loads(result)
 
     assert result_json["custodian"]["identifier"]["value"] == PCSE_ODS_CODE
+
+
+def test_create_document_reference_fhir_response_with_deprecated_status(
+    patched_service,
+    mocker,
+):
+    """Test FHIR response creation for documents with deprecated status."""
+    test_doc = create_test_doc_store_refs()[0]
+    modified_doc = copy.deepcopy(test_doc)
+    modified_doc.doc_status = "deprecated"
+    mock_logger = mocker.patch("services.get_fhir_document_reference_service.logger")
+
+    patched_service.get_presigned_url = mocker.MagicMock()
+
+    patched_service.create_document_reference_fhir_response(modified_doc)
+
+    mock_logger.info.assert_any_call(
+        "Document is deprecated. Skipping presigned URL and file content generation.",
+    )
