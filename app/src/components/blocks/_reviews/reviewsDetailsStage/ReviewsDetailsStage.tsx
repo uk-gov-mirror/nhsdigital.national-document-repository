@@ -71,7 +71,6 @@ const ReviewsDetailsStage = ({
     const [showError, setShowError] = useState(false);
     const errorSummaryRef = useRef<HTMLDivElement>(null);
     const fetchingPatientDetailsRef = useRef(false);
-    const isFetchingReviewDetailsRef = useRef(false);
 
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
@@ -90,12 +89,9 @@ const ReviewsDetailsStage = ({
         setDownloadStage(DOWNLOAD_STAGE.INITIAL);
         setShowError(false);
 
-        if (!setPatientDetails || !reviewData) {
+        if (!setPatientDetails || !reviewData || reviewData.nhsNumber === NHS_NUMBER_UNKNOWN) {
             setisLoadingPatientDetails(false);
-            return;
-        }
-        if (reviewData.nhsNumber === NHS_NUMBER_UNKNOWN) {
-            setisLoadingPatientDetails(false);
+            loadReviewDataWithRetry();
             return;
         }
 
@@ -108,7 +104,6 @@ const ReviewsDetailsStage = ({
                 });
 
                 setPatientDetails(patientDetails);
-                setisLoadingPatientDetails(false);
             } catch (error) {
                 const err = error as AxiosError<ErrorResponse>;
 
@@ -132,6 +127,7 @@ const ReviewsDetailsStage = ({
                 }
             } finally {
                 setisLoadingPatientDetails(false);
+                await loadReviewDataWithRetry();
             }
         };
 
@@ -141,47 +137,40 @@ const ReviewsDetailsStage = ({
         }
     }, [reviewId]);
 
-    useEffect(() => {
-        const loadData = async (): Promise<void> => {
-            let retryCount = 0;
-            const maxRetries = 10;
-            const retryDelayMs = 3;
+    const loadReviewDataWithRetry = async (): Promise<void> => {
+        let retryCount = 0;
+        const maxRetries = 10;
+        const retryDelayMs = 3;
 
-            while (retryCount < maxRetries) {
-                try {
-                    await loadReviewData();
-                    if (reviewData!.nhsNumber === NHS_NUMBER_UNKNOWN) {
-                        navigateUrlParam(
-                            routeChildren.REVIEW_SEARCH_PATIENT,
-                            { reviewId: reviewId! },
-                            navigate,
-                            { replace: true },
-                        );
+        while (retryCount < maxRetries) {
+            try {
+                await loadReviewData();
+                if (reviewData!.nhsNumber === NHS_NUMBER_UNKNOWN) {
+                    navigateUrlParam(
+                        routeChildren.REVIEW_SEARCH_PATIENT,
+                        { reviewId: reviewId! },
+                        navigate,
+                        { replace: true },
+                    );
+                    return;
+                }
+                break;
+            } catch (e) {
+                retryCount += 1;
+                if (retryCount < maxRetries) {
+                    await waitForSeconds(retryDelayMs);
+                } else {
+                    const error = e as AxiosError;
+                    if (error.response?.status === 403) {
+                        navigate(routes.SESSION_EXPIRED);
                         return;
                     }
-                    break;
-                } catch (e) {
-                    retryCount += 1;
-                    if (retryCount < maxRetries) {
-                        await waitForSeconds(retryDelayMs);
-                    } else {
-                        const error = e as AxiosError;
-                        if (error.response?.status === 403) {
-                            navigate(routes.SESSION_EXPIRED);
-                            return;
-                        }
 
-                        navigate(routes.SERVER_ERROR + errorToParams(error));
-                    }
+                    navigate(routes.SERVER_ERROR + errorToParams(error));
                 }
             }
-        };
-
-        if (!isFetchingReviewDetailsRef.current && patientDetails) {
-            isFetchingReviewDetailsRef.current = true;
-            loadData();
         }
-    }, [patientDetails, setPatientDetails]);
+    };
 
     const { register, handleSubmit } = useForm<FormData>({
         reValidateMode: 'onSubmit',

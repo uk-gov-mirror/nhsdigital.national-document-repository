@@ -88,7 +88,7 @@ const UserPatientRestrictionsSearchStaffStage = ({
 
         try {
             const userInfo = await getUserInformation({
-                smartcardId: data.smartcardNumber,
+                smartcardId: data.smartcardNumber.replaceAll(/\s/g, ''),
                 baseAPIUrl,
                 baseAPIHeaders,
             });

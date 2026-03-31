@@ -1,5 +1,5 @@
 import { routeChildren, routes } from '../../types/generic/routes';
-import { Outlet, Route, Routes, useNavigate } from 'react-router-dom';
+import { Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import UserPatientRestrictionsIndex from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsIndex/UserPatientRestrictionsIndex';
 import { getLastURLPath } from '../../helpers/utils/urlManipulations';
 import UserPatientRestrictionsListStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsListStage/UserPatientRestrictionsListStage';
@@ -17,6 +17,7 @@ import UserPatientRestrictionsAddConfirmStage from '../../components/blocks/_use
 import UserPatientRestrictionsAddCancelStage from '../../components/blocks/_userPatientRestrictions/userPatientRestrictionsAddCancelStage/UserPatientRestrictionsAddCancelStage';
 import PatientGuard from '../../router/guards/patientGuard/PatientGuard';
 import NotFoundPage from '../notFoundPage/NotFoundPage';
+import { UserPatientRestrictionsSubRoute } from '../../types/generic/userPatientRestriction';
 
 const UserPatientRestrictionsPage = (): React.JSX.Element => {
     const {
@@ -35,12 +36,21 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
     } = useUserPatientRestrictionsPage();
 
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         if (!isEnabled) {
             navigate(routes.HOME, { replace: true });
         }
-    }, [isEnabled, navigate]);
+
+        if (
+            (location.pathname === routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT ||
+                location.pathname === routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF) &&
+            subRoute === null
+        ) {
+            setSubRoute(UserPatientRestrictionsSubRoute.ADD);
+        }
+    }, [isEnabled, navigate, location.pathname, subRoute]);
 
     if (!isEnabled) {
         return <></>;

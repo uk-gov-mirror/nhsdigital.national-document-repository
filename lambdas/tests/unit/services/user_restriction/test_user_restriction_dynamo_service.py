@@ -320,7 +320,6 @@ def test_get_user_restrictions_calls_dynamo_with_correct_args(
         query_filter=mock_dynamo_service.query_table_single.call_args.kwargs[
             "query_filter"
         ],
-        limit=1,
     )
 
 

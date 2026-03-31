@@ -40,7 +40,7 @@ describe('UserPatientRestrictionsSearchStaffStage', () => {
     it('should fetch user information and navigate on valid form submission', async () => {
         renderComponent();
 
-        const smartcardNumber = '111111111111';
+        const smartcardNumber = '1111 1111 1111';
         const input = screen.getByTestId('smartcard-number-input');
         await userEvent.type(input, smartcardNumber);
         const submitButton = screen.getByTestId('continue-button');
@@ -48,7 +48,7 @@ describe('UserPatientRestrictionsSearchStaffStage', () => {
 
         expect(mockGetUserInformation).toHaveBeenCalledWith(
             expect.objectContaining({
-                smartcardId: smartcardNumber,
+                smartcardId: smartcardNumber.replaceAll(/\s/g, ''),
             }),
         );
         expect(mockSetUserInformation).toHaveBeenCalledWith(mockUserInformation);

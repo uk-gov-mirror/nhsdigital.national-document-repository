@@ -789,6 +789,7 @@ describe('ReviewDetailsStage', () => {
                     },
                 ],
             });
+
             render(
                 <ReviewsDetailsPageComponent
                     reviewData={mockReviewData}
@@ -802,7 +803,7 @@ describe('ReviewDetailsStage', () => {
             await waitFor(
                 () => {
                     expect(mockNavigate).toHaveBeenCalledWith(
-                        expect.stringContaining('/server-error'),
+                        expect.stringContaining(routes.SERVER_ERROR),
                     );
                 },
                 { timeout: 6000 },

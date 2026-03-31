@@ -269,7 +269,6 @@ class UserRestrictionDynamoService:
                 search_key=UserRestrictionsFields.NHS_NUMBER,
                 search_condition=nhs_number,
                 query_filter=query_filter,
-                limit=1,
             )
         except ClientError as e:
             logger.error(f"DynamoDB ClientError when checking user restriction: {e}")
