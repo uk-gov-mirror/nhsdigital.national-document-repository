@@ -1,7 +1,10 @@
 import tempfile
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, List
 
+from pydantic import ValidationError
+
+from models.report.bulk_upload_report import BulkUploadReport
 from repositories.reporting.reporting_dynamo_repository import ReportingDynamoRepository
 from services.reporting.excel_report_generator_service import ExcelReportGenerator
 from utils.audit_logging_setup import LoggingService
@@ -19,20 +22,37 @@ class ReportOrchestrationService:
         window_start_ts: int,
         window_end_ts: int,
     ) -> Dict[str, str]:
-        records = self.repository.get_records_for_time_window(
+        filtered_records = self.repository.get_records_for_time_window(
             window_start_ts,
             window_end_ts,
         )
 
-        if not records:
+        if not filtered_records:
             logger.info("No records found for reporting window")
             return {}
 
-        records = [
+        filtered_records = [
             record
-            for record in records
+            for record in filtered_records
             if "expedite" not in (record.get("FilePath") or "").lower()
         ]
+
+        if not filtered_records:
+            logger.info(
+                "No records found for reporting window after excluding expedite files",
+            )
+            return {}
+
+        records: List[BulkUploadReport] = []
+        for record in filtered_records:
+            try:
+                records.append(BulkUploadReport.model_validate(record))
+            except ValidationError as e:
+                logger.error(f"Skipping invalid record in reporting orchestration: {e}")
+
+        if not records:
+            logger.info("No valid records after validation")
+            return {}
 
         records_by_ods = self.group_records_by_ods(records)
         generated_files: Dict[str, str] = {}
@@ -48,14 +68,20 @@ class ReportOrchestrationService:
         return generated_files
 
     @staticmethod
-    def group_records_by_ods(records: list[dict]) -> dict[str, list[dict]]:
+    def group_records_by_ods(
+        records: List[BulkUploadReport],
+    ) -> dict[str, List[BulkUploadReport]]:
         grouped = defaultdict(list)
         for record in records:
-            ods_code = record.get("UploaderOdsCode") or "UNKNOWN"
+            ods_code = record.uploader_ods_code or "UNKNOWN"
             grouped[ods_code].append(record)
         return grouped
 
-    def generate_ods_report(self, ods_code: str, records: list[dict]) -> str:
+    def generate_ods_report(
+        self,
+        ods_code: str,
+        records: List[BulkUploadReport],
+    ) -> str:
         with tempfile.NamedTemporaryFile(
             suffix=f"_{ods_code}.xlsx",
             delete=False,

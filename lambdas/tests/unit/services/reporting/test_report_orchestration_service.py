@@ -1,5 +1,16 @@
+from types import SimpleNamespace
+
 import pytest
+from pydantic import ValidationError
+
 from services.reporting.report_orchestration_service import ReportOrchestrationService
+
+
+def make_validated_record(uploader_ods_code, record_id):
+    return SimpleNamespace(
+        uploader_ods_code=uploader_ods_code,
+        id=str(record_id),
+    )
 
 
 @pytest.fixture
@@ -40,56 +51,64 @@ def mocked_generate(report_orchestration_service, mocker):
 
 
 @pytest.mark.parametrize(
-    "records, expected_generate_calls, expected_result",
+    "raw_records, validated_records, expected_generate_calls, expected_result",
     [
         (
+            [],
             [],
             [],
             {},
         ),
         (
-            [{"UploaderOdsCode": "X1", "ID": 1}],
+            [{"UploaderOdsCode": "X1", "ID": "1"}],
+            [make_validated_record("X1", "1")],
             [
-                ("X1", [{"UploaderOdsCode": "X1", "ID": 1}]),
+                ("X1", [make_validated_record("X1", "1")]),
             ],
             {"X1": "/tmp/X1.xlsx"},
         ),
         (
             [
-                {"UploaderOdsCode": "Y12345", "ID": 1},
-                {"UploaderOdsCode": "Y12345", "ID": 2},
-                {"UploaderOdsCode": "A99999", "ID": 3},
+                {"UploaderOdsCode": "Y12345", "ID": "1"},
+                {"UploaderOdsCode": "Y12345", "ID": "2"},
+                {"UploaderOdsCode": "A99999", "ID": "3"},
+            ],
+            [
+                make_validated_record("Y12345", "1"),
+                make_validated_record("Y12345", "2"),
+                make_validated_record("A99999", "3"),
             ],
             [
                 (
                     "Y12345",
                     [
-                        {"UploaderOdsCode": "Y12345", "ID": 1},
-                        {"UploaderOdsCode": "Y12345", "ID": 2},
+                        make_validated_record("Y12345", "1"),
+                        make_validated_record("Y12345", "2"),
                     ],
                 ),
-                ("A99999", [{"UploaderOdsCode": "A99999", "ID": 3}]),
+                ("A99999", [make_validated_record("A99999", "3")]),
             ],
             {"Y12345": "/tmp/Y12345.xlsx", "A99999": "/tmp/A99999.xlsx"},
         ),
         (
             [
-                {"UploaderOdsCode": "Y12345", "ID": 1},
-                {"ID": 2},
-                {"UploaderOdsCode": None, "ID": 3},
+                {"UploaderOdsCode": "Y12345", "ID": "1"},
+                {"UploaderOdsCode": None, "ID": "2"},
+                {"UploaderOdsCode": "", "ID": "3"},
             ],
             [
-                ("Y12345", [{"UploaderOdsCode": "Y12345", "ID": 1}]),
-                ("UNKNOWN", [{"ID": 2}, {"UploaderOdsCode": None, "ID": 3}]),
+                make_validated_record("Y12345", "1"),
+                make_validated_record(None, "2"),
+                make_validated_record("", "3"),
+            ],
+            [
+                ("Y12345", [make_validated_record("Y12345", "1")]),
+                (
+                    "UNKNOWN",
+                    [make_validated_record(None, "2"), make_validated_record("", "3")],
+                ),
             ],
             {"Y12345": "/tmp/Y12345.xlsx", "UNKNOWN": "/tmp/UNKNOWN.xlsx"},
-        ),
-        (
-            [{"UploaderOdsCode": "", "ID": 1}],
-            [
-                ("UNKNOWN", [{"UploaderOdsCode": "", "ID": 1}]),
-            ],
-            {"UNKNOWN": "/tmp/UNKNOWN.xlsx"},
         ),
     ],
 )
@@ -97,11 +116,19 @@ def test_process_reporting_window_behaviour(
     report_orchestration_service,
     mock_repository,
     mocked_generate,
-    records,
+    mocker,
+    raw_records,
+    validated_records,
     expected_generate_calls,
     expected_result,
 ):
-    mock_repository.get_records_for_time_window.return_value = records
+    mock_repository.get_records_for_time_window.return_value = raw_records
+
+    validated_iter = iter(validated_records)
+    mocker.patch(
+        "services.reporting.report_orchestration_service.BulkUploadReport.model_validate",
+        side_effect=lambda _record: next(validated_iter),
+    )
 
     result = report_orchestration_service.process_reporting_window(100, 200)
 
@@ -114,35 +141,96 @@ def test_process_reporting_window_behaviour(
     assert result == expected_result
 
 
+def test_process_reporting_window_skips_invalid_records(
+    report_orchestration_service,
+    mock_repository,
+    mocked_generate,
+    mocker,
+):
+    raw_records = [
+        {"UploaderOdsCode": "Y12345", "ID": "1"},
+        {"UploaderOdsCode": "A99999", "ID": "2"},
+    ]
+    mock_repository.get_records_for_time_window.return_value = raw_records
+
+    valid_record = make_validated_record("Y12345", "1")
+
+    mocker.patch(
+        "services.reporting.report_orchestration_service.BulkUploadReport.model_validate",
+        side_effect=[
+            valid_record,
+            ValidationError.from_exception_data(
+                "BulkUploadReport",
+                [],
+            ),
+        ],
+    )
+
+    result = report_orchestration_service.process_reporting_window(100, 200)
+
+    mocked_generate.assert_called_once_with("Y12345", [valid_record])
+    assert result == {"Y12345": "/tmp/Y12345.xlsx"}
+
+
+def test_process_reporting_window_returns_empty_when_all_records_invalid(
+    report_orchestration_service,
+    mock_repository,
+    mocked_generate,
+    mocker,
+):
+    raw_records = [
+        {"UploaderOdsCode": "Y12345", "ID": "1"},
+        {"UploaderOdsCode": "A99999", "ID": "2"},
+    ]
+    mock_repository.get_records_for_time_window.return_value = raw_records
+
+    mocker.patch(
+        "services.reporting.report_orchestration_service.BulkUploadReport.model_validate",
+        side_effect=[
+            ValidationError.from_exception_data("BulkUploadReport", []),
+            ValidationError.from_exception_data("BulkUploadReport", []),
+        ],
+    )
+
+    result = report_orchestration_service.process_reporting_window(100, 200)
+
+    mocked_generate.assert_not_called()
+    assert result == {}
+
+
 @pytest.mark.parametrize(
     "records, expected",
     [
         (
             [
-                {"UploaderOdsCode": "Y12345", "ID": 1},
-                {"UploaderOdsCode": "Y12345", "ID": 2},
-                {"UploaderOdsCode": "A99999", "ID": 3},
-                {"ID": 4},
-                {"UploaderOdsCode": None, "ID": 5},
+                make_validated_record("Y12345", "1"),
+                make_validated_record("Y12345", "2"),
+                make_validated_record("A99999", "3"),
+                make_validated_record(None, "4"),
+                make_validated_record("", "5"),
             ],
             {
                 "Y12345": [
-                    {"UploaderOdsCode": "Y12345", "ID": 1},
-                    {"UploaderOdsCode": "Y12345", "ID": 2},
+                    make_validated_record("Y12345", "1"),
+                    make_validated_record("Y12345", "2"),
                 ],
-                "A99999": [{"UploaderOdsCode": "A99999", "ID": 3}],
-                "UNKNOWN": [{"ID": 4}, {"UploaderOdsCode": None, "ID": 5}],
+                "A99999": [make_validated_record("A99999", "3")],
+                "UNKNOWN": [
+                    make_validated_record(None, "4"),
+                    make_validated_record("", "5"),
+                ],
             },
         ),
         ([], {}),
         (
-            [{"UploaderOdsCode": "", "ID": 1}],
-            {"UNKNOWN": [{"UploaderOdsCode": "", "ID": 1}]},
+            [make_validated_record("", "1")],
+            {"UNKNOWN": [make_validated_record("", "1")]},
         ),
     ],
 )
 def test_group_records_by_ods(records, expected):
     result = ReportOrchestrationService.group_records_by_ods(records)
+
     assert dict(result) == expected
 
 
@@ -166,7 +254,7 @@ def test_generate_ods_report_creates_excel_report_and_returns_path(
     fake_named_tmpfile,
 ):
     mocked_ntf, fake_tmp = fake_named_tmpfile
-    records = [{"ID": 1, "UploaderOdsCode": "Y12345"}]
+    records = [make_validated_record("Y12345", "1")]
 
     result_path = report_orchestration_service.generate_ods_report("Y12345", records)
 
