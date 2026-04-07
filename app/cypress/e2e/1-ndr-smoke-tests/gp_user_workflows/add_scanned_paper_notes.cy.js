@@ -16,8 +16,8 @@ const confirmationUrl = '/patient/document-upload/confirmation';
 dbItem.FileLocation = dbItem.FileLocation.replace('{env}', workspace);
 
 const uploadedFilePathNames = [
-    'cypress/fixtures/lg-files/simple_pages/6.pdf',
-    'cypress/fixtures/lg-files/simple_pages/7.pdf',
+    'cypress/fixtures/lg-files/simple_pdf_pages/6.pdf',
+    'cypress/fixtures/lg-files/simple_pdf_pages/7.pdf',
 ];
 const uploadedFileNames = ['6', '7'];
 

@@ -8,6 +8,8 @@ import {
     DeleteObjectCommand,
     PutObjectCommandInput,
     DeleteObjectCommandInput,
+    ListObjectsV2Command,
+    ListObjectsV2CommandOutput,
 } from '@aws-sdk/client-s3';
 
 import {
@@ -89,6 +91,30 @@ Cypress.Commands.add('deleteFileFromS3', (bucketName: string, fileName: string) 
                 throw new Error(message);
             }),
     );
+});
+
+Cypress.Commands.add('deleteAllFilesFromS3Prefix', (bucketName: string, prefix: string): void => {
+    const deleteAllFilesFromS3Prefix = async (): Promise<void> => {
+        const listResponse: ListObjectsV2CommandOutput = await s3.send(
+            new ListObjectsV2Command({
+                Bucket: bucketName,
+                Prefix: prefix,
+            }),
+        );
+
+        const keys: string[] = (listResponse.Contents || []).map((obj) => obj.Key!);
+
+        for (const key of keys) {
+            await s3.send(
+                new DeleteObjectCommand({
+                    Bucket: bucketName,
+                    Key: key,
+                }),
+            );
+        }
+    };
+
+    cy.then(() => deleteAllFilesFromS3Prefix());
 });
 
 Cypress.Commands.add(
