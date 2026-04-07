@@ -32,6 +32,11 @@ from utils.cloudwatch_logs_query import (
     OdsReportsCreated,
     OdsReportsRequested,
     UniqueActiveUserIds,
+    UniqueActiveUserIdsAccessedDeceasedPatient,
+    UniqueActiveUserIdsAccessedReview,
+    UniqueActiveUserIdsReassigned,
+    UniqueActiveUserIdsReviewed,
+    UniqueActiveUserIdsUploaded,
     UploadCountByFileType,
     UploadCountByOdsCode,
     UploadReviewCountByFileType,
@@ -239,7 +244,7 @@ class DataCollectionService:
             start_date,
             end_date,
         )
-        daily_count_deceased = self.get_cloud_watch_query_result(
+        daily_count_users_accessing_deceased = self.get_cloud_watch_query_result(
             CountUsersAccessedDeceasedPatient,
             start_date,
             end_date,
@@ -282,6 +287,38 @@ class DataCollectionService:
             daily_upload_count_by_file_type,
             count_key="daily_count_upload",
         )
+        daily_user_ids_uploaded = self.get_grouped_user_ids_by_ods_code(
+            UniqueActiveUserIdsUploaded,
+            start_date,
+            end_date,
+            "daily_user_ids_uploaded",
+        )
+        daily_user_ids_accessed_review = self.get_grouped_user_ids_by_ods_code(
+            UniqueActiveUserIdsAccessedReview,
+            start_date,
+            end_date,
+            "daily_user_ids_accessed_review",
+        )
+        daily_user_ids_accessed_deceased_patient = (
+            self.get_grouped_user_ids_by_ods_code(
+                UniqueActiveUserIdsAccessedDeceasedPatient,
+                start_date,
+                end_date,
+                "daily_user_ids_accessed_deceased_patient",
+            )
+        )
+        daily_user_ids_reviewed = self.get_grouped_user_ids_by_ods_code(
+            UniqueActiveUserIdsReviewed,
+            start_date,
+            end_date,
+            "daily_user_ids_reviewed",
+        )
+        daily_user_ids_reassigned = self.get_grouped_user_ids_by_ods_code(
+            UniqueActiveUserIdsReassigned,
+            start_date,
+            end_date,
+            "daily_user_ids_reassigned",
+        )
 
         joined_query_result = self.join_results_by_ods_code(
             [
@@ -295,13 +332,18 @@ class DataCollectionService:
                 daily_count_users_reassigned,
                 daily_count_searched,
                 daily_count_users_accessing_review,
-                daily_count_deceased,
+                daily_count_users_accessing_deceased,
                 daily_count_ods_report_requested,
                 daily_count_ods_report_created,
                 daily_upload_review_count_by_ods_code,
                 grouped_upload_review_by_file_type,
                 daily_upload_count_by_ods_code,
                 grouped_upload_by_file_type,
+                daily_user_ids_uploaded,
+                daily_user_ids_accessed_review,
+                daily_user_ids_accessed_deceased_patient,
+                daily_user_ids_reviewed,
+                daily_user_ids_reassigned,
             ],
         )
 
@@ -352,6 +394,32 @@ class DataCollectionService:
                 hashed_user_id + " - " + user_role + " - " + role_code,
             )
         return user_ids_per_ods_code
+
+    def get_grouped_user_ids_by_ods_code(
+        self,
+        query_params: CloudwatchLogsQueryParams,
+        start_date: datetime,
+        end_date: datetime,
+        target_key: str,
+    ) -> list[dict]:
+        """
+        Fetches raw CloudWatch logs and groups them into a list of
+        {'ods_code': '...', 'target_key': [...]} dictionaries.
+        """
+        results = self.get_cloud_watch_query_result(
+            query_params,
+            start_date,
+            end_date,
+        )
+
+        ods_code_map = defaultdict(list)
+        for row in results:
+            ods_code_map[row["ods_code"]].append(row["user_id"])
+
+        return [
+            {"ods_code": ods_code, target_key: user_ids}
+            for ods_code, user_ids in ods_code_map.items()
+        ]
 
     def get_cloud_watch_query_result(
         self,

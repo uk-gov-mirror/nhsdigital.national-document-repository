@@ -229,6 +229,10 @@ def test_summarise_organisation_data_larger_mock_data(mock_service):
             row_in_actual_data,
         )
         assert_number_of_patient_correct(mock_data_of_ods_code, row_in_actual_data)
+        assert_weekly_unique_user_counts_match_unique_user_ids(
+            mock_data_of_ods_code,
+            row_in_actual_data,
+        )
 
 
 def assert_weekly_counts_match_sum_of_daily_counts(mock_data, row_in_actual_data):
@@ -259,6 +263,66 @@ def assert_number_of_patient_correct(mock_data, row_in_actual_data):
     actual_number_of_patient = row_in_actual_data.item(0, "number_of_patients")
 
     assert actual_number_of_patient == expected_number_of_patients
+
+
+def assert_weekly_unique_user_counts_match_unique_user_ids(
+    mock_data,
+    row_in_actual_data,
+):
+    count_to_user_id_map = {
+        "weekly_count_users_uploaded": "daily_user_ids_uploaded",
+        "weekly_count_users_reviewed": "daily_user_ids_reviewed",
+        "weekly_count_users_reassigned": "daily_user_ids_reassigned",
+        "weekly_count_users_accessing_review": "daily_user_ids_accessed_review",
+        "weekly_count_users_accessing_deceased": "daily_user_ids_accessed_deceased_patient",
+    }
+
+    for weekly_count_column, user_id_column in count_to_user_id_map.items():
+        all_user_ids = []
+        for data in mock_data:
+            all_user_ids.extend(getattr(data, user_id_column))
+        expected_unique_count = len(set(all_user_ids))
+        actual_unique_count = row_in_actual_data.item(0, weekly_count_column)
+
+        assert actual_unique_count == expected_unique_count
+
+
+def test_summarise_organisation_data_counts_unique_users_across_days(mock_service):
+    day1 = OrganisationData(
+        ods_code="TEST01",
+        date="20240101",
+        daily_user_ids_uploaded=["user1", "user2"],
+        daily_user_ids_reviewed=["user1", "user3"],
+        daily_user_ids_reassigned=["user1", "user4"],
+        daily_user_ids_accessed_review=["user1", "user5"],
+        daily_user_ids_accessed_deceased_patient=["user1", "user6"],
+    )
+    day2 = OrganisationData(
+        ods_code="TEST01",
+        date="20240102",
+        daily_user_ids_uploaded=["user1", "user7"],
+        daily_user_ids_reviewed=["user1", "user8"],
+        daily_user_ids_reassigned=["user1", "user9"],
+        daily_user_ids_accessed_review=["user1", "user10"],
+        daily_user_ids_accessed_deceased_patient=["user1", "user11"],
+    )
+    day3 = OrganisationData(
+        ods_code="TEST01",
+        date="20240103",
+        daily_user_ids_uploaded=["user1", "user2", "user12"],
+        daily_user_ids_reviewed=["user1", "user3", "user13"],
+        daily_user_ids_reassigned=["user1", "user4", "user14"],
+        daily_user_ids_accessed_review=["user1", "user5", "user15"],
+        daily_user_ids_accessed_deceased_patient=["user1", "user6", "user16"],
+    )
+
+    actual = mock_service.summarise_organisation_data([day1, day2, day3])
+
+    assert actual.item(0, "weekly_count_users_uploaded") == 4
+    assert actual.item(0, "weekly_count_users_reviewed") == 4
+    assert actual.item(0, "weekly_count_users_reassigned") == 4
+    assert actual.item(0, "weekly_count_users_accessing_review") == 4
+    assert actual.item(0, "weekly_count_users_accessing_deceased") == 4
 
 
 def test_summarise_organisation_data_can_handle_empty_input(mock_service):

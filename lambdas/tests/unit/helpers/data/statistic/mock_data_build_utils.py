@@ -10,16 +10,22 @@ def make_random_data(
 ) -> list[dict]:
     results = []
     for date in date_range:
-        random_data: dict[str, str | int] = {
+        random_data: dict[str, str | int | list[str]] = {
             key: random.randint(0, 1000) for key in field_names
         }
+        for key in field_names:
+            if "user_ids" in key:
+                random_numbers = random.sample(range(30), k=random.randint(1, 10))
+                random_data[key] = [f"userid_{number}" for number in random_numbers]
+
         random_data.update({"date": date, "ods_code": ods_code})
         results.append(random_data)
     return results
 
 
 def build_random_record_store_data(
-    ods_code: str, date_range: list[str]
+    ods_code: str,
+    date_range: list[str],
 ) -> list[RecordStoreData]:
     field_names = set(RecordStoreData.model_fields.keys()) - {
         "ods_code",
@@ -31,7 +37,8 @@ def build_random_record_store_data(
 
 
 def build_random_organisation_data(
-    ods_code: str, date_range: list[str]
+    ods_code: str,
+    date_range: list[str],
 ) -> list[OrganisationData]:
     field_names = set(OrganisationData.model_fields.keys()) - {
         "ods_code",
@@ -43,14 +50,17 @@ def build_random_organisation_data(
 
 
 def build_random_application_data(
-    ods_code: str, date_range: list[str]
+    ods_code: str,
+    date_range: list[str],
 ) -> list[ApplicationData]:
     result = []
     for date in date_range:
         random_numbers = random.sample(range(30), k=random.randint(1, 10))
         hashed_user_ids = [f"userid_{number}" for number in random_numbers]
         application_data = ApplicationData(
-            ods_code=ods_code, date=date, active_user_ids_hashed=hashed_user_ids
+            ods_code=ods_code,
+            date=date,
+            active_user_ids_hashed=hashed_user_ids,
         )
         result.append(application_data)
 
