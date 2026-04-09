@@ -6,12 +6,9 @@ import {
     buildPatientDetails,
     buildLgFile,
     buildUploadSession,
-    buildConfig,
     buildDocument,
-    buildDocumentConfig,
 } from '../../helpers/test/testBuilders';
 import usePatient from '../../helpers/hooks/usePatient';
-import useConfig from '../../helpers/hooks/useConfig';
 import useBaseAPIHeaders from '../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
 import * as ReactRouter from 'react-router-dom';
@@ -31,7 +28,6 @@ import userEvent from '@testing-library/user-event';
 import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
 
 vi.mock('axios');
-vi.mock('../../helpers/hooks/useConfig');
 vi.mock('../../helpers/hooks/usePatient');
 vi.mock('../../helpers/hooks/useBaseAPIHeaders');
 vi.mock('../../helpers/hooks/useBaseAPIUrl');
@@ -48,7 +44,6 @@ vi.mock('pdfjs-dist', () => ({
 const mockPatientDetails = buildPatientDetails();
 const mockedUsePatient = usePatient as Mock;
 const mockNavigate = vi.fn();
-const mockUseConfig = useConfig as Mock;
 const mockUseBaseAPIHeaders = useBaseAPIHeaders as Mock;
 const mockUseBaseAPIUrl = useBaseAPIUrl as Mock;
 const mockUploadDocuments = uploadDocuments as Mock;
@@ -76,8 +71,6 @@ vi.spyOn(ReactRouter, 'useLocation').mockImplementation(mockUseLocation);
 const baseUrl = 'http://localhost';
 const baseHeaders = { Authorization: 'Bearer token' };
 
-const docConfig = buildDocumentConfig();
-
 describe('DocumentUploadPage', (): void => {
     beforeEach(() => {
         vi.useFakeTimers();
@@ -89,16 +82,6 @@ describe('DocumentUploadPage', (): void => {
             search: '',
         } as any;
         mockedUsePatient.mockReturnValue(mockPatientDetails);
-        mockUseConfig.mockReturnValue(
-            buildConfig(
-                {},
-                {
-                    uploadLambdaEnabled: true,
-                    uploadLloydGeorgeWorkflowEnabled: true,
-                    uploadDocumentIteration3Enabled: false,
-                },
-            ),
-        );
         mockUseBaseAPIUrl.mockReturnValue(baseUrl);
         mockUseBaseAPIHeaders.mockReturnValue(baseHeaders);
         mockUseLocation.mockReturnValue({
@@ -134,80 +117,9 @@ describe('DocumentUploadPage', (): void => {
         );
     };
 
-    describe('Feature flags', () => {
-        it('redirects to home when uploadLambdaEnabled is false', async () => {
-            mockUseConfig.mockReturnValue(
-                buildConfig(
-                    {},
-                    {
-                        uploadLambdaEnabled: false,
-                        uploadLloydGeorgeWorkflowEnabled: true,
-                    },
-                ),
-            );
-
-            await renderPage();
-
-            expect(mockNavigate).toHaveBeenCalledWith(routes.HOME);
-        });
-
-        it('redirects to home when uploadLloydGeorgeWorkflowEnabled is false', async () => {
-            mockUseConfig.mockReturnValue(
-                buildConfig(
-                    {},
-                    {
-                        uploadLambdaEnabled: true,
-                        uploadLloydGeorgeWorkflowEnabled: false,
-                    },
-                ),
-            );
-
-            await renderPage();
-
-            expect(mockNavigate).toHaveBeenCalledWith(routes.HOME);
-        });
-
-        it('renders page when both feature flags are enabled', async () => {
+    describe('rendering', () => {
+        it('renders doc type select index', async () => {
             vi.useRealTimers(); // Use real timers for this test
-
-            mockUseConfig.mockReturnValue(
-                buildConfig(
-                    {},
-                    {
-                        uploadLambdaEnabled: true,
-                        uploadLloydGeorgeWorkflowEnabled: true,
-                        uploadDocumentIteration3Enabled: false,
-                    },
-                ),
-            );
-
-            const { container } = await renderPage();
-            expect(container).toBeInTheDocument();
-
-            await waitFor(() => {
-                const pageTitle = screen.getByTestId('page-title');
-                expect(pageTitle).toBeInTheDocument();
-                expect(pageTitle).toHaveTextContent(
-                    docConfig.content.uploadFilesSelectTitle as string,
-                );
-            });
-
-            vi.useFakeTimers(); // Reset back to fake timers
-        });
-
-        it('renders doc type select index when iteration3 flag is enabled', async () => {
-            vi.useRealTimers(); // Use real timers for this test
-
-            mockUseConfig.mockReturnValue(
-                buildConfig(
-                    {},
-                    {
-                        uploadLambdaEnabled: true,
-                        uploadLloydGeorgeWorkflowEnabled: true,
-                        uploadDocumentIteration3Enabled: true,
-                    },
-                ),
-            );
 
             const { container } = await renderPage();
             expect(container).toBeInTheDocument();
@@ -221,19 +133,8 @@ describe('DocumentUploadPage', (): void => {
             vi.useFakeTimers(); // Reset back to fake timers
         });
 
-        it('navigates to file select page when iteration3 flag is enabled and doc type selected', async () => {
+        it('navigates to file select page when doc type selected', async () => {
             vi.useRealTimers(); // Use real timers for this test
-
-            mockUseConfig.mockReturnValue(
-                buildConfig(
-                    {},
-                    {
-                        uploadLambdaEnabled: true,
-                        uploadLloydGeorgeWorkflowEnabled: true,
-                        uploadDocumentIteration3Enabled: true,
-                    },
-                ),
-            );
 
             const { container } = await renderPage();
             expect(container).toBeInTheDocument();

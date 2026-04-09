@@ -6,5 +6,6 @@
     "postalCode": "AA1 1AA",
     "superseded": false,
     "restricted": false,
-    "active": true
+    "active": true,
+    "canManageRecord": true
 }

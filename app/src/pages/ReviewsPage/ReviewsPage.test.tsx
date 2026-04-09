@@ -5,7 +5,6 @@ import React from 'react';
 import ReviewsPage, { CompleteState } from './ReviewsPage';
 import { REPOSITORY_ROLE } from '../../types/generic/authRole';
 import { buildPatientDetails } from '../../helpers/test/testBuilders';
-import { routes } from '../../types/generic/routes';
 import * as ReactRouter from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 
@@ -267,9 +266,6 @@ describe('ReviewsPage', () => {
     });
 
     beforeEach(() => {
-        mockUseConfig.mockReturnValue({
-            featureFlags: { uploadDocumentIteration3Enabled: true },
-        });
         mockUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
         mockUsePatient.mockReturnValue(mockPatient);
         mockUseBaseAPIUrl.mockReturnValue('https://test-api.example.com');
@@ -281,29 +277,6 @@ describe('ReviewsPage', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
-    });
-
-    describe('Feature Flag', () => {
-        it('calls navigate to home when feature flag is disabled', () => {
-            mockUseConfig.mockReturnValue({
-                featureFlags: { uploadDocumentIteration3Enabled: false },
-            });
-
-            renderWithRouter('/reviews');
-
-            expect(mockUseNavigate).toHaveBeenCalledWith(routes.HOME);
-        });
-
-        it('renders routes when feature flag is enabled', async () => {
-            renderWithRouter('/reviews');
-
-            // Should not navigate away
-            expect(mockUseNavigate).not.toHaveBeenCalledWith(routes.HOME);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('reviews-page')).toBeInTheDocument();
-            });
-        });
     });
 
     describe('Route Rendering', () => {

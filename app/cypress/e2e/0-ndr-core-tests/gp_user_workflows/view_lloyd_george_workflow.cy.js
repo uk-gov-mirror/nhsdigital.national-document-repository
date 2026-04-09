@@ -1,48 +1,25 @@
-import viewLloydGeorgePayload from '../../../fixtures/requests/GET_LloydGeorgeStitch.json';
 import searchPatientPayload from '../../../fixtures/requests/GET_SearchPatient.json';
 import { Roles, roleName } from '../../../support/roles';
 import { formatNhsNumber } from '../../../../src/helpers/utils/formatNhsNumber';
 import { DOCUMENT_TYPE } from '../../../../src/helpers/utils/documentType';
+import { routes } from '../../../support/routes';
 
 const baseUrl = Cypress.config('baseUrl');
 const gpRoles = [Roles.GP_ADMIN, Roles.GP_CLINICAL];
 
+const testFile = {
+    fileName: '1of1_lone_test_file.pdf',
+    created: '2023-01-01T12:00:00Z',
+    virusScannerResult: 'CLEAN',
+    author: 'Y12345',
+    id: 'mock-document-id-1',
+    fileSize: 1024,
+    version: '1',
+    documentSnomedCodeType: '16521000000101',
+    contentType: 'application/pdf',
+};
+
 describe('GP Workflow: View Lloyd George record', () => {
-    const assertEmptyLloydGeorgeCard = () => {
-        cy.getByTestId('pdf-card').should('include.text', 'Lloyd George record');
-        cy.getByTestId('pdf-card').should(
-            'include.text',
-            'This patient does not have a Lloyd George record stored in this service',
-        );
-        cy.getByTestId('pdf-card').contains('Control and F').should('not.exist');
-    };
-
-    const assertFailedLloydGeorgeLoad = () => {
-        cy.getByTestId('error-summary_message').should(
-            'include.text',
-            'An error has occurred when creating the Lloyd George preview.',
-        );
-    };
-
-    const assertTimeoutLloydGeorgeError = (assertDownloadLink) => {
-        cy.getByTestId('lloyd-george-record-error-message').should(
-            'include.text',
-            'The Lloyd George document is too large to view in a browser,',
-        );
-
-        if (assertDownloadLink) {
-            cy.getByTestId('download-instead-link').should('exist');
-        } else {
-            cy.getByTestId('download-instead-link').should('exist');
-            cy.getByTestId('download-instead-link').click();
-            cy.url().should('contains', baseUrl + '/unauthorised');
-            cy.title().should(
-                'eq',
-                'Unauthorised access - Access and store digital patient documents',
-            );
-        }
-    };
-
     const assertPatientInfo = () => {
         cy.getByTestId('patient-summary-full-name').should(
             'have.text',
@@ -50,21 +27,6 @@ describe('GP Workflow: View Lloyd George record', () => {
         );
         cy.getByTestId('patient-summary-nhs-number').should('have.text', `900 000 0009`);
         cy.getByTestId('patient-summary-date-of-birth').should('have.text', `1 January 1970`);
-    };
-
-    const assertPatientInfoSmall = () => {
-        cy.getByTestId('patient-summary-full-name').should(
-            'have.text',
-            `${searchPatientPayload.familyName}, ${searchPatientPayload.givenName}`,
-        );
-        cy.getByTestId('patient-summary-small-nhs-number').should(
-            'have.text',
-            `NHS number: 900 000 0009`,
-        );
-        cy.getByTestId('patient-summary-small-date-of-birth').should(
-            'have.text',
-            `Date of birth: 1 January 1970`,
-        );
     };
 
     const beforeEachConfiguration = (role) => {
@@ -80,32 +42,50 @@ describe('GP Workflow: View Lloyd George record', () => {
         cy.wait('@search');
     };
 
-    const setUpStitchJobIntercepts = () => {
-        const initialJobStatus = 'Pending';
+    const setupLoadDocumentIntercepts = (files = [testFile], times) => {
+        cy.intercept('GET', '/SearchDocumentReferences*', {
+            statusCode: 200,
+            body: {
+                references: files,
+                nextPageToken: files.length > 0 ? 'abc' : '',
+            },
+            delay: 1000,
+            ...(times !== undefined && { times }),
+        }).as('searchDocumentReferences');
 
-        cy.intercept('POST', '/LloydGeorgeStitch*', (req) => {
-            req.reply({
-                statusCode: 200,
-                body: { jobStatus: initialJobStatus },
-            });
-        }).as('stitchJobPost');
+        cy.intercept('GET', '/DocumentReview*', {
+            statusCode: 200,
+            body: {
+                count: 0,
+            },
+        }).as('documentReview');
 
-        cy.intercept('GET', '/LloydGeorgeStitch*', (req) => {
-            req.reply({
-                statusCode: 200,
-                body: viewLloydGeorgePayload,
-            });
-        }).as('stitchJobCompleted');
+        cy.intercept('GET', `/DocumentReference/${testFile.id}*`, {
+            statusCode: 200,
+            body: {
+                url: '/dev/testFile.pdf',
+                contentType: 'application/pdf',
+            },
+            delay: 1000,
+        }).as('getDocument');
+    };
 
-        return new Date(viewLloydGeorgePayload.lastUpdated).toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            hour: 'numeric',
-            minute: 'numeric',
-            second: 'numeric',
-            timeZone: 'Europe/London',
-        });
+    const viewDocumentAfterVerify = () => {
+        cy.url().should('contain', baseUrl + routes.patientDocuments);
+        cy.title().should(
+            'eq',
+            'Lloyd George records - Access and store digital patient documents',
+        );
+
+        cy.wait('@searchDocumentReferences', { timeout: 20000 });
+        cy.wait('@documentReview', { timeout: 20000 });
+
+        cy.getByTestId('available-files-table-title', { timeout: 30000 }).should('be.visible');
+
+        cy.getByTestId('view-0-link').click();
+        cy.contains('Loading document').should('be.visible');
+
+        cy.wait('@getDocument', { timeout: 20000 });
     };
 
     gpRoles.forEach((role) => {
@@ -117,71 +97,46 @@ describe('GP Workflow: View Lloyd George record', () => {
                 roleName(role) + ' can view a Lloyd George document of an active patient',
                 { tags: 'regression' },
                 () => {
-                    const date = setUpStitchJobIntercepts();
+                    setupLoadDocumentIntercepts();
 
                     cy.get('#verify-submit').click();
-                    cy.wait('@stitchJobCompleted', { timeout: 20000 });
+
+                    viewDocumentAfterVerify();
 
                     // Assert
                     assertPatientInfo();
                     cy.getByTestId('pdf-card').scrollIntoView();
-                    cy.getByTestId('pdf-card')
-                        .should('include.text', 'Lloyd George record')
-                        .should('include.text', `Last updated: ${date}`);
-                    cy.getByTestId('pdf-viewer').should('be.visible');
-
-                    // Act - open full screen view
-                    if (Cypress.isBrowser('firefox')) {
-                        cy.log('Skipping full screen view test for Firefox');
-                        return;
-                    } else {
-                        cy.getByTestId('full-screen-btn').realClick();
-                    }
-
-                    // Assert
-                    assertPatientInfoSmall();
-                    cy.getByTestId('pdf-card').should('not.exist');
-                    cy.getByTestId('pdf-viewer').should('be.visible');
-
-                    //  Act - close full screen view
-                    cy.getByTestId('back-link').click();
-
-                    // Assert
-                    cy.getByTestId('pdf-card').should('be.visible');
-                    cy.getByTestId('pdf-viewer').should('be.visible');
-                },
-            );
-
-            it(
-                `It displays an waiting message when uploading Lloyd George record is in progress for the patient for a ${roleName(
-                    role,
-                )}`,
-                { tags: 'regression' },
-                () => {
-                    cy.intercept('POST', '/LloydGeorgeStitch*', {
-                        statusCode: 423,
-                    });
-                    cy.get('#verify-submit').click();
-
-                    // Assert
-                    assertPatientInfo();
-                    cy.getByTestId('pdf-card').should('include.text', 'Lloyd George record');
-                    cy.getByTestId('pdf-card').should(
-                        'include.text',
-                        'You can view this record once it’s finished uploading. This may take a few minutes.',
+                    const expectedCreatedDate = new Date(testFile.created).toLocaleDateString(
+                        'en-GB',
+                        {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                        },
                     );
+                    cy.getByTestId('pdf-card')
+                        .should('include.text', 'Scanned paper notes: Version 1')
+                        .should(
+                            'include.text',
+                            `Created by practice: ${testFile.author} on ${expectedCreatedDate}`,
+                        );
+                    cy.getByTestId('pdf-viewer').should('be.visible');
                 },
             );
+
             it(
-                `It displays an error when the Lloyd George Stitch API call fails for a ${roleName(
+                `It displays an error when the search document references API call fails for a ${roleName(
                     role,
                 )}`,
                 { tags: 'regression' },
                 () => {
-                    cy.intercept('POST', '/LloydGeorgeStitch*', {
+                    cy.intercept('GET', '/SearchDocumentReferences*', {
                         statusCode: 500,
-                    });
+                        delay: 1000,
+                    }).as('searchDocumentReferences');
                     cy.get('#verify-submit').click();
+
+                    cy.wait('@searchDocumentReferences', { timeout: 20000 });
 
                     //Assert
                     cy.contains('Sorry, there is a problem with the service').should('be.visible');
@@ -196,63 +151,20 @@ describe('GP Workflow: View Lloyd George record', () => {
 
     context('View Lloyd George document with specific role tests', () => {
         it(
-            'It displays an error with a download link when a Lloyd George stitching timeout occurs via the API Gateway for a GP_ADMIN',
+            `It displays an empty document table when no document exists for the patient for a GP_CLINICAL`,
             { tags: 'regression' },
             () => {
-                beforeEachConfiguration(Roles.GP_ADMIN);
-                cy.intercept('POST', '/LloydGeorgeStitch*', {
-                    statusCode: 504,
-                });
-                cy.get('#verify-submit').click();
-
-                //Assert
-                assertTimeoutLloydGeorgeError(true);
-            },
-        );
-        it(
-            `It displays an empty Lloyd George card when no Lloyd George record exists for the patient for a GP_CLINICAL`,
-            { tags: 'regression' },
-            () => {
+                setupLoadDocumentIntercepts([]);
                 beforeEachConfiguration(Roles.GP_CLINICAL);
 
-                cy.intercept('POST', '/LloydGeorgeStitch*', {
-                    statusCode: 404,
-                });
-                cy.get('#verify-submit').click();
-                // Assert
-                assertPatientInfo();
-                assertEmptyLloydGeorgeCard();
-            },
-        );
-        it(
-            `It displays an upload button when no Lloyd George record exists for the patient for a GP_ADMIN`,
-            { tags: 'regression' },
-            () => {
-                beforeEachConfiguration(Roles.GP_ADMIN);
-
-                cy.intercept('POST', '/LloydGeorgeStitch*', {
-                    statusCode: 404,
-                });
-                cy.get('#verify-submit').click();
-                // Assert
-                assertPatientInfo();
-                cy.getByTestId('pdf-card').should('include.text', 'Lloyd George record');
-                cy.getByTestId('no-records-title').should('be.visible');
-                cy.getByTestId('upload-patient-record-button').should('be.visible');
-            },
-        );
-        it(
-            'It displays an error with download link when a Lloyd George stitching timeout occurs via the API Gateway for a GP_CLINICAL but link access is denied',
-            { tags: 'regression' },
-            () => {
-                beforeEachConfiguration(Roles.GP_CLINICAL);
-                cy.intercept('POST', '/LloydGeorgeStitch*', {
-                    statusCode: 504,
-                });
                 cy.get('#verify-submit').click();
 
-                //Assert
-                assertTimeoutLloydGeorgeError(false);
+                cy.wait('@searchDocumentReferences');
+                cy.wait('@documentReview');
+
+                // Assert
+                assertPatientInfo();
+                cy.get('#no-files-message').should('be.visible');
             },
         );
     });
@@ -264,30 +176,18 @@ describe('GP Workflow: View Lloyd George record', () => {
             () => {
                 beforeEachConfiguration(Roles.GP_ADMIN);
 
-                setUpStitchJobIntercepts();
-
-                cy.intercept('GET', '/SearchDocumentReferences*', {
-                    statusCode: 200,
-                    body: [
-                        {
-                            fileName: 'testName',
-                            created: 'testCreated',
-                            virusScannerResult: 'Clean',
-                        },
-                    ],
-                }).as('searchDocs');
+                setupLoadDocumentIntercepts([testFile], 1);
 
                 cy.get('#verify-submit').click();
-                cy.wait('@stitchJobCompleted', { timeout: 20000 });
+
+                viewDocumentAfterVerify();
 
                 cy.getByTestId('delete-files-link').should('exist');
                 cy.getByTestId('delete-files-link').click();
 
-                cy.wait('@searchDocs');
                 // assert delete confirmation page is as expected
-                cy.getByTestId('remove-record-warning-text').should('be.visible');
+                cy.getByTestId('delete-files-warning-message').should('be.visible');
 
-                cy.getByTestId('remove-btn').click();
                 cy.contains('Surname').should('be.visible');
                 cy.contains('GivenName').should('be.visible');
                 cy.contains('900 000 0009').should('be.visible');
@@ -315,16 +215,22 @@ describe('GP Workflow: View Lloyd George record', () => {
                     `NHS number: ${formatNhsNumber(searchPatientPayload.nhsNumber)}`,
                 ).should('be.visible');
 
-                cy.intercept('GET', '/LloydGeorgeStitch*', {
-                    statusCode: 404,
-                }).as('lg-reload');
+                cy.intercept('GET', '/SearchDocumentReferences*', {
+                    statusCode: 200,
+                    body: {
+                        references: [],
+                        nextPageToken: '',
+                    },
+                    delay: 1000,
+                }).as('searchDocumentReferencesAfterDelete');
+
                 cy.getByTestId('lg-return-btn').click();
-                cy.wait('@lg-reload');
+
+                cy.wait('@searchDocumentReferencesAfterDelete');
 
                 // Assert
-                cy.getByTestId('pdf-card').should('include.text', 'Lloyd George record');
-                cy.getByTestId('no-records-title').should('be.visible');
-                cy.getByTestId('upload-patient-record-button').should('be.visible');
+                assertPatientInfo();
+                cy.get('#no-files-message').should('be.visible');
             },
         );
 
@@ -334,54 +240,36 @@ describe('GP Workflow: View Lloyd George record', () => {
             () => {
                 beforeEachConfiguration(Roles.GP_ADMIN);
 
-                setUpStitchJobIntercepts();
-
-                cy.intercept('GET', '/SearchDocumentReferences*', {
-                    statusCode: 200,
-                    body: [
-                        {
-                            fileName: 'testName',
-                            created: 'testCreated',
-                            virusScannerResult: 'Clean',
-                        },
-                    ],
-                }).as('searchDocs');
+                setupLoadDocumentIntercepts();
 
                 cy.get('#verify-submit').click();
-                cy.wait('@stitchJobCompleted', { timeout: 20000 });
+
+                viewDocumentAfterVerify();
 
                 cy.getByTestId('delete-files-link').should('exist');
                 cy.getByTestId('delete-files-link').click();
 
+                cy.url().should('contain', baseUrl + routes.patientDocumentsDelete);
+
                 // cancel delete
-                cy.wait('@searchDocs');
                 cy.contains('Go back').click();
 
-                // assert user is returned to view Lloyd George page
-                cy.contains('Lloyd George record').should('be.visible');
-                cy.getByTestId('pdf-card').should('be.visible');
-                cy.getByTestId('pdf-viewer').should('be.visible');
+                // assert user is returned to view patient documents page
+                cy.url().should('contain', baseUrl + routes.patientDocuments);
+                cy.title().should(
+                    'eq',
+                    'Lloyd George records - Access and store digital patient documents',
+                );
             },
         );
 
         it(
-            'It displays an error when the delete Lloyd George document API call fails as A GP ADMIN',
+            'It displays an error when the delete document API call fails as A GP ADMIN',
             { tags: 'regression' },
             () => {
                 beforeEachConfiguration(Roles.GP_ADMIN);
 
-                setUpStitchJobIntercepts();
-
-                cy.intercept('GET', '/SearchDocumentReferences*', {
-                    statusCode: 200,
-                    body: [
-                        {
-                            fileName: 'testName',
-                            created: 'testCreated',
-                            virusScannerResult: 'Clean',
-                        },
-                    ],
-                }).as('searchDocs');
+                setupLoadDocumentIntercepts();
 
                 cy.intercept(
                     'DELETE',
@@ -393,14 +281,12 @@ describe('GP Workflow: View Lloyd George record', () => {
                 ).as('documentDelete');
 
                 cy.get('#verify-submit').click();
-                cy.wait('@stitchJobCompleted', { timeout: 20000 });
+
+                viewDocumentAfterVerify();
 
                 cy.getByTestId('delete-files-link').should('exist');
                 cy.getByTestId('delete-files-link').click();
 
-                cy.wait('@searchDocs');
-
-                cy.getByTestId('remove-btn').click();
                 cy.get('#delete-docs').should('be.visible');
                 cy.get('#yes-radio-button').click();
                 cy.getByTestId('delete-submit-btn').click();
@@ -412,33 +298,17 @@ describe('GP Workflow: View Lloyd George record', () => {
         );
 
         it(
-            'No download option or menu exists when no Lloyd George record exists for the patient for a GP CLINICAL user',
+            'No delete option exists when viewing a document as a GP CLINICAL user',
             { tags: 'regression' },
             () => {
                 beforeEachConfiguration(Roles.GP_CLINICAL);
-
-                cy.intercept('POST', '/LloydGeorgeStitch*', {
-                    statusCode: 404,
-                }).as('lloydGeorgeStitch');
+                setupLoadDocumentIntercepts();
 
                 cy.get('#verify-submit').click();
-                cy.wait('@lloydGeorgeStitch', { timeout: 20000 });
 
-                cy.getByTestId('download-files-link').should('not.exist');
-            },
-        );
+                viewDocumentAfterVerify();
 
-        it(
-            'No download option exists when a Lloyd George record exists for a GP CLINICAL user',
-            { tags: 'regression' },
-            () => {
-                beforeEachConfiguration(Roles.GP_CLINICAL);
-                setUpStitchJobIntercepts();
-
-                cy.get('#verify-submit').click();
-                cy.wait('@stitchJobCompleted', { timeout: 20000 });
-
-                cy.getByTestId('download-files-link').should('not.exist');
+                cy.getByTestId('delete-files-link').should('not.exist');
             },
         );
     });
@@ -446,24 +316,8 @@ describe('GP Workflow: View Lloyd George record', () => {
     context('Delete Lloyd George document', () => {
         it('displays an error when the document manifest backend API call fails as a PCSE user', () => {
             beforeEachConfiguration(Roles.PCSE);
-            cy.intercept('GET', '/SearchDocumentReferences*', {
-                statusCode: 200,
-                body: {
-                    references: [
-                        {
-                            fileName: 'document_1.pdf',
-                            created: '2023-01-01T12:00:00Z',
-                            virusScannerResult: 'CLEAN',
-                            author: 'Y12345',
-                            id: 'mock-document-id-1',
-                            fileSize: 1024,
-                            version: '1.0',
-                            documentSnomedCodeType: DOCUMENT_TYPE.LLOYD_GEORGE,
-                            contentType: 'application/pdf',
-                        },
-                    ],
-                },
-            }).as('searchDocs');
+
+            setupLoadDocumentIntercepts();
 
             cy.intercept('POST', '/DocumentManifest**', {
                 statusCode: 500,
@@ -471,7 +325,9 @@ describe('GP Workflow: View Lloyd George record', () => {
 
             cy.get('#verify-submit').click();
 
-            cy.wait('@searchDocs');
+            cy.wait('@searchDocumentReferences');
+            cy.wait('@documentReview');
+
             cy.get('#download-documents').click();
             cy.wait('@DocManifest');
 

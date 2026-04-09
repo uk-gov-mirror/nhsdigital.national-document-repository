@@ -145,7 +145,7 @@ describe('DeceasedPatientAccessAudit', () => {
             });
         });
 
-        it('should navigate to Lloyd George when a reason is selected for active patient', async () => {
+        it('should navigate to patient documents when a reason is selected for active patient', async () => {
             const mockPatientDetails = buildPatientDetails();
             mockedUsePatient.mockReturnValue(mockPatientDetails);
             mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
@@ -158,11 +158,11 @@ describe('DeceasedPatientAccessAudit', () => {
             await userEvent.click(screen.getByTestId('form-submit-button'));
 
             await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.LLOYD_GEORGE);
+                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.PATIENT_DOCUMENTS);
             });
         });
 
-        it('should navigate to Lloyd George when another reason is selected for active patient', async () => {
+        it('should navigate to patient documents when another reason is selected for active patient', async () => {
             const mockPatientDetails = buildPatientDetails();
             mockedUsePatient.mockReturnValue(mockPatientDetails);
             mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
@@ -176,7 +176,7 @@ describe('DeceasedPatientAccessAudit', () => {
             await userEvent.click(screen.getByTestId('form-submit-button'));
 
             await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.LLOYD_GEORGE);
+                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.PATIENT_DOCUMENTS);
             });
         });
 

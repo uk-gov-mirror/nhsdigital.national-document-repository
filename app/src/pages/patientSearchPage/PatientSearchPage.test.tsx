@@ -23,10 +23,8 @@ vi.mock('react-router-dom', () => ({
     useLocation: (): Mock => vi.fn(),
 }));
 vi.mock('../../helpers/hooks/useConfig', () => ({
-    default: (): { featureFlags: { uploadArfWorkflowEnabled: boolean } } => ({
-        featureFlags: {
-            uploadArfWorkflowEnabled: false,
-        },
+    default: (): { featureFlags: {} } => ({
+        featureFlags: {},
     }),
 }));
 

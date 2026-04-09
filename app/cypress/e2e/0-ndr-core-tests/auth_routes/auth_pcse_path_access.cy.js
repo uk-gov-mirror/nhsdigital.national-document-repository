@@ -1,6 +1,5 @@
 import { Roles } from '../../../support/roles';
 import { routes } from '../../../support/routes';
-import { DOCUMENT_TYPE } from '../../../../src/helpers/utils/documentType';
 
 const testPatient = '9000000009';
 const patient = {
@@ -13,13 +12,13 @@ const patient = {
     restricted: false,
     active: false,
     deceased: false,
+    canManageRecord: false,
 };
 
 const baseUrl = Cypress.config('baseUrl');
-const lloydGeorgeViewUrl = '/patient/lloyd-george-record';
 const documentsUrl = '/patient/documents';
 
-const forbiddenRoutes = [lloydGeorgeViewUrl];
+const forbiddenRoutes = [routes.documentUpload];
 
 describe('PCSE user role has access to the expected GP_ADMIN workflow paths', () => {
     context('PCSE role has access to expected routes', () => {

@@ -5,13 +5,9 @@ import useUserPatientRestrictionsPage, {
     UserPatientRestrictionsJourneyState,
 } from './useUserPatientRestrictionsPageHook';
 import { UserPatientRestrictionsSubRoute } from '../../types/generic/userPatientRestriction';
-import useConfig from '../../helpers/hooks/useConfig';
 import { buildUserRestrictions } from '../../helpers/test/testBuilders';
 
-vi.mock('../../helpers/hooks/useConfig');
-
 const mockNavigate = vi.fn();
-const mockUseConfig = useConfig as Mock;
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -22,14 +18,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('useUserPatientRestrictionsPage', () => {
-    beforeEach(() => {
-        mockUseConfig.mockReturnValue({
-            featureFlags: {
-                userRestrictionEnabled: true,
-            },
-        });
-    });
-
     afterEach(() => {
         vi.clearAllMocks();
     });
@@ -43,25 +31,6 @@ describe('useUserPatientRestrictionsPage', () => {
             expect(result.current.existingRestrictions).toEqual([]);
             expect(result.current.userInformation).toBeNull();
             expect(result.current.journeyState).toBe(UserPatientRestrictionsJourneyState.INITIAL);
-        });
-    });
-
-    describe('feature flag', () => {
-        it('sets isEnabled to false when feature flag is disabled', () => {
-            mockUseConfig.mockReturnValueOnce({
-                featureFlags: {
-                    userRestrictionEnabled: false,
-                },
-            });
-            const { result } = renderHook(() => useUserPatientRestrictionsPage());
-
-            expect(result.current.isEnabled).toBe(false);
-        });
-
-        it('sets isEnabled to true when feature flag is enabled', () => {
-            const { result } = renderHook(() => useUserPatientRestrictionsPage());
-
-            expect(result.current.isEnabled).toBe(true);
         });
     });
 

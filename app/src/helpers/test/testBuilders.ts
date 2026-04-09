@@ -156,9 +156,6 @@ const buildConfig = (
             ...localFlagsOverride,
         },
         featureFlags: {
-            uploadLloydGeorgeWorkflowEnabled: false,
-            uploadLambdaEnabled: false,
-            uploadArfWorkflowEnabled: false,
             ...featureFlagsOverride,
         },
     };

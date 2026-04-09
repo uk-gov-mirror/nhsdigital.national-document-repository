@@ -15,7 +15,7 @@ describe('useConfig', () => {
 
     it('returns true when feature flag in context', () => {
         const config: GlobalConfig = {
-            featureFlags: { ...defaultFeatureFlags, uploadLloydGeorgeWorkflowEnabled: true },
+            featureFlags: { ...defaultFeatureFlags, testFlag: true },
             mockLocal: {},
         };
         renderHook(config);
@@ -24,7 +24,7 @@ describe('useConfig', () => {
 
     it('returns false when there is no feature flag in context', () => {
         const config: GlobalConfig = {
-            featureFlags: { ...defaultFeatureFlags, uploadLloydGeorgeWorkflowEnabled: false },
+            featureFlags: { ...defaultFeatureFlags, testFlag: false },
             mockLocal: {},
         };
         renderHook(config);
@@ -34,7 +34,7 @@ describe('useConfig', () => {
 
 const TestApp = (): React.JSX.Element => {
     const config = useConfig();
-    return <div>{`FLAG: ${config.featureFlags.uploadLloydGeorgeWorkflowEnabled}`.normalize()}</div>;
+    return <div>{`FLAG: ${(config.featureFlags as any).testFlag}`.normalize()}</div>;
 };
 
 const renderHook = (config?: GlobalConfig): RenderResult => {

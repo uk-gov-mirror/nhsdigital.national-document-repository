@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Route, Routes, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Route, Routes } from 'react-router-dom';
 import DocumentVersionRestoreHistoryStage from '../../components/blocks/_documentVersion/documentVersionRestoreHistoryStage/DocumentVersionRestoreHistoryStage';
 import DocumentVersionRestoreUploadingStage from '../../components/blocks/_documentVersion/documentVersionRestoreUploadingStage/DocumentVersionRestoreUploadingStage';
 import DocumentVersionRestoreCompleteStage from '../../components/blocks/_documentVersion/documentVersionRestoreCompleteStage/DocumentVersionRestoreCompleteStage';
@@ -7,9 +7,8 @@ import DocumentVersionRestoreConfirmStage from '../../components/blocks/_documen
 import DocumentView, {
     DOCUMENT_VIEW_STATE,
 } from '../../components/blocks/_patientDocuments/documentView/DocumentView';
-import useConfig from '../../helpers/hooks/useConfig';
 import { getLastURLPath } from '../../helpers/utils/urlManipulations';
-import { routeChildren, routes } from '../../types/generic/routes';
+import { routeChildren } from '../../types/generic/routes';
 import { DocumentReference } from '../../types/pages/documentSearchResultsPage/types';
 import { UploadDocument } from '../../types/pages/UploadDocumentsPage/types';
 
@@ -19,23 +18,11 @@ const DocumentVersionRestorePage = (): React.JSX.Element => {
     const [documentReference, setDocumentReference] = useState<DocumentReference | null>(null);
     const [documents, setDocuments] = useState<UploadDocument[]>([]);
     const [latestVersion, setLatestVersion] = useState<string>('');
-    const config = useConfig();
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        if (!config.featureFlags?.versionHistoryEnabled) {
-            navigate(routes.HOME);
-        }
-    }, [config.featureFlags, navigate]);
 
     const resetState = (): void => {
         setDocumentReferenceToRestore(null);
         setDocuments([]);
     };
-
-    if (!config.featureFlags?.versionHistoryEnabled) {
-        return <></>;
-    }
 
     return (
         <Routes>

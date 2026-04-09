@@ -4,18 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import useBaseAPIHeaders from '../../../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../../../helpers/hooks/useBaseAPIUrl';
 import useConfig from '../../../../helpers/hooks/useConfig';
-import useRole from '../../../../helpers/hooks/useRole';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { getFormattedDateTimeFromString } from '../../../../helpers/utils/formatDate';
-import { setFullScreen } from '../../../../helpers/utils/fullscreen';
 import { usePatientDetailsContext } from '../../../../providers/patientProvider/PatientProvider';
 import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
-import {
-    getRecordActionLinksAllowedForRole,
-    getUserRecordActionLinks,
-    LGRecordActionLink,
-} from '../../../../types/blocks/lloydGeorgeActions';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import { ReviewDetails } from '../../../../types/generic/reviews';
 import { navigateUrlParam, routeChildren, routes } from '../../../../types/generic/routes';
@@ -76,7 +69,6 @@ const ReviewsDetailsStage = ({
     const baseHeaders = useBaseAPIHeaders();
     const config = useConfig();
     const navigate = useNavigate();
-    const role = useRole();
 
     useEffect(() => {
         if (!reviewData) {
@@ -185,26 +177,8 @@ const ReviewsDetailsStage = ({
 
     const reviewConfig = getConfigForDocType(reviewData.snomedCode);
 
-    const hasRecordInStorage = downloadStage === DOWNLOAD_STAGE.SUCCEEDED;
     const helpandGuidanceLink =
         'https://digital.nhs.uk/services/access-and-store-digital-patient-documents/help-and-guidance';
-
-    let actionLinks: LGRecordActionLink[] =
-        reviewConfig.canBeUpdated && reviewConfig.canBeDiscarded
-            ? getUserRecordActionLinks({ role, hasRecordInStorage })
-            : [];
-
-    const recordLinksToShow = getRecordActionLinksAllowedForRole({
-        role,
-        hasRecordInStorage,
-        inputLinks: actionLinks,
-    }).map((link) => {
-        link.onClick = (): void => {
-            setFullScreen();
-        };
-
-        return link;
-    });
 
     const downloadAction = (e: React.MouseEvent<HTMLElement>): void => {
         e.preventDefault();
@@ -349,7 +323,6 @@ const ReviewsDetailsStage = ({
                         fullScreenHandler={null}
                         detailsElement={<RecordLoader {...recordDetailsProps} />}
                         isFullScreen={session.isFullscreen || false}
-                        recordLinks={recordLinksToShow}
                         setStage={(): void => {}}
                         showMenu={false}
                     >

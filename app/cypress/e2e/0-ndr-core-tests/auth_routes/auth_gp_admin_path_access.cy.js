@@ -12,19 +12,23 @@ const patient = {
     restricted: false,
     active: true,
     deceased: false,
+    canManageRecord: true,
 };
 
 const baseUrl = Cypress.config('baseUrl');
 const patientVerifyUrl = '/patient/verify';
-const lloydGeorgeViewUrl = '/patient/lloyd-george-record';
 
 describe('GP Admin user role has access to the expected GP_ADMIN workflow paths', () => {
     context('GP Admin role has access to expected routes', () => {
-        it('GP Admin role has access to Lloyd George View', { tags: 'regression' }, () => {
+        it('GP Admin role has access to patient documents', { tags: 'regression' }, () => {
             cy.intercept('GET', '/SearchPatient*', {
                 statusCode: 200,
                 body: patient,
             }).as('search');
+            cy.intercept('GET', '/SearchDocumentReferences*', {
+                statusCode: 200,
+                body: { references: [] },
+            }).as('searchDocumentReferences');
 
             cy.login(Roles.GP_ADMIN);
 
@@ -44,8 +48,7 @@ describe('GP Admin user role has access to the expected GP_ADMIN workflow paths'
 
             cy.get('#verify-submit').click();
 
-            cy.url().should('include', 'lloyd-george-record');
-            cy.url().should('contain', baseUrl + lloydGeorgeViewUrl);
+            cy.url().should('contain', baseUrl + routes.patientDocuments);
         });
     });
 });

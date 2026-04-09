@@ -1,9 +1,7 @@
-import { render, RenderResult, screen, waitFor } from '@testing-library/react';
+import { render, RenderResult, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { Mock } from 'vitest';
-import useConfig from '../../helpers/hooks/useConfig';
 import { buildSearchResult } from '../../helpers/test/testBuilders';
-import { routes } from '../../types/generic/routes';
 import { DocumentReference } from '../../types/pages/documentSearchResultsPage/types';
 import DocumentVersionRestorePage from './DocumentVersionRestorePage';
 
@@ -130,68 +128,13 @@ vi.mock(
     }),
 );
 
-vi.mock('../../helpers/hooks/useConfig');
-
-const mockedUseConfig = useConfig as Mock;
-
 describe('DocumentVersionRestorePage', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
-        mockedUseConfig.mockReturnValue({
-            featureFlags: {
-                versionHistoryEnabled: true,
-            },
-        });
     });
 
     afterEach(() => {
         vi.clearAllMocks();
-    });
-
-    describe('Feature flag guard', () => {
-        it('navigates to home when versionHistoryEnabled is false', async () => {
-            mockedUseConfig.mockReturnValue({
-                featureFlags: {
-                    versionHistoryEnabled: false,
-                },
-            });
-
-            renderPage();
-
-            await waitFor(() => {
-                expect(mockNavigate).toHaveBeenCalledWith(routes.HOME);
-            });
-        });
-
-        it('renders empty fragment when versionHistoryEnabled is false', () => {
-            mockedUseConfig.mockReturnValue({
-                featureFlags: {
-                    versionHistoryEnabled: false,
-                },
-            });
-
-            const { container } = renderPage();
-
-            expect(container.innerHTML).toBe('');
-        });
-
-        it('does not navigate to home when versionHistoryEnabled is true', () => {
-            renderPage();
-
-            expect(mockNavigate).not.toHaveBeenCalledWith(routes.HOME);
-        });
-
-        it('navigates to home when featureFlags is undefined', async () => {
-            mockedUseConfig.mockReturnValue({
-                featureFlags: undefined,
-            });
-
-            renderPage();
-
-            await waitFor(() => {
-                expect(mockNavigate).toHaveBeenCalledWith(routes.HOME);
-            });
-        });
     });
 
     describe('Rendering', () => {

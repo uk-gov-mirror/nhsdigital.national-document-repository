@@ -13,7 +13,7 @@ describe('SessionProvider', () => {
     });
 
     it('is able to set and retrieve auth data when user has logged in', async () => {
-        renderFeatureFlagsProvider();
+        renderFeatureFlagsProvider(false);
         expect(screen.getByText('testFeature - false')).toBeInTheDocument();
         await userEvent.click(screen.getByText('Flag On'));
 
@@ -21,7 +21,7 @@ describe('SessionProvider', () => {
     });
 
     it('is able to delete auth data when user has logged out', async () => {
-        renderFeatureFlagsProvider();
+        renderFeatureFlagsProvider(true);
         expect(screen.getByText('testFeature - true')).toBeInTheDocument();
         await userEvent.click(screen.getByText('Flag Off'));
 
@@ -35,14 +35,14 @@ const TestApp = (): React.JSX.Element => {
         ...config,
         featureFlags: {
             ...defaultFeatureFlags,
-            uploadLloydGeorgeWorkflowEnabled: true,
+            testFlag: true,
         },
     };
     const flagOff: GlobalConfig = {
         ...config,
         featureFlags: {
             ...defaultFeatureFlags,
-            uploadLloydGeorgeWorkflowEnabled: false,
+            testFlag: false,
         },
     };
     return (
@@ -54,17 +54,15 @@ const TestApp = (): React.JSX.Element => {
             </div>
             <div>
                 <h1>Flags</h1>
-                <span>
-                    testFeature - {`${config.featureFlags.uploadLloydGeorgeWorkflowEnabled}`}
-                </span>
+                <span>testFeature - {`${(config.featureFlags as any).testFlag}`}</span>
             </div>
         </>
     );
 };
 
-const renderFeatureFlagsProvider = (): void => {
+const renderFeatureFlagsProvider = (initialFlagState: boolean): void => {
     render(
-        <ConfigProvider>
+        <ConfigProvider configOverride={{ featureFlags: { testFlag: initialFlagState } }}>
             <TestApp />
         </ConfigProvider>,
     );

@@ -10,13 +10,11 @@ import usePatient from '../../../../helpers/hooks/usePatient';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
 import { runAxeTest } from '../../../../helpers/test/axeTestHelper';
 import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
-import useConfig from '../../../../helpers/hooks/useConfig';
 
 const mockNavigate = vi.fn();
 
 vi.mock('../../../../helpers/hooks/useRole');
 vi.mock('../../../../helpers/hooks/usePatient');
-vi.mock('../../../../helpers/hooks/useConfig');
 vi.mock('react-router-dom', () => ({
     Link: (props: LinkProps): React.JSX.Element => <a {...props} role="link" />,
     useNavigate: (): Mock => mockNavigate,
@@ -24,7 +22,6 @@ vi.mock('react-router-dom', () => ({
 
 const mockedUseRole = useRole as Mock;
 const mockedUsePatient = usePatient as Mock;
-const mockedUseConfig = useConfig as Mock;
 
 const mockPatientDetails = buildPatientDetails();
 const mockSetDownloadStage = vi.fn();
@@ -33,11 +30,6 @@ describe('DeleteResultStage', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockedUsePatient.mockReturnValue(mockPatientDetails);
-        mockedUseConfig.mockReturnValue({
-            featureFlags: {
-                uploadDocumentIteration3Enabled: true,
-            },
-        });
     });
     afterEach(() => {
         vi.clearAllMocks();

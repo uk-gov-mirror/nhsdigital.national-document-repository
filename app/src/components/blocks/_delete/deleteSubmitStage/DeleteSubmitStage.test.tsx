@@ -15,7 +15,6 @@ import waitForSeconds from '../../../../helpers/utils/waitForSeconds';
 import { afterEach, beforeEach, describe, expect, it, vi, Mock, Mocked } from 'vitest';
 import { formatNhsNumber } from '../../../../helpers/utils/formatNhsNumber';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
-import useConfig from '../../../../helpers/hooks/useConfig';
 
 vi.mock('../../../../helpers/hooks/useConfig');
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders');
@@ -44,7 +43,6 @@ const mockedAxios = axios as Mocked<typeof axios>;
 const mockedUsePatient = usePatient as Mock;
 const mockResetDocState = vi.fn();
 const mockPatientDetails = buildPatientDetails();
-const mockuseConfig = useConfig as Mock;
 
 const mockSetStage = vi.fn();
 
@@ -56,11 +54,6 @@ describe('DeleteSubmitStage', () => {
         });
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockedUsePatient.mockReturnValue(mockPatientDetails);
-        mockuseConfig.mockReturnValue({
-            featureFlags: {
-                uploadDocumentIteration3Enabled: false,
-            },
-        });
     });
 
     afterEach(() => {
@@ -117,7 +110,7 @@ describe('DeleteSubmitStage', () => {
             expect(screen.queryByTestId('delete-error-box')).not.toBeInTheDocument();
 
             await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.LLOYD_GEORGE);
+                expect(mockedUseNavigate).toHaveBeenCalledWith(routes.PATIENT_DOCUMENTS);
             });
         });
 
@@ -147,53 +140,8 @@ describe('DeleteSubmitStage', () => {
             });
         });
 
-        it('renders lloyd george DeletionCompleteStage when the Yes is selected and Continue clicked, when user role is GP_ADMIN and feature flag is disabled', async () => {
+        it('renders DeletionCompleteStage when the Yes is selected and Continue clicked, when user role is GP_ADMIN', async () => {
             mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
-
-            mockedAxios.delete.mockReturnValue(Promise.resolve({ status: 200, data: 'Success' }));
-
-            renderComponent(DOCUMENT_TYPE.LLOYD_GEORGE, history);
-
-            expect(screen.getByRole('radio', { name: 'Yes' })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
-
-            await userEvent.click(screen.getByRole('radio', { name: 'Yes' }));
-            await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-            await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(
-                    routeChildren.LLOYD_GEORGE_DELETE_COMPLETE,
-                );
-            });
-        });
-
-        it('renders DeletionCompleteStage when the Yes is selected and Continue clicked, when user role is PCSE and feature flag is disabled', async () => {
-            mockedUseRole.mockReturnValue(REPOSITORY_ROLE.PCSE);
-
-            mockedAxios.delete.mockReturnValue(Promise.resolve({ status: 200, data: 'Success' }));
-
-            renderComponent(DOCUMENT_TYPE.LLOYD_GEORGE, history);
-
-            expect(screen.getByRole('radio', { name: 'Yes' })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
-
-            await userEvent.click(screen.getByRole('radio', { name: 'Yes' }));
-            await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-            await waitFor(() => {
-                expect(mockedUseNavigate).toHaveBeenCalledWith(
-                    routeChildren.DOCUMENT_DELETE_COMPLETE,
-                );
-            });
-        });
-
-        it('renders DeletionCompleteStage when the Yes is selected and Continue clicked, when user role is GP_ADMIN and feature flag is enabled', async () => {
-            mockedUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
-            mockuseConfig.mockReturnValue({
-                featureFlags: {
-                    uploadDocumentIteration3Enabled: true,
-                },
-            });
 
             mockedAxios.delete.mockReturnValue(Promise.resolve({ status: 200, data: 'Success' }));
 

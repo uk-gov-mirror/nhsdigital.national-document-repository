@@ -132,7 +132,7 @@ describe('AuthCallbackPage', () => {
                     return Promise.resolve({ data: buildUserAuth() });
                 } else {
                     return Promise.resolve({
-                        data: { ...defaultFeatureFlags, uploadLloydGeorgeWorkflowEnabled: true },
+                        data: { ...defaultFeatureFlags, testFlag: true },
                     });
                 }
             });
@@ -152,9 +152,7 @@ const TestApp = (): React.JSX.Element => {
         <div>
             <AuthCallbackPage />
             <div>
-                {`FLAG: ${JSON.stringify(
-                    config.featureFlags.uploadLloydGeorgeWorkflowEnabled,
-                )}`.normalize()}
+                {`FLAG: ${JSON.stringify((config.featureFlags as any).testFlag)}`.normalize()}
             </div>
             ;<div>{`LOGGEDIN: ${!!session.auth?.role}`.normalize()}</div>;
         </div>

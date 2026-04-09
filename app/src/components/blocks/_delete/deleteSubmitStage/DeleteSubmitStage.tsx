@@ -83,12 +83,9 @@ export const DeleteSubmitStageIndexView = ({
         const onSuccess = (): void => {
             resetDocState();
             setDeletionStage(SUBMISSION_STATE.SUCCEEDED);
-            navigate(
-                config.featureFlags.uploadDocumentIteration3Enabled || role === REPOSITORY_ROLE.PCSE
-                    ? routeChildren.DOCUMENT_DELETE_COMPLETE
-                    : routeChildren.LLOYD_GEORGE_DELETE_COMPLETE,
-            );
+            navigate(routeChildren.DOCUMENT_DELETE_COMPLETE);
         };
+
         try {
             setDeletionStage(SUBMISSION_STATE.PENDING);
             const docId = documentConfig?.singleDocumentOnly ? undefined : document?.id;
@@ -118,21 +115,13 @@ export const DeleteSubmitStageIndexView = ({
         }
     };
 
-    const handleNoOption = (): void => {
-        if (role === REPOSITORY_ROLE.GP_ADMIN) {
-            navigate(routes.LLOYD_GEORGE);
-        } else if (role === REPOSITORY_ROLE.PCSE) {
-            navigate(routes.PATIENT_DOCUMENTS);
-        }
-    };
-
     const submit = async (fieldValues: FieldValues): Promise<void> => {
         const allowedRoles = [REPOSITORY_ROLE.GP_ADMIN, REPOSITORY_ROLE.PCSE];
         if (role && allowedRoles.includes(role)) {
             if (fieldValues.deleteDocs === DELETE_DOCUMENTS_OPTION.YES) {
                 await handleYesOption();
             } else if (fieldValues.deleteDocs === DELETE_DOCUMENTS_OPTION.NO) {
-                handleNoOption();
+                navigate(routes.PATIENT_DOCUMENTS);
             } else {
                 setShowNoOptionSelectedMessage(true);
             }

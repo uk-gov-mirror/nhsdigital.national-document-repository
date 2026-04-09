@@ -64,10 +64,8 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                     baseHeaders,
                 });
 
-                if (config.featureFlags.uploadDocumentIteration3Enabled) {
-                    const { count } = await getReviews(baseUrl, baseHeaders, nhsNumber, '', 1);
-                    hasReviews.current = count > 0;
-                }
+                const { count } = await getReviews(baseUrl, baseHeaders, nhsNumber, '', 1);
+                hasReviews.current = count > 0;
 
                 setSearchResults(results ?? []);
                 setSubmissionState(SUBMISSION_STATE.SUCCEEDED);
@@ -305,7 +303,6 @@ const DocumentSearchResultsPageIndex = ({
     const [session] = useSessionContext();
     const patientDetails = usePatient();
     const navigate = useEnhancedNavigate();
-    const config = useConfig();
 
     const role = session.auth?.role;
 
@@ -326,7 +323,6 @@ const DocumentSearchResultsPageIndex = ({
     };
 
     const canUpload =
-        config.featureFlags.uploadDocumentIteration3Enabled &&
         !patientDetails?.deceased &&
         (role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL) &&
         submissionState !== SUBMISSION_STATE.INITIAL &&
@@ -357,7 +353,7 @@ const DocumentSearchResultsPageIndex = ({
                 <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
             </PatientSummary>
 
-            {hasReviews && config.featureFlags.uploadDocumentIteration3Enabled && (
+            {hasReviews && (
                 <WarningCallout data-testid="review-notification">
                     <WarningCallout.Label>Important</WarningCallout.Label>
                     <p>

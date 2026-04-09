@@ -134,6 +134,8 @@ Cypress.Commands.add('navigateToDownloadReportPage', () => {
     const baseUrl = Cypress.config('baseUrl');
 
     cy.navigateToHomePage();
+    cy.getByTestId('admin-hub-btn').should('exist');
+    cy.getByTestId('admin-hub-btn').click();
     cy.getByTestId('download-report-btn').should('exist');
     cy.getByTestId('download-report-btn').click();
 

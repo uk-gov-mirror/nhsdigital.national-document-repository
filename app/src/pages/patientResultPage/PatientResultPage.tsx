@@ -7,7 +7,6 @@ import { REPOSITORY_ROLE } from '../../types/generic/authRole';
 import useRole from '../../helpers/hooks/useRole';
 import usePatient from '../../helpers/hooks/usePatient';
 import useTitle from '../../helpers/hooks/useTitle';
-import useConfig from '../../helpers/hooks/useConfig';
 import PatientVerifyForm from '../../components/generic/patientVerifyForm/PatientVerifyForm';
 
 const PatientResultPage = (): React.JSX.Element => {
@@ -16,7 +15,6 @@ const PatientResultPage = (): React.JSX.Element => {
     const userIsPCSE = role === REPOSITORY_ROLE.PCSE;
     const navigate = useNavigate();
     const [inputError, setInputError] = useState('');
-    const { featureFlags } = useConfig();
 
     const submit = (): void => {
         if (userIsPCSE) {
@@ -34,17 +32,13 @@ const PatientResultPage = (): React.JSX.Element => {
                 return;
             }
 
-            if (!patientDetails.canManageRecord && featureFlags.uploadDocumentIteration3Enabled) {
+            if (!patientDetails.canManageRecord) {
                 navigate(routes.DOCUMENT_UPLOAD);
                 return;
             }
 
             if (patientDetails?.active) {
-                navigate(
-                    featureFlags.uploadDocumentIteration3Enabled
-                        ? routes.PATIENT_DOCUMENTS
-                        : routes.LLOYD_GEORGE,
-                );
+                navigate(routes.PATIENT_DOCUMENTS);
                 return;
             }
 

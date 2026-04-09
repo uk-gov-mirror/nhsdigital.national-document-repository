@@ -19,7 +19,6 @@ import SessionProvider, { Session } from '../../providers/sessionProvider/Sessio
 import { REPOSITORY_ROLE } from '../../types/generic/authRole';
 import getDocumentSearchResults from '../../helpers/requests/getDocumentSearchResults';
 import getDocument from '../../helpers/requests/getDocument';
-import useConfig from '../../helpers/hooks/useConfig';
 import getReviews from '../../helpers/requests/getReviews';
 import { ReviewsResponse } from '../../types/generic/reviews';
 
@@ -44,7 +43,6 @@ const mockedUsePatient = usePatient as Mock;
 const mockedGetSearchResults = getDocumentSearchResults as Mock;
 const mockedGetReviews = getReviews as Mock;
 const mockedGetDocument = getDocument as Mock;
-const mockedUseConfig = useConfig as Mock;
 
 let history = createMemoryHistory({
     initialEntries: ['/patient/documents'],
@@ -60,11 +58,6 @@ describe('<DocumentSearchResultsPage />', () => {
         });
 
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
-        mockedUseConfig.mockReturnValue({
-            featureFlags: {
-                uploadDocumentIteration3Enabled: true,
-            },
-        });
     });
     afterEach(() => {
         vi.clearAllMocks();
@@ -171,31 +164,17 @@ describe('<DocumentSearchResultsPage />', () => {
                 deceased: true,
                 uploadBtnVisible: false,
             },
-            {
-                featureFlagEnabled: false,
-                role: REPOSITORY_ROLE.GP_ADMIN,
-                deceased: false,
-                uploadBtnVisible: false,
-            },
-        ])(
-            'displays upload button when %s',
-            async ({ featureFlagEnabled, role, deceased, uploadBtnVisible }) => {
-                mockedGetSearchResults.mockResolvedValue([buildSearchResult()]);
-                mockedUseConfig.mockReturnValue({
-                    featureFlags: {
-                        uploadDocumentIteration3Enabled: featureFlagEnabled,
-                    },
-                });
+        ])('displays upload button when %s', async ({ role, deceased, uploadBtnVisible }) => {
+            mockedGetSearchResults.mockResolvedValue([buildSearchResult()]);
 
-                renderPage(history, role, deceased);
+            renderPage(history, role, deceased);
 
-                await waitFor(() => {
-                    expect(screen.queryAllByTestId('upload-button')).toHaveLength(
-                        uploadBtnVisible ? 1 : 0,
-                    );
-                });
-            },
-        );
+            await waitFor(() => {
+                expect(screen.queryAllByTestId('upload-button')).toHaveLength(
+                    uploadBtnVisible ? 1 : 0,
+                );
+            });
+        });
 
         it('displays a review notification when reviews needed for patient', async () => {
             mockedGetSearchResults.mockResolvedValue([buildSearchResult()]);
@@ -205,23 +184,6 @@ describe('<DocumentSearchResultsPage />', () => {
 
             await waitFor(() => {
                 expect(screen.getByTestId('review-notification')).toBeInTheDocument();
-            });
-        });
-
-        it('does not display review notification, feature flag upload iteration 3 disabled', async () => {
-            mockedUseConfig.mockReturnValue({
-                featureFlags: {
-                    uploadDocumentIteration3Enabled: false,
-                },
-            });
-
-            mockedGetSearchResults.mockResolvedValue([buildSearchResult()]);
-            mockedGetReviews.mockResolvedValue(buildMockReviewResponse());
-
-            renderPage(history);
-
-            await waitFor(() => {
-                expect(screen.queryByTestId('review-notification')).not.toBeInTheDocument();
             });
         });
 

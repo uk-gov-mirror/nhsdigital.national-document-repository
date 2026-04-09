@@ -19,7 +19,6 @@ import { createMemoryHistory } from 'history';
 import * as ReactRouter from 'react-router-dom';
 import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
 import useRole from '../../../../helpers/hooks/useRole';
-import useConfig from '../../../../helpers/hooks/useConfig';
 
 // Mock dependencies
 vi.mock('../../../../helpers/hooks/usePatient');
@@ -51,7 +50,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 const mockUsePatient = usePatient as Mock;
-const mockUseConfig = useConfig as Mock;
 const mockUseTitle = useTitle as Mock;
 const mockUseRole = useRole as Mock;
 const mockUseNavigate = vi.fn();
@@ -125,12 +123,6 @@ describe('DocumentView', () => {
     beforeEach(() => {
         import.meta.env.VITE_ENVIRONMENT = 'vitest';
         mockUsePatient.mockReturnValue(mockPatientDetails);
-        mockUseConfig.mockReturnValue({
-            featureFlags: {
-                documentCorrectEnabled: false,
-                versionHistoryEnabled: false,
-            },
-        });
         mockUseRole.mockReturnValue(REPOSITORY_ROLE.GP_ADMIN);
 
         vi.mocked(getConfigForDocTypeGeneric).mockImplementation(realGetConfigForDocTypeGeneric);
@@ -416,13 +408,6 @@ describe('DocumentView', () => {
             expect(reassignRecordLink).not.toBeInTheDocument();
         });
 
-        it('does not show reassign button when feature flag is disabled', () => {
-            renderComponent();
-
-            const reassignRecordLink = screen.queryByTestId(ACTION_LINK_KEY.REASSIGN);
-            expect(reassignRecordLink).not.toBeInTheDocument();
-        });
-
         it('does not show reassign button when patient is deceased', () => {
             mockUsePatient.mockReturnValue(buildPatientDetails({ deceased: true }));
 
@@ -433,12 +418,6 @@ describe('DocumentView', () => {
         });
 
         it('navigates to document reassign page when reassign action is triggered', async () => {
-            mockUseConfig.mockReturnValue({
-                featureFlags: {
-                    documentCorrectEnabled: true,
-                },
-            });
-
             renderComponent();
 
             const reassignRecordLink = screen.getByTestId(ACTION_LINK_KEY.REASSIGN);
@@ -457,13 +436,6 @@ describe('DocumentView', () => {
         });
 
         it('navigates to version history page when version history action is triggered', async () => {
-            mockUseConfig.mockReturnValue({
-                featureFlags: {
-                    versionHistoryEnabled: true,
-                    documentCorrectEnabled: true,
-                },
-            });
-
             renderComponent();
 
             const versionHistoryLink = screen.getByTestId(ACTION_LINK_KEY.HISTORY);
@@ -483,13 +455,8 @@ describe('DocumentView', () => {
             });
         });
 
-        it('shows version history action for deceased patients when feature flag is enabled', () => {
+        it('shows version history action for deceased patients', () => {
             mockUsePatient.mockReturnValue(buildPatientDetails({ deceased: true }));
-            mockUseConfig.mockReturnValue({
-                featureFlags: {
-                    versionHistoryEnabled: true,
-                },
-            });
 
             renderComponent();
 

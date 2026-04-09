@@ -12,8 +12,8 @@ import { afterEach, beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 vi.mock('../../../helpers/hooks/useRole');
 const mockedUseRole = useRole as Mock;
 
-const guardPage = routes.LLOYD_GEORGE;
-const childGuardPage = routeChildren.LLOYD_GEORGE_DOWNLOAD;
+const guardPage = routes.DOCUMENT_UPLOAD;
+const childGuardPage = routeChildren.DOCUMENT_UPLOAD_SELECT_FILES;
 
 describe('RoleGuard', () => {
     beforeEach(() => {

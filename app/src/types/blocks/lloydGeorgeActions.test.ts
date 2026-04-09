@@ -1,8 +1,13 @@
 import { REPOSITORY_ROLE } from '../generic/authRole';
-import { getUserRecordActionLinks, LGRecordActionLink, RECORD_ACTION } from './lloydGeorgeActions';
+import {
+    getRecordActionLinksAllowedForRole,
+    LGRecordActionLink,
+    lloydGeorgeRecordLinks,
+    RECORD_ACTION,
+} from './lloydGeorgeActions';
 import { describe, expect, it } from 'vitest';
 
-describe('getUserRecordActionLinks', () => {
+describe('getRecordActionLinksAllowedForRole', () => {
     describe('When role = GP_ADMIN', () => {
         it('returns record links for remove record and download record', () => {
             const role = REPOSITORY_ROLE.GP_ADMIN;
@@ -20,20 +25,23 @@ describe('getUserRecordActionLinks', () => {
                 }),
             ]);
 
-            const actual = getUserRecordActionLinks({
+            const actual = getRecordActionLinksAllowedForRole({
                 role,
                 hasRecordInStorage: hasRecordInRepo,
+                inputLinks: lloydGeorgeRecordLinks,
             });
 
             expect(actual).toEqual(expectedOutput);
         });
+
         it('returns an empty array if no record in repo (aka nothing to download or remove)', () => {
             const role = REPOSITORY_ROLE.GP_ADMIN;
             const hasRecordInRepo = false;
             const expectedOutput: Array<LGRecordActionLink> = [];
-            const actual = getUserRecordActionLinks({
+            const actual = getRecordActionLinksAllowedForRole({
                 role,
                 hasRecordInStorage: hasRecordInRepo,
+                inputLinks: lloydGeorgeRecordLinks,
             });
 
             expect(actual).toEqual(expectedOutput);
@@ -52,7 +60,11 @@ describe('getUserRecordActionLinks', () => {
                 }),
             ]);
 
-            const actual = getUserRecordActionLinks({ role, hasRecordInStorage: true });
+            const actual = getRecordActionLinksAllowedForRole({
+                role,
+                hasRecordInStorage: true,
+                inputLinks: lloydGeorgeRecordLinks,
+            });
 
             expect(actual).toEqual(expected);
         });

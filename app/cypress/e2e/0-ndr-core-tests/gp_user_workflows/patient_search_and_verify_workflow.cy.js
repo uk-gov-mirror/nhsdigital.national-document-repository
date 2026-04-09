@@ -23,6 +23,7 @@ describe('GP Workflow: Patient search and verify', () => {
                 superseded: false,
                 restricted: false,
                 active: false,
+                canManageRecord: true,
             };
         });
 
@@ -54,7 +55,7 @@ describe('GP Workflow: Patient search and verify', () => {
         );
 
         it(
-            `Shows the Lloyd george view page when upload patient is verified and active as a ${roleName(
+            `Shows the patient documents page when upload patient is verified and active as a ${roleName(
                 role,
             )} `,
             { tags: 'regression' },
@@ -74,11 +75,10 @@ describe('GP Workflow: Patient search and verify', () => {
 
                 cy.get('#verify-submit').click();
 
-                cy.url().should('include', 'lloyd-george-record');
-                cy.url().should('contain', baseUrl + routes.lloydGeorgeView);
+                cy.url().should('contain', baseUrl + routes.patientDocuments);
                 cy.title().should(
                     'eq',
-                    'Available records - Access and store digital patient documents',
+                    'Lloyd George records - Access and store digital patient documents',
                 );
             },
         );

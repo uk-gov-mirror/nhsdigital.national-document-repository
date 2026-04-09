@@ -2,7 +2,6 @@ import { BackLink, Button, Card, ChevronLeftIcon } from 'nhsuk-react-components'
 import type { MouseEvent } from 'react';
 import { useEffect } from 'react';
 import { createSearchParams, NavigateOptions, To, useNavigate } from 'react-router-dom';
-import useConfig from '../../../../helpers/hooks/useConfig';
 import usePatient from '../../../../helpers/hooks/usePatient';
 import useRole from '../../../../helpers/hooks/useRole';
 import useTitle from '../../../../helpers/hooks/useTitle';
@@ -53,7 +52,6 @@ const DocumentView = ({
     const navigate = useNavigate();
     const showMenu = role === REPOSITORY_ROLE.GP_ADMIN && !session.isFullscreen;
     const patientDetails = usePatient();
-    const config = useConfig();
     const documentConfig = getConfigForDocTypeGeneric(
         documentReference?.documentSnomedCodeType ?? DOCUMENT_TYPE.LLOYD_GEORGE,
     );
@@ -169,13 +167,11 @@ const DocumentView = ({
                 ),
             );
 
-            if (config.featureFlags.documentCorrectEnabled) {
-                const label = documentConfig.content.getValue<string>('reassignPagesLinkLabel')!;
-                inputLinks.push(ReassignAction(label, handleReassignPagesClick));
-            }
+            const label = documentConfig.content.getValue<string>('reassignPagesLinkLabel')!;
+            inputLinks.push(ReassignAction(label, handleReassignPagesClick));
         }
 
-        if (canAddFiles && config.featureFlags.versionHistoryEnabled) {
+        if (canAddFiles) {
             const versionHistoryLabel = documentConfig.content.getValue<string, LGContentKeys>(
                 'versionHistoryLinkLabel',
             )!;
@@ -316,7 +312,10 @@ const DocumentView = ({
                                     <Card.Link
                                         data-testid={link.key}
                                         href="#"
-                                        onClick={link.onClick}
+                                        onClick={(e): void => {
+                                            e.preventDefault();
+                                            link.onClick?.();
+                                        }}
                                     >
                                         {link.label}
                                     </Card.Link>

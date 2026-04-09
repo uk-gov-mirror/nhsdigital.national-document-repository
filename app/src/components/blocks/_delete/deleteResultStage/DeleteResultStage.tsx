@@ -7,7 +7,6 @@ import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
 import ReducedPatientInfo from '../../../generic/reducedPatientInfo/ReducedPatientInfo';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { DOWNLOAD_STAGE } from '../../../../types/generic/downloadStage';
-import useConfig from '../../../../helpers/hooks/useConfig';
 import { DOCUMENT_TYPE, getDocumentTypeLabel } from '../../../../helpers/utils/documentType';
 
 export type Props = {
@@ -18,18 +17,13 @@ export type Props = {
 const DeleteResultStage = ({ docType, setDownloadStage }: Props): React.JSX.Element => {
     const navigate = useNavigate();
     const role = useRole();
-    const config = useConfig();
 
     const handleClick = (e: MouseEvent<HTMLAnchorElement>): void => {
         e.preventDefault();
         if (setDownloadStage) {
             setDownloadStage(DOWNLOAD_STAGE.REFRESH);
         }
-        navigate(
-            config.featureFlags.uploadDocumentIteration3Enabled
-                ? routes.PATIENT_DOCUMENTS
-                : routes.LLOYD_GEORGE,
-        );
+        navigate(routes.PATIENT_DOCUMENTS);
     };
 
     const recordLabel = docType ? getDocumentTypeLabel(docType) : '';

@@ -44,12 +44,7 @@ vi.mock('../../../../helpers/hooks/useConfig', () => ({
             patientIsActive: true,
             patientIsDeceased: false,
         },
-        featureFlags: {
-            uploadDocumentIteration3Enabled: true,
-            uploadArfWorkflowEnabled: false,
-            uploadLambdaEnabled: true,
-            uploadLloydGeorgeWorkflowEnabled: true,
-        },
+        featureFlags: {},
     }),
 }));
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');

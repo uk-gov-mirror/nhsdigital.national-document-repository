@@ -10,10 +10,8 @@ import LogoutPage from '../pages/logoutPage/LogoutPage';
 import PatientSearchPage from '../pages/patientSearchPage/PatientSearchPage';
 import PatientResultPage from '../pages/patientResultPage/PatientResultPage';
 import PatientDocumentSearchResultsPage from '../pages/documentSearchResultsPage/DocumentSearchResultsPage';
-import LloydGeorgeRecordPage from '../pages/lloydGeorgeRecordPage/LloydGeorgeRecordPage';
 import AuthGuard from './guards/authGuard/AuthGuard';
 import PatientGuard from './guards/patientGuard/PatientGuard';
-import { REPOSITORY_ROLE } from '../types/generic/authRole';
 import RoleGuard from './guards/roleGuard/RoleGuard';
 import HomePage from '../pages/homePage/HomePage';
 import UnauthorisedLoginPage from '../pages/unauthorisedLoginPage/UnauthorisedLoginPage';
@@ -35,6 +33,7 @@ import { AdminPage } from '../pages/adminPage/AdminPage';
 import UserPatientRestrictionsPage from '../pages/userPatientRestrictionsPage/UserPatientRestrictionsPage';
 import DocumentVersionRestorePage from '../pages/documentVersionPage/DocumentVersionRestorePage';
 import GenericErrorPage from '../pages/genericErrorPage/GenericErrorPage';
+import { REPOSITORY_ROLE } from '../types/generic/authRole';
 
 const {
     START,
@@ -53,8 +52,6 @@ const {
     SEARCH_PATIENT,
     VERIFY_PATIENT,
     PRIVACY_POLICY,
-    LLOYD_GEORGE,
-    LLOYD_GEORGE_WILDCARD,
     PATIENT_DOCUMENTS,
     PATIENT_DOCUMENTS_WILDCARD,
     REPORT_DOWNLOAD,
@@ -83,34 +80,6 @@ type Routes = {
 };
 
 export const childRoutes = [
-    {
-        route: routeChildren.LLOYD_GEORGE_DOWNLOAD,
-        parent: LLOYD_GEORGE,
-    },
-    {
-        route: routeChildren.LLOYD_GEORGE_DOWNLOAD_SELECT,
-        parent: LLOYD_GEORGE,
-    },
-    {
-        route: routeChildren.LLOYD_GEORGE_DOWNLOAD_COMPLETE,
-        parent: LLOYD_GEORGE,
-    },
-    {
-        route: routeChildren.LLOYD_GEORGE_DOWNLOAD_IN_PROGRESS,
-        parent: LLOYD_GEORGE,
-    },
-    {
-        route: routeChildren.LLOYD_GEORGE_DELETE,
-        parent: LLOYD_GEORGE,
-    },
-    {
-        route: routeChildren.LLOYD_GEORGE_DELETE_CONFIRMATION,
-        parent: LLOYD_GEORGE,
-    },
-    {
-        route: routeChildren.LLOYD_GEORGE_DELETE_COMPLETE,
-        parent: LLOYD_GEORGE,
-    },
     {
         route: routeChildren.DOCUMENT_VIEW,
         parent: PATIENT_DOCUMENTS,
@@ -430,16 +399,6 @@ export const routeMap: Routes = {
         page: <PatientResultPage />,
         type: ROUTE_TYPE.PATIENT,
     },
-    [LLOYD_GEORGE]: {
-        page: <LloydGeorgeRecordPage />,
-        type: ROUTE_TYPE.PATIENT,
-        unauthorized: [REPOSITORY_ROLE.PCSE],
-    },
-    [LLOYD_GEORGE_WILDCARD]: {
-        page: <LloydGeorgeRecordPage />,
-        type: ROUTE_TYPE.PATIENT,
-        unauthorized: [REPOSITORY_ROLE.PCSE],
-    },
     [PATIENT_DOCUMENTS]: {
         page: <PatientDocumentSearchResultsPage />,
         type: ROUTE_TYPE.PATIENT,
@@ -459,18 +418,22 @@ export const routeMap: Routes = {
     [DOCUMENT_VERSION_HISTORY]: {
         page: <DocumentVersionRestorePage />,
         type: ROUTE_TYPE.PATIENT,
+        unauthorized: [REPOSITORY_ROLE.PCSE],
     },
     [DOCUMENT_VERSION_HISTORY_WILDCARD]: {
         page: <DocumentVersionRestorePage />,
         type: ROUTE_TYPE.PATIENT,
+        unauthorized: [REPOSITORY_ROLE.PCSE],
     },
     [DOCUMENT_UPLOAD]: {
         page: <DocumentUploadPage />,
         type: ROUTE_TYPE.PATIENT,
+        unauthorized: [REPOSITORY_ROLE.PCSE],
     },
     [DOCUMENT_UPLOAD_WILDCARD]: {
         page: <DocumentUploadPage />,
         type: ROUTE_TYPE.PATIENT,
+        unauthorized: [REPOSITORY_ROLE.PCSE],
     },
     [DOWNLOAD_COMPLETE]: {
         page: <DownloadCompletePage />,
@@ -487,10 +450,12 @@ export const routeMap: Routes = {
     [DOCUMENT_REASSIGN_PAGES]: {
         page: <DocumentCorrectPage />,
         type: ROUTE_TYPE.PATIENT,
+        unauthorized: [REPOSITORY_ROLE.PCSE],
     },
     [DOCUMENT_REASSIGN_PAGES_WILDCARD]: {
         page: <DocumentCorrectPage />,
         type: ROUTE_TYPE.PATIENT,
+        unauthorized: [REPOSITORY_ROLE.PCSE],
     },
 };
 

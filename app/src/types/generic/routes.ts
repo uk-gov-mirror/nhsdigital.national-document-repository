@@ -17,8 +17,6 @@ export enum routes {
     FEEDBACK = '/feedback',
     SEARCH_PATIENT = '/patient/search',
     VERIFY_PATIENT = '/patient/verify',
-    LLOYD_GEORGE = '/patient/lloyd-george-record',
-    LLOYD_GEORGE_WILDCARD = '/patient/lloyd-george-record/*',
     PATIENT_DOCUMENTS = '/patient/documents',
     PATIENT_DOCUMENTS_WILDCARD = '/patient/documents/*',
     FEEDBACK_CONFIRMATION = '/feedback/confirmation',
@@ -51,13 +49,6 @@ export enum routes {
 }
 
 export enum routeChildren {
-    LLOYD_GEORGE_DOWNLOAD = '/patient/lloyd-george-record/download',
-    LLOYD_GEORGE_DOWNLOAD_SELECT = '/patient/lloyd-george-record/download/select',
-    LLOYD_GEORGE_DOWNLOAD_IN_PROGRESS = '/patient/lloyd-george-record/download/in-progress',
-    LLOYD_GEORGE_DOWNLOAD_COMPLETE = '/patient/lloyd-george-record/download/complete',
-    LLOYD_GEORGE_DELETE = '/patient/lloyd-george-record/delete',
-    LLOYD_GEORGE_DELETE_CONFIRMATION = '/patient/lloyd-george-record/delete/confirmation',
-    LLOYD_GEORGE_DELETE_COMPLETE = '/patient/lloyd-george-record/delete/complete',
     REPORT_DOWNLOAD_COMPLETE = '/create-report/complete',
     PATIENT_ACCESS_AUDIT_DECEASED = '/patient/access-audit/deceased',
 

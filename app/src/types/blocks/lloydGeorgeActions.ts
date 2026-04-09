@@ -1,5 +1,4 @@
 import { REPOSITORY_ROLE } from '../generic/authRole';
-import { routeChildren, routes } from '../generic/routes';
 import { LG_RECORD_STAGE } from './lloydGeorgeStages';
 
 export enum RECORD_ACTION {
@@ -8,14 +7,12 @@ export enum RECORD_ACTION {
     DELETE = 2,
 }
 
-type ActionRoute = routeChildren | routes;
-
 export type LGRecordActionLink = {
     index: number;
     label: string;
     key: ACTION_LINK_KEY;
     stage?: LG_RECORD_STAGE;
-    href?: ActionRoute;
+    href?: string;
     onClick?: () => void;
     type: RECORD_ACTION;
     unauthorised?: Array<REPOSITORY_ROLE>;
@@ -36,7 +33,6 @@ const RemoveAction: LGRecordActionLink = {
     key: ACTION_LINK_KEY.DELETE,
     type: RECORD_ACTION.UPDATE,
     unauthorised: [REPOSITORY_ROLE.GP_CLINICAL],
-    href: routeChildren.LLOYD_GEORGE_DELETE,
     showIfRecordInStorage: true,
     description: 'This action will remove all pages of this document from storage in this service.',
 };
@@ -47,7 +43,6 @@ const DownloadAction: LGRecordActionLink = {
     key: ACTION_LINK_KEY.DOWNLOAD,
     type: RECORD_ACTION.DOWNLOAD,
     unauthorised: [],
-    href: routeChildren.LLOYD_GEORGE_DOWNLOAD,
     showIfRecordInStorage: true,
 };
 
@@ -129,20 +124,5 @@ export const getRecordActionLinksAllowedForRole = ({
         }
         return hasRecordInStorage === link.showIfRecordInStorage;
     });
-    return allowedLinks;
-};
-
-type ArgsLink = Omit<Args, 'inputLinks'>;
-
-export const getUserRecordActionLinks = ({
-    role,
-    hasRecordInStorage,
-}: ArgsLink): Array<LGRecordActionLink> => {
-    const allowedLinks = getRecordActionLinksAllowedForRole({
-        role,
-        hasRecordInStorage,
-        inputLinks: lloydGeorgeRecordLinks,
-    });
-
     return allowedLinks;
 };

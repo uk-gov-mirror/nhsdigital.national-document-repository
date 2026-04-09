@@ -45,10 +45,17 @@ describe('PCSE Workflow: Access and download found files', () => {
                     nextPageToken: 'abc',
                 },
             }).as('documentSearch');
+            cy.intercept('GET', '/DocumentReview*', {
+                statusCode: 200,
+                body: {
+                    count: 0,
+                },
+            }).as('documentReview');
 
             cy.get('#verify-submit').click();
 
             cy.wait('@documentSearch');
+            cy.wait('@documentReview');
         });
 
         it(

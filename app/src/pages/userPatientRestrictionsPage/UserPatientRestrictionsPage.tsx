@@ -21,7 +21,6 @@ import { UserPatientRestrictionsSubRoute } from '../../types/generic/userPatient
 
 const UserPatientRestrictionsPage = (): React.JSX.Element => {
     const {
-        isEnabled,
         subRoute,
         setSubRoute,
         restrictionToRemove,
@@ -39,10 +38,6 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
     const location = useLocation();
 
     useEffect(() => {
-        if (!isEnabled) {
-            navigate(routes.HOME, { replace: true });
-        }
-
         if (
             (location.pathname === routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT ||
                 location.pathname === routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF) &&
@@ -50,11 +45,7 @@ const UserPatientRestrictionsPage = (): React.JSX.Element => {
         ) {
             setSubRoute(UserPatientRestrictionsSubRoute.ADD);
         }
-    }, [isEnabled, navigate, location.pathname, subRoute]);
-
-    if (!isEnabled) {
-        return <></>;
-    }
+    }, [navigate, location.pathname, subRoute]);
 
     return (
         <>

@@ -51,7 +51,7 @@ describe('Authentication & Authorisation', () => {
             routes.patientSearch,
             '/patient/verify',
             '/patient/documents',
-            '/patient/lloyd-george-record',
+            '/patient/document-upload',
             routes.createReport,
             routes.createReportComplete,
         ];
@@ -99,7 +99,6 @@ describe('Authentication & Authorisation', () => {
         const workspace = Cypress.env('WORKSPACE');
         dbItem.FileLocation = dbItem.FileLocation.replace('{env}', workspace);
 
-        const lloydGeorgeRecordUrl = '/patient/lloyd-george-record';
         const verifyUrl = '/patient/verify';
 
         it(
@@ -123,7 +122,7 @@ describe('Authentication & Authorisation', () => {
                 cy.url().should('contain', verifyUrl);
                 cy.get('#verify-submit').click();
 
-                cy.url().should('contain', lloydGeorgeRecordUrl);
+                cy.url().should('contain', routes.patientDocuments);
 
                 cy.reload();
 

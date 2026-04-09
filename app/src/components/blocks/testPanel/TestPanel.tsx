@@ -2,7 +2,6 @@ import 'react-toggle/style.css';
 import { isLocal } from '../../../helpers/utils/isLocal';
 import { LocalFlags, useConfigContext } from '../../../providers/configProvider/ConfigProvider';
 import { REPOSITORY_ROLE } from '../../../types/generic/authRole';
-import { FeatureFlags } from '../../../types/generic/featureFlags';
 import TestToggle, { ToggleProps } from './TestToggle';
 
 const TestPanel = (): React.JSX.Element => {
@@ -17,16 +16,6 @@ const TestPanel = (): React.JSX.Element => {
                 [key]: value,
             },
             featureFlags: config.featureFlags,
-        });
-    };
-
-    const updateFeatureFlag = (key: keyof FeatureFlags, value: boolean): void => {
-        setConfig({
-            mockLocal: config.mockLocal,
-            featureFlags: {
-                ...config.featureFlags,
-                [key]: value,
-            },
         });
     };
 
@@ -124,17 +113,6 @@ const TestPanel = (): React.JSX.Element => {
                         return <TestToggle key={id} {...toggleProps} />;
                     })}
                     <h4>Feature Flags</h4>
-                    <TestToggle
-                        id="user-restrictions-toggle"
-                        label="User restrictions enabled"
-                        checked={!!config.featureFlags.userRestrictionEnabled}
-                        onChange={(): void => {
-                            updateFeatureFlag(
-                                'userRestrictionEnabled',
-                                !config.featureFlags.userRestrictionEnabled,
-                            );
-                        }}
-                    />
                 </div>
             )}
         </div>

@@ -1,6 +1,5 @@
 import { Dispatch, SetStateAction, useState } from 'react';
 import { routeChildren } from '../../types/generic/routes';
-import useConfig from '../../helpers/hooks/useConfig';
 import { useNavigate } from 'react-router-dom';
 import {
     UserInformation,
@@ -15,7 +14,6 @@ export enum UserPatientRestrictionsJourneyState {
 }
 
 export type UseUserPatientRestrictionsPageReturn = {
-    isEnabled: boolean | undefined;
     subRoute: UserPatientRestrictionsSubRoute | null;
     setSubRoute: Dispatch<SetStateAction<UserPatientRestrictionsSubRoute | null>>;
     restrictionToRemove: UserPatientRestriction | null;
@@ -30,7 +28,6 @@ export type UseUserPatientRestrictionsPageReturn = {
 };
 
 const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn => {
-    const config = useConfig();
     const navigate = useNavigate();
 
     const [subRoute, setSubRoute] = useState<UserPatientRestrictionsSubRoute | null>(null);
@@ -62,7 +59,6 @@ const useUserPatientRestrictionsPage = (): UseUserPatientRestrictionsPageReturn 
     };
 
     return {
-        isEnabled: config.featureFlags.userRestrictionEnabled,
         subRoute,
         setSubRoute,
         restrictionToRemove,

@@ -5,10 +5,6 @@ import { routes } from '../../support/routes';
 const workspace = Cypress.env('WORKSPACE');
 dbItem.FileLocation = dbItem.FileLocation.replace('{env}', workspace);
 
-const featureFlags = {
-    downloadOdsReportEnabled: true,
-};
-
 describe('GP Workflow: Download Lloyd George summary report', () => {
     context('Download Lloyd George summary report', () => {
         const fileTypes = ['csv', 'xlsx', 'pdf'];
@@ -17,7 +13,7 @@ describe('GP Workflow: Download Lloyd George summary report', () => {
                 `Authenticated user can download the Lloyd George summary ${fileType}`,
                 { tags: 'regression', defaultCommandTimeout: 20000 },
                 () => {
-                    cy.login(Roles.GP_ADMIN, featureFlags);
+                    cy.login(Roles.GP_ADMIN);
                     cy.navigateToDownloadReportPage();
 
                     cy.intercept('GET', '/OdsReport*', (req) => {
@@ -46,7 +42,7 @@ describe('GP Workflow: Download Lloyd George summary report', () => {
             'Authenticated user cannot download summary when there are no patients held for their ods',
             { tags: 'regression', defaultCommandTimeout: 20000 },
             () => {
-                cy.login(Roles.GP_ADMIN, featureFlags);
+                cy.login(Roles.GP_ADMIN);
                 cy.navigateToDownloadReportPage();
 
                 cy.intercept('GET', '/OdsReport*', (req) => {
@@ -69,7 +65,7 @@ describe('GP Workflow: Download Lloyd George summary report', () => {
             'Authenticated user is shown an error message when the download fails',
             { tags: 'regression', defaultCommandTimeout: 20000 },
             () => {
-                cy.login(Roles.GP_ADMIN, featureFlags);
+                cy.login(Roles.GP_ADMIN);
                 cy.navigateToDownloadReportPage();
 
                 cy.intercept('GET', '/OdsReport*', (req) => {
@@ -92,7 +88,7 @@ describe('GP Workflow: Download Lloyd George summary report', () => {
             'Expired authenticated user is navigated to the session expiry screen when they attempt to download',
             { tags: 'regression', defaultCommandTimeout: 20000 },
             () => {
-                cy.login(Roles.GP_ADMIN, featureFlags);
+                cy.login(Roles.GP_ADMIN);
                 cy.navigateToDownloadReportPage();
 
                 cy.intercept('GET', '/OdsReport*', (req) => {

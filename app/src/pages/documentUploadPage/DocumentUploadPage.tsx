@@ -11,7 +11,6 @@ import DocumentUploadingStage from '../../components/blocks/_documentManagement/
 import DocumentUploadRemoveFilesStage from '../../components/blocks/_documentManagement/documentUploadRemoveFilesStage/DocumentUploadRemoveFilesStage';
 import useBaseAPIHeaders from '../../helpers/hooks/useBaseAPIHeaders';
 import useBaseAPIUrl from '../../helpers/hooks/useBaseAPIUrl';
-import useConfig from '../../helpers/hooks/useConfig';
 import usePatient from '../../helpers/hooks/usePatient';
 import { errorToParams } from '../../helpers/utils/errorToParams';
 import { isLocal, isMock } from '../../helpers/utils/isLocal';
@@ -65,7 +64,6 @@ const DocumentUploadPage = (): React.JSX.Element => {
     const [intervalTimer, setIntervalTimer] = useState(0);
     const [mergedPdfBlob, setMergedPdfBlob] = useState<Blob>();
     const [journey, setJourney] = useState<JourneyType>(getJourney());
-    const config = useConfig();
     const [interval, setInterval] = useState(0);
     const filesErrorPageRef = useRef(false);
     const [documentType, setDocumentType] = useState<DOCUMENT_TYPE>(DOCUMENT_TYPE.LLOYD_GEORGE);
@@ -252,33 +250,6 @@ const DocumentUploadPage = (): React.JSX.Element => {
         }
     };
 
-    if (
-        !config.featureFlags.uploadLambdaEnabled ||
-        !config.featureFlags.uploadLloydGeorgeWorkflowEnabled ||
-        (!config.featureFlags.uploadDocumentIteration2Enabled && journey === 'update')
-    ) {
-        navigate(routes.HOME);
-        return <></>;
-    }
-
-    const getIndexElement = (): React.JSX.Element => {
-        return config.featureFlags.uploadDocumentIteration3Enabled ? (
-            <DocumentUploadIndex
-                setDocumentType={setDocumentType}
-                setJourney={setJourney}
-                updateExistingDocuments={updateExistingDocuments}
-            />
-        ) : (
-            <DocumentSelectStage
-                documents={documents}
-                setDocuments={setDocuments}
-                documentType={documentType}
-                filesErrorRef={filesErrorPageRef}
-                documentConfig={documentConfig}
-            />
-        );
-    };
-
     const getWarningBoxText = (): string => {
         let text = 'Do not close or navigate away from this page until the upload is complete. ';
         if (journey === 'update') {
@@ -296,7 +267,16 @@ const DocumentUploadPage = (): React.JSX.Element => {
     return (
         <div>
             <Routes>
-                <Route index element={getIndexElement()} />
+                <Route
+                    index
+                    element={
+                        <DocumentUploadIndex
+                            setDocumentType={setDocumentType}
+                            setJourney={setJourney}
+                            updateExistingDocuments={updateExistingDocuments}
+                        />
+                    }
+                />
                 <Route
                     path={getLastURLPath(routeChildren.DOCUMENT_UPLOAD_SELECT_FILES) + '/*'}
                     element={

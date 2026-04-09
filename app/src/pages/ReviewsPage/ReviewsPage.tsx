@@ -15,7 +15,6 @@ import ReviewsDetailsStage from '../../components/blocks/_reviews/reviewsDetails
 import ReviewDetailsPatientSearchStage from '../../components/blocks/_reviews/reviewDetailsPatientSearchStage/ReviewDetailsPatientSearchStage';
 import ReviewsPageIndex from '../../components/blocks/_reviews/reviewsPageIndex/ReviewsPageIndex';
 import DocumentSelectFileErrorsPage from '../../components/blocks/_documentManagement/documentSelectFileErrorsPage/DocumentSelectFileErrorsPage';
-import useConfig from '../../helpers/hooks/useConfig';
 import { routeChildren, routes } from '../../types/generic/routes';
 import { ReviewDetails } from '../../types/generic/reviews';
 import { ReviewUploadDocument } from '../../types/pages/UploadDocumentsPage/types';
@@ -40,7 +39,6 @@ export enum CompleteState {
 }
 
 const ReviewsPage = (): JSX.Element => {
-    const config = useConfig();
     const navigate = useNavigate();
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
@@ -60,11 +58,6 @@ const ReviewsPage = (): JSX.Element => {
         const newUploadDocuments = sortDocumentsForReview(uploadDocuments, additionalFiles);
         setUploadDocuments(newUploadDocuments);
     }, [additionalFiles]);
-
-    if (!config.featureFlags?.uploadDocumentIteration3Enabled) {
-        navigate(routes.HOME);
-        return <></>;
-    }
 
     const loadData = async (): Promise<void> => {
         if (!reviewData) {
