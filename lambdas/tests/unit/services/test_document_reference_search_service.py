@@ -527,6 +527,7 @@ def test_get_paginated_references_by_nhs_number_returns_references_and_token(
         filter_expression="#Deleted_attr = :Deleted_condition_val OR attribute_not_exists(#Deleted_attr)",
         expression_attribute_names={"#Deleted_attr": "Deleted"},
         expression_attribute_values={":Deleted_condition_val": ""},
+        scan_index_forward=False,
     )
 
     assert actual == expected
@@ -562,6 +563,7 @@ def test_get_paginated_references_by_nhs_number_handles_filters(mock_document_se
             ":Deleted_condition_val": "",
             ":DocStatus_condition_val": "final",
         },
+        scan_index_forward=False,
     )
 
 

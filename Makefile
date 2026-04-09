@@ -169,10 +169,10 @@ endif
 test-unit:
 ifeq ($(CONTAINER), true)
 	cd ./lambdas && \
-	PYTHONPATH=. poetry run pytest tests/unit ../scripts/github/checklist_validator/tests
+	PYTHONPATH=. poetry run pytest $(if $(ARGS),$(ARGS),tests/unit ../scripts/github/checklist_validator/tests)
 else
 	cd ./lambdas && \
-	PYTHONPATH=.. ./venv/bin/python3 -m pytest tests/unit ../scripts/github/checklist_validator/tests
+	PYTHONPATH=.. ./venv/bin/python3 -m pytest $(if $(ARGS),$(ARGS),tests/unit ../scripts/github/checklist_validator/tests)
 endif
 
 test-unit-coverage:

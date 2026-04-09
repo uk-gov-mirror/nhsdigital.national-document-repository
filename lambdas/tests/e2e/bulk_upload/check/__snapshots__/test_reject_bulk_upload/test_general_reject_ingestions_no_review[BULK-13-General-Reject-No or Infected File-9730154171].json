@@ -1,0 +1,15 @@
+{
+  "_description": "BULK-13-General-Reject-No or Infected File",
+  "bulk_upload_report": {
+    "FilePath": "reject/test/9730154171/1of1_Lloyd_George_Record_[Nora ROONEY]_[9730154171]_[08-01-2014].pdf",
+    "NhsNumber": "9730154171",
+    "PdsOdsCode": "H81109",
+    "Reason": "One or more of the files is not accessible from staging bucket",
+    "SentToReview": false,
+    "StoredFileName": "test/9730154171/1of1_Lloyd_George_Record_[Nora ROONEY]_[9730154171]_[08-01-2014].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "H81109"
+  },
+  "metadata": null,
+  "review": null
+}

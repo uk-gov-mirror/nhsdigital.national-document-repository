@@ -114,6 +114,20 @@ def test_deny_access_policy_returns_true_for_nhs_number_not_in_allowed(
     assert actual == expected
 
 
+def test_deny_access_policy_returns_true_for_nhs_number_not_in_allowed_post_user_restriction(
+    mock_auth_service: AuthoriserService,
+):
+    expected = True
+    mock_auth_service.allowed_nhs_numbers = ["900000002"]
+    actual = mock_auth_service.deny_access_policy(
+        "/UserRestriction",
+        "POST",
+        RepositoryRole.GP_ADMIN.value,
+        "900000001",
+    )
+    assert actual == expected
+
+
 @pytest.mark.parametrize("test_path", ["/DocumentManifest", "/DocumentDelete", "Any"])
 def test_deny_access_policy_returns_false_for_nhs_number_in_allowed(
     test_path,
@@ -195,8 +209,16 @@ def test_deny_access_policy_allows_review_for_placeholder_nhs_number(
         ("/LloydGeorgeStitch", RepositoryRole.GP_ADMIN.value, False),
         ("/LloydGeorgeStitch", RepositoryRole.GP_CLINICAL.value, False),
         ("/LloydGeorgeStitch", RepositoryRole.PCSE.value, True),
-        (f"/UserRestriction/{TEST_UUID}", RepositoryRole.GP_ADMIN.value, False),
-        (f"/UserRestriction/{TEST_UUID}", RepositoryRole.GP_CLINICAL.value, False),
+        (
+            "/UserRestriction/6b6417b5-58ed-45db-8359-bd78891e67b7",
+            RepositoryRole.GP_ADMIN.value,
+            False,
+        ),
+        (
+            "/UserRestriction/6b6417b5-58ed-45db-8359-bd78891e67b7",
+            RepositoryRole.GP_CLINICAL.value,
+            False,
+        ),
         (
             "/UserRestriction/6b6417b5-58ed-45db-8359-bd78891e67b7",
             RepositoryRole.PCSE.value,
@@ -308,6 +330,8 @@ def test_deny_access_policy_returns_true_for_invalid_nhs_number(
         "/Feedback",
         "/DocumentReview",
         f"/DocumentReview/{TEST_UUID}/1/Status",
+        "/UserRestriction/SearchUser",
+        "/UserRestriction",
     ],
 )
 def test_endpoints_allow_access_regardless_of_nhs_number(

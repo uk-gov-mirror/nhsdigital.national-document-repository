@@ -91,7 +91,7 @@ describe('DocumentCorrectPage', () => {
 
         renderPage();
 
-        expect(mockNavigate).toHaveBeenCalledWith(routes.SERVER_ERROR);
+        expect(mockNavigate).toHaveBeenCalledWith(routes.PATIENT_DOCUMENTS);
     });
 
     it('navigates to server error if fetch fails', async () => {

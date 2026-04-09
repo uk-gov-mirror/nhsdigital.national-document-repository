@@ -9,6 +9,9 @@ import { buildPatientDetails } from '../test/testBuilders';
 import errorCodes from './errorCodes';
 import { errorToParams } from './errorToParams';
 import { isMock } from './isLocal';
+import { ErrorResponse } from '../../types/generic/errorResponse';
+import { UIErrorCode } from '../../types/generic/errors';
+import { NavigateFunction } from 'react-router';
 
 export enum PATIENT_SEARCH_STATES {
     IDLE = 'IDLE',
@@ -29,7 +32,7 @@ export type HandleSearchArgs = {
 type handleSearchReturnType = [
     ErrorMessage: string | null,
     statusCode: number | null,
-    error?: AxiosError,
+    error?: AxiosError<ErrorResponse>,
 ];
 
 export const handleSearch = async ({
@@ -53,12 +56,12 @@ export const handleSearch = async ({
 
         handleSuccess(patientDetails);
     } catch (e) {
-        const error = e as AxiosError;
+        const error = e as AxiosError<ErrorResponse>;
 
         if (isMock(error)) {
             handleSuccess(
                 buildPatientDetails({
-                    nhsNumber,
+                    nhsNumber: cleanedNhsNumber,
                     active: mockLocal.patientIsActive,
                     deceased: mockLocal.patientIsDeceased,
                 }),
@@ -73,7 +76,7 @@ export const handleSearch = async ({
         } else if (error.response?.status === 403) {
             statusCode = 403;
         } else if (error.response?.status === 404) {
-            errorCode = errorCodes['SP_4003'];
+            errorCode = errorCodes[error.response?.data?.err_code!];
             statusCode = 404;
         }
         return [errorCode, statusCode, error];
@@ -82,12 +85,14 @@ export const handleSearch = async ({
 
 export const handlePatientSearchError = (
     statusCode: number | null,
-    navigate: (to: string) => void,
+    navigate: NavigateFunction,
     setFailedSubmitState: (statusCode: number | null) => void,
-    error?: AxiosError,
+    error?: AxiosError<ErrorResponse>,
 ): void => {
     if (error) {
-        if (statusCode === 403) {
+        if (error.response?.data?.err_code === 'SP_4006') {
+            navigate(routes.GENERIC_ERROR + `?errorCode=${UIErrorCode.PATIENT_ACCESS_RESTRICTED}`);
+        } else if (statusCode === 403) {
             navigate(routes.SESSION_EXPIRED);
         } else {
             navigate(routes.SERVER_ERROR + errorToParams(error));

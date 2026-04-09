@@ -1,0 +1,28 @@
+{
+  "_description": "USB-Rejected-Could not find a valid date in the filename.",
+  "bulk_upload_report": {
+    "FilePath": "reject-usb/1253617284 Adam Thomas 07-Nov-99/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000055.pdf",
+    "NhsNumber": "9000000055",
+    "PdsOdsCode": "",
+    "Reason": "Could not find a valid date in the filename",
+    "SentToReview": true,
+    "StoredFileName": "1253617284 Adam Thomas 07-Nov-99/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000055.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "A00006"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "A00006",
+    "Custodian": "A00006",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000055.pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

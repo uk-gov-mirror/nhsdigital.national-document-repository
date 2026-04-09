@@ -1,4 +1,5 @@
 import pytest
+from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from pydantic import ValidationError
@@ -11,16 +12,22 @@ from models.user_restrictions.user_restrictions import (
 from services.user_restrictions.user_restriction_dynamo_service import (
     UserRestrictionDynamoService,
 )
-from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_NHS_NUMBER, TEST_UUID
+from tests.unit.conftest import (
+    MOCK_USER_RESTRICTION_TABLE,
+    TEST_CURRENT_GP_ODS,
+    TEST_NEXT_PAGE_TOKEN,
+    TEST_NHS_NUMBER,
+    TEST_SMART_CARD_ID,
+    TEST_UUID,
+)
 from tests.unit.services.user_restriction.conftest import MOCK_IDENTIFIER
 from utils.exceptions import (
     UserRestrictionConditionCheckFailedException,
+    UserRestrictionDynamoDBException,
     UserRestrictionValidationException,
 )
 
 TEST_ODS_CODE = "Y12345"
-TEST_SMART_CARD_ID = "SC001"
-MOCK_USER_RESTRICTION_TABLE = "test_user_restriction_table"
 TEST_NEXT_TOKEN = "some-opaque-next-token"
 MOCK_TIME_STAMP = 1704110400
 
@@ -34,6 +41,18 @@ MOCK_RESTRICTION_ITEM = {
     "IsActive": True,
     "Created": 1704067200,
     "LastUpdated": 1704067200,
+}
+
+MOCK_RESTRICTION = {
+    "ID": TEST_UUID,
+    "RestrictedSmartcard": TEST_SMART_CARD_ID,
+    "NhsNumber": TEST_NHS_NUMBER,
+    "Custodian": TEST_CURRENT_GP_ODS,
+    "Created": 1700000000,
+    "CreatorSmartcard": "SC002",
+    "RemoverSmartCard": None,
+    "IsActive": True,
+    "LastUpdated": 1700000001,
 }
 
 MOCK_DYNAMO_RESPONSE_WITH_ITEM = {"Items": [MOCK_RESTRICTION_ITEM]}
@@ -57,97 +76,150 @@ def mock_dynamo_service(mock_service):
 
 
 def test_query_restrictions_calls_paginator_with_correct_key_and_index(mock_service):
-    mock_service.query_restrictions(ods_code=TEST_ODS_CODE)
+    mock_service.query_restrictions(ods_code=TEST_CURRENT_GP_ODS)
 
     call_kwargs = (
         mock_service.dynamo_service.query_table_with_paginator.call_args.kwargs
     )
     assert call_kwargs["key"] == UserRestrictionsFields.CUSTODIAN
-    assert call_kwargs["condition"] == TEST_ODS_CODE
+    assert call_kwargs["condition"] == TEST_CURRENT_GP_ODS
     assert call_kwargs["index_name"] == UserRestrictionIndexes.CUSTODIAN_INDEX
 
 
 def test_query_restrictions_by_ods_code_uses_active_filter(mock_service):
-    mock_service.query_restrictions(ods_code=TEST_ODS_CODE)
+    mock_service.query_restrictions(ods_code=TEST_CURRENT_GP_ODS)
 
     call_kwargs = (
         mock_service.dynamo_service.query_table_with_paginator.call_args.kwargs
     )
-    assert "IsActive" in call_kwargs["filter_expression"]
+    assert UserRestrictionsFields.IS_ACTIVE in call_kwargs["filter_expression"]
     assert (
         UserRestrictionsFields.RESTRICTED_USER not in call_kwargs["filter_expression"]
     )
     assert UserRestrictionsFields.NHS_NUMBER not in call_kwargs["filter_expression"]
 
 
-def test_query_restrictions_by_smart_card_id_applies_smartcard_filter(mock_service):
+def test_query_restrictions_by_smartcard_id_applies_smartcard_filter(mock_service):
     mock_service.query_restrictions(
-        ods_code=TEST_ODS_CODE,
-        smart_card_id=TEST_SMART_CARD_ID,
+        ods_code=TEST_CURRENT_GP_ODS,
+        smartcard_id=TEST_SMART_CARD_ID,
     )
 
     call_kwargs = (
         mock_service.dynamo_service.query_table_with_paginator.call_args.kwargs
     )
-    assert "IsActive" in call_kwargs["filter_expression"]
+    assert UserRestrictionsFields.IS_ACTIVE in call_kwargs["filter_expression"]
     assert UserRestrictionsFields.RESTRICTED_USER in call_kwargs["filter_expression"]
     assert (
-        call_kwargs["expression_attribute_values"][":RestrictedSmartcard_condition_val"]
+        call_kwargs["expression_attribute_values"][
+            f":{UserRestrictionsFields.RESTRICTED_USER}_condition_val"
+        ]
         == TEST_SMART_CARD_ID
     )
 
 
 def test_query_restrictions_by_nhs_number_applies_nhs_number_filter(mock_service):
-    mock_service.query_restrictions(ods_code=TEST_ODS_CODE, nhs_number=TEST_NHS_NUMBER)
+    mock_service.query_restrictions(
+        ods_code=TEST_CURRENT_GP_ODS,
+        nhs_number=TEST_NHS_NUMBER,
+    )
 
     call_kwargs = (
         mock_service.dynamo_service.query_table_with_paginator.call_args.kwargs
     )
-    assert "IsActive" in call_kwargs["filter_expression"]
+    assert UserRestrictionsFields.IS_ACTIVE in call_kwargs["filter_expression"]
     assert UserRestrictionsFields.NHS_NUMBER in call_kwargs["filter_expression"]
     assert (
-        call_kwargs["expression_attribute_values"][":NhsNumber_condition_val"]
+        call_kwargs["expression_attribute_values"][
+            f":{UserRestrictionsFields.NHS_NUMBER}_condition_val"
+        ]
         == TEST_NHS_NUMBER
     )
 
 
 def test_query_restrictions_passes_limit_and_start_key(mock_service):
     mock_service.query_restrictions(
-        ods_code=TEST_ODS_CODE,
+        ods_code=TEST_CURRENT_GP_ODS,
         limit=5,
-        start_key=TEST_NEXT_TOKEN,
+        start_key=TEST_NEXT_PAGE_TOKEN,
     )
 
     call_kwargs = (
         mock_service.dynamo_service.query_table_with_paginator.call_args.kwargs
     )
     assert call_kwargs["limit"] == 5
-    assert call_kwargs["start_key"] == TEST_NEXT_TOKEN
+    assert call_kwargs["start_key"] == TEST_NEXT_PAGE_TOKEN
 
 
 def test_query_restrictions_returns_next_token(mock_service):
     mock_service.dynamo_service.query_table_with_paginator.return_value = {
-        "Items": [MOCK_RESTRICTION_ITEM],
-        "NextToken": TEST_NEXT_TOKEN,
+        "Items": [MOCK_RESTRICTION],
+        "NextToken": TEST_NEXT_PAGE_TOKEN,
     }
 
-    _, next_token = mock_service.query_restrictions(ods_code=TEST_ODS_CODE)
+    _, next_token = mock_service.query_restrictions(ods_code=TEST_CURRENT_GP_ODS)
 
-    assert next_token == TEST_NEXT_TOKEN
+    assert next_token == TEST_NEXT_PAGE_TOKEN
 
 
 def test_query_restrictions_returns_empty_list_when_no_items(mock_service):
     mock_service.dynamo_service.query_table_with_paginator.return_value = {"Items": []}
 
-    results, next_token = mock_service.query_restrictions(ods_code=TEST_ODS_CODE)
+    results, next_token = mock_service.query_restrictions(ods_code=TEST_CURRENT_GP_ODS)
 
     assert results == []
     assert next_token is None
 
 
+def test_query_restrictions_by_nhs_number(mock_service, mocker):
+    mock_validate = mocker.patch.object(mock_service, "_validate_restrictions")
+    mock_service.dynamo_service.query_table.return_value = [MOCK_RESTRICTION_ITEM]
+
+    expected_filter = Attr("IsActive").eq(True)
+
+    mock_service.query_restrictions_by_nhs_number(nhs_number=TEST_NHS_NUMBER)
+
+    mock_service.dynamo_service.query_table.assert_called_with(
+        table_name=MOCK_USER_RESTRICTION_TABLE,
+        index_name=UserRestrictionIndexes.NHS_NUMBER_INDEX.value,
+        search_key=UserRestrictionsFields.NHS_NUMBER.value,
+        search_condition=TEST_NHS_NUMBER,
+        query_filter=expected_filter,
+    )
+
+    mock_validate.assert_called_with([MOCK_RESTRICTION_ITEM])
+
+
+def test_query_restrictions_by_nhs_number_handles_client_error(mock_service):
+    mock_service.dynamo_service.query_table.side_effect = ClientError(
+        {"Error": {"Code": "500", "Message": "DynamoDB error"}},
+        "query",
+    )
+
+    with pytest.raises(UserRestrictionDynamoDBException):
+        mock_service.query_restrictions_by_nhs_number(nhs_number=TEST_NHS_NUMBER)
+
+
+def test_query_restrictions_by_nhs_number_handles_validation_error(mock_service):
+    mock_service.dynamo_service.query_table.return_value = [{"invalid": "object"}]
+
+    with pytest.raises(UserRestrictionValidationException):
+        mock_service.query_restrictions_by_nhs_number(nhs_number=TEST_NHS_NUMBER)
+
+
 def test_validate_restrictions_raises_for_invalid_items():
     with pytest.raises(UserRestrictionValidationException):
         UserRestrictionDynamoService._validate_restrictions([{"invalid": "data"}])
+
+
+def test_query_restrictions_raises_validation_exception_on_client_error(mock_service):
+    mock_service.dynamo_service.query_table_with_paginator.side_effect = ClientError(
+        {"Error": {"Code": "500", "Message": "DynamoDB error"}},
+        "query",
+    )
+
+    with pytest.raises(UserRestrictionValidationException):
+        mock_service.query_restrictions(ods_code=TEST_CURRENT_GP_ODS)
 
 
 @freeze_time("2024-01-01 12:00:00")
@@ -248,7 +320,6 @@ def test_get_user_restrictions_calls_dynamo_with_correct_args(
         query_filter=mock_dynamo_service.query_table_single.call_args.kwargs[
             "query_filter"
         ],
-        limit=1,
     )
 
 

@@ -1,0 +1,28 @@
+{
+  "_description": "BULK-12-General-Reject-Patient Name Mismatch",
+  "bulk_upload_report": {
+    "FilePath": "reject/test/9730787417/1of1_Lloyd_George_Record_[Notmename AlsoNotMeName KINNOY]_[9730787417]_[25-12-1999].pdf",
+    "NhsNumber": "9730787417",
+    "PdsOdsCode": "M85143",
+    "Reason": "Patient name does not match our records 1/3",
+    "SentToReview": true,
+    "StoredFileName": "test/9730787417/1of1_Lloyd_George_Record_[Notmename AlsoNotMeName KINNOY]_[9730787417]_[25-12-1999].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "M85143",
+    "Custodian": "M85143",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "1of1_Lloyd_George_Record_[Notmename AlsoNotMeName KINNOY]_[9730787417]_[25-12-1999].pdf"
+      }
+    ],
+    "NhsNumber": "9730787417",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

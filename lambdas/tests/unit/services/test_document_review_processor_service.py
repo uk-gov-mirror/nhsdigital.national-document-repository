@@ -1,5 +1,8 @@
+import uuid
+
 import pytest
 from botocore.exceptions import ClientError
+
 from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from models.document_review import (
@@ -8,7 +11,10 @@ from models.document_review import (
 )
 from models.pds_models import PatientDetails
 from models.sqs.review_message_body import ReviewMessageBody, ReviewMessageFile
-from services.document_review_processor_service import ReviewProcessorService
+from services.document_review_processor_service import (
+    S3_STORAGE_NAMESPACE,
+    ReviewProcessorService,
+)
 from tests.unit.conftest import MOCK_DOCUMENT_REVIEW_BUCKET, S3_PREFIX, TEST_NHS_NUMBER
 from utils.exceptions import (
     InvalidResourceIdException,
@@ -280,15 +286,19 @@ def test_build_review_record_with_multiple_files(service_under_test):
     assert result.files[1].file_name == "document_2.pdf"
 
 
-def test_move_files_success(service_under_test, sample_review_message, mocker):
-    mocker.patch("uuid.uuid4", return_value="123412342")
+def test_move_files_success(service_under_test, sample_review_message):
+    review_id = "test-review-id-123"
+    source_file_path = f"staging/{TEST_NHS_NUMBER}/test_document.pdf"
+    expected_object_key = uuid.uuid5(
+        S3_STORAGE_NAMESPACE,
+        f"{review_id}/{source_file_path}",
+    )
+    expected_key = f"{review_id}/{expected_object_key}"
 
     files = service_under_test._move_files_to_review_bucket(
         sample_review_message,
-        "test-review-id-123",
+        review_id,
     )
-
-    expected_key = "test-review-id-123/123412342"
 
     assert len(files) == 1
     assert files[0].file_name == "test_document.pdf"
@@ -299,47 +309,122 @@ def test_move_files_success(service_under_test, sample_review_message, mocker):
 
     service_under_test.s3_service.copy_across_bucket.assert_called_once_with(
         source_bucket="test_staging_bulk_store",
-        source_file_key=f"staging/{TEST_NHS_NUMBER}/test_document.pdf",
+        source_file_key=source_file_path,
         dest_bucket="test_document_review_bucket",
         dest_file_key=expected_key,
         if_none_match=True,
     )
 
 
-def test_move_multiple_files_success(service_under_test, mocker):
+def test_move_multiple_files_success(service_under_test):
+    review_id = "test-review-id"
+    file_path_1 = f"staging/{TEST_NHS_NUMBER}/document_1.pdf"
+    file_path_2 = f"staging/{TEST_NHS_NUMBER}/document_2.pdf"
+    expected_key_1 = (
+        f"{review_id}/{uuid.uuid5(S3_STORAGE_NAMESPACE, f'{review_id}/{file_path_1}')}"
+    )
+    expected_key_2 = (
+        f"{review_id}/{uuid.uuid5(S3_STORAGE_NAMESPACE, f'{review_id}/{file_path_2}')}"
+    )
+
     message = ReviewMessageBody(
         upload_id="test-upload-id-999",
         files=[
             ReviewMessageFile(
                 file_name="document_1.pdf",
-                file_path=f"staging/{TEST_NHS_NUMBER}/document_1.pdf",
+                file_path=file_path_1,
             ),
             ReviewMessageFile(
                 file_name="document_2.pdf",
-                file_path=f"staging/{TEST_NHS_NUMBER}/document_2.pdf",
+                file_path=file_path_2,
             ),
         ],
         nhs_number=TEST_NHS_NUMBER,
         failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
         uploader_ods="Y12345",
     )
-    mocker.patch("uuid.uuid4", side_effect=["123412342", "56785678"])
 
-    files = service_under_test._move_files_to_review_bucket(message, "test-review-id")
+    files = service_under_test._move_files_to_review_bucket(message, review_id)
 
     assert len(files) == 2
     assert files[0].file_name == "document_1.pdf"
     assert (
         files[0].file_location
-        == f"{S3_PREFIX}{MOCK_DOCUMENT_REVIEW_BUCKET}/test-review-id/123412342"
+        == f"{S3_PREFIX}{MOCK_DOCUMENT_REVIEW_BUCKET}/{expected_key_1}"
     )
     assert files[1].file_name == "document_2.pdf"
     assert (
         files[1].file_location
-        == f"{S3_PREFIX}{MOCK_DOCUMENT_REVIEW_BUCKET}/test-review-id/56785678"
+        == f"{S3_PREFIX}{MOCK_DOCUMENT_REVIEW_BUCKET}/{expected_key_2}"
     )
 
     assert service_under_test.s3_service.copy_across_bucket.call_count == 2
+
+
+def test_move_files_destination_key_is_deterministic_across_retries(
+    service_under_test,
+    sample_review_message,
+):
+
+    review_id = "test-review-id-123"
+
+    files_first_invocation = service_under_test._move_files_to_review_bucket(
+        sample_review_message,
+        review_id,
+    )
+
+    # Reset the mock so the second call is tracked independently
+    service_under_test.s3_service.copy_across_bucket.reset_mock()
+
+    files_second_invocation = service_under_test._move_files_to_review_bucket(
+        sample_review_message,
+        review_id,
+    )
+
+    assert (
+        files_first_invocation[0].file_location
+        == files_second_invocation[0].file_location
+    )
+
+
+def test_move_files_deduplicates_identical_file_paths(service_under_test):
+    review_id = "test-review-id-dup"
+    source_file_path = f"staging/{TEST_NHS_NUMBER}/document_1.pdf"
+    expected_key = f"{review_id}/{uuid.uuid5(S3_STORAGE_NAMESPACE, f'{review_id}/{source_file_path}')}"
+
+    message_with_duplicate_files = ReviewMessageBody(
+        upload_id=review_id,
+        files=[
+            ReviewMessageFile(file_name="document_1.pdf", file_path=source_file_path),
+            ReviewMessageFile(
+                file_name="document_1.pdf",
+                file_path=source_file_path,
+            ),  # duplicate row
+        ],
+        nhs_number=TEST_NHS_NUMBER,
+        failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
+        uploader_ods="Y12345",
+    )
+
+    files = service_under_test._move_files_to_review_bucket(
+        message_with_duplicate_files,
+        review_id,
+    )
+
+    assert len(files) == 1
+    assert files[0].file_name == "document_1.pdf"
+    assert (
+        files[0].file_location
+        == f"{S3_PREFIX}{MOCK_DOCUMENT_REVIEW_BUCKET}/{expected_key}"
+    )
+
+    service_under_test.s3_service.copy_across_bucket.assert_called_once_with(
+        source_bucket="test_staging_bulk_store",
+        source_file_key=source_file_path,
+        dest_bucket="test_document_review_bucket",
+        dest_file_key=expected_key,
+        if_none_match=True,
+    )
 
 
 def test_move_files_copy_error(service_under_test, sample_review_message):

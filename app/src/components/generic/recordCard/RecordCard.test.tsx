@@ -41,7 +41,7 @@ describe('RecordCard Component', () => {
         detailsElement: <div>Mock Details Element</div>,
         isFullScreen: false,
         pdfObjectUrl: 'https://test.com',
-    } as any as RecordCardProps; // TODO Fix
+    };
 
     beforeEach(() => {
         vi.clearAllMocks();

@@ -4,6 +4,8 @@
     "FilePath": "accept-remap-and-fixed/test/9730787492/1of1_Lloyd_George_Record_[Bob SPEAR]_[9730787492]_[05-08-1968].pdf",
     "NhsNumber": "9730787492",
     "PdsOdsCode": "M85143",
+    "Reason": "Patient matched on full match 3/3, matched on 1 family_name and 1 given name",
+    "SentToReview": false,
     "StoredFileName": "test/9730787492/1of1_Lloyd_George_Record_[Bob SPEAR]_[9730787492]_[05-08-1968].pdf",
     "UploadStatus": "complete",
     "UploaderOdsCode": "M85143"
@@ -23,6 +25,5 @@
     "Uploaded": true,
     "Version": "1",
     "VirusScannerResult": "Clean"
-  },
-  "unstitched": []
+  }
 }

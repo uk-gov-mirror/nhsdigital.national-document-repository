@@ -3,9 +3,10 @@ from unittest.mock import MagicMock
 import pytest
 from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
+
 from enums.document_review_status import DocumentReviewStatus
 from enums.metadata_field_names import DocumentReferenceMetadataFields
-from freezegun import freeze_time
 from models.document_review import DocumentUploadReviewReference
 from services.document_upload_review_service import DocumentUploadReviewService
 from tests.unit.conftest import (
@@ -74,14 +75,18 @@ def test_s3_bucket(mock_service, monkeypatch):
 
 
 def test_update_document_review_custodian_updates_all_documents(
-    mock_service, mock_document_review_references, mocker
+    mock_service,
+    mock_document_review_references,
+    mocker,
 ):
     mock_handle_standard = mocker.patch.object(
-        mock_service, "_handle_standard_custodian_update"
+        mock_service,
+        "_handle_standard_custodian_update",
     )
 
     mock_service.update_document_review_custodian(
-        mock_document_review_references, NEW_ODS_CODE
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
 
     assert mock_handle_standard.call_count == 3
@@ -92,10 +97,12 @@ def test_update_document_review_custodian_updates_all_documents(
 
 def test_update_document_review_custodian_empty_list(mock_service, mocker):
     mock_handle_standard = mocker.patch.object(
-        mock_service, "_handle_standard_custodian_update"
+        mock_service,
+        "_handle_standard_custodian_update",
     )
     mock_handle_pending = mocker.patch.object(
-        mock_service, "_handle_pending_review_custodian_update"
+        mock_service,
+        "_handle_pending_review_custodian_update",
     )
 
     mock_service.update_document_review_custodian([], NEW_ODS_CODE)
@@ -105,20 +112,25 @@ def test_update_document_review_custodian_empty_list(mock_service, mocker):
 
 
 def test_update_document_review_custodian_no_changes_needed(
-    mock_service, mock_document_review_references, mocker
+    mock_service,
+    mock_document_review_references,
+    mocker,
 ):
     mock_handle_standard = mocker.patch.object(
-        mock_service, "_handle_standard_custodian_update"
+        mock_service,
+        "_handle_standard_custodian_update",
     )
     mock_handle_pending = mocker.patch.object(
-        mock_service, "_handle_pending_review_custodian_update"
+        mock_service,
+        "_handle_pending_review_custodian_update",
     )
 
     for review in mock_document_review_references:
         review.custodian = NEW_ODS_CODE
 
     mock_service.update_document_review_custodian(
-        mock_document_review_references, NEW_ODS_CODE
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
 
     mock_handle_standard.assert_not_called()
@@ -126,36 +138,45 @@ def test_update_document_review_custodian_no_changes_needed(
 
 
 def test_update_document_review_custodian_mixed_custodians(
-    mock_service, mock_document_review_references, mocker
+    mock_service,
+    mock_document_review_references,
+    mocker,
 ):
     mock_handle_standard = mocker.patch.object(
-        mock_service, "_handle_standard_custodian_update"
+        mock_service,
+        "_handle_standard_custodian_update",
     )
     mock_document_review_references[0].custodian = NEW_ODS_CODE
 
     mock_service.update_document_review_custodian(
-        mock_document_review_references, NEW_ODS_CODE
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
     assert mock_handle_standard.call_count == 2
 
 
 def test_update_document_review_custodian_continues_on_error(
-    mock_service, mock_document_review_references, mocker
+    mock_service,
+    mock_document_review_references,
+    mocker,
 ):
     mock_handle_standard = mocker.patch.object(
-        mock_service, "_handle_standard_custodian_update"
+        mock_service,
+        "_handle_standard_custodian_update",
     )
 
     mock_handle_standard.side_effect = [
         DocumentReviewException("Test error"),
         ClientError(
-            {"Error": {"Code": "ConditionalCheckFailedException"}}, "UpdateItem"
+            {"Error": {"Code": "ConditionalCheckFailedException"}},
+            "UpdateItem",
         ),
         None,
     ]
 
     mock_service.update_document_review_custodian(
-        mock_document_review_references, NEW_ODS_CODE
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
     assert mock_handle_standard.call_count == 3
 
@@ -182,7 +203,9 @@ def test_handle_standard_custodian_update_updates_document(mock_service, mocker)
 
 
 def test_get_document_review_by_id(
-    mock_service, mock_document_review_references, mocker
+    mock_service,
+    mock_document_review_references,
+    mocker,
 ):
     mock_get_item = mocker.patch.object(mock_service, "get_item")
     mock_get_item.side_effect = mock_document_review_references
@@ -194,7 +217,9 @@ def test_get_document_review_by_id(
 
 
 def test_update_document_review_for_patient_success(
-    mock_service, mock_review_update, mocker
+    mock_service,
+    mock_review_update,
+    mocker,
 ):
     mock_update_document = mocker.patch.object(mock_service, "update_document")
     mock_update_document.return_value = {"Attributes": {"ID": "test-review-id"}}
@@ -220,7 +245,9 @@ def test_update_document_review_for_patient_success(
 
 
 def test_update_document_review_for_patient_builds_correct_condition_expression(
-    mock_service, mock_review_update, mocker
+    mock_service,
+    mock_review_update,
+    mocker,
 ):
     mock_update_document = mocker.patch.object(mock_service, "update_document")
 
@@ -250,10 +277,13 @@ def test_update_document_review_for_patient_builds_correct_condition_expression(
 
 
 def test_update_document_review_for_patient_conditional_check_failed(
-    mock_service, mock_review_update, mocker
+    mock_service,
+    mock_review_update,
+    mocker,
 ):
     client_error = ClientError(
-        {"Error": {"Code": "ConditionalCheckFailedException"}}, "UpdateItem"
+        {"Error": {"Code": "ConditionalCheckFailedException"}},
+        "UpdateItem",
     )
     mock_update_document = mocker.patch.object(mock_service, "update_document")
     mock_update_document.side_effect = client_error
@@ -285,7 +315,9 @@ def test_update_document_review_for_patient_conditional_check_failed(
 
 
 def test_update_document_review_for_patient_other_client_error(
-    mock_service, mock_review_update, mocker
+    mock_service,
+    mock_review_update,
+    mocker,
 ):
     client_error = ClientError(
         {"Error": {"Code": "ResourceNotFoundException", "Message": "Table not found"}},
@@ -304,14 +336,17 @@ def test_update_document_review_for_patient_other_client_error(
 
 
 def test_update_document_review_with_transaction_builds_correct_items(
-    mock_service, mock_review_update, mocker
+    mock_service,
+    mock_review_update,
+    mocker,
 ):
     """Test that transaction items are built correctly for new and existing reviews."""
     mock_transact_write = mocker.patch.object(
-        mock_service.dynamo_service, "transact_write_items"
+        mock_service.dynamo_service,
+        "transact_write_items",
     )
     mock_transact_item_builder = mocker.patch(
-        "services.document_upload_review_service.build_transaction_item"
+        "services.document_upload_review_service.build_transaction_item",
     )
     new_review = MagicMock(spec=DocumentUploadReviewReference)
     new_review.id = "new-review-id"
@@ -323,7 +358,9 @@ def test_update_document_review_with_transaction_builds_correct_items(
     mock_service.update_document_review_with_transaction(new_review, existing_review)
 
     new_review.model_dump.assert_called_with(
-        exclude_none=True, by_alias=True, exclude={"version", "id"}
+        exclude_none=True,
+        by_alias=True,
+        exclude={"version", "id"},
     )
 
     existing_review.model_dump.assert_called_with(
@@ -339,7 +376,7 @@ def test_update_document_review_with_transaction_builds_correct_items(
 
     first_call = mock_transact_item_builder.call_args_list[0]
     assert first_call.kwargs["conditions"] == [
-        {"field": "ID", "operator": "attribute_not_exists"}
+        {"field": "ID", "operator": "attribute_not_exists"},
     ]
     # Verify second call (existing review) has proper conditions
     second_call = mock_transact_item_builder.call_args_list[1]
@@ -404,13 +441,17 @@ def test_delete_document_review_files_handles_s3_error(mock_service, mocker):
 
 
 def test_update_document_review_with_transaction_transaction_cancelled(
-    mock_service, mock_review_update, mocker
+    mock_service,
+    mock_review_update,
+    mocker,
 ):
     client_error = ClientError(
-        {"Error": {"Code": "TransactionCanceledException"}}, "TransactWriteItems"
+        {"Error": {"Code": "TransactionCanceledException"}},
+        "TransactWriteItems",
     )
     mock_transact_write = mocker.patch.object(
-        mock_service.dynamo_service, "transact_write_items"
+        mock_service.dynamo_service,
+        "transact_write_items",
     )
     mock_transact_write.side_effect = client_error
 
@@ -423,14 +464,16 @@ def test_update_document_review_with_transaction_transaction_cancelled(
 
     with pytest.raises(DocumentReviewException):
         mock_service.update_document_review_with_transaction(
-            new_review, existing_review
+            new_review,
+            existing_review,
         )
 
 
 def test_handle_standard_custodian_update_with_client_error(mock_service, mocker):
     mock_update_document = mocker.patch.object(mock_service, "update_document")
     mock_update_document.side_effect = ClientError(
-        {"Error": {"Code": "ConditionalCheckFailedException"}}, "UpdateItem"
+        {"Error": {"Code": "ConditionalCheckFailedException"}},
+        "UpdateItem",
     )
 
     review = DocumentUploadReviewReference.model_construct()
@@ -440,16 +483,20 @@ def test_handle_standard_custodian_update_with_client_error(mock_service, mocker
 
     with pytest.raises(ClientError):
         mock_service._handle_standard_custodian_update(
-            review, NEW_ODS_CODE, {"custodian"}
+            review,
+            NEW_ODS_CODE,
+            {"custodian"},
         )
 
 
 @freeze_time("2024-01-15 10:30:00")
 def test_handle_pending_review_custodian_update_creates_new_version(
-    mock_service, mocker
+    mock_service,
+    mocker,
 ):
     mock_transaction_update = mocker.patch.object(
-        mock_service, "update_document_review_with_transaction"
+        mock_service,
+        "update_document_review_with_transaction",
     )
 
     expected_timestamp = 1705314600
@@ -465,7 +512,9 @@ def test_handle_pending_review_custodian_update_creates_new_version(
     new_review_copy.custodian = NEW_ODS_CODE
 
     mock_service._handle_pending_review_custodian_update(
-        review, NEW_ODS_CODE, {"custodian"}
+        review,
+        NEW_ODS_CODE,
+        {"custodian"},
     )
 
     assert review.review_status == DocumentReviewStatus.NEVER_REVIEWED
@@ -481,10 +530,12 @@ def test_handle_pending_review_custodian_update_creates_new_version(
 
 
 def test_handle_pending_review_custodian_update_with_transaction_failure(
-    mock_service, mocker
+    mock_service,
+    mocker,
 ):
     mock_transaction_update = mocker.patch.object(
-        mock_service, "update_document_review_with_transaction"
+        mock_service,
+        "update_document_review_with_transaction",
     )
     mock_transaction_update.side_effect = DocumentReviewException("Transaction failed")
 
@@ -496,13 +547,15 @@ def test_handle_pending_review_custodian_update_with_transaction_failure(
 
     with pytest.raises(DocumentReviewException):
         mock_service._handle_pending_review_custodian_update(
-            review, NEW_ODS_CODE, {"custodian"}
+            review,
+            NEW_ODS_CODE,
+            {"custodian"},
         )
 
 
 def test_build_review_dynamo_filter_creates_filter_from_nhs_number(mock_service):
     expected = Attr("ReviewStatus").eq("PENDING_REVIEW") & Attr("NhsNumber").eq(
-        TEST_NHS_NUMBER
+        TEST_NHS_NUMBER,
     )
     actual = mock_service.build_review_dynamo_filter(nhs_number=TEST_NHS_NUMBER)
 
@@ -511,7 +564,7 @@ def test_build_review_dynamo_filter_creates_filter_from_nhs_number(mock_service)
 
 def test_build_review_dynamo_filter_creates_filter_from_uploader_ods_code(mock_service):
     expected = Attr("ReviewStatus").eq("PENDING_REVIEW") & Attr("Author").eq(
-        TEST_ODS_CODE
+        TEST_ODS_CODE,
     )
     actual = mock_service.build_review_dynamo_filter(uploader=TEST_ODS_CODE)
 
@@ -525,7 +578,8 @@ def test_build_filter_handles_both_nhs_number_and_uploader(mock_service):
         & Attr("Author").eq(TEST_ODS_CODE)
     )
     actual = mock_service.build_review_dynamo_filter(
-        nhs_number=TEST_NHS_NUMBER, uploader=TEST_ODS_CODE
+        nhs_number=TEST_NHS_NUMBER,
+        uploader=TEST_ODS_CODE,
     )
 
     assert actual == expected
@@ -533,10 +587,10 @@ def test_build_filter_handles_both_nhs_number_and_uploader(mock_service):
 
 def test_get_document_returns_review_document(mock_service):
     mock_service.dynamo_service.get_item.return_value = {
-        "Item": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]
+        "Item": MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0],
     }
     expected = DocumentUploadReviewReference.model_validate(
-        MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0]
+        MOCK_DOCUMENT_REVIEW_SEARCH_RESPONSE["Items"][0],
     )
 
     actual = mock_service.get_document(TEST_UUID, 1)
@@ -559,7 +613,8 @@ def test_get_document_returns_none_no_documents_found(mock_service):
 
 def test_get_document_by_id_raises_exception_client_error(mock_service):
     mock_service.dynamo_service.get_item.side_effect = ClientError(
-        {"Error": {"Code": "500", "Message": "mocked error"}}, "get_item"
+        {"Error": {"Code": "500", "Message": "mocked error"}},
+        "get_item",
     )
 
     with pytest.raises(DocumentReviewException):
@@ -626,7 +681,8 @@ def test_get_document_by_id_raises_exception_client_error(mock_service):
 )
 def test_build_paginator_query_filter(mock_service, nhs_number, uploader, expected):
     actual = mock_service.build_paginator_query_filter(
-        nhs_number=nhs_number, uploader=uploader
+        nhs_number=nhs_number,
+        uploader=uploader,
     )
 
     assert actual == expected
@@ -663,6 +719,7 @@ def test_query_docs_pending_review_with_paginator(mock_service):
         limit=50,
         start_key=None,
         page_size=1,
+        scan_index_forward=None,
     )
 
     assert actual == expected

@@ -135,15 +135,17 @@ def test_lambda_handler_handles_non_200_response_from_get_practitioner(
     api_error = HealthcareWorkerAPIException(status_code=status_code)
 
     mock_healthcare_worker_api_service.get_practitioner.side_effect = api_error
-    expected_body = api_error.message
-
-    expected = ApiGatewayResponse(
-        502,
-        json.dumps(expected_body),
-        "GET",
-    ).create_api_gateway_response()
 
     actual = lambda_handler(mock_valid_event, context)
+
+    expected_body = LambdaError.GetUserInfoError.create_error_body(
+        {"message": api_error.message, "code": status_code},
+    )
+    expected = ApiGatewayResponse(
+        status_code,
+        expected_body,
+        "GET",
+    ).create_api_gateway_response()
 
     assert actual == expected
 
@@ -161,7 +163,9 @@ def test_lambda_handler_handles_validation_error_from_get_practitioner(
 
     expected = ApiGatewayResponse(
         500,
-        LambdaError.UserRestrictionModelValidationError.create_error_body(),
+        LambdaError.UserRestrictionModelValidationError.create_error_body(
+            details="Failed to validate against practitioner model.",
+        ),
         "GET",
     ).create_api_gateway_response()
 

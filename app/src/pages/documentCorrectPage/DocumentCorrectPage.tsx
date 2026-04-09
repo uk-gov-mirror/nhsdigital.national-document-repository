@@ -67,7 +67,7 @@ const DocumentCorrectPage = (): React.JSX.Element => {
         getDocumentRef.current = true;
         const docRef = location.state?.documentReference;
         if (!docRef) {
-            navigate(routes.SERVER_ERROR);
+            navigate(routes.PATIENT_DOCUMENTS);
             return;
         }
 

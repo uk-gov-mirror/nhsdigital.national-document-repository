@@ -19,9 +19,6 @@ import { RecordLayout } from '../../../generic/recordCard/RecordCard';
 import { RecordLoader, RecordLoaderProps } from '../../../generic/recordLoader/RecordLoader';
 import DocumentUploadLloydGeorgePreview from '../../_documentManagement/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 
-export const incorrectFormatMessage =
-    "Enter a valid patient NHS number. If you keep getting this message, select 'I don't know the NHS number'.";
-
 interface ReviewDetailsPatientSearchPageProps {
     reviewData: ReviewDetails | null;
     uploadDocuments: ReviewUploadDocument[];

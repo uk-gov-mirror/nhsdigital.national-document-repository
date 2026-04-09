@@ -1,0 +1,29 @@
+{
+  "_description": "USB-Accept-Unprocessed",
+  "bulk_upload_report": {
+    "FilePath": "accept-usb/9730153760/1of1_Lloyd_George_Record_[Ruby Sandra MANTON]_[9730153760]_[08-01-2003].pdf",
+    "NhsNumber": "9730153760",
+    "PdsOdsCode": "H81109",
+    "Reason": "Patient matched on full match 3/3, matched on 1 family_name and 2 given name",
+    "SentToReview": false,
+    "StoredFileName": "9730153760/1of1_Lloyd_George_Record_[Ruby Sandra MANTON]_[9730153760]_[08-01-2003].pdf",
+    "UploadStatus": "complete",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": {
+    "Author": "M85143",
+    "ContentType": "application/pdf",
+    "CurrentGpOds": "H81109",
+    "Custodian": "H81109",
+    "DocStatus": "final",
+    "DocumentScanCreation": "2023-01-01",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileName": "1of1_Lloyd_George_Record_[Ruby Sandra MANTON]_[9730153760]_[08-01-2003].pdf",
+    "FileSize": "Decimal('173760')",
+    "NhsNumber": "9730153760",
+    "Status": "current",
+    "Uploaded": true,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+  }
+}

@@ -33,7 +33,7 @@
         "confirmFilesTableParagraph": "",
         "beforeYouUploadTitle": "Before you upload",
         "previewUploadTitle": "Preview existing scanned paper notes record",
-        "uploadFilesExtraParagraph": "You can add a note to the patient's electronic health record to say their Lloyd George record is stored in this service. Use SNOMED code 16521000000101.",
+        "uploadFilesExtraParagraph": "",
         "reviewDocumentTitle": "Scanned paper notes",
         "addMoreFilesRadioNoText": "No, I don't have anymore scanned paper notes to add for this patient",
         "addMoreFilesRadioYesText": "Yes, I have more scanned paper notes to add for this patient",
@@ -46,6 +46,10 @@
         "chosenToRemovePagesSubtitle": "You have chosen to remove these pages from the scanned paper notes:",
         "versionHistoryLinkLabel": "View version history for these notes",
         "versionHistoryLinkDescription": "View or restore other versions if, for example, there's a mistake in these notes.",
-        "searchResultDocumentTypeLabel": "Scanned paper notes V{version}"
+        "searchResultDocumentTypeLabel": "Scanned paper notes V{version}",
+        "versionHistoryCompleteLabel": "scanned paper notes V{version}",
+        "versionHistoryHeader": "Version history for scanned paper notes",
+        "versionHistoryTimelineHeader": "Scanned paper notes: version {version}",
+        "restoreProgressingPageTitle": "Restoring scanned paper notes"
     }
 }

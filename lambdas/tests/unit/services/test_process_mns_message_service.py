@@ -1,13 +1,16 @@
 from unittest.mock import MagicMock
 
+import freezegun
 import pytest
 from botocore.exceptions import ClientError
+
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from models.document_reference import DocumentReference
 from models.document_review import DocumentUploadReviewReference
 from models.sqs.mns_sqs_message import MNSSQSMessage
+from models.user_restrictions.user_restrictions import UserRestriction
 from services.process_mns_message_service import MNSNotificationService
-from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_NHS_NUMBER
+from tests.unit.conftest import TEST_CURRENT_GP_ODS, TEST_NHS_NUMBER, TEST_UUID
 from tests.unit.handlers.test_mns_notification_handler import (
     MOCK_DEATH_MESSAGE_BODY,
     MOCK_GP_CHANGE_MESSAGE_BODY,
@@ -15,6 +18,20 @@ from tests.unit.handlers.test_mns_notification_handler import (
     MOCK_REMOVED_DEATH_MESSAGE_BODY,
 )
 from utils.exceptions import PdsErrorException
+
+MOCK_RESTRICTION_DICT = {
+    "ID": TEST_UUID,
+    "RestrictedSmartcard": "123456789012",
+    "NhsNumber": TEST_NHS_NUMBER,
+    "Custodian": TEST_CURRENT_GP_ODS,
+    "Created": 1700000000,
+    "CreatorSmartcard": "223456789022",
+    "RemoverSmartCard": None,
+    "IsActive": True,
+    "LastUpdated": 1700000001,
+}
+
+MOCK_RESTRICTION = UserRestriction.model_validate(MOCK_RESTRICTION_DICT)
 
 
 @pytest.fixture
@@ -25,17 +42,7 @@ def mns_service(mocker, set_env, monkeypatch):
     mocker.patch.object(service, "document_review_service")
     mocker.patch.object(service, "lg_document_service")
     mocker.patch.object(service, "sqs_service")
-    yield service
-
-
-@pytest.fixture
-def mns_service_feature_disabled(mocker, set_env, monkeypatch):
-    monkeypatch.setenv("PDS_FHIR_IS_STUBBED", "False")
-    service = MNSNotificationService()
-    mocker.patch.object(service, "pds_service")
-    mocker.patch.object(service, "document_review_service")
-    mocker.patch.object(service, "lg_document_service")
-    mocker.patch.object(service, "sqs_service")
+    mocker.patch.object(service, "restrictions_dynamo_service")
     yield service
 
 
@@ -89,7 +96,9 @@ removed_death_notification_message = MNSSQSMessage(**MOCK_REMOVED_DEATH_MESSAGE_
 
 
 def test_handle_gp_change_message_called_message_type_gp_change(
-    mns_service, mock_handle_gp_change, mock_handle_death_notification
+    mns_service,
+    mock_handle_gp_change,
+    mock_handle_death_notification,
 ):
     mns_service.handle_mns_notification(gp_change_message)
 
@@ -98,7 +107,9 @@ def test_handle_gp_change_message_called_message_type_gp_change(
 
 
 def test_handle_gp_change_message_not_called_message_death_message(
-    mns_service, mock_handle_death_notification, mock_handle_gp_change
+    mns_service,
+    mock_handle_death_notification,
+    mock_handle_gp_change,
 ):
     mns_service.handle_mns_notification(death_notification_message)
 
@@ -119,10 +130,13 @@ def test_handle_mns_notification_error_handling_pds_error(mns_service, mocker):
 
 def test_handle_mns_notification_error_handling_client_error(mns_service, mocker):
     client_error = ClientError(
-        {"Error": {"Code": "TestException", "Message": "Test exception"}}, "operation"
+        {"Error": {"Code": "TestException", "Message": "Test exception"}},
+        "operation",
     )
     mocker.patch.object(
-        mns_service, "handle_gp_change_notification", side_effect=client_error
+        mns_service,
+        "handle_gp_change_notification",
+        side_effect=client_error,
     )
 
     with pytest.raises(ClientError):
@@ -130,7 +144,10 @@ def test_handle_mns_notification_error_handling_client_error(mns_service, mocker
 
 
 def test_handle_gp_change_notification_with_patient_documents(
-    mns_service, mock_document_references, mock_document_review_references, mocker
+    mns_service,
+    mock_document_references,
+    mock_document_review_references,
+    mocker,
 ):
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mns_service.get_all_patient_documents.return_value = (
@@ -144,26 +161,31 @@ def test_handle_gp_change_notification_with_patient_documents(
     mns_service.handle_gp_change_notification(gp_change_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        gp_change_message.subject.nhs_number
+        gp_change_message.subject.nhs_number,
     )
     mns_service.get_updated_gp_ods.assert_called_once_with(
-        gp_change_message.subject.nhs_number
+        gp_change_message.subject.nhs_number,
     )
     mns_service.update_all_patient_documents.assert_called_once_with(
-        mock_document_references, mock_document_review_references, NEW_ODS_CODE
+        mock_document_references,
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
 
 
 def test_handle_gp_change_notification_no_patient_documents(mns_service, mocker):
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mns_service.get_all_patient_documents.return_value = ([], [])
+    mns_service.restrictions_dynamo_service.query_restrictions_by_nhs_number.return_value = (
+        []
+    )
     mocker.patch.object(mns_service, "get_updated_gp_ods")
     mocker.patch.object(mns_service, "update_all_patient_documents")
 
     mns_service.handle_gp_change_notification(gp_change_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        gp_change_message.subject.nhs_number
+        gp_change_message.subject.nhs_number,
     )
     mns_service.get_updated_gp_ods.assert_not_called()
     mns_service.update_all_patient_documents.assert_not_called()
@@ -182,7 +204,10 @@ def test_handle_death_notification_informal(mns_service, mocker):
 
 
 def test_handle_death_notification_removed_with_documents(
-    mns_service, mock_document_references, mock_document_review_references, mocker
+    mns_service,
+    mock_document_references,
+    mock_document_review_references,
+    mocker,
 ):
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mocker.patch.object(mns_service, "get_updated_gp_ods")
@@ -196,13 +221,15 @@ def test_handle_death_notification_removed_with_documents(
     mns_service.handle_death_notification(removed_death_notification_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        removed_death_notification_message.subject.nhs_number
+        removed_death_notification_message.subject.nhs_number,
     )
     mns_service.get_updated_gp_ods.assert_called_once_with(
-        removed_death_notification_message.subject.nhs_number
+        removed_death_notification_message.subject.nhs_number,
     )
     mns_service.update_all_patient_documents.assert_called_once_with(
-        mock_document_references, mock_document_review_references, NEW_ODS_CODE
+        mock_document_references,
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
 
 
@@ -211,18 +238,24 @@ def test_handle_death_notification_removed_no_documents(mns_service, mocker):
     mocker.patch.object(mns_service, "get_updated_gp_ods")
     mocker.patch.object(mns_service, "update_all_patient_documents")
     mns_service.get_all_patient_documents.return_value = ([], [])
+    mns_service.restrictions_dynamo_service.query_restrictions_by_nhs_number.return_value = (
+        []
+    )
 
     mns_service.handle_death_notification(removed_death_notification_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        removed_death_notification_message.subject.nhs_number
+        removed_death_notification_message.subject.nhs_number,
     )
     mns_service.get_updated_gp_ods.assert_not_called()
     mns_service.update_all_patient_documents.assert_not_called()
 
 
 def test_handle_death_notification_formal_with_documents(
-    mns_service, mock_document_references, mock_document_review_references, mocker
+    mns_service,
+    mock_document_references,
+    mock_document_review_references,
+    mocker,
 ):
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mocker.patch.object(mns_service, "get_updated_gp_ods")
@@ -235,7 +268,7 @@ def test_handle_death_notification_formal_with_documents(
     mns_service.handle_death_notification(death_notification_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        death_notification_message.subject.nhs_number
+        death_notification_message.subject.nhs_number,
     )
     mns_service.update_all_patient_documents.assert_called_once_with(
         mock_document_references,
@@ -254,7 +287,7 @@ def test_handle_death_notification_formal_no_documents(mns_service, mocker):
     mns_service.handle_death_notification(death_notification_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        death_notification_message.subject.nhs_number
+        death_notification_message.subject.nhs_number,
     )
     mns_service.update_all_patient_documents.assert_not_called()
 
@@ -269,12 +302,15 @@ def test_get_updated_gp_ods(mns_service):
 
     assert result == expected_ods
     mns_service.pds_service.fetch_patient_details.assert_called_once_with(
-        TEST_NHS_NUMBER
+        TEST_NHS_NUMBER,
     )
 
 
 def test_pds_is_called_death_notification_removed(
-    mns_service, mocker, mock_document_references, mock_document_review_references
+    mns_service,
+    mocker,
+    mock_document_references,
+    mock_document_review_references,
 ):
     mocker.patch.object(mns_service, "get_updated_gp_ods")
     mocker.patch.object(mns_service, "update_all_patient_documents")
@@ -288,6 +324,28 @@ def test_pds_is_called_death_notification_removed(
 
     mns_service.get_updated_gp_ods.assert_called()
     mns_service.update_all_patient_documents.assert_called()
+
+
+@pytest.mark.parametrize(
+    "mns_event",
+    [removed_death_notification_message, gp_change_message],
+)
+def test_pds_called_only_restrictions_present(
+    mns_service,
+    mocker,
+    mns_event,
+):
+    mocker.patch.object(mns_service, "get_updated_gp_ods")
+    mocker.patch.object(mns_service, "get_all_patient_documents")
+    mns_service.get_all_patient_documents.return_value = ([], [])
+
+    mns_service.restrictions_dynamo_service.query_restrictions_by_nhs_number.return_value = [
+        MOCK_RESTRICTION,
+    ]
+
+    mns_service.handle_mns_notification(mns_event)
+
+    mns_service.get_updated_gp_ods.assert_called()
 
 
 def test_get_all_patient_documents(mns_service, mocker):
@@ -306,54 +364,71 @@ def test_get_all_patient_documents(mns_service, mocker):
     assert lg_docs == expected_lg_docs
     assert review_docs == expected_review_docs
     mns_service.lg_document_service.fetch_documents_from_table_with_nhs_number.assert_called_once_with(
-        TEST_NHS_NUMBER
+        TEST_NHS_NUMBER,
     )
     mns_service.document_review_service.fetch_documents_from_table_with_nhs_number.assert_called_once_with(
-        TEST_NHS_NUMBER
+        TEST_NHS_NUMBER,
     )
 
 
 def test_update_all_patient_documents_with_both_types(
-    mns_service, mock_document_references, mock_document_review_references, mocker
+    mns_service,
+    mock_document_references,
+    mock_document_review_references,
+    mocker,
 ):
     mns_service.update_all_patient_documents(
-        mock_document_references, mock_document_review_references, NEW_ODS_CODE
+        mock_document_references,
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
 
     mns_service.lg_document_service.update_patient_ods_code.assert_called_once_with(
-        mock_document_references, NEW_ODS_CODE
+        mock_document_references,
+        NEW_ODS_CODE,
     )
     mns_service.document_review_service.update_document_review_custodian.assert_called_once_with(
-        mock_document_review_references, NEW_ODS_CODE
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
 
 
 def test_update_all_patient_documents_with_only_lg_documents(
-    mns_service, mock_document_references, mocker
+    mns_service,
+    mock_document_references,
+    mocker,
 ):
     mns_service.update_all_patient_documents(mock_document_references, [], NEW_ODS_CODE)
 
     mns_service.lg_document_service.update_patient_ods_code.assert_called_once_with(
-        mock_document_references, NEW_ODS_CODE
+        mock_document_references,
+        NEW_ODS_CODE,
     )
     mns_service.document_review_service.update_document_review_custodian.assert_not_called()
 
 
 def test_update_all_patient_documents_with_only_review_documents(
-    mns_service, mock_document_review_references, mocker
+    mns_service,
+    mock_document_review_references,
+    mocker,
 ):
     mns_service.update_all_patient_documents(
-        [], mock_document_review_references, NEW_ODS_CODE
+        [],
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
 
     mns_service.lg_document_service.update_patient_ods_code.assert_not_called()
     mns_service.document_review_service.update_document_review_custodian.assert_called_once_with(
-        mock_document_review_references, NEW_ODS_CODE
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
 
 
 def test_handle_gp_change_notification_with_only_lg_documents(
-    mns_service, mock_document_references, mocker
+    mns_service,
+    mock_document_references,
+    mocker,
 ):
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mns_service.get_all_patient_documents.return_value = (
@@ -367,18 +442,22 @@ def test_handle_gp_change_notification_with_only_lg_documents(
     mns_service.handle_gp_change_notification(gp_change_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        gp_change_message.subject.nhs_number
+        gp_change_message.subject.nhs_number,
     )
     mns_service.get_updated_gp_ods.assert_called_once_with(
-        gp_change_message.subject.nhs_number
+        gp_change_message.subject.nhs_number,
     )
     mns_service.update_all_patient_documents.assert_called_once_with(
-        mock_document_references, [], NEW_ODS_CODE
+        mock_document_references,
+        [],
+        NEW_ODS_CODE,
     )
 
 
 def test_handle_gp_change_notification_with_only_review_documents(
-    mns_service, mock_document_review_references, mocker
+    mns_service,
+    mock_document_review_references,
+    mocker,
 ):
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mns_service.get_all_patient_documents.return_value = (
@@ -392,18 +471,22 @@ def test_handle_gp_change_notification_with_only_review_documents(
     mns_service.handle_gp_change_notification(gp_change_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        gp_change_message.subject.nhs_number
+        gp_change_message.subject.nhs_number,
     )
     mns_service.get_updated_gp_ods.assert_called_once_with(
-        gp_change_message.subject.nhs_number
+        gp_change_message.subject.nhs_number,
     )
     mns_service.update_all_patient_documents.assert_called_once_with(
-        [], mock_document_review_references, NEW_ODS_CODE
+        [],
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
 
 
 def test_handle_death_notification_formal_with_only_lg_documents(
-    mns_service, mock_document_references, mocker
+    mns_service,
+    mock_document_references,
+    mocker,
 ):
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mocker.patch.object(mns_service, "get_updated_gp_ods")
@@ -416,7 +499,7 @@ def test_handle_death_notification_formal_with_only_lg_documents(
     mns_service.handle_death_notification(death_notification_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        death_notification_message.subject.nhs_number
+        death_notification_message.subject.nhs_number,
     )
     mns_service.update_all_patient_documents.assert_called_once_with(
         mock_document_references,
@@ -427,7 +510,9 @@ def test_handle_death_notification_formal_with_only_lg_documents(
 
 
 def test_handle_death_notification_formal_with_only_review_documents(
-    mns_service, mock_document_review_references, mocker
+    mns_service,
+    mock_document_review_references,
+    mocker,
 ):
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mocker.patch.object(mns_service, "get_updated_gp_ods")
@@ -440,7 +525,7 @@ def test_handle_death_notification_formal_with_only_review_documents(
     mns_service.handle_death_notification(death_notification_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        death_notification_message.subject.nhs_number
+        death_notification_message.subject.nhs_number,
     )
     mns_service.update_all_patient_documents.assert_called_once_with(
         [],
@@ -451,7 +536,9 @@ def test_handle_death_notification_formal_with_only_review_documents(
 
 
 def test_handle_death_notification_removed_with_only_lg_documents(
-    mns_service, mock_document_references, mocker
+    mns_service,
+    mock_document_references,
+    mocker,
 ):
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mocker.patch.object(mns_service, "get_updated_gp_ods")
@@ -465,18 +552,22 @@ def test_handle_death_notification_removed_with_only_lg_documents(
     mns_service.handle_death_notification(removed_death_notification_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        removed_death_notification_message.subject.nhs_number
+        removed_death_notification_message.subject.nhs_number,
     )
     mns_service.get_updated_gp_ods.assert_called_once_with(
-        removed_death_notification_message.subject.nhs_number
+        removed_death_notification_message.subject.nhs_number,
     )
     mns_service.update_all_patient_documents.assert_called_once_with(
-        mock_document_references, [], NEW_ODS_CODE
+        mock_document_references,
+        [],
+        NEW_ODS_CODE,
     )
 
 
 def test_handle_death_notification_removed_with_only_review_documents(
-    mns_service, mock_document_review_references, mocker
+    mns_service,
+    mock_document_review_references,
+    mocker,
 ):
     mocker.patch.object(mns_service, "get_all_patient_documents")
     mocker.patch.object(mns_service, "get_updated_gp_ods")
@@ -490,11 +581,94 @@ def test_handle_death_notification_removed_with_only_review_documents(
     mns_service.handle_death_notification(removed_death_notification_message)
 
     mns_service.get_all_patient_documents.assert_called_once_with(
-        removed_death_notification_message.subject.nhs_number
+        removed_death_notification_message.subject.nhs_number,
     )
     mns_service.get_updated_gp_ods.assert_called_once_with(
-        removed_death_notification_message.subject.nhs_number
+        removed_death_notification_message.subject.nhs_number,
     )
     mns_service.update_all_patient_documents.assert_called_once_with(
-        [], mock_document_review_references, NEW_ODS_CODE
+        [],
+        mock_document_review_references,
+        NEW_ODS_CODE,
     )
+
+
+@pytest.mark.parametrize(
+    "mns_event",
+    [removed_death_notification_message, gp_change_message],
+)
+def test_handle_mns_notification_calls_update_restrictions_called_on_notification(
+    mns_service,
+    mns_event,
+    mocker,
+):
+    mns_service.restrictions_dynamo_service.query_restrictions_by_nhs_number.return_value = [
+        MOCK_RESTRICTION,
+    ]
+    mocker.patch.object(mns_service, "update_restrictions")
+    updated_ods = mocker.patch.object(
+        mns_service,
+        "get_updated_gp_ods",
+        return_value=TEST_CURRENT_GP_ODS,
+    )
+
+    mns_service.handle_mns_notification(mns_event)
+
+    mns_service.update_restrictions.assert_called_with(
+        nhs_number=TEST_NHS_NUMBER,
+        custodian=updated_ods.return_value,
+        restrictions=[MOCK_RESTRICTION],
+    )
+
+
+def test_handle_mns_notification_calls_update_restriction_called_on_death_notification(
+    mns_service,
+    mocker,
+):
+    mns_service.restrictions_dynamo_service.query_restrictions_by_nhs_number.return_value = [
+        MOCK_RESTRICTION,
+    ]
+    mocker.patch.object(mns_service, "update_restrictions")
+
+    mns_service.handle_mns_notification(death_notification_message)
+
+    mns_service.restrictions_dynamo_service.query_restrictions_by_nhs_number.assert_called_with(
+        nhs_number=TEST_NHS_NUMBER,
+    )
+
+    mns_service.update_restrictions.assert_called_once_with(
+        nhs_number=TEST_NHS_NUMBER,
+        custodian=PatientOdsInactiveStatus.DECEASED,
+        restrictions=[MOCK_RESTRICTION],
+    )
+
+
+@freezegun.freeze_time("2021-04-01")
+def test_update_restrictions_uses_restriction_dynamo_service(mns_service, mocker):
+    mocker.patch.object(mns_service, "get_updated_gp_ods", return_value=NEW_ODS_CODE)
+
+    mns_service.restrictions_dynamo_service.query_restrictions_by_nhs_number.return_value = [
+        MOCK_RESTRICTION,
+    ]
+
+    mns_service.update_restrictions(
+        nhs_number=TEST_NHS_NUMBER,
+        custodian=NEW_ODS_CODE,
+        restrictions=[MOCK_RESTRICTION],
+    )
+
+    mns_service.restrictions_dynamo_service.update_restriction_custodian.assert_called_once_with(
+        restriction_id=MOCK_RESTRICTION.id,
+        updated_custodian=NEW_ODS_CODE,
+    )
+
+
+def test_update_restrictions_not_called_on_informal_death_notification(
+    mns_service,
+    mocker,
+):
+    mock_update_restriction = mocker.patch.object(mns_service, "update_restrictions")
+
+    mns_service.handle_mns_notification(informal_death_notification_message)
+
+    mock_update_restriction.assert_not_called()

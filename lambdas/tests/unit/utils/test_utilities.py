@@ -1,15 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import pytest
+
 from services.mock_pds_service import MockPdsApiService
 from services.pds_api_service import PdsApiService
 from utils.exceptions import InvalidNhsNumberException
 from utils.utilities import (
     camelize_dict,
+    datetime_to_utc_iso_string,
+    epoch_seconds_to_datetime_utc,
     flatten,
     format_cloudfront_url,
     get_file_key_from_s3_url,
     get_pds_service,
+    iso_utc_string_to_datetime,
     parse_date,
     redact_id_to_last_4_chars,
     utc_date_string,
@@ -153,3 +157,87 @@ def test_utc_date_string_returns_correct_utc_date(
     expected_date_string,
 ):
     assert utc_date_string(timestamp_seconds) == expected_date_string
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        None,
+        "",
+        "   ",
+    ],
+)
+def test_iso_utc_string_to_datetime_returns_none_for_empty_or_none(value):
+    assert iso_utc_string_to_datetime(value) is None
+
+
+def test_iso_utc_string_to_datetime_parses_z_suffix():
+    result = iso_utc_string_to_datetime("2025-03-11T16:26:44.520811Z")
+
+    assert result == datetime(2025, 3, 11, 16, 26, 44, 520811, tzinfo=timezone.utc)
+
+
+def test_iso_utc_string_to_datetime_normalises_offset_to_utc():
+    result = iso_utc_string_to_datetime("2025-03-11T18:26:44+02:00")
+
+    assert result == datetime(2025, 3, 11, 16, 26, 44, tzinfo=timezone.utc)
+
+
+def test_iso_utc_string_to_datetime_naive_datetime_assumes_utc():
+    result = iso_utc_string_to_datetime("2025-03-11T16:26:44")
+
+    assert result == datetime(2025, 3, 11, 16, 26, 44, tzinfo=timezone.utc)
+
+
+def test_iso_utc_string_to_datetime_invalid_string_returns_none():
+    assert iso_utc_string_to_datetime("not-a-date") is None
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (0, datetime(1970, 1, 1, tzinfo=timezone.utc)),
+        ("1704067200", datetime(2024, 1, 1, tzinfo=timezone.utc)),
+    ],
+)
+def test_epoch_seconds_to_datetime_utc_valid(value, expected):
+    assert epoch_seconds_to_datetime_utc(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        None,
+        "abc",
+        "123.45",
+        {},
+        [],
+    ],
+)
+def test_epoch_seconds_to_datetime_utc_invalid_returns_none(value):
+    assert epoch_seconds_to_datetime_utc(value) is None
+
+
+def test_datetime_to_utc_iso_string_none_returns_empty_string():
+    assert datetime_to_utc_iso_string(None) == ""
+
+
+def test_datetime_to_utc_iso_string_naive_datetime_assumes_utc():
+    dt = datetime(2024, 1, 1, 12, 34, 56, 999999)
+
+    assert datetime_to_utc_iso_string(dt) == "2024-01-01T12:34:56"
+
+
+def test_datetime_to_utc_iso_string_converts_timezone_and_drops_microseconds():
+    dt = datetime(
+        2024,
+        1,
+        1,
+        12,
+        0,
+        0,
+        123456,
+        tzinfo=timezone(timedelta(hours=2)),
+    )
+
+    assert datetime_to_utc_iso_string(dt) == "2024-01-01T10:00:00"

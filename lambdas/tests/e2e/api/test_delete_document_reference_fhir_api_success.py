@@ -2,6 +2,7 @@ import io
 import uuid
 
 import requests
+
 from tests.e2e.conftest import API_ENDPOINT, API_KEY, LLOYD_GEORGE_SNOMED
 from tests.e2e.helpers.data_helper import LloydGeorgeDataHelper
 
@@ -68,4 +69,5 @@ def test_delete_record_by_patient_details_and_get_by_id(test_data):
     assert delete_response.status_code == 204
 
     get_response_final = requests.request("GET", url, headers=headers)
-    assert get_response_final.status_code == 404
+    assert get_response_final.status_code == 200
+    assert get_response_final.json()["docStatus"] == "deprecated"

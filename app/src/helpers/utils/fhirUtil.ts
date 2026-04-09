@@ -1,4 +1,6 @@
 import { FhirDocumentReference } from '../../types/fhirR4/documentReference';
+import { DocumentReference } from '../../types/pages/documentSearchResultsPage/types';
+import { DOCUMENT_TYPE } from './documentType';
 
 /**
  * Gets the version ID from a FHIR R4 DocumentReference
@@ -24,3 +26,32 @@ export const getAuthorValue = (doc: FhirDocumentReference): string =>
     doc.author?.[0]?.display ??
     doc.author?.[0]?.reference ??
     '';
+
+export const getDocumentReferenceFromFhir = (
+    fhirDocRef: FhirDocumentReference,
+): DocumentReference => {
+    const documentSnomedCodeType = fhirDocRef.type?.coding?.[0]?.code! as DOCUMENT_TYPE;
+    const created = getCreatedDate(fhirDocRef);
+    const author = getAuthorValue(fhirDocRef);
+    const fileName = fhirDocRef.content?.[0]?.attachment?.title ?? '';
+    const id = fhirDocRef.id!;
+    const fileSize = fhirDocRef.content?.[0]?.attachment?.size ?? 0;
+    const version = getVersionId(fhirDocRef);
+    const contentType = fhirDocRef.content?.[0]?.attachment?.contentType ?? '';
+    const isPdf = contentType === 'application/pdf';
+    let url = fhirDocRef.content?.[0]?.attachment?.url!;
+
+    return {
+        documentSnomedCodeType,
+        id,
+        created,
+        author,
+        fileName,
+        fileSize,
+        version,
+        contentType,
+        url,
+        isPdf,
+        virusScannerResult: '',
+    };
+};

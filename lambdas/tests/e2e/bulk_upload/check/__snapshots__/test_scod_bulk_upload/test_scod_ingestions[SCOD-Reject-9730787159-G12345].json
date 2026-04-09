@@ -1,0 +1,29 @@
+{
+  "_description": "SCOD-Reject",
+  "bulk_upload_report": {
+    "FilePath": "expedite/G12345/1of1_Lloyd_George_Record_[Felix Alfred VOS]_[9730787159]_[03-01-2016].pdf",
+    "NhsNumber": "9730787159",
+    "PdsOdsCode": "",
+    "Reason": "Invalid NHS number format",
+    "SentToReview": true,
+    "StoredFileName": "expedite/G12345/1of1_Lloyd_George_Record_[Felix Alfred VOS]_[9730787159]_[03-01-2016].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "G12345"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "G12345",
+    "Custodian": "G12345",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "1of1_Lloyd_George_Record_[Felix Alfred VOS]_[9730787159]_[03-01-2016].pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  },
+  "unstitched": []
+}

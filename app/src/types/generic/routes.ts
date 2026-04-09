@@ -10,6 +10,7 @@ export enum routes {
     AUTH_ERROR = '/auth-error',
     UNAUTHORISED_LOGIN = '/unauthorised-login',
     SERVER_ERROR = '/server-error',
+    GENERIC_ERROR = '/error',
     SESSION_EXPIRED = '/session-expired',
     PRIVACY_POLICY = '/privacy-policy',
     LOGOUT = '/logout',
@@ -30,6 +31,9 @@ export enum routes {
     DOCUMENT_REASSIGN_PAGES = '/patient/document-reassign-pages',
     DOCUMENT_REASSIGN_PAGES_WILDCARD = '/patient/document-reassign-pages/*',
 
+    DOCUMENT_VERSION_HISTORY = '/patient/documents/version-history',
+    DOCUMENT_VERSION_HISTORY_WILDCARD = '/patient/documents/version-history/*',
+
     MOCK_LOGIN = 'Auth/MockLogin',
 
     ADMIN_ROUTE = '/admin',
@@ -43,6 +47,7 @@ export enum routes {
     COOKIES_POLICY_WILDCARD = '/cookies-policy/*',
 
     USER_PATIENT_RESTRICTIONS = '/user-patient-restrictions',
+    USER_PATIENT_RESTRICTIONS_WILDCARD = '/user-patient-restrictions/*',
 }
 
 export enum routeChildren {
@@ -74,8 +79,11 @@ export enum routeChildren {
     DOCUMENT_REASSIGN_UPLOADING = '/patient/document-reassign-pages/uploading',
     DOCUMENT_REASSIGN_COMPLETE = '/patient/document-reassign-pages/complete',
 
-    DOCUMENT_VIEW_VERSION_HISTORY = '/patient/documents/version-history-view',
     DOCUMENT_VERSION_HISTORY = '/patient/documents/version-history',
+    DOCUMENT_VIEW_VERSION_HISTORY = '/patient/documents/version-history/view',
+    DOCUMENT_VERSION_RESTORE_CONFIRM = '/patient/documents/version-history/restore-confirm',
+    DOCUMENT_VERSION_RESTORE_UPLOADING = '/patient/documents/version-history/restore-uploading',
+    DOCUMENT_VERSION_RESTORE_COMPLETE = '/patient/documents/version-history/restore-complete',
 
     DOCUMENT_VIEW = '/patient/documents/view',
     DOCUMENT_DELETE = '/patient/documents/delete',
@@ -104,6 +112,18 @@ export enum routeChildren {
     REVIEW_FILE_ERRORS = '/reviews/:reviewId/file-errors',
 
     COOKIES_POLICY_UPDATED = '/cookies-policy/confirmation',
+
+    USER_PATIENT_RESTRICTIONS_ADD_CONFIRM = '/user-patient-restrictions/add-confirm',
+    USER_PATIENT_RESTRICTIONS_VIEW = '/user-patient-restrictions/view',
+    USER_PATIENT_RESTRICTIONS_LIST = '/user-patient-restrictions/list',
+    USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT = '/user-patient-restrictions/search-patient',
+    USER_PATIENT_RESTRICTIONS_VERIFY_PATIENT = '/user-patient-restrictions/verify-patient',
+    USER_PATIENT_RESTRICTIONS_EXISTING_RESTRICTIONS = '/user-patient-restrictions/existing-restrictions',
+    USER_PATIENT_RESTRICTIONS_SEARCH_STAFF = '/user-patient-restrictions/search-staff',
+    USER_PATIENT_RESTRICTIONS_VERIFY_STAFF = '/user-patient-restrictions/verify-staff',
+    USER_PATIENT_RESTRICTIONS_REMOVE_CONFIRM = '/user-patient-restrictions/remove-confirm',
+    USER_PATIENT_RESTRICTIONS_ADD_CANCEL = '/user-patient-restrictions/add-cancel',
+    USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE = '/user-patient-restrictions/action-complete',
 }
 
 export const navigateUrlParam = (

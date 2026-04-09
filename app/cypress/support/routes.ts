@@ -5,5 +5,11 @@ export enum routes {
     createReport = '/create-report',
     createReportComplete = '/create-report/complete',
     lloydGeorgeView = '/patient/lloyd-george-record',
+    patientDocuments = '/patient/documents',
+    documentView = '/patient/documents/view',
+    documentVersionHistory = '/patient/documents/version-history',
+    restoreConfirm = '/patient/documents/restore-confirm',
+    restoreUploading = '/patient/documents/restore-uploading',
+    restoreComplete = '/patient/documents/restore-complete',
     sessionExpired = '/session-expired',
 }

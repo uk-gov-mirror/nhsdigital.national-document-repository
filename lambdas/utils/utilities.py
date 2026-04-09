@@ -1,3 +1,4 @@
+# lambdas/utils/utilities.py
 import itertools
 import os
 import re
@@ -6,6 +7,7 @@ from datetime import date, datetime, time, timezone
 from urllib.parse import urlparse
 
 from inflection import camelize
+
 from services.base.nhs_oauth_service import NhsOauthService
 from services.base.ssm_service import SSMService
 from services.mock_pds_service import MockPdsApiService
@@ -116,6 +118,7 @@ def parse_date(date_string: str) -> datetime | None:
         "%b %d, %Y",
         "%d-%b-%Y",
         "%d-%B-%Y",
+        "%d.%m.%Y",
     ]
 
     for fmt in SUPPORTED_FORMATS:
@@ -145,3 +148,89 @@ def utc_day_start_timestamp(day: date) -> int:
 
 def utc_day_end_timestamp(day: date) -> int:
     return utc_day_start_timestamp(day) + 24 * 60 * 60 - 1
+
+
+ISO_UTC_SUFFIX = "Z"
+
+
+def iso_utc_string_to_datetime(value: str | None) -> datetime | None:
+    """
+    Convert an ISO-8601 UTC string (ending with 'Z') to a timezone-aware datetime.
+
+    Examples:
+        "2025-03-11T16:26:44.520811Z" -> datetime(2025, 3, 11, 16, 26, 44, tzinfo=UTC)
+        None -> None
+    """
+    if value is None:
+        return None
+
+    value = value.strip()
+    if not value:
+        return None
+
+    try:
+        if value.endswith(ISO_UTC_SUFFIX):
+            value = value[:-1] + "+00:00"
+
+        dt = datetime.fromisoformat(value)
+
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+
+        return dt.astimezone(timezone.utc)
+
+    except ValueError:
+        return None
+
+
+def epoch_seconds_to_datetime_utc(value: int | str | None) -> datetime | None:
+    """
+    Convert epoch seconds to a UTC datetime.
+
+    Accepts:
+      - int (epoch seconds)
+      - str containing digits (epoch seconds)
+      - None
+
+    Returns:
+      - timezone-aware UTC datetime, or None
+    """
+    if value is None:
+        return None
+
+    try:
+        seconds = int(value)
+    except (TypeError, ValueError):
+        return None
+
+    try:
+        return datetime.fromtimestamp(seconds, tz=timezone.utc)
+    except (OverflowError, OSError):
+        return None
+
+
+def datetime_to_utc_iso_string(value: datetime | None) -> str:
+    """
+    Convert a datetime to an ISO-8601 string with second-level precision.
+
+    Accepts:
+      - datetime (naive or timezone-aware)
+      - None
+
+    Behaviour:
+      - If the datetime is timezone-aware, it is converted to UTC and made naive
+      - If the datetime is naive, it is used as-is
+      - Microseconds are discarded
+      - No timezone suffix (e.g. 'Z') is included
+
+    Returns:
+      - ISO-8601 formatted string: "YYYY-MM-DDTHH:MM:SS"
+      - Empty string ("") if input is None
+    """
+    if value is None:
+        return ""
+
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+
+    return value.replace(microsecond=0).isoformat(timespec="seconds")

@@ -466,7 +466,6 @@ def test_write_items_to_csv_with_empty_list_writes_only_header(
     with open(csv_path, newline="") as f:
         reader = csv.reader(f)
         lines = list(reader)
-        # Only header line should be present
         assert len(lines) == 1
         expected_headers = [
             MetadataReport.NhsNumber,
@@ -480,6 +479,79 @@ def test_write_items_to_csv_with_empty_list_writes_only_header(
             MetadataReport.SentToReview,
         ]
         assert lines[0] == expected_headers
+
+
+def test_write_summary_data_to_csv_writes_review_rows_and_reason_rows(
+    bulk_upload_report_service,
+):
+    mock_file_name = "test_summary_report.csv"
+
+    bulk_upload_report_service.write_summary_data_to_csv(
+        file_name=mock_file_name,
+        total_ingested=10,
+        total_successful=3,
+        total_successful_percentage="30%",
+        total_registered_elsewhere=1,
+        total_suspended=0,
+        total_in_review=6,
+        total_in_review_percentage="60%",
+        total_deceased=0,
+        total_restricted=0,
+        extra_rows=[
+            ["Reason", "Fail to parse the patient detail response from PDS API.", 1],
+        ],
+    )
+
+    with open(f"/tmp/{mock_file_name}", newline="") as f:
+        rows = list(csv.reader(f))
+
+    assert rows == [
+        ["Type", "Description", "Count"],
+        ["Total", "Total Ingested", "10"],
+        ["Total", "Total Successful", "3"],
+        ["Total", "Total In Review", "6"],
+        ["Total", "Review Percentage", "60%"],
+        ["Total", "Successful Percentage", "30%"],
+        ["Total", "Successful - Registered Elsewhere", "1"],
+        ["Total", "Successful - Suspended", "0"],
+        ["Reason", "Fail to parse the patient detail response from PDS API.", "1"],
+    ]
+
+    os.remove(f"/tmp/{mock_file_name}")
+
+
+def test_write_summary_data_to_csv_does_not_write_reason_rows_when_extra_rows_empty(
+    bulk_upload_report_service,
+):
+    mock_file_name = "test_summary_report_no_reasons.csv"
+
+    bulk_upload_report_service.write_summary_data_to_csv(
+        file_name=mock_file_name,
+        total_ingested=18,
+        total_successful=0,
+        total_successful_percentage="0%",
+        total_registered_elsewhere=0,
+        total_suspended=0,
+        total_in_review=18,
+        total_in_review_percentage="100%",
+        extra_rows=[],
+    )
+
+    with open(f"/tmp/{mock_file_name}", newline="") as f:
+        rows = list(csv.reader(f))
+
+    assert rows == [
+        ["Type", "Description", "Count"],
+        ["Total", "Total Ingested", "18"],
+        ["Total", "Total Successful", "0"],
+        ["Total", "Total In Review", "18"],
+        ["Total", "Review Percentage", "100%"],
+        ["Total", "Successful Percentage", "0%"],
+        ["Total", "Successful - Registered Elsewhere", "0"],
+        ["Total", "Successful - Suspended", "0"],
+    ]
+
+    os.remove(f"/tmp/{mock_file_name}")
 
 
 def test_generate_individual_ods_report_creates_ods_report(
@@ -507,6 +579,8 @@ def test_generate_individual_ods_report_creates_ods_report(
         total_successful_percentage="62.5%",
         total_registered_elsewhere=1,
         total_suspended=1,
+        total_in_review=0,
+        total_in_review_percentage="0%",
         total_deceased=1,
         extra_rows=[
             ["Reason", "Could not find the given patient on PDS", 2],
@@ -586,6 +660,42 @@ def test_generate_summary_report_with_two_ods_reports(
     os.remove(f"/tmp/{mock_file_name}")
 
 
+def test_generate_summary_report_passes_review_counts_to_csv_writer(
+    bulk_upload_report_service,
+    mock_get_times_for_scan,
+    mocker,
+):
+    ods_reports = bulk_upload_report_service.generate_ods_reports(MOCK_REPORT_ITEMS_ALL)
+
+    mock_write_summary_data_to_csv = mocker.patch.object(
+        bulk_upload_report_service,
+        "write_summary_data_to_csv",
+    )
+
+    bulk_upload_report_service.generate_summary_report(ods_reports)
+
+    mock_write_summary_data_to_csv.assert_called_once_with(
+        file_name=f"daily_statistical_report_bulk_upload_summary_{MOCK_TIMESTAMP}.csv",
+        total_ingested=16,
+        total_successful=10,
+        total_successful_percentage="62.5%",
+        total_registered_elsewhere=2,
+        total_suspended=2,
+        total_in_review=0,
+        total_in_review_percentage="0%",
+        total_deceased=2,
+        total_restricted=2,
+        extra_rows=[
+            ["Success by ODS", "Y12345", 5],
+            ["Success by ODS", "Z12345", 5],
+            ["Reason for Y12345", "Could not find the given patient on PDS", 2],
+            ["Reason for Y12345", "Lloyd George file already exists", 1],
+            ["Reason for Z12345", "Could not find the given patient on PDS", 2],
+            ["Reason for Z12345", "Lloyd George file already exists", 1],
+        ],
+    )
+
+
 def test_generate_success_report_writes_csv(
     bulk_upload_report_service,
     mock_get_times_for_scan,
@@ -646,8 +756,6 @@ def test_generate_suspended_report_does_not_write_when_no_data(
     mocker,
 ):
     bulk_upload_report_service.write_and_upload_additional_reports = mocker.MagicMock()
-
-    # just used to assert this isn't created
 
     blank_ods_reports = bulk_upload_report_service.generate_ods_reports([])
 

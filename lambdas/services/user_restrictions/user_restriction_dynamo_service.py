@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timezone
 from enum import StrEnum
 
+from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 from pydantic import ValidationError
 
@@ -17,6 +18,7 @@ from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.dynamo_utils import build_mixed_condition_expression
 from utils.exceptions import (
     UserRestrictionConditionCheckFailedException,
+    UserRestrictionDynamoDBException,
     UserRestrictionValidationException,
 )
 
@@ -36,10 +38,35 @@ class UserRestrictionDynamoService:
         self.dynamo_service = DynamoDBService()
         self.table_name = os.environ["RESTRICTIONS_TABLE_NAME"]
 
+    def create_restriction_item(self, restriction: UserRestriction) -> None:
+        self.dynamo_service.create_item(
+            table_name=self.table_name,
+            item=restriction.model_dump(by_alias=True, exclude_none=True),
+            key_name=UserRestrictionsFields.ID.value,
+        )
+
+    def get_active_restriction(
+        self,
+        nhs_number: str,
+        restricted_user: str,
+    ) -> dict | None:
+        query_filter = Attr(UserRestrictionsFields.RESTRICTED_USER).eq(
+            restricted_user,
+        ) & Attr(UserRestrictionsFields.IS_ACTIVE).eq(True)
+
+        results = self.dynamo_service.query_table(
+            table_name=self.table_name,
+            index_name=UserRestrictionIndexes.NHS_NUMBER_INDEX,
+            search_key=UserRestrictionsFields.NHS_NUMBER,
+            search_condition=nhs_number,
+            query_filter=query_filter,
+        )
+        return results[0] if results else None
+
     def query_restrictions(
         self,
         ods_code: str,
-        smart_card_id: str | None = None,
+        smartcard_id: str | None = None,
         nhs_number: str | None = None,
         limit: int = DEFAULT_LIMIT,
         start_key: str | None = None,
@@ -48,22 +75,28 @@ class UserRestrictionDynamoService:
 
         filter_expression, expression_attribute_names, expression_attribute_values = (
             self._build_query_filter(
-                smart_card_id=smart_card_id,
+                smartcard_id=smartcard_id,
                 nhs_number=nhs_number,
             )
         )
 
-        response = self.dynamo_service.query_table_with_paginator(
-            table_name=self.table_name,
-            index_name=UserRestrictionIndexes.CUSTODIAN_INDEX,
-            key=UserRestrictionsFields.CUSTODIAN,
-            condition=ods_code,
-            filter_expression=filter_expression,
-            expression_attribute_names=expression_attribute_names,
-            expression_attribute_values=expression_attribute_values,
-            limit=limit,
-            start_key=start_key,
-        )
+        try:
+            response = self.dynamo_service.query_table_with_paginator(
+                table_name=self.table_name,
+                index_name=UserRestrictionIndexes.CUSTODIAN_INDEX,
+                key=UserRestrictionsFields.CUSTODIAN,
+                condition=ods_code,
+                filter_expression=filter_expression,
+                expression_attribute_names=expression_attribute_names,
+                expression_attribute_values=expression_attribute_values,
+                limit=limit,
+                start_key=start_key,
+            )
+        except ClientError as e:
+            logger.error(f"DynamoDB ClientError when querying restrictions: {e}")
+            raise UserRestrictionValidationException(
+                f"Failed to query user restrictions from DynamoDB: {e}",
+            ) from e
 
         items = response.get("Items", [])
         restrictions = self._validate_restrictions(items)
@@ -77,31 +110,33 @@ class UserRestrictionDynamoService:
         removed_by: str,
         patient_id: str,
     ):
+        logger.info("Updating user restriction inactive.")
+        current_time = int(datetime.now(timezone.utc).timestamp())
+
+        updated_fields = {
+            UserRestrictionsFields.REMOVED_BY.value: removed_by,
+            UserRestrictionsFields.LAST_UPDATED.value: current_time,
+            UserRestrictionsFields.IS_ACTIVE.value: False,
+        }
+
         try:
-            logger.info("Updating user restriction inactive.")
-            current_time = int(datetime.now(timezone.utc).timestamp())
-
-            updated_fields = {
-                UserRestrictionsFields.REMOVED_BY.value: removed_by,
-                UserRestrictionsFields.LAST_UPDATED.value: current_time,
-                UserRestrictionsFields.IS_ACTIVE.value: False,
-            }
-
             self.dynamo_service.update_item(
                 table_name=self.table_name,
                 key_pair={UserRestrictionsFields.ID.value: restriction_id},
                 updated_fields=updated_fields,
-                condition_expression=f"{UserRestrictionsFields.IS_ACTIVE.value} = :true "
-                f"AND {UserRestrictionsFields.RESTRICTED_USER.value} <> :user_id "
-                f"AND {UserRestrictionsFields.NHS_NUMBER.value} = :patient_id",
+                condition_expression=(
+                    f"{UserRestrictionsFields.IS_ACTIVE} = :true"
+                    f" AND {UserRestrictionsFields.RESTRICTED_USER} <> :user_id"
+                    f" AND {UserRestrictionsFields.NHS_NUMBER} = :patient_id"
+                ),
                 expression_attribute_values={
                     ":true": True,
                     ":user_id": removed_by,
                     ":patient_id": patient_id,
                 },
             )
-
         except ClientError as e:
+            logger.error(e)
             if (
                 e.response["Error"]["Code"]
                 == DynamoClientErrors.CONDITION_CHECK_FAILURE
@@ -111,11 +146,66 @@ class UserRestrictionDynamoService:
                 f"Unexpected DynamoDB error in update_restriction_inactive: "
                 f"{e.response['Error']['Code']} - {e}",
             )
-            raise e
+            raise UserRestrictionDynamoDBException(
+                "An issue occurred while updating user restriction inactive",
+            )
+
+    def query_restrictions_by_nhs_number(
+        self,
+        nhs_number: str,
+    ) -> list[UserRestriction]:
+        try:
+            logger.info("Building IsActive filter for DynamoDB query.")
+            filter_builder = DynamoQueryFilterBuilder()
+            filter_builder.add_condition(
+                UserRestrictionsFields.IS_ACTIVE,
+                AttributeOperator.EQUAL,
+                True,
+            )
+            active_filter_expression = filter_builder.build()
+
+            logger.info("Querying Restrictions by NHS Number.")
+            items = self.dynamo_service.query_table(
+                table_name=self.table_name,
+                index_name=UserRestrictionIndexes.NHS_NUMBER_INDEX,
+                search_key=UserRestrictionsFields.NHS_NUMBER,
+                search_condition=nhs_number,
+                query_filter=active_filter_expression,
+            )
+
+            return self._validate_restrictions(items)
+        except ClientError as e:
+            logger.error(e)
+            raise UserRestrictionDynamoDBException(
+                "An issue occurred while querying restrictions",
+            )
+
+    def update_restriction_custodian(self, restriction_id: str, updated_custodian: str):
+        logger.info(f"Updating custodian for restriction: {restriction_id}")
+        current_time = int(datetime.now(timezone.utc).timestamp())
+
+        updated_fields = {
+            UserRestrictionsFields.LAST_UPDATED.value: current_time,
+            UserRestrictionsFields.CUSTODIAN.value: updated_custodian,
+        }
+
+        try:
+            self.dynamo_service.update_item(
+                table_name=self.table_name,
+                key_pair={UserRestrictionsFields.ID.value: restriction_id},
+                updated_fields=updated_fields,
+            )
+        except ClientError as e:
+            logger.error(
+                f"DynamoDB ClientError when updating custodian for restriction {restriction_id}: {e}",
+            )
+            raise UserRestrictionDynamoDBException(
+                f"An issue occurred while updating restriction custodian for restriction {restriction_id}",
+            ) from e
 
     @staticmethod
     def _build_query_filter(
-        smart_card_id: str | None,
+        smartcard_id: str | None,
         nhs_number: str | None,
     ) -> tuple[str, dict, dict]:
         conditions = [
@@ -125,12 +215,12 @@ class UserRestrictionDynamoService:
                 "value": True,
             },
         ]
-        if smart_card_id:
+        if smartcard_id:
             conditions.append(
                 {
                     "field": UserRestrictionsFields.RESTRICTED_USER,
                     "operator": ConditionOperator.EQUAL.value,
-                    "value": smart_card_id,
+                    "value": smartcard_id,
                 },
             )
         if nhs_number:
@@ -179,7 +269,6 @@ class UserRestrictionDynamoService:
                 search_key=UserRestrictionsFields.NHS_NUMBER,
                 search_condition=nhs_number,
                 query_filter=query_filter,
-                limit=1,
             )
         except ClientError as e:
             logger.error(f"DynamoDB ClientError when checking user restriction: {e}")

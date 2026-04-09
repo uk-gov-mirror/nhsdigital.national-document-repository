@@ -1,10 +1,7 @@
 Test-Description,FILEPATH,PAGE COUNT,GP-PRACTICE-CODE,NHS-NO,SECTION,SUB-SECTION,SCAN-DATE,SCAN-ID,USER-ID,UPLOAD
-General-Accepted-Single File Upload,9730787026/1of1_Lloyd_George_Record_[Dora Celia HAMNET]_[9730787026]_[07-07-1926].pdf,1,M85143,9730787026,LG,,01/01/2023,NEC,NEC,21/11/2025
-General-Accepted-Multi File Upload 1of3,9730786976/1of3_Lloyd_George_Record_[Lena Rena LAWLER]_[9730786976]_[24-07-1924].pdf,1,M85143,9730786976,LG,,01/01/2023,NEC,NEC,05/12/2025
-General-Accepted-Multi File Upload 2of3,9730786976/2of3_Lloyd_George_Record_[Lena Rena LAWLER]_[9730786976]_[24-07-1924].pdf,2,M85143,9730786976,LG,,01/01/2023,NEC,NEC,05/12/2025
-General-Accepted-Multi File Upload 3of3,9730786976/3of3_Lloyd_George_Record_[Lena Rena LAWLER]_[9730786976]_[24-07-1924].pdf,3,M85143,9730786976,LG,,01/01/2023,NEC,NEC,05/12/2025
-General-Accepted-Pre-processor LloydGeorge Name Edit,9730786925/1of1_Ll0yd_George_Record_[Harry Adam TWIST]_[9730786925]_[01-04-1925].pdf,1,M85143,9730786925,LG,,01/01/2023,NEC,NEC,05/12/2025
-General-Accepted-Pre-processor Mixed Spacing in Page,01of 01_Lloyd_George_Record_Andrea Gladys HOAKES_9730154775_09-01-2009.pdf,1,H81109,9730154775,LG,,01/01/2023,NEC,NEC,23/11/2023
-General-Accepted-Pre-processor Spacing Nhs Number,01 of 01_Lloyd_George_Record_GILALA NYSSA RUBENSTEIN_973 015 472 4_18-07-2020.pdf,1,H81109,9730154724,LG,,01/01/2023,NEC,NEC,23/11/2023
-General-Accepted-Pre-processor Hyphenated Nhs Number,01 of 01_Lloyd_George_Record_MEIXIANG XIAOLIAN FONG_973-0154-406_27-11-1944.pdf,1,H81109,9730154406,LG,,01/01/2023,NEC,NEC,23/11/2023
-General-Accepted-Pre-processor Mixed brackets,01 of 01_Lloyd George Record_[Tarina Sybill LEVY]_9730154090_14-09-1961.pdf,1,H81109,9730154090,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Accept-Single File Upload,9730787026/1of1_Lloyd_George_Record_[Dora Celia HAMNET]_[9730787026]_[07-07-1926].pdf,1,M85143,9730787026,LG,,01/01/2023,NEC,NEC,21/11/2025
+General-Accept-Processed-LloydGeorge Name Edit,9730786925/1of1_Ll0yd_George_Record_[Harry Adam TWIST]_[9730786925]_[01-04-1925].pdf,1,M85143,9730786925,LG,,01/01/2023,NEC,NEC,05/12/2025
+General-Accept-Processed-Mixed Spacing in Page,01of 01_Lloyd_George_Record_Andrea Gladys HOAKES_9730154775_09-01-2009.pdf,1,H81109,9730154775,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Accept-Processed-Spacing Nhs Number,01 of 01_Lloyd_George_Record_GILALA NYSSA RUBENSTEIN_973 015 472 4_18-07-2020.pdf,1,H81109,9730154724,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Accept-Processed-Hyphenated Nhs Number,01 of 01_Lloyd_George_Record_MEIXIANG XIAOLIAN FONG_973-0154-406_27-11-1944.pdf,1,H81109,9730154406,LG,,01/01/2023,NEC,NEC,23/11/2023
+General-Accept-Processed-Mixed brackets,01 of 01_Lloyd George Record_[Tarina Sybill LEVY]_9730154090_14-09-1961.pdf,1,H81109,9730154090,LG,,01/01/2023,NEC,NEC,23/11/2023

@@ -2,7 +2,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 from botocore.exceptions import ClientError
+
 from enums.virus_scan_result import VirusScanResult
+from lambdas.enums.snomed_codes import SnomedCodes
 from models.document_reference import DocumentReference
 from services.mock_virus_scan_service import MockVirusScanService
 from services.upload_document_reference_service import UploadDocumentReferenceService
@@ -13,8 +15,6 @@ from utils.common_query_filters import (
 )
 from utils.exceptions import DocumentServiceException, FileProcessingException
 from utils.lambda_exceptions import InvalidDocTypeException
-
-from lambdas.enums.snomed_codes import SnomedCodes
 
 
 @pytest.fixture
@@ -93,6 +93,7 @@ def test_handle_upload_document_reference_request_success(
     mock_document_reference2.file_name = "filename2.txt"
     mock_document_reference2.id = "another-doc-id"
     mock_document_reference2.doc_status = "final"
+    mock_document_reference2.status = "current"
     mock_document_reference2.version = "1"
 
     service.s3_service.copy_across_bucket.return_value = {
@@ -250,6 +251,42 @@ def test__process_preliminary_document_reference_infected_virus_scan(
     mock_process_clean.assert_not_called()
     mock_update_dynamo.assert_called_once()
     mock_delete.assert_called_once_with(object_key)
+    assert mock_document_reference.doc_status == "cancelled"
+    assert mock_document_reference.status == "entered-in-error"
+    assert mock_document_reference.uploaded is False
+    assert mock_document_reference.uploading is False
+
+
+def test__process_preliminary_document_reference_error_virus_scan(
+    service,
+    mock_document_reference,
+    mocker,
+):
+    """Test processing document reference when virus scan returns an error"""
+    object_key = "staging/test-doc-id"
+
+    mocker.patch.object(
+        service,
+        "_perform_virus_scan",
+        return_value=VirusScanResult.ERROR,
+    )
+    mock_delete = mocker.patch.object(service, "delete_file_from_staging_bucket")
+
+    mock_process_clean = mocker.patch.object(service, "_process_clean_document")
+    mock_update_dynamo = mocker.patch.object(service, "_update_dynamo_table")
+    service._process_preliminary_document_reference(
+        mock_document_reference,
+        object_key,
+        1222,
+    )
+
+    mock_process_clean.assert_not_called()
+    mock_update_dynamo.assert_called_once()
+    mock_delete.assert_called_once_with(object_key)
+    assert mock_document_reference.doc_status == "cancelled"
+    assert mock_document_reference.status == "entered-in-error"
+    assert mock_document_reference.uploaded is False
+    assert mock_document_reference.uploading is False
 
 
 def test_perform_virus_scan_returns_clean_hardcoded(service, mock_document_reference):
@@ -405,6 +442,7 @@ def test_update_dynamo_table_clean_scan_result(service, mock_document_reference)
         update_fields_name={
             "virus_scanner_result",
             "doc_status",
+            "status",
             "file_location",
             "file_size",
             "uploaded",
@@ -498,6 +536,7 @@ def test_finalize_and_supersede_with_transaction_with_existing_finals(
     existing_final_doc = Mock(spec=DocumentReference)
     existing_final_doc.id = "old-doc-id"
     existing_final_doc.doc_status = "final"
+    existing_final_doc.status = "current"
     existing_final_doc.version = "1"
 
     service.table_name = "dev_LloydGeorgeReferenceMetadata"
@@ -587,11 +626,13 @@ def test_finalize_and_supersede_with_transaction_multiple_existing(
     existing_doc1 = Mock(spec=DocumentReference)
     existing_doc1.id = "old-doc-1"
     existing_doc1.doc_status = "final"
+    existing_doc1.status = "current"
     existing_doc1.version = "1"
 
     existing_doc2 = Mock(spec=DocumentReference)
     existing_doc2.id = "old-doc-2"
     existing_doc2.doc_status = "final"
+    existing_doc2.status = "current"
     existing_doc2.version = "1"
 
     service.document_service.fetch_documents_from_table.return_value = [
@@ -624,6 +665,7 @@ def test_finalize_and_supersede_with_transaction_skips_same_id(
     existing_doc = Mock(spec=DocumentReference)
     existing_doc.id = "same-doc-id"
     existing_doc.doc_status = "final"
+    existing_doc.status = "current"
 
     service.document_service.fetch_documents_from_table.return_value = [existing_doc]
 
@@ -664,6 +706,44 @@ def test_finalize_and_supersede_with_transaction_handles_transaction_cancelled(
     service.dynamo_service.transact_write_items.side_effect = transaction_error
 
     service._finalize_and_supersede_with_transaction(new_doc)
+
+
+def test_finalize_and_supersede_with_transaction_skips_entered_in_error(
+    service,
+    mock_document_reference,
+):
+    """Test that transaction skips documents with status entered-in-error"""
+    new_doc = mock_document_reference
+    new_doc.id = "new-doc-id"
+    new_doc.nhs_number = "9000000001"
+    new_doc.doc_status = "final"
+    new_doc.version = "2"
+
+    entered_in_error_doc = Mock(spec=DocumentReference)
+    entered_in_error_doc.id = "error-doc-id"
+    entered_in_error_doc.doc_status = "cancelled"
+    entered_in_error_doc.status = "entered-in-error"
+    entered_in_error_doc.version = "1"
+
+    service.document_service.fetch_documents_from_table.return_value = [
+        entered_in_error_doc,
+    ]
+
+    mock_build_update = Mock(return_value={"Update": "transaction"})
+    service.dynamo_service.build_update_transaction_item = mock_build_update
+
+    service._finalize_and_supersede_with_transaction(new_doc)
+
+    # Should only build 1 transaction (for new doc, skipping entered-in-error)
+    assert service.dynamo_service.build_update_transaction_item.call_count == 1
+
+    # Verify the only call is for the new document
+    first_call = service.dynamo_service.build_update_transaction_item.call_args_list[0]
+    assert first_call[1]["document_key"] == {"ID": new_doc.id}
+
+    # Verify transaction was executed with only 1 item
+    call_args = service.dynamo_service.transact_write_items.call_args[0][0]
+    assert len(call_args) == 1
 
 
 def test_handle_upload_document_reference_request_no_document_found(service):

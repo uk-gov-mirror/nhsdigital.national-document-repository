@@ -2,6 +2,7 @@ import copy
 import json
 
 import pytest
+
 from enums.document_review_reason import DocumentReviewReason
 from models.staging_metadata import BulkUploadQueueMetadata, StagingSqsMetadata
 from repositories.bulk_upload.bulk_upload_sqs_repository import BulkUploadSqsRepository
@@ -13,6 +14,7 @@ from tests.unit.helpers.data.bulk_upload.test_data import (
     TEST_STAGING_METADATA,
 )
 from utils.audit_logging_setup import LoggingService
+from utils.request_context import request_context
 
 logger = LoggingService(__name__)
 
@@ -45,6 +47,13 @@ def sample_staging_metadata():
         ],
         retries=0,
     )
+
+
+@pytest.fixture(autouse=True)
+def clear_request_context():
+    request_context.patient_nhs_no = None
+    yield
+    request_context.patient_nhs_no = None
 
 
 def test_put_staging_metadata_back_to_queue_and_increases_retries(
@@ -125,3 +134,93 @@ def test_sends_message_to_review_queue_with_correct_structure_and_fields(
         queue_url=repo_under_test.review_queue_url,
         message_body=json.dumps(expected_message_body, separators=(",", ":")),
     )
+
+
+def test_put_staging_metadata_back_to_queue_clears_patient_context(
+    repo_under_test,
+    sample_staging_metadata,
+):
+    repo_under_test.put_staging_metadata_back_to_queue(sample_staging_metadata)
+
+    assert request_context.patient_nhs_no is None
+
+
+def test_put_staging_metadata_back_to_queue_clears_patient_context_on_error(
+    repo_under_test,
+    sample_staging_metadata,
+):
+    repo_under_test.sqs_repository.send_message_with_nhs_number_attr_fifo.side_effect = Exception(
+        "SQS failure",
+    )
+
+    with pytest.raises(Exception, match="SQS failure"):
+        repo_under_test.put_staging_metadata_back_to_queue(sample_staging_metadata)
+
+    assert request_context.patient_nhs_no is None
+
+
+def test_send_message_to_review_queue_clears_patient_context(
+    repo_under_test,
+    sample_staging_metadata,
+):
+    repo_under_test.send_message_to_review_queue(
+        staging_metadata=sample_staging_metadata,
+        failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
+        uploader_ods="Y12345",
+    )
+
+    assert request_context.patient_nhs_no is None
+
+
+def test_send_message_to_review_queue_clears_patient_context_on_error(
+    repo_under_test,
+    sample_staging_metadata,
+):
+    repo_under_test.sqs_repository.send_message_standard.side_effect = Exception(
+        "SQS failure",
+    )
+
+    with pytest.raises(Exception, match="SQS failure"):
+        repo_under_test.send_message_to_review_queue(
+            staging_metadata=sample_staging_metadata,
+            failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
+            uploader_ods="Y12345",
+        )
+
+    assert request_context.patient_nhs_no is None
+
+
+def test_put_sqs_message_back_to_queue_clears_patient_context(
+    repo_under_test,
+):
+    repo_under_test.put_sqs_message_back_to_queue(TEST_SQS_MESSAGE)
+
+    assert request_context.patient_nhs_no is None
+
+
+def test_put_sqs_message_back_to_queue_clears_patient_context_on_error(
+    repo_under_test,
+):
+    repo_under_test.sqs_repository.send_message_with_nhs_number_attr_fifo.side_effect = Exception(
+        "SQS failure",
+    )
+
+    with pytest.raises(Exception, match="SQS failure"):
+        repo_under_test.put_sqs_message_back_to_queue(TEST_SQS_MESSAGE)
+
+    assert request_context.patient_nhs_no is None
+
+
+def test_put_sqs_message_back_to_queue_clears_patient_context_when_nhs_number_missing(
+    repo_under_test,
+):
+    message_without_nhs = {
+        "body": TEST_SQS_MESSAGE["body"],
+        "messageAttributes": {},
+    }
+
+    request_context.patient_nhs_no = "stale-value"
+
+    repo_under_test.put_sqs_message_back_to_queue(message_without_nhs)
+
+    assert request_context.patient_nhs_no is None

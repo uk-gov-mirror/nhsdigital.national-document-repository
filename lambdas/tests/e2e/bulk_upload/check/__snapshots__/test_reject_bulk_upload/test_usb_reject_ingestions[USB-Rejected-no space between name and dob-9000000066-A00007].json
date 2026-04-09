@@ -1,0 +1,28 @@
+{
+  "_description": "USB-Rejected-no space between name and dob",
+  "bulk_upload_report": {
+    "FilePath": "reject-usb/9725362748 Geraldine Ellis07-Sep-1999/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000066.pdf",
+    "NhsNumber": "9000000066",
+    "PdsOdsCode": "",
+    "Reason": "Could not find a valid date in the filename",
+    "SentToReview": true,
+    "StoredFileName": "9725362748 Geraldine Ellis07-Sep-1999/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000066.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "A00007"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "A00007",
+    "Custodian": "A00007",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000066.pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

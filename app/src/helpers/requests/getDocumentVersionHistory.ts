@@ -33,9 +33,19 @@ export const getDocumentVersionHistoryResponse = async ({
             },
         });
 
+        for (const entry of data.entry ?? []) {
+            if (entry.resource.id?.includes('~')) {
+                entry.resource.id = entry.resource.id.split('~')[1];
+            }
+        }
+
         return data;
     } catch (e) {
-        if (isLocal) {
+        if (
+            isLocal &&
+            (documentReferenceId === 'mock-document-id-1' ||
+                documentReferenceId === 'e7b1d94f-3c62-4a87-b5e0-8f2d1a6c9340')
+        ) {
             return mockDocumentVersionHistoryResponse;
         }
         const error = e as AxiosError;

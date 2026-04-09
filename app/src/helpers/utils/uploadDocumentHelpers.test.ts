@@ -1,15 +1,13 @@
-import { Mock } from 'vitest';
-import { uploadDocumentToS3 } from '../requests/uploadDocuments';
 import { buildDocument, buildMockUploadSession } from '../test/testBuilders';
 import { DOCUMENT_UPLOAD_STATE } from '../../types/pages/UploadDocumentsPage/types';
 import * as uploadDocumentHelpersModule from './uploadDocumentHelpers';
 
-vi.mock('../requests/uploadDocuments', () => ({
-    ...vi.importActual('../requests/uploadDocuments'),
-    uploadDocumentToS3: vi.fn(),
+vi.mock('../requests/uploadDocuments', async () => ({
+    ...(await vi.importActual('../requests/uploadDocuments')),
+    uploadDocumentToS3: mockedUploadDocumentToS3,
 }));
 
-const mockedUploadDocumentToS3 = uploadDocumentToS3 as Mock;
+const mockedUploadDocumentToS3 = vi.hoisted(() => vi.fn());
 
 describe('uploadDocumentHelpers', () => {
     describe('uploadSingleDocument', () => {

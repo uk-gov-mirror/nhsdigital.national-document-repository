@@ -76,11 +76,8 @@ const DocumentReassignCompleteStage = ({ matched, docConfig }: Props): React.JSX
             )}
 
             <p>
-                If you think you've made a mistake, contact the Patient Record Management team at{' '}
-                <a id="mail" href="mailto:england.prmteam@nhs.net">
-                    england.prmteam@nhs.net
-                </a>
-                .
+                If you think you've made a mistake, you can restore the {docConfig.displayName} to a
+                previous version by going to the patient's Lloyd George record.
             </p>
 
             <Button

@@ -8,6 +8,8 @@ import {
     DeleteObjectCommand,
     PutObjectCommandInput,
     DeleteObjectCommandInput,
+    ListObjectsV2Command,
+    ListObjectsV2CommandOutput,
 } from '@aws-sdk/client-s3';
 
 import {
@@ -91,6 +93,30 @@ Cypress.Commands.add('deleteFileFromS3', (bucketName: string, fileName: string) 
     );
 });
 
+Cypress.Commands.add('deleteAllFilesFromS3Prefix', (bucketName: string, prefix: string): void => {
+    const deleteAllFilesFromS3Prefix = async (): Promise<void> => {
+        const listResponse: ListObjectsV2CommandOutput = await s3.send(
+            new ListObjectsV2Command({
+                Bucket: bucketName,
+                Prefix: prefix,
+            }),
+        );
+
+        const keys: string[] = (listResponse.Contents || []).map((obj) => obj.Key!);
+
+        for (const key of keys) {
+            await s3.send(
+                new DeleteObjectCommand({
+                    Bucket: bucketName,
+                    Key: key,
+                }),
+            );
+        }
+    };
+
+    cy.then(() => deleteAllFilesFromS3Prefix());
+});
+
 Cypress.Commands.add(
     'deleteItemFromDynamoDb',
     (tableName: string, itemId: string, version?: number) => {
@@ -168,3 +194,30 @@ Cypress.Commands.add(
         });
     },
 );
+
+Cypress.Commands.add('pdfViewerPageShouldBeText', (pageNumber: number, expectedText: string) => {
+    cy.get('pdfjs-viewer-element')
+        .shadow()
+        .find('iframe')
+        .its('0.contentDocument.body')
+        .should('not.be.empty')
+        .then(cy.wrap)
+        .find('#viewerContainer')
+        .then(($container) => {
+            cy.wrap($container)
+                .find(`.page[data-page-number="${pageNumber}"]`)
+                .should('exist')
+                .then(($page) => {
+                    $page[0].scrollIntoView({ block: 'center' });
+                });
+        });
+
+    cy.get('pdfjs-viewer-element')
+        .shadow()
+        .find('iframe')
+        .its('0.contentDocument.body')
+        .then(cy.wrap)
+        .find(`.page[data-page-number="${pageNumber}"] .textLayer`)
+        .invoke('text')
+        .should('eq', expectedText);
+});

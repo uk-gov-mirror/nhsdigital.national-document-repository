@@ -50,7 +50,7 @@ describe('DocumentSelectPagesStage', () => {
 
         expect(
             screen.getAllByText(
-                'Please enter at least one page, or range of pages that you want to remove.',
+                'Enter at least one page, or range of pages that you want to remove.',
             ),
         ).toHaveLength(2);
     });
@@ -67,7 +67,7 @@ describe('DocumentSelectPagesStage', () => {
 
         expect(
             screen.getAllByText(
-                'Please enter valid page numbers. Separate page numbers using a comma, or use a dash for page ranges. For example, 1-5, 8, 11-14.',
+                'Enter valid page numbers. Separate page numbers using a comma, or use a dash for page ranges. For example, 1-5, 8, 11-14.',
             ),
         ).toHaveLength(2);
     });

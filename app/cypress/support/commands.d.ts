@@ -1,7 +1,11 @@
 // cypress/support/commands.d.ts
 /// <reference types="cypress" />
 
-import type { PutObjectCommandOutput, DeleteObjectCommandOutput } from '@aws-sdk/client-s3';
+import type {
+    PutObjectCommandOutput,
+    DeleteObjectCommandOutput,
+    ListObjectsCommandOutput,
+} from '@aws-sdk/client-s3';
 import type { PutItemCommandOutput, DeleteItemCommandOutput } from '@aws-sdk/client-dynamodb';
 
 declare global {
@@ -25,6 +29,11 @@ declare global {
                 fileName: string,
             ): Chainable<DeleteObjectCommandOutput>;
 
+            deleteAllFilesFromS3Prefix(
+                bucketName: string,
+                prefix: string,
+            ): Chainable<ListObjectsCommandOutput>;
+
             deleteItemFromDynamoDb(
                 tableName: string,
                 itemId: string,
@@ -36,6 +45,8 @@ declare global {
                 attribute: string,
                 value: string,
             ): Chainable<void>;
+
+            pdfViewerPageShouldBeText(pageNumber: number, expectedText: string): Chainable<void>;
         }
     }
 }

@@ -11,6 +11,7 @@ export type DocumentSearchResultsArgs = {
     baseUrl: string;
     baseHeaders: AuthHeaders;
     docType?: DOCUMENT_TYPE;
+    limit?: number;
 };
 
 export type GetDocumentSearchResultsResponse = {
@@ -22,6 +23,7 @@ const getDocumentSearchResults = async ({
     baseUrl,
     baseHeaders,
     docType,
+    limit,
 }: DocumentSearchResultsArgs): Promise<Array<SearchResult>> => {
     const gatewayUrl = baseUrl + endpoints.DOCUMENT_SEARCH;
 
@@ -33,7 +35,7 @@ const getDocumentSearchResults = async ({
             params: {
                 patientId: nhsNumber?.replaceAll(/\s/g, ''), // replace whitespace
                 docType: docType === DOCUMENT_TYPE.ALL ? undefined : docType,
-                limit: 9999,
+                limit: limit ?? 100,
             },
         });
         return data.references;

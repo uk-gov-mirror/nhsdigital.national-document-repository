@@ -1,9 +1,10 @@
 import pytest
 
 from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
-from tests.unit.conftest import TEST_CURRENT_GP_ODS
+from tests.unit.conftest import MOCK_CREATOR_ID, TEST_CURRENT_GP_ODS
 from utils.exceptions import OdsErrorException
 from utils.ods_utils import (
+    extract_creator_and_ods_code_from_request_context,
     extract_ods_code_from_request_context,
     extract_ods_role_code_with_r_prefix_from_role_codes_string,
     is_ods_code_active,
@@ -15,6 +16,16 @@ from utils.ods_utils import (
 def mocked_request_context_with_ods(mocker):
     mocked_context = mocker.MagicMock()
     mocked_context.authorization = {
+        "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS},
+    }
+    yield mocker.patch("utils.ods_utils.request_context", mocked_context)
+
+
+@pytest.fixture()
+def mocked_request_context_with_creator_and_ods(mocker):
+    mocked_context = mocker.MagicMock()
+    mocked_context.authorization = {
+        "nhs_user_id": MOCK_CREATOR_ID,
         "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS},
     }
     yield mocker.patch("utils.ods_utils.request_context", mocked_context)
@@ -81,3 +92,39 @@ def test_is_valid_ods_code(value, expected):
     actual = is_valid_ods_code(value)
 
     assert actual == expected
+
+
+def test_extract_creator_and_ods_code_returns_both(
+    mocked_request_context_with_creator_and_ods,
+):
+    creator, ods_code = extract_creator_and_ods_code_from_request_context()
+
+    assert creator == MOCK_CREATOR_ID
+    assert ods_code == TEST_CURRENT_GP_ODS
+
+
+def test_extract_creator_and_ods_code_raises_when_creator_missing(mocker):
+    mocked_context = mocker.MagicMock()
+    mocked_context.authorization = {
+        "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS},
+    }
+    mocker.patch("utils.ods_utils.request_context", mocked_context)
+
+    with pytest.raises(OdsErrorException):
+        extract_creator_and_ods_code_from_request_context()
+
+
+def test_extract_creator_and_ods_code_raises_when_ods_code_missing(mocker):
+    mocked_context = mocker.MagicMock()
+    mocked_context.authorization = {"nhs_user_id": MOCK_CREATOR_ID}
+    mocker.patch("utils.ods_utils.request_context", mocked_context)
+
+    with pytest.raises(OdsErrorException):
+        extract_creator_and_ods_code_from_request_context()
+
+
+def test_extract_creator_and_ods_code_raises_when_no_auth(mocker):
+    mocker.patch("utils.ods_utils.request_context", {})
+
+    with pytest.raises(OdsErrorException):
+        extract_creator_and_ods_code_from_request_context()

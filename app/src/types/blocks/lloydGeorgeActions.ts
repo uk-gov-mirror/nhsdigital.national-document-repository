@@ -84,7 +84,7 @@ export const VersionHistoryAction = (
         index: 4,
         label: label,
         key: ACTION_LINK_KEY.HISTORY,
-        type: RECORD_ACTION.UPDATE, // This could be a different type if needed
+        type: RECORD_ACTION.UPDATE,
         unauthorised: [],
         onClick,
         showIfRecordInStorage: true,

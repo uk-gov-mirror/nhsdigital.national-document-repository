@@ -1,11 +1,10 @@
 Test-Description,FILEPATH,PAGE COUNT,GP-PRACTICE-CODE,NHS-NO,SECTION,SUB-SECTION,SCAN-DATE,SCAN-ID,USER-ID,UPLOAD
-General-Rejected-invalid date format - Invalid Month,01 of 02_Lloyd_George_Record_Steph Stevens_9000000001_12.25.2010.pdf,1,H81109,9000000101,LG,,01/01/2023,NEC,NEC,23/11/2023
-General-Rejected-incorrect NHS number or date format - Invalid Format,01 of 02_Lloyd_George_Record_Andrew Stevens_9000000001_12.10.21.pdf,1,H81109,9000000201,LG,,01/01/2023,NEC,NEC,23/11/2023
-General-Rejected-Invalid date format,01 of 02_Lloyd_George_Record_Jaimie Stevens_9000000001_300.4.2010.pdf,1,H81109,9000000051,LG,,01/01/2023,NEC,NEC,23/11/2023
-General-Rejected-Invalid NHS number,01 of 02_Lloyd_George_Record_Jane Stevens_900_000_0001_11.10.2010.pdf,1,H81109,9000000061,LG,,01/01/2023,NEC,NEC,23/11/2023
-General-Rejected-incorrect NHS number or date format,01 of 02_Lloyd_George_Record_Patricia Stevens_9000000001_2_11.10.2010.pdf,1,H81109,9000000071,LG,,01/01/2023,NEC,NEC,23/11/2023
-General-Rejected-incorrect document path format,103/01 02_Lloyd_George_Record_Charles Stevens_9000000001_22.10.2010.pdf,1,H81109,9000000081,LG,,01/01/2023,NEC,NEC,23/11/2023
-General-Rejected-Missing 'lloyd george record',1093/01 of 02_Phineas Stevens_9000000001_22.10.2010.pdf,1,H81109,9500000001,LG,,01/01/2023,NEC,NEC,23/11/2023
-General-Rejected-Nhs Not in PDS,1of1_Lloyd_George_Record_[Josh Lucien PLATT]_[9596333437]_[23-10-1979].pdf,1,M85143,9596333437,LG,,01/01/2023,NEC,NEC,29/10/2025
-General-Rejected-Infected,1of1_Lloyd_George_Record_[Moses Ivan WELLS]_[9730788529]_[20-03-1994].pdf,1,M85143,9730788529,LG,,01/01/2023,NEC,NEC,29/10/2025
-General-Rejected-Corrupted,test/9730788022/1of1_Lloyd_George_Record_[Cath YOUDS]_[9730788022]_[05-05-1965].pdf,1,M85143,9730788022,LG,,01/01/2023,NEC,NEC,21/11/2025
+PP-4-General-Reject-Not a Lloyd George Record,test/9730787751/1of1_Floyd_George_Record_[Rachel STILL]_[9730787751]_[01-01-2002].pdf,1,M85143,9730787751,LG,,01/01/2023,NEC,NEC,21/11/2025
+PP-6-General-Reject-Incorrect NHS Number or Date,test/9730786968/1of1_Lloyd_George_Record_[Anita EUSTON]_[119730786968]_[12-01-2003].pdf,1,M85143,9730786968,LG,,01/01/2023,NEC,NEC,21/11/2025
+PP-7-General-Reject-Invalid NHS Number,test/9730787646/1of1_Lloyd_George_Record_[Stan Herman HOOLEY]_[19730787646]_[08-04-11959].pdf,1,M85143,9730787646,LG,,01/01/2023,NEC,NEC,21/11/2025
+PP-10-General-Reject-Invalid File Extension,test/9730787611/1of1_Lloyd_George_Record_[Gary Jack INSKIP]_[9730787611]_[04-09-1960],1,M85143,9730787611,LG,,01/01/2023,NEC,NEC,21/11/2025
+BULK-3-General-Reject-Missing Files,test/9730787328/1of2_Lloyd_George_Record_[Agnes Gaynor MULLEN]_[9730787328]_[30-03-2017].pdf,1,M85143,9730787328,LG,,01/01/2023,NEC,NEC,21/11/2025
+BULK-4-General-Reject-More Files than total,test/9730787735/1of1_Lloyd_George_Record_[Gemma Jeanne HIRD]_[9730787735]_[02-08-1994].pdf,1,M85143,9730787735,LG,,01/01/2023,NEC,NEC,21/11/2025
+BULK-4-General-Reject-More Files than total,test/9730787735/1_of1_LLOYD_George_Record_[Gemma Jeanne HIRD]_[9730787735]_[02-08-1994].pdf,1,M85143,9730787735,LG,,01/01/2023,NEC,NEC,21/11/2025
+BULK-6-General-Reject-NHS Number metadata mismatch,test/9730787352/1of1_Lloyd_George_Record_[Clara Kylie HOOD]_[9730787352]_[02-12-2010].pdf,1,M85143,9434765919,LG,,01/01/2023,NEC,NEC,21/11/2025
+BULK-12-General-Reject-Patient Name Mismatch,test/9730787417/1of1_Lloyd_George_Record_[Notmename AlsoNotMeName KINNOY]_[9730787417]_[25-12-1999].pdf,1,M85143,9730787417,LG,,01/01/2023,NEC,NEC,21/11/2025

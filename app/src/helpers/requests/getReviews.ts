@@ -18,6 +18,7 @@ import getDocument from './getDocument';
 import { fileExtensionToContentType } from '../utils/fileExtensionToContentType';
 import { AuthHeaders } from '../../types/blocks/authHeaders';
 import { NHS_NUMBER_UNKNOWN } from '../constants/numbers';
+import { fetchBlob } from '../utils/getPdfObjectUrl';
 
 const getReviews = async (
     baseUrl: string,
@@ -82,13 +83,6 @@ export type GetReviewDataResult = {
     existingUploadDocuments: ReviewUploadDocument[];
     hasExistingRecordInStorage: boolean;
     aborted: boolean;
-};
-
-const fetchBlob = async (url: string): Promise<Blob> => {
-    const { data } = await axios.get<Blob>(url, {
-        responseType: 'blob',
-    });
-    return data;
 };
 
 export const getReviewData = async ({

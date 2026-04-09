@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { SearchResult } from '../../types/generic/searchResult';
 import DocumentSearchResults from '../../components/blocks/_patientDocuments/documentSearchResults/DocumentSearchResults';
-import { Link, Outlet, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Outlet, Route, Routes, To, useNavigate } from 'react-router-dom';
 import { routeChildren, routes } from '../../types/generic/routes';
 import {
     DocumentReference,
@@ -26,7 +26,9 @@ import useConfig from '../../helpers/hooks/useConfig';
 import { buildSearchResult } from '../../helpers/test/testBuilders';
 import { useSessionContext } from '../../providers/sessionProvider/SessionProvider';
 import { REPOSITORY_ROLE } from '../../types/generic/authRole';
-import DocumentView from '../../components/blocks/_patientDocuments/documentView/DocumentView';
+import DocumentView, {
+    DOCUMENT_VIEW_STATE,
+} from '../../components/blocks/_patientDocuments/documentView/DocumentView';
 import getDocument, { GetDocumentResponse } from '../../helpers/requests/getDocument';
 import { DOCUMENT_TYPE } from '../../helpers/utils/documentType';
 import BackButton from '../../components/generic/backButton/BackButton';
@@ -34,16 +36,15 @@ import ProgressBar from '../../components/generic/progressBar/ProgressBar';
 import DeleteSubmitStage from '../../components/blocks/_delete/deleteSubmitStage/DeleteSubmitStage';
 import { Button, WarningCallout } from 'nhsuk-react-components';
 import getReviews from '../../helpers/requests/getReviews';
-import DocumentVersionHistoryPage from '../documentVersionHistoryPage/DocumentVersionHistoryPage';
 
 const DocumentSearchResultsPage = (): React.JSX.Element => {
     const patientDetails = usePatient();
-
     const nhsNumber: string = patientDetails?.nhsNumber ?? '';
     const [searchResults, setSearchResults] = useState<Array<SearchResult>>([]);
     const [submissionState, setSubmissionState] = useState(SUBMISSION_STATE.INITIAL);
     const [downloadState, setDownloadState] = useState(SUBMISSION_STATE.INITIAL);
     const [documentReference, setDocumentReference] = useState<DocumentReference | null>(null);
+    const [redirect, setRedirect] = useState<To | null>(null);
     const navigate = useNavigate();
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
@@ -112,13 +113,19 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                 } else {
                     setSubmissionState(SUBMISSION_STATE.FAILED);
                 }
+            } finally {
+                if (redirect) {
+                    const to = redirect;
+                    setRedirect(null);
+                    navigate(to);
+                }
             }
         };
         if (!mounted.current) {
             mounted.current = true;
             void onPageLoad();
         }
-    }, [nhsNumber, navigate, baseUrl, baseHeaders, config]);
+    }, [redirect, nhsNumber, navigate, baseUrl, baseHeaders, config]);
 
     const onViewDocument = (documentItem: SearchResult): void => {
         activeSearchResult.current = documentItem;
@@ -195,15 +202,10 @@ const DocumentSearchResultsPage = (): React.JSX.Element => {
                         }
                     />
                     <Route
-                        path={getLastURLPath(routeChildren.DOCUMENT_VERSION_HISTORY) + '/*'}
-                        element={
-                            <DocumentVersionHistoryPage documentReference={documentReference} />
-                        }
-                    />
-                    <Route
                         path={getLastURLPath(routeChildren.DOCUMENT_VIEW) + '/*'}
                         element={
                             <DocumentView
+                                viewState={DOCUMENT_VIEW_STATE.DOCUMENT}
                                 documentReference={documentReference}
                                 removeDocument={removeDocument}
                             />

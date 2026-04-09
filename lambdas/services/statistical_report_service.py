@@ -45,7 +45,7 @@ class StatisticalReportService:
         self.store_report_to_s3(weekly_summary)
 
     def make_weekly_summary(self) -> pl.DataFrame:
-        (record_store_data, organisation_data, application_data) = (
+        record_store_data, organisation_data, application_data = (
             self.get_statistic_data()
         )
 
@@ -132,8 +132,30 @@ class StatisticalReportService:
 
         df = self.load_data_to_polars(organisation_data)
 
+        count_to_user_id_map = {
+            "daily_count_users_uploaded": "daily_user_ids_uploaded",
+            "daily_count_users_reviewed": "daily_user_ids_reviewed",
+            "daily_count_users_reassigned": "daily_user_ids_reassigned",
+            "daily_count_users_accessing_review": "daily_user_ids_accessed_review",
+            "daily_count_users_accessing_deceased": "daily_user_ids_accessed_deceased_patient",
+        }
+
+        weekly_unique_user_aggs = [
+            pl.concat_list(user_id_column)
+            .flatten()
+            .unique()
+            .len()
+            .alias(daily_count_column.replace("daily", "weekly"))
+            for daily_count_column, user_id_column in count_to_user_id_map.items()
+        ]
+
+        custom_managed_daily_columns = list(count_to_user_id_map.keys()) + list(
+            count_to_user_id_map.values(),
+        )
+
         sum_daily_count_to_weekly = (
             column_select.matches("daily")
+            .exclude(custom_managed_daily_columns)
             .sum()
             .name.map(lambda column_name: column_name.replace("daily", "weekly"))
         )
@@ -147,6 +169,7 @@ class StatisticalReportService:
             sum_daily_count_to_weekly,
             take_average_for_patient_record,
             select_most_recent_number_of_patients,
+            *weekly_unique_user_aggs,
         )
         return summarised_data
 

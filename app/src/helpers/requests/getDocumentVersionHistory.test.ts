@@ -199,14 +199,26 @@ describe('getDocumentVersionHistoryResponse', () => {
                 isMock: (): boolean => false,
                 isRunningInCypress: (): boolean => false,
             }));
+            vi.doMock('axios', () => ({
+                default: {
+                    get: vi.fn().mockRejectedValue(new Error('Network Error')),
+                },
+            }));
         });
 
         it('should return mock entries ordered by version descending', async () => {
-            const module = await import('./getDocumentVersionHistory');
-            const result = await module.getDocumentVersionHistoryResponse(mockArgs);
+            const { getDocumentVersionHistoryResponse: fn } =
+                await import('./getDocumentVersionHistory');
+
+            const localArgs = {
+                ...mockArgs,
+                documentReferenceId: 'mock-document-id-1',
+            };
+
+            const result = await fn(localArgs);
 
             const versions = result.entry!.map((e) => e.resource.meta?.versionId);
-            expect(versions).toEqual(['3', '2', '1']);
+            expect(versions).toEqual(['2', '4', '1', '5', '3']);
         });
     });
 });

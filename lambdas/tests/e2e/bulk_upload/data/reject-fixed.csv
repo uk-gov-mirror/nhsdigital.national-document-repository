@@ -1,2 +1,2 @@
 Test-Description,FILEPATH,PAGE COUNT,NHS-NO,SECTION,SUB-SECTION,scandate,SCAN-ID,USER-ID,UPLOAD
-Prevent Fixed on File and NhsNumber,test/9730787603/1of1_Lloyd_George_Record_[Earl Noel MCGLUE]_[9730787603]_[26-06-1963].pdf,1,M85143,9730787603,LG,,01/01/2023,NEC,NEC,21/11/2025
+General-Reject-Prevent Fixed on File and NhsNumber,test/9730787603/1of1_Lloyd_George_Record_[Earl Noel MCGLUE]_[9730787603]_[26-06-1963].pdf,1,M85143,9730787603,LG,,01/01/2023,NEC,NEC,21/11/2025

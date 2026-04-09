@@ -20,6 +20,13 @@ def get_entry_from_table_by_nhs_number(nhs_number, table_entries):
     return None
 
 
+def get_entry_from_table_by_custodian(ods, table_entries):
+    for entry in table_entries:
+        if entry.get("Custodian") == ods:
+            return entry
+    return None
+
+
 def get_all_entries_from_table_by_nhs_number(nhs_number, table_entries):
     matching_entries = []
     for entry in table_entries:
@@ -32,18 +39,20 @@ def empty_table(table_name):
     dynamodb = boto3.resource("dynamodb")
     table = dynamodb.Table(table_name)
 
-    response = table.scan(ProjectionExpression="ID")
-    items = response.get("Items", [])
+    key_attrs = [k["AttributeName"] for k in table.key_schema]
+    projection_expr = ", ".join(key_attrs)
 
-    # Delete initial page
+    scan_kwargs = {"ProjectionExpression": projection_expr}
+    response = table.scan(**scan_kwargs)
+
     with table.batch_writer() as batch:
-        for item in items:
-            batch.delete_item(Key={"ID": item["ID"]})
+        for item in response.get("Items", []):
+            batch.delete_item(Key={k: item[k] for k in key_attrs})
 
-    # Continue if paginated
     while "LastEvaluatedKey" in response:
         response = table.scan(
-            ProjectionExpression="ID", ExclusiveStartKey=response["LastEvaluatedKey"]
+            ProjectionExpression="ID",
+            ExclusiveStartKey=response["LastEvaluatedKey"],
         )
         items = response.get("Items", [])
         with table.batch_writer() as batch:

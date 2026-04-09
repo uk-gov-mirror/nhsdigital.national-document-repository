@@ -9,7 +9,6 @@ import useTitle from '../../../../helpers/hooks/useTitle';
 import { getConfigForDocType } from '../../../../helpers/utils/documentType';
 import { getFormattedDateTimeFromString } from '../../../../helpers/utils/formatDate';
 import { setFullScreen } from '../../../../helpers/utils/fullscreen';
-import { handleSearch as handlePatientSearch } from '../../../../helpers/utils/handlePatientSearch';
 import { usePatientDetailsContext } from '../../../../providers/patientProvider/PatientProvider';
 import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
 import {
@@ -37,6 +36,11 @@ import { NHS_NUMBER_UNKNOWN } from '../../../../helpers/constants/numbers';
 import { CreatedByCard } from '../../../generic/createdBy/createdBy';
 import DocumentUploadLloydGeorgePreview from '../../_documentManagement/documentUploadLloydGeorgePreview/DocumentUploadLloydGeorgePreview';
 import useReviewId from '../../../../helpers/hooks/useReviewId';
+import { ErrorResponse } from '../../../../types/generic/errorResponse';
+import { UIErrorCode } from '../../../../types/generic/errors';
+import getPatientDetails from '../../../../helpers/requests/getPatientDetails';
+import { isMock } from '../../../../helpers/utils/isLocal';
+import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
 
 export type ReviewsDetailsStageProps = {
     reviewData: ReviewDetails | null;
@@ -67,7 +71,6 @@ const ReviewsDetailsStage = ({
     const [showError, setShowError] = useState(false);
     const errorSummaryRef = useRef<HTMLDivElement>(null);
     const fetchingPatientDetailsRef = useRef(false);
-    const isFetchingReviewDetailsRef = useRef(false);
 
     const baseUrl = useBaseAPIUrl();
     const baseHeaders = useBaseAPIHeaders();
@@ -86,85 +89,88 @@ const ReviewsDetailsStage = ({
         setDownloadStage(DOWNLOAD_STAGE.INITIAL);
         setShowError(false);
 
-        if (!setPatientDetails || !reviewData) {
+        if (!setPatientDetails || !reviewData || reviewData.nhsNumber === NHS_NUMBER_UNKNOWN) {
             setisLoadingPatientDetails(false);
-            return;
-        }
-        if (reviewData.nhsNumber === NHS_NUMBER_UNKNOWN) {
-            setisLoadingPatientDetails(false);
+            loadReviewDataWithRetry();
             return;
         }
 
-        const getPatientDetails = async (): Promise<void> => {
+        const loadPatientDetails = async (): Promise<void> => {
             try {
-                await handlePatientSearch({
+                const patientDetails = await getPatientDetails({
                     nhsNumber: reviewData.nhsNumber,
-                    setSearchingState: () => {},
-                    handleSuccess: (patientDetails) => {
-                        setPatientDetails(patientDetails);
-                    },
                     baseUrl,
                     baseHeaders,
-                    mockLocal: config.mockLocal,
                 });
-                setisLoadingPatientDetails(false);
+
+                setPatientDetails(patientDetails);
             } catch (error) {
-                const err = error as AxiosError;
-                if (err.response?.status === 403) {
+                const err = error as AxiosError<ErrorResponse>;
+
+                if (isMock(err)) {
+                    setPatientDetails(
+                        buildPatientDetails({
+                            nhsNumber: reviewData.nhsNumber,
+                            active: config.mockLocal.patientIsActive,
+                            deceased: config.mockLocal.patientIsDeceased,
+                        }),
+                    );
+                } else if (err.response?.data?.err_code === 'SP_4006') {
+                    navigate(
+                        routes.GENERIC_ERROR +
+                            `?errorCode=${UIErrorCode.PATIENT_ACCESS_RESTRICTED}`,
+                    );
+                } else if (err.response?.status === 403) {
                     navigate(routes.SESSION_EXPIRED);
                 } else {
                     navigate(routes.SERVER_ERROR + errorToParams(err));
                 }
+            } finally {
+                setisLoadingPatientDetails(false);
+                await loadReviewDataWithRetry();
             }
         };
 
         if (!fetchingPatientDetailsRef.current) {
             fetchingPatientDetailsRef.current = true;
-            getPatientDetails();
+            loadPatientDetails();
         }
     }, [reviewId]);
 
-    useEffect(() => {
-        const loadData = async (): Promise<void> => {
-            let retryCount = 0;
-            const maxRetries = 10;
-            const retryDelayMs = 3;
+    const loadReviewDataWithRetry = async (): Promise<void> => {
+        let retryCount = 0;
+        const maxRetries = 10;
+        const retryDelayMs = 3;
 
-            while (retryCount < maxRetries) {
-                try {
-                    await loadReviewData();
-                    if (reviewData!.nhsNumber === NHS_NUMBER_UNKNOWN) {
-                        navigateUrlParam(
-                            routeChildren.REVIEW_SEARCH_PATIENT,
-                            { reviewId: reviewId! },
-                            navigate,
-                            { replace: true },
-                        );
+        while (retryCount < maxRetries) {
+            try {
+                await loadReviewData();
+                if (reviewData!.nhsNumber === NHS_NUMBER_UNKNOWN) {
+                    navigateUrlParam(
+                        routeChildren.REVIEW_SEARCH_PATIENT,
+                        { reviewId: reviewId! },
+                        navigate,
+                        { replace: true },
+                    );
+                    return;
+                }
+                break;
+            } catch (e) {
+                retryCount += 1;
+                if (retryCount < maxRetries) {
+                    await waitForSeconds(retryDelayMs);
+                } else {
+                    const error = e as AxiosError;
+                    if (error.response?.status === 403) {
+                        navigate(routes.SESSION_EXPIRED);
                         return;
                     }
-                    break;
-                } catch (e) {
-                    retryCount += 1;
-                    if (retryCount < maxRetries) {
-                        await waitForSeconds(retryDelayMs);
-                    } else {
-                        const error = e as AxiosError;
-                        if (error.response?.status === 403) {
-                            navigate(routes.SESSION_EXPIRED);
-                            return;
-                        }
 
-                        navigate(routes.SERVER_ERROR + errorToParams(error));
-                    }
+                    navigate(routes.SERVER_ERROR + errorToParams(error));
                 }
             }
-        };
-
-        if (!isFetchingReviewDetailsRef.current) {
-            isFetchingReviewDetailsRef.current = true;
-            loadData();
         }
-    }, [patientDetails, setPatientDetails]);
+    };
 
     const { register, handleSubmit } = useForm<FormData>({
         reValidateMode: 'onSubmit',

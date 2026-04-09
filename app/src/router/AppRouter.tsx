@@ -33,6 +33,8 @@ import CookiePolicyPage from '../pages/cookiePolicyPage/CookiePolicyPage';
 import DocumentCorrectPage from '../pages/documentCorrectPage/DocumentCorrectPage';
 import { AdminPage } from '../pages/adminPage/AdminPage';
 import UserPatientRestrictionsPage from '../pages/userPatientRestrictionsPage/UserPatientRestrictionsPage';
+import DocumentVersionRestorePage from '../pages/documentVersionPage/DocumentVersionRestorePage';
+import GenericErrorPage from '../pages/genericErrorPage/GenericErrorPage';
 
 const {
     START,
@@ -43,6 +45,7 @@ const {
     UNAUTHORISED_LOGIN,
     AUTH_ERROR,
     SERVER_ERROR,
+    GENERIC_ERROR,
     SESSION_EXPIRED,
     FEEDBACK,
     FEEDBACK_CONFIRMATION,
@@ -67,9 +70,12 @@ const {
     DOWNLOAD_COMPLETE,
     COOKIES_POLICY,
     COOKIES_POLICY_WILDCARD,
+    DOCUMENT_VERSION_HISTORY,
+    DOCUMENT_VERSION_HISTORY_WILDCARD,
     DOCUMENT_REASSIGN_PAGES,
     DOCUMENT_REASSIGN_PAGES_WILDCARD,
     USER_PATIENT_RESTRICTIONS,
+    USER_PATIENT_RESTRICTIONS_WILDCARD,
 } = routes;
 
 type Routes = {
@@ -120,6 +126,18 @@ export const childRoutes = [
     {
         route: routeChildren.DOCUMENT_DELETE_COMPLETE,
         parent: PATIENT_DOCUMENTS,
+    },
+    {
+        route: routeChildren.DOCUMENT_VERSION_RESTORE_CONFIRM,
+        parent: DOCUMENT_VERSION_HISTORY,
+    },
+    {
+        route: routeChildren.DOCUMENT_VERSION_RESTORE_UPLOADING,
+        parent: DOCUMENT_VERSION_HISTORY,
+    },
+    {
+        route: routeChildren.DOCUMENT_VERSION_RESTORE_COMPLETE,
+        parent: DOCUMENT_VERSION_HISTORY,
     },
     {
         route: routeChildren.REPORT_DOWNLOAD_COMPLETE,
@@ -261,6 +279,46 @@ export const childRoutes = [
         route: routeChildren.DOCUMENT_REASSIGN_COMPLETE,
         parent: DOCUMENT_REASSIGN_PAGES,
     },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_LIST,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_PATIENT,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_VIEW,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_REMOVE_CONFIRM,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_ACTION_COMPLETE,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_PATIENT,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_EXISTING_RESTRICTIONS,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_SEARCH_STAFF,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_VERIFY_STAFF,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
+    {
+        route: routeChildren.USER_PATIENT_RESTRICTIONS_ADD_CONFIRM,
+        parent: USER_PATIENT_RESTRICTIONS,
+    },
 ];
 
 export const routeMap: Routes = {
@@ -298,6 +356,10 @@ export const routeMap: Routes = {
     },
     [SERVER_ERROR]: {
         page: <ServerErrorPage />,
+        type: ROUTE_TYPE.PUBLIC,
+    },
+    [GENERIC_ERROR]: {
+        page: <GenericErrorPage />,
         type: ROUTE_TYPE.PUBLIC,
     },
     [SESSION_EXPIRED]: {
@@ -354,6 +416,14 @@ export const routeMap: Routes = {
         page: <ReviewsPage />,
         type: ROUTE_TYPE.PRIVATE,
     },
+    [USER_PATIENT_RESTRICTIONS]: {
+        page: <UserPatientRestrictionsPage />,
+        type: ROUTE_TYPE.PRIVATE,
+    },
+    [USER_PATIENT_RESTRICTIONS_WILDCARD]: {
+        page: <UserPatientRestrictionsPage />,
+        type: ROUTE_TYPE.PRIVATE,
+    },
 
     // Patient guard routes
     [VERIFY_PATIENT]: {
@@ -386,6 +456,14 @@ export const routeMap: Routes = {
         page: <PatientAccessAuditPage />,
         type: ROUTE_TYPE.PATIENT,
     },
+    [DOCUMENT_VERSION_HISTORY]: {
+        page: <DocumentVersionRestorePage />,
+        type: ROUTE_TYPE.PATIENT,
+    },
+    [DOCUMENT_VERSION_HISTORY_WILDCARD]: {
+        page: <DocumentVersionRestorePage />,
+        type: ROUTE_TYPE.PATIENT,
+    },
     [DOCUMENT_UPLOAD]: {
         page: <DocumentUploadPage />,
         type: ROUTE_TYPE.PATIENT,
@@ -413,10 +491,6 @@ export const routeMap: Routes = {
     [DOCUMENT_REASSIGN_PAGES_WILDCARD]: {
         page: <DocumentCorrectPage />,
         type: ROUTE_TYPE.PATIENT,
-    },
-    [USER_PATIENT_RESTRICTIONS]: {
-        page: <UserPatientRestrictionsPage />,
-        type: ROUTE_TYPE.PRIVATE,
     },
 };
 

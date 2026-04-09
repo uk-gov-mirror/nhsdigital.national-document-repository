@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from utils.lloyd_george_validator import validate_scan_date
+
 METADATA_FILENAME = "metadata.csv"
 NHS_NUMBER_FIELD_NAME = "NHS-NO"
 ODS_CODE = "GP-PRACTICE-CODE"
@@ -37,6 +39,11 @@ class MetadataFile(MetadataBase):
     scan_id: str | None = None
     user_id: str | None = None
     upload: str | None = None
+
+    @field_validator("scan_date")
+    @classmethod
+    def validate_scan_date_field(cls, scan_date: str) -> str:
+        return validate_scan_date(scan_date)
 
 
 class StagingSqsMetadata(BaseModel):

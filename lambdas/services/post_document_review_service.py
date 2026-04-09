@@ -3,6 +3,8 @@ import uuid
 from datetime import datetime, timezone
 
 from botocore.exceptions import ClientError
+from pydantic import ValidationError
+
 from enums.document_review_reason import DocumentReviewReason
 from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
@@ -12,7 +14,6 @@ from models.document_review import (
     DocumentReviewUploadEvent,
     DocumentUploadReviewReference,
 )
-from pydantic import ValidationError
 from services.base.s3_service import S3Service
 from services.document_upload_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
@@ -49,44 +50,51 @@ class PostDocumentReviewService:
             ):
                 logger.info("Patient is deceased, upload will not proceed.")
                 raise DocumentReviewLambdaException(
-                    403, LambdaError.DocumentReviewUploadForbidden
+                    403,
+                    LambdaError.DocumentReviewUploadForbidden,
                 )
 
             document_review_reference = self.create_review_reference_from_event(
-                event=event, author=author, patient_details=patient_details
+                event=event,
+                author=author,
+                patient_details=patient_details,
             )
 
             logger.info("Creating entry in DynamoDB")
             self.review_document_service.create_dynamo_entry(
-                item=document_review_reference
+                item=document_review_reference,
             )
 
             logger.info("Creating presigned URLs for files.")
             self.create_presigned_urls_for_review_reference_files(
-                document_review_reference=document_review_reference
+                document_review_reference=document_review_reference,
             )
 
             return self.create_response(
-                document_review_reference=document_review_reference
+                document_review_reference=document_review_reference,
             )
 
         except OdsErrorException:
             raise DocumentReviewLambdaException(
-                400, LambdaError.DocumentReviewMissingODS
+                400,
+                LambdaError.DocumentReviewMissingODS,
             )
         except PatientNotFoundException:
             raise DocumentReviewLambdaException(
-                400, LambdaError.DocumentReviewInvalidBody
+                400,
+                LambdaError.DocumentReviewInvalidBody,
             )
         except ValidationError:
             raise DocumentReviewLambdaException(
-                500, LambdaError.DocumentReviewValidation
+                500,
+                LambdaError.DocumentReviewValidation,
             )
         except ClientError:
             raise DocumentReviewLambdaException(500, LambdaError.DocumentReviewDB)
 
     def create_response(
-        self, document_review_reference: DocumentUploadReviewReference
+        self,
+        document_review_reference: DocumentUploadReviewReference,
     ) -> dict:
         logger.info("Creating response body.")
         return document_review_reference.model_dump_camel_case(
@@ -102,7 +110,10 @@ class PostDocumentReviewService:
         )
 
     def create_review_reference_from_event(
-        self, event, author, patient_details
+        self,
+        event,
+        author,
+        patient_details,
     ) -> DocumentUploadReviewReference:
         logger.info(f"Creating DocumentUploadReviewReference from event: {event}")
 
@@ -129,7 +140,8 @@ class PostDocumentReviewService:
         return document_review_reference
 
     def create_presigned_urls_for_review_reference_files(
-        self, document_review_reference: DocumentUploadReviewReference
+        self,
+        document_review_reference: DocumentUploadReviewReference,
     ) -> None:
         try:
             for document_file in document_review_reference.files:
@@ -143,11 +155,14 @@ class PostDocumentReviewService:
         except DocumentReviewException as e:
             logger.error(e)
             raise DocumentReviewLambdaException(
-                500, LambdaError.DocumentReviewPresignedFailure
+                500,
+                LambdaError.DocumentReviewPresignedFailure,
             )
 
     def create_review_document_upload_presigned_url(
-        self, file_key: str, upload_id: str
+        self,
+        file_key: str,
+        upload_id: str,
     ) -> str:
         try:
             logger.info(f"Creating presigned URL for file: {file_key}")

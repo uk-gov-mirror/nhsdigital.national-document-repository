@@ -71,6 +71,11 @@ class OrganisationData(StatisticData):
     daily_count_ods_report_created: int = 0
     daily_count_upload_review: int = 0
     daily_count_upload: int = 0
+    daily_user_ids_uploaded: list[str] = []
+    daily_user_ids_accessed_review: list[str] = []
+    daily_user_ids_accessed_deceased_patient: list[str] = []
+    daily_user_ids_reviewed: list[str] = []
+    daily_user_ids_reassigned: list[str] = []
 
 
 class ApplicationData(StatisticData):

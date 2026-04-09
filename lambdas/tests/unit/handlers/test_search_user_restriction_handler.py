@@ -263,8 +263,8 @@ def test_handler_returns_401_when_no_ods_code_in_request_context(
 ):
     expected_body = json.dumps(
         {
-            "message": LambdaError.UserRestrictionMissingODS.value["message"],
-            "err_code": LambdaError.UserRestrictionMissingODS.value["err_code"],
+            "message": LambdaError.UserRestrictionMissingContext.value["message"],
+            "err_code": LambdaError.UserRestrictionMissingContext.value["err_code"],
             "interaction_id": MOCK_INTERACTION_ID,
         },
     )
@@ -288,9 +288,21 @@ def test_handler_returns_400_when_service_raises_invalid_query_string(
 ):
     mock_service.process_request.side_effect = UserRestrictionException("bad param")
 
-    actual = lambda_handler(event, context)
+    expected_body = json.dumps(
+        {
+            "message": f'{LambdaError.UserRestrictionInvalidEvent.value["message"]}: bad param',
+            "err_code": LambdaError.UserRestrictionInvalidEvent.value["err_code"],
+            "interaction_id": MOCK_INTERACTION_ID,
+        },
+    )
+    expected = ApiGatewayResponse(
+        status_code=400,
+        body=expected_body,
+        methods="GET",
+    ).create_api_gateway_response()
 
-    assert actual["statusCode"] == 400
+    actual = lambda_handler(event, context)
+    assert actual == expected
 
 
 def test_handler_returns_500_when_service_raises_db_error(
@@ -298,14 +310,29 @@ def test_handler_returns_500_when_service_raises_db_error(
     mock_service,
     mocked_extract_ods,
     context,
+    set_env,
 ):
     mock_service.process_request.side_effect = UserRestrictionValidationException(
         "DynamoDB error",
     )
 
-    actual = lambda_handler(event, context)
+    expected_body = json.dumps(
+        {
+            "message": LambdaError.UserRestrictionModelValidationError.value["message"],
+            "err_code": LambdaError.UserRestrictionModelValidationError.value[
+                "err_code"
+            ],
+            "interaction_id": MOCK_INTERACTION_ID,
+        },
+    )
+    expected = ApiGatewayResponse(
+        status_code=500,
+        body=expected_body,
+        methods="GET",
+    ).create_api_gateway_response()
 
-    assert actual["statusCode"] == 500
+    actual = lambda_handler(event, context)
+    assert actual == expected
 
 
 def test_handler_returns_404_when_feature_flag_disabled(

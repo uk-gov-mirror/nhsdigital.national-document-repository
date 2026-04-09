@@ -1,0 +1,28 @@
+{
+  "_description": "PP-6-General-Reject-Incorrect NHS Number or Date",
+  "bulk_upload_report": {
+    "FilePath": "reject/test/9730786968/1of1_Lloyd_George_Record_[Anita EUSTON]_[119730786968]_[12-01-2003].pdf",
+    "NhsNumber": "9730786968",
+    "PdsOdsCode": "",
+    "Reason": "Incorrect NHS number or date format",
+    "SentToReview": true,
+    "StoredFileName": "test/9730786968/1of1_Lloyd_George_Record_[Anita EUSTON]_[119730786968]_[12-01-2003].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "M85143",
+    "Custodian": "M85143",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "1of1_Lloyd_George_Record_[Anita EUSTON]_[119730786968]_[12-01-2003].pdf"
+      }
+    ],
+    "NhsNumber": "9730786968",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

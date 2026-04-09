@@ -2,10 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { Mock } from 'vitest';
 import DocumentReassignSearchPatientStage from './DocumentReassignSearchPatientStage';
 import userEvent from '@testing-library/user-event';
-import { routeChildren } from '../../../../types/generic/routes';
+import { routeChildren, routes } from '../../../../types/generic/routes';
 import { GlobalConfig } from '../../../../providers/configProvider/ConfigProvider';
-import { HandleSearchArgs } from '../../../../helpers/utils/handlePatientSearch';
 import { PatientDetails } from '../../../../types/generic/patientDetails';
+import { buildPatientDetails } from '../../../../helpers/test/testBuilders';
+import { UIErrorCode } from '../../../../types/generic/errors';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -28,11 +29,7 @@ vi.mock('../../../../helpers/utils/handlePatientSearch', async () => {
     const actual = await vi.importActual('../../../../helpers/utils/handlePatientSearch');
     return {
         ...actual,
-        handleSearch: vi
-            .fn()
-            .mockImplementation((args: HandleSearchArgs) =>
-                args.handleSuccess({} as PatientDetails),
-            ),
+        handleSearch: mockHandleSearch,
     };
 });
 vi.mock('../../../../helpers/hooks/useBaseAPIHeaders', () => ({
@@ -58,8 +55,16 @@ vi.mock('../../../../helpers/hooks/useConfig', () => ({
 vi.mock('../../../../helpers/hooks/useBaseAPIUrl');
 
 const mockNavigate = vi.fn();
+const mockHandleSearch = vi.hoisted(() => vi.fn());
 
 describe('DocumentReassignSearchPatientStage', () => {
+    beforeEach(() => {
+        vi.resetAllMocks();
+        mockHandleSearch.mockImplementation(({ handleSuccess }) => {
+            handleSuccess(buildPatientDetails() as PatientDetails);
+        });
+    });
+
     it('renders the patient search form', () => {
         render(
             <DocumentReassignSearchPatientStage
@@ -69,6 +74,28 @@ describe('DocumentReassignSearchPatientStage', () => {
         );
 
         expect(screen.getByText('Search for the correct patient')).toBeInTheDocument();
+    });
+
+    it('navigates to error page when patient is deceased', async () => {
+        render(
+            <DocumentReassignSearchPatientStage
+                reassignedPagesBlob={new Blob()}
+                setPatientForReassign={vi.fn()}
+            />,
+        );
+
+        mockHandleSearch.mockImplementationOnce(({ handleSuccess }) => {
+            handleSuccess(buildPatientDetails({ deceased: true }) as PatientDetails);
+        });
+
+        const searchInput = screen.getByTestId('nhs-number-input');
+        await userEvent.type(searchInput, '1234567890');
+        const searchButton = screen.getByTestId('search-submit-btn');
+        await userEvent.click(searchButton);
+
+        expect(mockNavigate).toHaveBeenCalledWith(
+            routes.GENERIC_ERROR + `?errorCode=${UIErrorCode.PATIENT_DECEASED}`,
+        );
     });
 
     it('navigates to verify patient details on successful search', async () => {
@@ -81,7 +108,7 @@ describe('DocumentReassignSearchPatientStage', () => {
 
         const searchInput = screen.getByTestId('nhs-number-input');
         await userEvent.type(searchInput, '1234567890');
-        const searchButton = screen.getByTestId('continue-button');
+        const searchButton = screen.getByTestId('search-submit-btn');
         await userEvent.click(searchButton);
 
         expect(mockNavigate).toHaveBeenCalledWith(

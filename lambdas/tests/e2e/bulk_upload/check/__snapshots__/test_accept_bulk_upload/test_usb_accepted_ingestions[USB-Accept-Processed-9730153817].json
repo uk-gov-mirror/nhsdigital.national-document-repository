@@ -1,0 +1,29 @@
+{
+  "_description": "USB-Accept-Processed",
+  "bulk_upload_report": {
+    "FilePath": "accept-usb/9730153817 Haley Glenda RUDKIN 07-Aug-2023/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9730153817.pdf",
+    "NhsNumber": "9730153817",
+    "PdsOdsCode": "H81109",
+    "Reason": "Patient matched on full match 3/3, matched on 1 family_name and 2 given name",
+    "SentToReview": false,
+    "StoredFileName": "9730153817 Haley Glenda RUDKIN 07-Aug-2023/1of1_Lloyd_George_Record_[Haley Glenda RUDKIN]_[9730153817]_[07-08-2023].pdf",
+    "UploadStatus": "complete",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": {
+    "Author": "M85143",
+    "ContentType": "application/pdf",
+    "CurrentGpOds": "H81109",
+    "Custodian": "H81109",
+    "DocStatus": "final",
+    "DocumentScanCreation": "2023-01-01",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileName": "1of1_Lloyd_George_Record_[Haley Glenda RUDKIN]_[9730153817]_[07-08-2023].pdf",
+    "FileSize": "Decimal('173760')",
+    "NhsNumber": "9730153817",
+    "Status": "current",
+    "Uploaded": true,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "_description": "PP-7-General-Reject-Invalid NHS Number",
+  "bulk_upload_report": {
+    "FilePath": "reject/test/9730787646/1of1_Lloyd_George_Record_[Stan Herman HOOLEY]_[19730787646]_[08-04-11959].pdf",
+    "NhsNumber": "9730787646",
+    "PdsOdsCode": "",
+    "Reason": "Incorrect NHS number or date format",
+    "SentToReview": true,
+    "StoredFileName": "test/9730787646/1of1_Lloyd_George_Record_[Stan Herman HOOLEY]_[19730787646]_[08-04-11959].pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "M85143"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "M85143",
+    "Custodian": "M85143",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "1of1_Lloyd_George_Record_[Stan Herman HOOLEY]_[19730787646]_[08-04-11959].pdf"
+      }
+    ],
+    "NhsNumber": "9730787646",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

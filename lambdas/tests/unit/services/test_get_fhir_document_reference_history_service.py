@@ -11,7 +11,11 @@ from tests.unit.conftest import (
     TEST_UUID,
 )
 from tests.unit.helpers.data.bulk_upload.test_data import TEST_DOCUMENT_REFERENCE
-from utils.common_query_filters import FinalStatusFilter, patient_nhs_number_filter
+from utils.common_query_filters import (
+    FinalOrDeprecatedDocStatusFilter,
+    FinalStatusFilter,
+    patient_nhs_number_filter,
+)
 from utils.exceptions import (
     InvalidDocumentReferenceException,
 )
@@ -171,10 +175,30 @@ def test_get_fhir_document_reference_history_bundle(
     items = [modified_doc_ref.model_dump(by_alias=True, exclude_none=True)]
     mock_query_table.return_value = items
 
+    expected_search_key = "S3FileKey"
+    expected_index_name = "S3FileKeyIndex"
+    expected_search_condition = TEST_NHS_NUMBER + "/" + TEST_UUID
+    expected_query_filter = (
+        FinalOrDeprecatedDocStatusFilter
+        & patient_nhs_number_filter(
+            DynamoQueryFilterBuilder(),
+            TEST_NHS_NUMBER,
+        )
+    )
+
     bundle = mock_get_fhir_doc_reference_history_service.get_document_reference_history(
         TEST_UUID,
         TEST_NHS_NUMBER,
     )
+
+    mock_get_fhir_doc_reference_history_service.dynamo_service.query_table.assert_called_with(
+        table_name=mock_get_fhir_doc_reference_history_service.lg_table,
+        search_key=expected_search_key,
+        search_condition=expected_search_condition,
+        query_filter=expected_query_filter,
+        index_name=expected_index_name,
+    )
+
     bundle["timestamp"] = "2026-02-26T00:00:00Z"
 
     expected_bundle = {

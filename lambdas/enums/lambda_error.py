@@ -14,6 +14,7 @@ class ErrorMessage(StrEnum):
     FAILED_TO_VALIDATE = "Failed to validate data"
     FAILED_TO_UPDATE_DYNAMO = "Failed to update DynamoDB"
     FAILED_TO_CREATE_TRANSACTION = "Failed to create transaction"
+    INVALID_REQUEST_BODY = "Invalid request body"
 
 
 class LambdaError(Enum):
@@ -503,7 +504,7 @@ class LambdaError(Enum):
     }
     UpdateUploadStateInvalidBody = {
         "err_code": "US_4005",
-        "message": "Invalid request body",
+        "message": ErrorMessage.INVALID_REQUEST_BODY,
     }
     UpdateUploadStateFieldType = {
         "err_code": "US_4006",
@@ -565,7 +566,7 @@ class LambdaError(Enum):
 
     DocumentReviewInvalidBody = {
         "err_code": "DRV_4004",
-        "message": "Invalid request body",
+        "message": ErrorMessage.INVALID_REQUEST_BODY,
     }
 
     DocumentReviewInvalidNhsNumber = {
@@ -673,24 +674,6 @@ class LambdaError(Enum):
     EdgeDocNotFound = {"err_code": "CE_4001", "message": "Document not found"}
 
     """
-        Errors for User Restrictions feature
-    """
-    UserRestrictionInvalidEvent = {
-        "err_code": "UR_4001",
-        "message": "Malformed user restriction event",
-    }
-
-    UserRestrictionModelValidationError = {
-        "err_code": "UR_5001",
-        "message": "Malformed user restriction model error",
-    }
-
-    UserRestrictionDynamoDBConditionError = {
-        "err_code": "UR_4002",
-        "message": "Failed DynamoDB operation, bad request",
-    }
-
-    """
        Errors with no exception
     """
     DocDelNull = {
@@ -778,19 +761,43 @@ class LambdaError(Enum):
     """
        Errors for User Restriction lambdas
     """
-    UserRestrictionMissingODS = {
-        "err_code": "SUR_4001",
-        "message": "No ODS code provided in request context",
+
+    UserRestrictionInvalidEvent = {
+        "err_code": "UR_4001",
+        "message": "Malformed user restriction event",
     }
-    UserRestrictionInvalidQueryString = {
-        "err_code": "SUR_4002",
-        "message": "Invalid query string parameter",
+
+    UserRestrictionModelValidationError = {
+        "err_code": "UR_5001",
+        "message": "Malformed user restriction model error",
     }
-    UserRestrictionDB = {
-        "err_code": "SUR_5001",
-        "message": "Failed to query user restrictions from DynamoDB",
+
+    UserRestrictionDynamoDBConditionError = {
+        "err_code": "UR_4002",
+        "message": "Failed DynamoDB operation, bad request",
     }
-    UserRestrictionInvalidQueryParameter = {
-        "err_code": "SUR_4003",
-        "message": "Invalid query parameter value: %(details)s",
+
+    UserRestrictionMissingContext = {
+        "err_code": "UR_4003",
+        "message": "Missing user context",
+    }
+
+    UserRestrictionSelfRestriction = {
+        "err_code": "UR_4031",
+        "message": "You cannot create a restriction for yourself",
+    }
+
+    UserRestrictionAlreadyExists = {
+        "err_code": "UR_4091",
+        "message": "A restriction already exists for this user and patient",
+    }
+
+    UserRestrictionPatientOdsMismatch = {
+        "err_code": "UR_4032",
+        "message": "Patient's general practice ODS does not match request context ODS",
+    }
+
+    GetUserInfoError = {
+        "err_code": "HCW_5021",
+        "message": "%(message)s with status code: %(code)s",
     }

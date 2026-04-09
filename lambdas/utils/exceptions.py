@@ -58,10 +58,6 @@ class DocumentServiceException(Exception):
     pass
 
 
-class UserRestrictionValidationException(Exception):
-    pass
-
-
 class DocumentReviewException(Exception):
     pass
 
@@ -224,10 +220,18 @@ class HealthcareWorkerAPIException(Exception):
             401: "Healthcare Worker API returned unauthenticated",
             403: "Healthcare Worker API returned unauthorized",
         }
-        return err_messages.get(status_code, "Healthcare Worker API search failed.")
+        return err_messages.get(status_code, "Healthcare Worker API search failed")
 
 
 class HealthcareWorkerPractitionerModelException(Exception):
+    pass
+
+
+class UserRestrictionAlreadyExistsException(Exception):
+    pass
+
+
+class UserRestrictionValidationException(Exception):
     pass
 
 
@@ -256,4 +260,8 @@ class UserRestrictionException(Exception):
 
 
 class UserRestrictionConditionCheckFailedException(Exception):
+    pass
+
+
+class UserRestrictionDynamoDBException(Exception):
     pass

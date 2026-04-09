@@ -1,0 +1,29 @@
+{
+  "_description": "General-Accept-Processed-Mixed brackets",
+  "bulk_upload_report": {
+    "FilePath": "accept/01 of 01_Lloyd George Record_[Tarina Sybill LEVY]_9730154090_14-09-1961.pdf",
+    "NhsNumber": "9730154090",
+    "PdsOdsCode": "H81109",
+    "Reason": "Patient matched on full match 3/3, matched on 1 family_name and 2 given name",
+    "SentToReview": false,
+    "StoredFileName": "1of1_Lloyd_George_Record_[Tarina Sybill LEVY]_[9730154090]_[14-09-1961].pdf",
+    "UploadStatus": "complete",
+    "UploaderOdsCode": "H81109"
+  },
+  "metadata": {
+    "Author": "H81109",
+    "ContentType": "application/pdf",
+    "CurrentGpOds": "H81109",
+    "Custodian": "H81109",
+    "DocStatus": "final",
+    "DocumentScanCreation": "2023-01-01",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileName": "1of1_Lloyd_George_Record_[Tarina Sybill LEVY]_[9730154090]_[14-09-1961].pdf",
+    "FileSize": "Decimal('173760')",
+    "NhsNumber": "9730154090",
+    "Status": "current",
+    "Uploaded": true,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+  }
+}

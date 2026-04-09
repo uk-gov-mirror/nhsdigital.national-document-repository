@@ -1,0 +1,28 @@
+{
+  "_description": "USB-Rejected-Multi-part documents are not supported",
+  "bulk_upload_report": {
+    "FilePath": "reject-usb/9730153973 Sue Lara TEMPLE 25-Jul-2010/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of7_9730153973.pdf",
+    "NhsNumber": "9000000003",
+    "PdsOdsCode": "",
+    "Reason": "Multi-part documents are not supported",
+    "SentToReview": true,
+    "StoredFileName": "9730153973 Sue Lara TEMPLE 25-Jul-2010/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of7_9730153973.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "A00002"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "A00002",
+    "Custodian": "A00002",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of7_9730153973.pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}

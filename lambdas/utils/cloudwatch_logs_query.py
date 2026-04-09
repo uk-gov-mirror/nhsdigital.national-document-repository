@@ -47,6 +47,16 @@ CountUsersLloydGeorgeRecordsUploaded = CloudwatchLogsQueryParams(
     """,
 )
 
+UniqueActiveUserIdsUploaded = CloudwatchLogsQueryParams(
+    lambda_name="DocumentStatusCheckLambda",
+    query_string=f"""
+        fields @timestamp, Message, Authorisation.nhs_user_id AS user_id, 
+        Authorisation.selected_organisation.org_ods_code AS ods_code
+        | filter Message = '{CloudwatchLogsReportingMessage.UPLOAD_STATUS_CHECKED}' 
+        | dedup user_id, ods_code
+    """,
+)
+
 LloydGeorgeRecordsSearched = CloudwatchLogsQueryParams(
     lambda_name="SearchPatientDetailsLambda",
     query_string=f"""
@@ -66,6 +76,16 @@ CountUsersAccessedReview = CloudwatchLogsQueryParams(
     """,
 )
 
+UniqueActiveUserIdsAccessedReview = CloudwatchLogsQueryParams(
+    lambda_name="GetDocumentReview",
+    query_string=f"""
+        fields @timestamp, Message, Authorisation.nhs_user_id AS user_id, 
+        Authorisation.selected_organisation.org_ods_code AS ods_code
+        | filter Message like /{CloudwatchLogsReportingMessage.USERS_ACCESSED_REVIEW}/
+        | dedup user_id, ods_code
+    """,
+)
+
 CountUsersAccessedDeceasedPatient = CloudwatchLogsQueryParams(
     lambda_name="AccessAuditLambda",
     query_string=f"""
@@ -73,6 +93,16 @@ CountUsersAccessedDeceasedPatient = CloudwatchLogsQueryParams(
         Authorisation.selected_organisation.org_ods_code AS ods_code
         | filter Message = '{CloudwatchLogsReportingMessage.USERS_ACCESSED_DECEASED_PATIENT}' 
         | stats count_distinct(user_id) AS daily_count_users_accessing_deceased BY ods_code
+    """,
+)
+
+UniqueActiveUserIdsAccessedDeceasedPatient = CloudwatchLogsQueryParams(
+    lambda_name="AccessAuditLambda",
+    query_string=f"""
+        fields @timestamp, Message, Authorisation.nhs_user_id AS user_id, 
+        Authorisation.selected_organisation.org_ods_code AS ods_code
+        | filter Message = '{CloudwatchLogsReportingMessage.USERS_ACCESSED_DECEASED_PATIENT}' 
+        | dedup user_id, ods_code
     """,
 )
 
@@ -117,6 +147,16 @@ CountUsersLloydGeorgeRecordsReviewed = CloudwatchLogsQueryParams(
     """,
 )
 
+UniqueActiveUserIdsReviewed = CloudwatchLogsQueryParams(
+    lambda_name="PatchDocumentReview",
+    query_string=f"""
+        fields @timestamp, Message, Authorisation.nhs_user_id AS user_id, 
+        Authorisation.selected_organisation.org_ods_code AS ods_code
+        | filter Message like /{CloudwatchLogsReportingMessage.USERS_PATCH_REVIEW}/
+        | dedup user_id, ods_code
+    """,
+)
+
 CountUsersLloydGeorgeRecordsReassigned = CloudwatchLogsQueryParams(
     lambda_name="PatchDocumentReview",
     query_string=f"""
@@ -124,6 +164,16 @@ CountUsersLloydGeorgeRecordsReassigned = CloudwatchLogsQueryParams(
         Authorisation.selected_organisation.org_ods_code AS ods_code
         | filter Message like /{CloudwatchLogsReportingMessage.USERS_REVIEW_REASSIGNED}/
         | stats count_distinct(user_id) AS daily_count_users_reassigned BY ods_code
+    """,
+)
+
+UniqueActiveUserIdsReassigned = CloudwatchLogsQueryParams(
+    lambda_name="PatchDocumentReview",
+    query_string=f"""
+        fields @timestamp, Message, Authorisation.nhs_user_id AS user_id, 
+        Authorisation.selected_organisation.org_ods_code AS ods_code
+        | filter Message like /{CloudwatchLogsReportingMessage.USERS_REVIEW_REASSIGNED}/
+        | dedup user_id, ods_code
     """,
 )
 

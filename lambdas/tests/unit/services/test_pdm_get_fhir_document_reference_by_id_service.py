@@ -36,13 +36,11 @@ def test_get_document_reference_service(patched_service):
 
 def test_handle_get_document_reference_request(patched_service, mocker, set_env):
     documents = create_test_doc_store_refs()
-
     expected = documents[0]
-    mock_document_ref = documents[0]
     mocker.patch.object(
         patched_service,
         "get_core_document_references",
-        return_value=mock_document_ref,
+        return_value=expected,
     )
 
     actual = patched_service.handle_get_document_reference_request(
@@ -54,18 +52,13 @@ def test_handle_get_document_reference_request(patched_service, mocker, set_env)
 
 
 def test_get_dynamo_table_for_patient_data_doc_type(patched_service):
-    """Test _get_dynamo_table_for_doc_type method with a non-Lloyd George document type."""
-
     patient_data_code = SnomedCodes.PATIENT_DATA.value
-
     result = patched_service._get_dynamo_table_for_doc_type(patient_data_code)
     assert result == str(DynamoTables.CORE)
 
 
-# Not PDM however the code that this relates to was introduced because of PDM
+# The following two tests are not PDM however the code that this relates to was introduced because of PDM
 def test_get_dynamo_table_for_unsupported_doc_type(patched_service):
-    """Test _get_dynamo_table_for_doc_type method with a non-Lloyd George document type."""
-
     non_lg_code = SnomedCode(code="non-lg-code", display_name="Non Lloyd George")
 
     with pytest.raises(InvalidDocTypeException) as exc_info:
@@ -75,18 +68,13 @@ def test_get_dynamo_table_for_unsupported_doc_type(patched_service):
     assert exc_info.value.error == LambdaError.DocTypeDB
 
 
-# Not PDM however the code that this relates to was introduced because of PDM
 def test_get_dynamo_table_for_lloyd_george_doc_type(patched_service):
-    """Test _get_dynamo_table_for_doc_type method with Lloyd George document type."""
     lg_code = SnomedCodes.LLOYD_GEORGE.value
-
     result = patched_service._get_dynamo_table_for_doc_type(lg_code)
-
     assert result == str(DynamoTables.LLOYD_GEORGE)
 
 
 def test_get_document_references_empty_result(patched_service):
-    # Test when no documents are found
     patched_service.document_service.get_item.return_value = None
 
     with pytest.raises(GetFhirDocumentReferenceException) as exc_info:

@@ -1,13 +1,18 @@
-import { routeChildren, routes } from '../../../../types/generic/routes';
+import { BackLink, Button, Card, ChevronLeftIcon } from 'nhsuk-react-components';
+import type { MouseEvent } from 'react';
+import { useEffect } from 'react';
+import { createSearchParams, NavigateOptions, To, useNavigate } from 'react-router-dom';
+import useConfig from '../../../../helpers/hooks/useConfig';
+import usePatient from '../../../../helpers/hooks/usePatient';
+import useRole from '../../../../helpers/hooks/useRole';
 import useTitle from '../../../../helpers/hooks/useTitle';
-import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
 import {
     DOCUMENT_TYPE,
     getConfigForDocTypeGeneric,
     LGContentKeys,
 } from '../../../../helpers/utils/documentType';
 import { getFormattedDate } from '../../../../helpers/utils/formatDate';
-import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
+import { useSessionContext } from '../../../../providers/sessionProvider/SessionProvider';
 import {
     ACTION_LINK_KEY,
     AddAction,
@@ -17,27 +22,31 @@ import {
     ReassignAction,
     VersionHistoryAction,
 } from '../../../../types/blocks/lloydGeorgeActions';
-import { createSearchParams, NavigateOptions, To, useNavigate } from 'react-router-dom';
 import { REPOSITORY_ROLE } from '../../../../types/generic/authRole';
-import RecordCard from '../../../generic/recordCard/RecordCard';
-import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
-import { Button, Card, ChevronLeftIcon } from 'nhsuk-react-components';
-import BackButton from '../../../generic/backButton/BackButton';
-import usePatient from '../../../../helpers/hooks/usePatient';
-import { useEffect } from 'react';
-import useRole from '../../../../helpers/hooks/useRole';
+import { routeChildren, routes } from '../../../../types/generic/routes';
+import { DocumentReference } from '../../../../types/pages/documentSearchResultsPage/types';
 import LinkButton from '../../../generic/linkButton/LinkButton';
-import useConfig from '../../../../helpers/hooks/useConfig';
+import PatientSummary, { PatientInfo } from '../../../generic/patientSummary/PatientSummary';
+import RecordCard from '../../../generic/recordCard/RecordCard';
 import Spinner from '../../../generic/spinner/Spinner';
+
+export enum DOCUMENT_VIEW_STATE {
+    DOCUMENT = 'DOCUMENT',
+    VERSION_HISTORY = 'VERSION_HISTORY',
+}
 
 type Props = {
     documentReference: DocumentReference | null;
-    removeDocument: () => void;
+    removeDocument?: () => void;
+    viewState?: DOCUMENT_VIEW_STATE;
+    isActiveVersion?: boolean;
 };
 
 const DocumentView = ({
     documentReference,
     removeDocument,
+    viewState,
+    isActiveVersion,
 }: Readonly<Props>): React.JSX.Element => {
     const [session, setUserSession] = useSessionContext();
     const role = useRole();
@@ -51,6 +60,14 @@ const DocumentView = ({
 
     const pageHeader = 'Lloyd George records';
     useTitle({ pageTitle: pageHeader });
+
+    const getPdfObjectUrl = (): string => {
+        if (documentReference?.contentType !== 'application/pdf') {
+            return '';
+        }
+
+        return documentReference.url ? documentReference.url : 'loading';
+    };
 
     // Handle fullscreen changes from browser events
     useEffect(() => {
@@ -70,7 +87,7 @@ const DocumentView = ({
         return () => {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
-    }, [session, setUserSession]);
+    }, [session, setUserSession, documentReference, getPdfObjectUrl]);
 
     if (!documentReference) {
         navigate(routes.PATIENT_DOCUMENTS);
@@ -118,18 +135,19 @@ const DocumentView = ({
 
     const removeClicked = (): void => {
         disableFullscreen();
-        removeDocument();
+        if (removeDocument) {
+            removeDocument();
+        }
     };
 
     const getLinks = (): Array<LGRecordActionLink> => {
-        if (session.isFullscreen) {
+        if (session.isFullscreen || viewState === DOCUMENT_VIEW_STATE.VERSION_HISTORY) {
             return [];
         }
 
         const canAddFiles =
             documentConfig.canBeUpdated &&
             documentReference.url &&
-            !patientDetails?.deceased &&
             (role === REPOSITORY_ROLE.GP_ADMIN || role === REPOSITORY_ROLE.GP_CLINICAL);
 
         const inputLinks = getLloydGeorgeRecordLinks([
@@ -143,7 +161,7 @@ const DocumentView = ({
             },
         ]);
 
-        if (canAddFiles) {
+        if (canAddFiles && !patientDetails?.deceased) {
             inputLinks.push(
                 AddAction(
                     documentConfig.content.getValue<string>('addFilesLinkLabel')!,
@@ -155,22 +173,18 @@ const DocumentView = ({
                 const label = documentConfig.content.getValue<string>('reassignPagesLinkLabel')!;
                 inputLinks.push(ReassignAction(label, handleReassignPagesClick));
             }
+        }
 
-            if (config.featureFlags.versionHistoryEnabled) {
-                const versionHistoryLabel = documentConfig.content.getValue<string, LGContentKeys>(
-                    'versionHistoryLinkLabel',
-                )!;
-                const vhDescription = documentConfig.content.getValue<string, LGContentKeys>(
-                    'versionHistoryLinkDescription',
-                )!;
-                inputLinks.push(
-                    VersionHistoryAction(
-                        versionHistoryLabel,
-                        vhDescription,
-                        handleVersionHistoryClick,
-                    ),
-                );
-            }
+        if (canAddFiles && config.featureFlags.versionHistoryEnabled) {
+            const versionHistoryLabel = documentConfig.content.getValue<string, LGContentKeys>(
+                'versionHistoryLinkLabel',
+            )!;
+            const vhDescription = documentConfig.content.getValue<string, LGContentKeys>(
+                'versionHistoryLinkDescription',
+            )!;
+            inputLinks.push(
+                VersionHistoryAction(versionHistoryLabel, vhDescription, handleVersionHistoryClick),
+            );
         }
 
         const links = getRecordActionLinksAllowedForRole({
@@ -180,14 +194,6 @@ const DocumentView = ({
         });
 
         return links.sort((a, b) => a.index - b.index);
-    };
-
-    const getPdfObjectUrl = (): string => {
-        if (documentReference.contentType !== 'application/pdf') {
-            return '';
-        }
-
-        return documentReference.url ? documentReference.url : 'loading';
     };
 
     const enableFullscreen = (): void => {
@@ -259,10 +265,20 @@ const DocumentView = ({
         }, 0);
     };
 
-    const GetRecordCard = (): React.JSX.Element => {
+    const handleRestoreVersionClick = (): void => {
+        navigate(routeChildren.DOCUMENT_VERSION_RESTORE_CONFIRM, {
+            replace: true,
+            state: {
+                documentReference,
+            },
+        });
+    };
+
+    const getRecordCard = (): React.JSX.Element => {
         const heading = documentConfig.content.getValueFormatString<string>('viewDocumentTitle', {
             version: documentReference.version,
         })!;
+
         const card = (
             <RecordCard
                 heading={heading}
@@ -352,11 +368,21 @@ const DocumentView = ({
                 <div className="top-info">
                     {!session.isFullscreen && (
                         <>
-                            <BackButton
-                                dataTestid="go-back-button"
-                                toLocation={routes.PATIENT_DOCUMENTS}
-                                backLinkText="Go back"
-                            />
+                            <BackLink
+                                data-testid="go-back-button"
+                                onClick={(
+                                    e: MouseEvent<HTMLAnchorElement>,
+                                ): Promise<void> | void => {
+                                    e.preventDefault();
+                                    if (viewState === DOCUMENT_VIEW_STATE.VERSION_HISTORY) {
+                                        navigate(-1);
+                                        return;
+                                    }
+                                    navigate(routes.PATIENT_DOCUMENTS);
+                                }}
+                            >
+                                Go back
+                            </BackLink>
                             <h1>{pageHeader}</h1>
                         </>
                     )}
@@ -367,10 +393,21 @@ const DocumentView = ({
                         <PatientSummary.Child item={PatientInfo.BIRTH_DATE} />
                     </PatientSummary>
 
+                    {viewState === DOCUMENT_VIEW_STATE.VERSION_HISTORY &&
+                        !isActiveVersion &&
+                        !patientDetails?.deceased && (
+                            <Button
+                                data-testid="view-restore-version-button"
+                                onClick={handleRestoreVersionClick}
+                            >
+                                Restore version
+                            </Button>
+                        )}
+
                     {session.isFullscreen && showMenu && recordCardLinks()}
                 </div>
 
-                {documentReference.url ? <GetRecordCard /> : <Spinner status="Loading document" />}
+                {documentReference.url ? getRecordCard() : <Spinner status="Loading document" />}
             </div>
         </div>
     );

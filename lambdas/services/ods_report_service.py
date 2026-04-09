@@ -1,6 +1,11 @@
 import os
 import tempfile
 from datetime import datetime
+from typing import Any
+
+from openpyxl.workbook import Workbook
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 from enums.dynamo_filter import AttributeOperator
 from enums.file_type import FileType
@@ -10,17 +15,22 @@ from enums.patient_ods_inactive_status import PatientOdsInactiveStatus
 from enums.report_type import ReportType
 from enums.repository_role import RepositoryRole
 from models.document_review import DocumentUploadReviewReference
-from openpyxl.workbook import Workbook
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from services.search_document_review_service import DocumentUploadReviewService
 from utils.audit_logging_setup import LoggingService
-from utils.common_query_filters import NotDeleted, get_not_deleted_filter
+from utils.common_query_filters import (
+    FinalStatusAndNotSuperseded,
+    get_not_deleted_filter,
+)
 from utils.dynamo_query_filter_builder import DynamoQueryFilterBuilder
 from utils.lambda_exceptions import OdsReportException
 from utils.request_context import request_context
+from utils.utilities import (
+    datetime_to_utc_iso_string,
+    epoch_seconds_to_datetime_utc,
+    iso_utc_string_to_datetime,
+)
 
 logger = LoggingService(__name__)
 
@@ -35,38 +45,38 @@ class OdsReportService:
         self.s3_service = S3Service(custom_aws_role=download_report_aws_role_arn)
         self.document_upload_review_service = DocumentUploadReviewService()
 
-    def get_nhs_numbers_by_ods(
+    def generate_ods_report(
         self,
         ods_code: str,
         is_pre_signed_needed: bool = False,
         is_upload_to_s3_needed: bool = False,
         file_type_output: FileType = FileType.CSV,
     ):
-        results = self.query_table_by_index(ods_code)
-        nhs_numbers = {
-            item.get(DocumentReferenceMetadataFields.NHS_NUMBER.value)
-            for item in results
-            if item.get(DocumentReferenceMetadataFields.NHS_NUMBER.value)
-        }
+        document_items = self.query_table_by_index(ods_code)
+        patient_rows = self.build_patient_rows(document_items)
+
         if is_upload_to_s3_needed:
             self.temp_output_dir = tempfile.mkdtemp()
+
         return self.create_and_save_ods_report(
-            ods_code,
-            nhs_numbers,
-            is_pre_signed_needed,
-            is_upload_to_s3_needed,
-            file_type_output,
+            ods_code=ods_code,
+            patient_rows=patient_rows,
+            create_pre_signed_url=is_pre_signed_needed,
+            upload_to_s3=is_upload_to_s3_needed,
+            file_type_output=file_type_output,
         )
 
     def get_documents_for_review(
-        self, ods_code: str, output_file_type: FileType = FileType.CSV
+        self,
+        ods_code: str,
+        output_file_type: FileType = FileType.CSV,
     ):
         if output_file_type != FileType.CSV:
             raise OdsReportException(400, LambdaError.UnsupportedFileType)
 
         query_filter = self.document_upload_review_service.build_review_dynamo_filter()
 
-        results = self.document_upload_review_service.fetch_documents_from_table(
+        review_rows = self.document_upload_review_service.fetch_documents_from_table(
             search_key="Custodian",
             search_condition=ods_code,
             index_name="CustodianIndex",
@@ -75,12 +85,56 @@ class OdsReportService:
 
         self.temp_output_dir = tempfile.mkdtemp()
 
-        return self.create_and_save_ods_report(
+        return self.create_and_save_review_report(
             ods_code=ods_code,
-            data=results,
+            review_rows=review_rows,
             create_pre_signed_url=True,
             upload_to_s3=True,
-            report_type=ReportType.REVIEW,
+        )
+
+    def _upload_and_presign_if_needed(
+        self,
+        *,
+        ods_code: str,
+        file_name: str,
+        local_file_path: str,
+        upload_to_s3: bool,
+        create_pre_signed_url: bool,
+    ):
+        if upload_to_s3:
+            self.save_report_to_s3(ods_code, file_name, local_file_path)
+            if create_pre_signed_url:
+                return self.get_pre_signed_url(ods_code, file_name)
+        return None
+
+    def create_and_save_review_report(
+        self,
+        ods_code: str,
+        review_rows: list[DocumentUploadReviewReference],
+        create_pre_signed_url: bool = False,
+        upload_to_s3: bool = False,
+    ):
+        file_name = self.get_file_name_for_report_type(
+            ReportType.REVIEW,
+            ods_code,
+            len(review_rows),
+            FileType.CSV,
+        )
+
+        local_file_path = os.path.join(self.temp_output_dir, file_name)
+
+        self.create_review_csv_report(local_file_path, review_rows)
+
+        logger.info(
+            f"Query completed. {len(review_rows)} items written to {file_name}.",
+        )
+
+        return self._upload_and_presign_if_needed(
+            ods_code=ods_code,
+            file_name=file_name,
+            local_file_path=local_file_path,
+            upload_to_s3=upload_to_s3,
+            create_pre_signed_url=create_pre_signed_url,
         )
 
     def scan_table_with_filter(self, ods_code: str):
@@ -136,7 +190,7 @@ class OdsReportService:
                 index_name="OdsCodeIndex",
                 search_key=DocumentReferenceMetadataFields.CURRENT_GP_ODS.value,
                 search_condition=ods_code,
-                query_filter=NotDeleted,
+                query_filter=FinalStatusAndNotSuperseded,
             )
             results += response
 
@@ -148,47 +202,48 @@ class OdsReportService:
     def create_and_save_ods_report(
         self,
         ods_code: str,
-        data: set[str] | list[DocumentUploadReviewReference],
+        patient_rows: dict[str, dict[str, Any]],
         create_pre_signed_url: bool = False,
         upload_to_s3: bool = False,
         file_type_output: FileType = FileType.CSV,
-        report_type: ReportType = ReportType.PATIENT,
     ):
         file_name, local_file_path = self.create_ods_report(
-            ods_code, data, file_type_output, report_type
+            ods_code=ods_code,
+            patient_rows=patient_rows,
+            file_type_output=file_type_output,
         )
 
-        if upload_to_s3:
-            self.save_report_to_s3(ods_code, file_name, local_file_path)
-
-            if create_pre_signed_url:
-                return self.get_pre_signed_url(ods_code, file_name)
+        return self._upload_and_presign_if_needed(
+            ods_code=ods_code,
+            file_name=file_name,
+            local_file_path=local_file_path,
+            upload_to_s3=upload_to_s3,
+            create_pre_signed_url=create_pre_signed_url,
+        )
 
     def create_ods_report(
         self,
         ods_code: str,
-        data: set[str] | list[DocumentUploadReviewReference],
+        patient_rows: dict[str, dict[str, Any]],
         file_type_output: FileType = FileType.CSV,
-        report_type: ReportType = ReportType.PATIENT,
     ):
         file_name = self.get_file_name_for_report_type(
-            report_type, ods_code, len(data), file_type_output
+            ReportType.PATIENT,
+            ods_code,
+            len(patient_rows),
+            file_type_output,
         )
 
         local_file_path = os.path.join(self.temp_output_dir, file_name)
         match file_type_output:
             case FileType.CSV:
-                if report_type == ReportType.PATIENT:
-                    self.create_csv_report(local_file_path, data, ods_code)
-                elif report_type == ReportType.REVIEW:
-                    self.create_review_csv_report(local_file_path, data)
+                self.create_csv_report(local_file_path, patient_rows, ods_code)
             case FileType.XLSX:
-                self.create_xlsx_report(local_file_path, data, ods_code)
+                self.create_xlsx_report(local_file_path, patient_rows, ods_code)
             case FileType.PDF:
-                self.create_pdf_report(local_file_path, data, ods_code)
+                self.create_pdf_report(local_file_path, patient_rows, ods_code)
             case _:
                 raise OdsReportException(400, LambdaError.UnsupportedFileType)
-        logger.info(f"Query completed. {len(data)} items written to {file_name}.")
 
         return (file_name, local_file_path)
 
@@ -220,16 +275,10 @@ class OdsReportService:
 
         return file_name
 
-    def create_csv_report(self, file_name: str, nhs_numbers: set[str], ods_code: str):
-        with open(file_name, "w") as f:
-            f.write(
-                f"Total number of patients for ODS code {ods_code}: {len(nhs_numbers)}\n"
-            )
-            f.write("NHS Numbers:\n")
-            f.writelines(f"{nhs_number}\n" for nhs_number in nhs_numbers)
-
     def create_review_csv_report(
-        self, file_name: str, data: list[DocumentUploadReviewReference]
+        self,
+        file_name: str,
+        data: list[DocumentUploadReviewReference],
     ):
         headers = [
             "nhs_number",
@@ -243,7 +292,7 @@ class OdsReportService:
             full_line = ""
             for header in headers:
                 full_line += f"{header},"
-            full_line = full_line[:-1]  # remove the trailing comma
+            full_line = full_line[:-1]
             f.write(f"{full_line}\n")
 
             for line in data:
@@ -258,22 +307,107 @@ class OdsReportService:
                     + line.author
                     + ","
                     + upload_date
-                    + "\n"
+                    + "\n",
                 )
 
-    def create_xlsx_report(self, file_name: str, nhs_numbers: set[str], ods_code: str):
+    def build_patient_rows(
+        self,
+        document_items: list[dict],
+    ) -> dict[str, dict[str, Any]]:
+        rows: dict[str, dict[str, Any]] = {}
+
+        for item in document_items:
+            nhs_number = item.get(DocumentReferenceMetadataFields.NHS_NUMBER.value)
+            if not nhs_number:
+                logger.warning(f"No nhs number found in document_item: {item}")
+                continue
+
+            created_dt = iso_utc_string_to_datetime(
+                item.get(DocumentReferenceMetadataFields.CREATED.value),
+            )
+            updated_dt = epoch_seconds_to_datetime_utc(
+                item.get(DocumentReferenceMetadataFields.LAST_UPDATED.value),
+            )
+
+            current_row_for_patient = rows.get(nhs_number)
+            if current_row_for_patient is None:
+                rows[nhs_number] = {
+                    "nhs_number": nhs_number,
+                    "latest_created_date": created_dt,
+                    "latest_updated_date": updated_dt,
+                }
+                continue
+
+            if created_dt is not None and (
+                current_row_for_patient["latest_created_date"] is None
+                or created_dt > current_row_for_patient["latest_created_date"]
+            ):
+                current_row_for_patient["latest_created_date"] = created_dt
+
+            if updated_dt is not None and (
+                current_row_for_patient["latest_updated_date"] is None
+                or updated_dt > current_row_for_patient["latest_updated_date"]
+            ):
+                current_row_for_patient["latest_updated_date"] = updated_dt
+
+        return rows
+
+    def create_csv_report(
+        self,
+        file_name: str,
+        patient_rows: dict[str, dict[str, Any]],
+        ods_code: str,
+    ):
+        with open(file_name, "w") as f:
+            f.write(
+                f"Total number of patients for ODS code {ods_code}: {len(patient_rows)}\n",
+            )
+
+            f.write("NHS Number,Latest Created Date,Latest Updated Date\n")
+            for nhs in sorted(patient_rows.keys()):
+                row = patient_rows[nhs]
+                created = datetime_to_utc_iso_string(row.get("latest_created_date"))
+                last_updated = datetime_to_utc_iso_string(
+                    row.get("latest_updated_date"),
+                )
+                f.write(f"{nhs},{created},{last_updated}\n")
+
+    def create_xlsx_report(
+        self,
+        file_name: str,
+        patient_rows: dict[str, dict[str, Any]],
+        ods_code: str,
+    ):
         wb = Workbook()
         ws = wb.active
         ws["A1"] = (
-            f"Total number of patients for ODS code {ods_code}: {len(nhs_numbers)}\n"
+            f"Total number of patients for ODS code {ods_code}: {len(patient_rows)}\n"
         )
-        ws["A2"] = "NHS Numbers:\n"
-        for row in nhs_numbers:
-            ws.append([row])
+
+        ws.append(["NHS Number", "Latest Created Date", "Latest Updated Date"])
+
+        for nhs in sorted(patient_rows.keys()):
+            row = patient_rows[nhs]
+            ws.append(
+                [
+                    row.get("nhs_number", ""),
+                    datetime_to_utc_iso_string(row.get("latest_created_date")),
+                    datetime_to_utc_iso_string(row.get("latest_updated_date")),
+                ],
+            )
+
+        ws.column_dimensions["A"].width = 14
+        ws.column_dimensions["B"].width = 20
+        ws.column_dimensions["C"].width = 20
 
         wb.save(file_name)
 
-    def create_pdf_report(self, file_name: str, nhs_numbers: set[str], ods_code: str):
+    def create_pdf_report(
+        self,
+        file_name: str,
+        patient_rows: dict[str, dict[str, Any]],
+        ods_code: str,
+    ):
         c = canvas.Canvas(file_name, pagesize=letter)
         _, height = letter
         c.setFont("Helvetica-Bold", 16)
@@ -281,17 +415,36 @@ class OdsReportService:
         y = 700
         c.drawString(x, height - 50, f"NHS numbers within NDR for ODS code: {ods_code}")
         c.setFont("Helvetica", 12)
-
-        c.drawString(x, y, f"Total number of patients: {len(nhs_numbers)}")
+        c.drawString(x, y, f"Total number of patients: {len(patient_rows)}")
         y -= 20
-        c.drawString(x, y, "NHS Numbers:")
+        c.drawString(x, y, "NHS Number | Latest Created Date | Latest Updated Date")
         y -= 20
-        for row in nhs_numbers:
+        for nhs in sorted(patient_rows.keys()):
             if y < 40:
                 c.showPage()
+                c.setFont("Helvetica-Bold", 16)
+                c.drawString(
+                    x,
+                    height - 50,
+                    f"NHS numbers within NDR for ODS code: {ods_code}",
+                )
+                c.setFont("Helvetica", 12)
                 y = height - 50
 
-            c.drawString(100, y, row)
+                y -= 40
+                c.drawString(
+                    x,
+                    y,
+                    "NHS Number | Latest Created Date | Latest Updated Date",
+                )
+                y -= 20
+
+            row = patient_rows[nhs]
+            created = datetime_to_utc_iso_string(row.get("latest_created_date"))
+            last_updated = datetime_to_utc_iso_string(row.get("latest_updated_date"))
+
+            line = f"{nhs} | {created} | {last_updated}"
+            c.drawString(x, y, line[:120])
             y -= 20
 
         c.save()

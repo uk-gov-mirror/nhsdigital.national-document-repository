@@ -1,0 +1,29 @@
+{
+  "_description": "General-Accept-Processed-Mixed Spacing in Page",
+  "bulk_upload_report": {
+    "FilePath": "accept/01of 01_Lloyd_George_Record_Andrea Gladys HOAKES_9730154775_09-01-2009.pdf",
+    "NhsNumber": "9730154775",
+    "PdsOdsCode": "H81109",
+    "Reason": "Patient matched on full match 3/3, matched on 1 family_name and 2 given name",
+    "SentToReview": false,
+    "StoredFileName": "1of1_Lloyd_George_Record_[Andrea Gladys HOAKES]_[9730154775]_[09-01-2009].pdf",
+    "UploadStatus": "complete",
+    "UploaderOdsCode": "H81109"
+  },
+  "metadata": {
+    "Author": "H81109",
+    "ContentType": "application/pdf",
+    "CurrentGpOds": "H81109",
+    "Custodian": "H81109",
+    "DocStatus": "final",
+    "DocumentScanCreation": "2023-01-01",
+    "DocumentSnomedCodeType": "16521000000101",
+    "FileName": "1of1_Lloyd_George_Record_[Andrea Gladys HOAKES]_[9730154775]_[09-01-2009].pdf",
+    "FileSize": "Decimal('173760')",
+    "NhsNumber": "9730154775",
+    "Status": "current",
+    "Uploaded": true,
+    "Version": "1",
+    "VirusScannerResult": "Clean"
+  }
+}

@@ -19,12 +19,16 @@ import ErrorBox from '../../layout/errorBox/ErrorBox';
 import { InputRef } from '../../../types/generic/inputRef';
 import SpinnerButton from '../spinnerButton/SpinnerButton';
 import PatientSummary, { PatientInfo } from '../patientSummary/PatientSummary';
+import { AxiosError } from 'axios';
 
 type Props = {
     title: string;
-    subtitle: string;
+    subtitle?: string;
+    inputLabel?: string;
+    buttonText?: string;
     displayPatientDetails?: boolean;
     onSuccess: (patientDetails: PatientDetails) => void;
+    onError?: (error: AxiosError) => void;
     secondaryActionText?: string;
     onSecondaryActionClicked?: () => void;
 };
@@ -33,11 +37,16 @@ type FormData = {
     nhsNumber: string;
 };
 
+export const incorrectFormatMessage = "Enter patient's 10 digit NHS number";
+
 const PatientSearchForm = ({
     title,
     subtitle,
+    inputLabel,
+    buttonText = 'Continue',
     displayPatientDetails = false,
     onSuccess,
+    onError,
     secondaryActionText,
     onSecondaryActionClicked,
 }: Props): React.JSX.Element => {
@@ -57,17 +66,17 @@ const PatientSearchForm = ({
         reValidateMode: 'onSubmit',
     });
 
-    const incorrectFormatMessage =
-        'Enter a valid patient NHS number.' +
+    const nhsNumberValidationMessage =
+        incorrectFormatMessage +
         (secondaryActionText
-            ? ` If you keep getting this message, select '${secondaryActionText}'.`
+            ? `. If you keep getting this message, select '${secondaryActionText}'.`
             : '');
 
     const { ref: nhsNumberRef, ...searchProps } = register('nhsNumber', {
-        required: incorrectFormatMessage,
+        required: nhsNumberValidationMessage,
         pattern: {
             value: NHS_NUMBER_PATTERN,
-            message: incorrectFormatMessage,
+            message: nhsNumberValidationMessage,
         },
     });
 
@@ -89,6 +98,10 @@ const PatientSearchForm = ({
         if (result) {
             const [errorCode, statusCode, error] = result;
             if (error) {
+                if (onError) {
+                    onError(error);
+                }
+
                 if (errorCode) {
                     setInputError(errorCode ?? 'Sorry, patient data not found.');
                 } else {
@@ -122,7 +135,7 @@ const PatientSearchForm = ({
     return (
         <>
             {(submissionState === PATIENT_SEARCH_STATES.FAILED ||
-                inputError === incorrectFormatMessage) && (
+                inputError === nhsNumberValidationMessage) && (
                 <>
                     {isError() ? (
                         <ServiceError />
@@ -147,14 +160,15 @@ const PatientSearchForm = ({
                 </PatientSummary>
             )}
 
-            <p>{subtitle}</p>
+            {subtitle && <p>{subtitle}</p>}
 
             <form onSubmit={handleSubmit(handleValidSubmit, handleFormError)}>
                 <TextInput
                     id="nhs-number-input"
                     data-testid="nhs-number-input"
                     className="nhsuk-input--width-10"
-                    label="A 10-digit number, for example, 960 191 4948"
+                    label={inputLabel || 'A 10-digit number, for example, 960 191 4948'}
+                    hint={inputLabel && 'A 10-digit number, for example, 960 191 4948'}
                     type="text"
                     {...searchProps}
                     error={
@@ -178,8 +192,8 @@ const PatientSearchForm = ({
                         disabled={true}
                     />
                 ) : (
-                    <Button type="submit" id="continue-button" data-testid="continue-button">
-                        Continue
+                    <Button type="submit" id="search-submit" data-testid="search-submit-btn">
+                        {buttonText}
                     </Button>
                 )}
             </form>

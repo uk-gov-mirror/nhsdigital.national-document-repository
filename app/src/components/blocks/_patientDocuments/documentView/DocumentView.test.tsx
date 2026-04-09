@@ -104,28 +104,18 @@ const simulateFullscreenChange = (isFullscreen: boolean): void => {
     });
 };
 
-type Props = {
-    documentReference: DocumentReference | null;
-};
-
-const TestApp = ({ documentReference }: Props): React.JSX.Element => {
-    const history = createMemoryHistory();
-    return (
-        <ReactRouter.Router navigator={history} location={history.location}>
-            <DocumentView
-                documentReference={documentReference}
-                removeDocument={mockRemoveDocument}
-            />
-        </ReactRouter.Router>
-    );
-};
-
 const renderComponent = (
     documentReference: DocumentReference | null = mockDocumentReference,
 ): void => {
+    const history = createMemoryHistory();
     render(
         <SessionProvider sessionOverride={{ isLoggedIn: true }}>
-            <TestApp documentReference={documentReference} />
+            <ReactRouter.Router navigator={history} location={history.location}>
+                <DocumentView
+                    documentReference={documentReference}
+                    removeDocument={mockRemoveDocument}
+                />
+            </ReactRouter.Router>
         </SessionProvider>,
     );
 };
@@ -470,6 +460,7 @@ describe('DocumentView', () => {
             mockUseConfig.mockReturnValue({
                 featureFlags: {
                     versionHistoryEnabled: true,
+                    documentCorrectEnabled: true,
                 },
             });
 
@@ -490,6 +481,19 @@ describe('DocumentView', () => {
                     }),
                 );
             });
+        });
+
+        it('shows version history action for deceased patients when feature flag is enabled', () => {
+            mockUsePatient.mockReturnValue(buildPatientDetails({ deceased: true }));
+            mockUseConfig.mockReturnValue({
+                featureFlags: {
+                    versionHistoryEnabled: true,
+                },
+            });
+
+            renderComponent();
+
+            expect(screen.getByTestId(ACTION_LINK_KEY.HISTORY)).toBeInTheDocument();
         });
     });
 

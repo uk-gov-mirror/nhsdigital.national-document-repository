@@ -4,8 +4,8 @@ from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from services.feature_flags_service import FeatureFlagService
-from services.get_document_reference_history_service import (
-    GetDocumentReferenceHistoryService,
+from services.get_fhir_document_reference_history_service import (
+    GetFhirDocumentReferenceHistoryService,
 )
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -56,7 +56,7 @@ def lambda_handler(event, context):
             f"Searching a  document reference history for document ID: {document_id} and NHS number: {nhs_number}",
         )
 
-        service = GetDocumentReferenceHistoryService()
+        service = GetFhirDocumentReferenceHistoryService()
         reference_history_bundle = service.get_document_reference_history(
             document_id,
             nhs_number,

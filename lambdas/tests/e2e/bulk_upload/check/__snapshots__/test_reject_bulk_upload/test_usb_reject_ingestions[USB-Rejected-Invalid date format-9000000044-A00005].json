@@ -1,0 +1,28 @@
+{
+  "_description": "USB-Rejected-Invalid date format",
+  "bulk_upload_report": {
+    "FilePath": "reject-usb/1234567895 Lillian Percy 07-24-1999/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000044.pdf",
+    "NhsNumber": "9000000044",
+    "PdsOdsCode": "",
+    "Reason": "Invalid date format",
+    "SentToReview": true,
+    "StoredFileName": "1234567895 Lillian Percy 07-24-1999/fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000044.pdf",
+    "UploadStatus": "failed",
+    "UploaderOdsCode": "A00005"
+  },
+  "metadata": null,
+  "review": {
+    "Author": "A00005",
+    "Custodian": "A00005",
+    "DocumentSnomedCodeType": "16521000000101",
+    "Files": [
+      {
+        "FileName": "fgdgdf2f4e4dtd_B_1_Lloyd_George_Record_NOS_1of1_9000000044.pdf"
+      }
+    ],
+    "NhsNumber": "0000000000",
+    "ReviewReason": "Unsuccessful upload",
+    "ReviewStatus": "PENDING_REVIEW",
+    "Version": "Decimal('1')"
+  }
+}
