@@ -333,6 +333,79 @@ def test_summarise_organisation_data_can_handle_empty_input(mock_service):
     assert actual.is_empty()
 
 
+def test_summarise_organisation_data_does_not_count_null_as_user_when_accessing_review_lists_are_empty(
+    mock_service,
+):
+    day1 = OrganisationData(
+        ods_code="TEST01",
+        date="20240101",
+        daily_user_ids_accessed_review=[],
+    )
+    day2 = OrganisationData(
+        ods_code="TEST01",
+        date="20240102",
+        daily_user_ids_accessed_review=[],
+    )
+
+    actual = mock_service.summarise_organisation_data([day1, day2])
+
+    assert actual.item(0, "weekly_count_users_accessing_review") == 0
+
+
+def test_summarise_organisation_data_does_not_inflate_count_when_some_accessing_review_lists_are_empty(
+    mock_service,
+):
+    day1 = OrganisationData(
+        ods_code="TEST01",
+        date="20240101",
+        daily_user_ids_accessed_review=["user1"],
+    )
+    day2 = OrganisationData(
+        ods_code="TEST01",
+        date="20240102",
+        daily_user_ids_accessed_review=[],
+    )
+
+    actual = mock_service.summarise_organisation_data([day1, day2])
+
+    assert actual.item(0, "weekly_count_users_accessing_review") == 1
+
+
+def test_summarise_organisation_data_does_not_count_null_as_user_for_ods_with_no_accessing_review_activity(
+    mock_service,
+):
+    ods_a_day1 = OrganisationData(
+        ods_code="ODSA01",
+        date="20240101",
+        daily_user_ids_accessed_review=["user1", "user2"],
+    )
+    ods_a_day2 = OrganisationData(
+        ods_code="ODSA01",
+        date="20240102",
+        daily_user_ids_accessed_review=["user3"],
+    )
+    ods_b_day1 = OrganisationData(
+        ods_code="ODSB02",
+        date="20240101",
+        daily_user_ids_accessed_review=[],
+    )
+    ods_b_day2 = OrganisationData(
+        ods_code="ODSB02",
+        date="20240102",
+        daily_user_ids_accessed_review=[],
+    )
+
+    actual = mock_service.summarise_organisation_data(
+        [ods_a_day1, ods_a_day2, ods_b_day1, ods_b_day2],
+    )
+
+    row_ods_a = actual.filter(pl.col("ods_code") == "ODSA01")
+    row_ods_b = actual.filter(pl.col("ods_code") == "ODSB02")
+
+    assert row_ods_a.item(0, "weekly_count_users_accessing_review") == 3
+    assert row_ods_b.item(0, "weekly_count_users_accessing_review") == 0
+
+
 def test_summarise_application_data(mock_service):
     mock_data = [
         MOCK_APPLICATION_DATA_1,
@@ -447,6 +520,38 @@ def test_summarise_organisation_data_sums_multiple_file_types_per_ods_code(
 
     assert actual.item(0, "weekly_count_upload_review_electronic_health_record") == 8
     assert actual.item(0, "weekly_count_upload_review_care_plan") == 3
+
+
+def test_summarise_organisation_data_returns_zero_not_null_for_ods_code_missing_extra_column(
+    mock_service,
+):
+
+    data_h81109_day1 = OrganisationData(
+        date="20240510",
+        ods_code="H81109",
+        daily_count_upload_review_lloyd_george_record_folder=3,
+    )
+    data_h81109_day2 = OrganisationData(
+        date="20240511",
+        ods_code="H81109",
+        daily_count_upload_review_lloyd_george_record_folder=2,
+    )
+    data_y12345_day1 = OrganisationData(date="20240510", ods_code="Y12345")
+    data_y12345_day2 = OrganisationData(date="20240511", ods_code="Y12345")
+
+    actual = mock_service.summarise_organisation_data(
+        [data_h81109_day1, data_h81109_day2, data_y12345_day1, data_y12345_day2],
+    )
+
+    row_h81109 = actual.filter(pl.col("ods_code") == "H81109")
+    row_y12345 = actual.filter(pl.col("ods_code") == "Y12345")
+
+    assert (
+        row_h81109.item(0, "weekly_count_upload_review_lloyd_george_record_folder") == 5
+    )
+    assert (
+        row_y12345.item(0, "weekly_count_upload_review_lloyd_george_record_folder") == 0
+    )
 
 
 def test_reorder_columns_puts_priority_columns_first(mock_service):
