@@ -8,7 +8,7 @@ Usage:
 Arguments:
     csv_file    - Path to the input CSV file
     levels      - Number of leading path components to strip (e.g. 1 removes the top-level directory)
-    output_file - Optional output path (defaults to stdout)
+    output_file - Optional output path (defaults to <csv_file stem>_modified.csv)
 
 Example:
     Input FILEPATH:  /org/dept/records/file.pdf
@@ -18,7 +18,7 @@ Example:
 
 import csv
 import sys
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 
 def trim_filepath(filepath: str, levels: int) -> str:
@@ -30,6 +30,10 @@ def trim_filepath(filepath: str, levels: int) -> str:
 
 
 def process_csv(input_path: str, levels: int, output_path: str | None = None):
+    if output_path is None:
+        p = Path(input_path)
+        output_path = str(p.with_stem(p.stem + "_modified"))
+
     with open(input_path, newline="", encoding="utf-8") as infile:
         reader = csv.DictReader(infile)
 
@@ -40,16 +44,14 @@ def process_csv(input_path: str, levels: int, output_path: str | None = None):
             )
             sys.exit(1)
 
-        outfile = open(output_path, "w", newline="", encoding="utf-8") if output_path else sys.stdout
-        try:
+        with open(output_path, "w", newline="", encoding="utf-8") as outfile:
             writer = csv.DictWriter(outfile, fieldnames=reader.fieldnames)
             writer.writeheader()
             for row in reader:
                 row["FILEPATH"] = trim_filepath(row["FILEPATH"], levels)
                 writer.writerow(row)
-        finally:
-            if output_path:
-                outfile.close()
+
+    print(f"Written to {output_path}")
 
 
 if __name__ == "__main__":
