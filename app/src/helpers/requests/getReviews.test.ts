@@ -1121,7 +1121,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-2/7`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1170,7 +1170,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-2/7`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1237,7 +1237,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-3/2`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1291,7 +1291,7 @@ describe('getReviews.ts', () => {
             } as GetDocumentReviewDto;
 
             mockedGetDocumentSearchResults.mockResolvedValue([]);
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-4/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1337,7 +1337,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-5/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1392,7 +1392,7 @@ describe('getReviews.ts', () => {
             };
 
             mockedGetDocumentSearchResults.mockResolvedValue([]);
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-6/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1434,7 +1434,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-7/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1477,7 +1477,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-8/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1539,7 +1539,7 @@ describe('getReviews.ts', () => {
             };
 
             mockedGetDocumentSearchResults.mockResolvedValue([]);
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.includes('/document-review/')) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1626,7 +1626,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-13/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1694,7 +1694,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-14/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1760,7 +1760,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-15/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1806,7 +1806,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-16/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1868,7 +1868,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-17/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1932,7 +1932,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-18/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -1979,7 +1979,7 @@ describe('getReviews.ts', () => {
                 ],
             };
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-19/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -2098,7 +2098,7 @@ describe('getReviews.ts', () => {
             } as GetDocumentReviewDto;
 
             let blobFetchCount = 0;
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-22/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -2143,7 +2143,7 @@ describe('getReviews.ts', () => {
 
             const mockBlob = new Blob(['test content'], { type: 'application/pdf' });
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-23/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
@@ -2190,7 +2190,7 @@ describe('getReviews.ts', () => {
 
             const mockBlob = new Blob(['test content'], { type: 'application/octet-stream' });
 
-            mockedAxios.get.mockImplementation((url) => {
+            mockedAxios.get.mockImplementation((url: string) => {
                 if (url.startsWith(`${baseUrl}${endpoints.DOCUMENT_REVIEW}/review-24/1`)) {
                     return Promise.resolve({ status: 200, data: reviewDto });
                 }
