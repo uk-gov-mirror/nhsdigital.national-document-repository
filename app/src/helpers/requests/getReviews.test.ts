@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { beforeEach, describe, expect, Mocked, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, Mocked, test, vi } from 'vitest';
 import { endpoints } from '../../types/generic/endpoints';
 import { GetDocumentReviewDto, ReviewDetails, ReviewsResponse } from '../../types/generic/reviews';
 import getReviews, { getReviewById, getReviewData } from './getReviews';
@@ -10,9 +10,13 @@ import getDocument from './getDocument';
 import { DOCUMENT_UPLOAD_STATE } from '../../types/pages/UploadDocumentsPage/types';
 import * as documentTypeModule from '../utils/documentType';
 
+const mockIsLocal = vi.hoisted(() => ({ value: false }));
+
 vi.mock('axios');
 vi.mock('../utils/isLocal', () => ({
-    isLocal: false,
+    get isLocal() {
+        return mockIsLocal.value;
+    },
 }));
 vi.mock('../test/getMockReviews', () => ({
     default: vi.fn(),
@@ -596,6 +600,14 @@ describe('getReviews.ts', () => {
         });
 
         describe('local development mode', () => {
+            beforeEach(() => {
+                mockIsLocal.value = true;
+            });
+
+            afterEach(() => {
+                mockIsLocal.value = false;
+            });
+
             test('uses mock responses when isLocal is true', async () => {
                 const mockResponse: ReviewsResponse = {
                     documentReviewReferences: [
@@ -615,29 +627,12 @@ describe('getReviews.ts', () => {
 
                 mockedGetMockResponses.mockResolvedValue(mockResponse);
 
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: true,
-                }));
-                const { default: getReviewsLocal } = await import('./getReviews');
-
-                const result = await getReviewsLocal(
-                    baseUrl,
-                    baseHeaders,
-                    nhsNumber,
-                    'startKey',
-                    10,
-                );
+                const result = await getReviews(baseUrl, baseHeaders, nhsNumber, 'startKey', 10);
 
                 expect(mockedSetupMockRequest).toHaveBeenCalled();
                 expect(mockedGetMockResponses).toHaveBeenCalled();
                 expect(result).toEqual(mockResponse);
                 expect(mockedAxios.get).not.toHaveBeenCalled();
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: false,
-                }));
             });
 
             test('calls setupMockRequest with correct params when isLocal is true', async () => {
@@ -649,24 +644,13 @@ describe('getReviews.ts', () => {
 
                 mockedGetMockResponses.mockResolvedValue(mockResponse);
 
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: true,
-                }));
-                const { default: getReviewsLocal } = await import('./getReviews');
-
-                await getReviewsLocal(baseUrl, baseHeaders, nhsNumber, 'testKey', 20);
+                await getReviews(baseUrl, baseHeaders, nhsNumber, 'testKey', 20);
 
                 expect(mockedSetupMockRequest).toHaveBeenCalled();
                 const callParams = mockedSetupMockRequest.mock.calls[0][0] as URLSearchParams;
                 expect(callParams.get('limit')).toBe('20');
                 expect(callParams.get('nextPageToken')).toBe('testKey');
                 expect(callParams.get('nhsNumber')).toBe(nhsNumber);
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: false,
-                }));
             });
 
             test('does not call axios when isLocal is true', async () => {
@@ -678,21 +662,10 @@ describe('getReviews.ts', () => {
 
                 mockedGetMockResponses.mockResolvedValue(mockResponse);
 
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: true,
-                }));
-                const { default: getReviewsLocal } = await import('./getReviews');
-
-                await getReviewsLocal(baseUrl, baseHeaders, nhsNumber, '', 10);
+                await getReviews(baseUrl, baseHeaders, nhsNumber, '', 10);
 
                 expect(mockedAxios.get).not.toHaveBeenCalled();
                 expect(mockedGetMockResponses).toHaveBeenCalledTimes(1);
-
-                vi.resetModules();
-                vi.doMock('../utils/isLocal', () => ({
-                    isLocal: false,
-                }));
             });
         });
     });
