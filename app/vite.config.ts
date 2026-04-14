@@ -1,13 +1,14 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-swc';
+import { defineConfig, PluginOption } from 'vite';
+import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
-import commonjs from 'vite-plugin-commonjs';
+// import commonjs from 'vite-plugin-commonjs';
 // @ts-ignore - Type issues with vite-plugin-eslint exports
 import eslint from 'vite-plugin-eslint';
+import { IncomingMessage, ServerResponse } from 'http';
 
 // Custom plugin to handle SPA fallback to main.html
-const spaFallbackPlugin = () => {
-    const fallbackMiddleware = (req: any, res: any, next: any) => {
+const spaFallbackPlugin = (): PluginOption => {
+    const fallbackMiddleware = (req: IncomingMessage, _: ServerResponse, next: Function): void => {
         // Only handle GET requests that look like routes (not files)
         if (
             req.method === 'GET' &&
@@ -26,10 +27,10 @@ const spaFallbackPlugin = () => {
 
     return {
         name: 'spa-fallback-main-html',
-        configureServer(server: any) {
+        configureServer(server: any): void {
             server.middlewares.use(fallbackMiddleware);
         },
-        configurePreviewServer(server: any) {
+        configurePreviewServer(server: any): void {
             server.middlewares.use(fallbackMiddleware);
         },
     };
@@ -44,11 +45,6 @@ export default defineConfig(({ mode }) => ({
             svgrOptions: { exportType: 'named', ref: true, svgo: false, titleProp: true },
             include: '**/*.svg',
         }),
-        commonjs({
-            dynamic: {
-                onFiles: (files) => files.filter((f) => f !== 'viewer.html'),
-            },
-        }),
         eslint(),
         spaFallbackPlugin(),
     ],
@@ -57,9 +53,8 @@ export default defineConfig(({ mode }) => ({
         host: true,
     },
     build: {
-        commonjsOptions: { transformMixedEsModules: true },
         chunkSizeWarningLimit: 1024,
-        rollupOptions: {
+        rolldownOptions: {
             input: './main.html',
         },
         sourcemap: mode === 'development',

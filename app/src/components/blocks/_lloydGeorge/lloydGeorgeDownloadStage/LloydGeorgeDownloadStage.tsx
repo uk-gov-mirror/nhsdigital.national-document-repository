@@ -7,13 +7,12 @@ import usePatient from '../../../../helpers/hooks/usePatient';
 import { routeChildren, routes } from '../../../../types/generic/routes';
 import { useNavigate, Link } from 'react-router-dom';
 import { errorToParams } from '../../../../helpers/utils/errorToParams';
-import { AxiosError } from 'axios/index';
+import { AxiosError } from 'axios';
 import { isMock } from '../../../../helpers/utils/isLocal';
 import useConfig from '../../../../helpers/hooks/useConfig';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
-
-const FakeProgress = require('fake-progress');
+import createSimulateProgress from '../../../../helpers/utils/simulateProgress';
 
 export type Props = {
     selectedDocuments?: Array<string>;
@@ -47,7 +46,7 @@ const LloydGeorgeDownloadStage = ({
     const [delayTimer, setDelayTimer] = useState<NodeJS.Timeout>();
 
     const progressTimer = useMemo(() => {
-        return new FakeProgress({
+        return createSimulateProgress({
             timeConstant: timeToComplete,
             autoStart: true,
         });
