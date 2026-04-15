@@ -26,7 +26,7 @@ class MetadataGeneralPreprocessor(MetadataPreprocessorService):
             extract_document_number_bulk_upload_file_name(current_file_name)
         )
         current_file_name = extract_lloyd_george_record_from_bulk_upload_file_name(
-            current_file_name
+            current_file_name,
         )
         patient_name, current_file_name = (
             extract_patient_name_from_bulk_upload_file_name(current_file_name)
@@ -37,14 +37,17 @@ class MetadataGeneralPreprocessor(MetadataPreprocessorService):
             raise InvalidFileNameException("Incorrect NHS number or date format")
 
         nhs_number, current_file_name = extract_nhs_number_from_bulk_upload_file_name(
-            current_file_name
+            current_file_name,
         )
         date, current_file_name = extract_date_from_bulk_upload_file_name(
-            current_file_name
+            current_file_name,
         )
-        file_extension = extract_file_extension_from_bulk_upload_file_name(
-            current_file_name
-        )
+        try:
+            file_extension = extract_file_extension_from_bulk_upload_file_name(
+                current_file_name,
+            )
+        except InvalidFileNameException:
+            file_extension = ".pdf"
         file_name = assemble_lg_valid_file_name_full_path(
             file_path_prefix,
             first_document_number,

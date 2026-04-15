@@ -333,7 +333,7 @@ def extract_file_extension_from_bulk_upload_file_name(
 
     if expression_result is None:
         logger.info("Failed to find a file extension")
-        raise InvalidFileNameException("Invalid file extension")
+        raise InvalidFileNameException("Failed to find a file extension")
 
     file_extension = expression_result.group(1)
 

@@ -5,6 +5,7 @@ from io import BytesIO
 
 import pytest
 from freezegun import freeze_time
+
 from models.staging_metadata import METADATA_FILENAME
 from services.bulk_upload.metadata_general_preprocessor import (
     MetadataGeneralPreprocessor,
@@ -107,11 +108,11 @@ def mock_metadata_file_get_object():
                 },
             },
             "final_filename.pdf",
-        )
+        ),
     ],
 )
 def test_validate_record_filename_valid(
-    test_service, mocker, original_filename, mock_details, expected_result
+    test_service, mocker, original_filename, mock_details, expected_result,
 ):
     mocks = {}
     for function_name, details in mock_details.items():
@@ -162,17 +163,17 @@ def test_validate_record_filename_valid(
                 "extract_patient_name_from_bulk_upload_file_name": {
                     "args": ("_[John Doe]_[12345]_[01-01-2000].pdf",),
                     "side_effect": InvalidFileNameException(
-                        "Incorrect NHS number or date format"
+                        "Incorrect NHS number or date format",
                     ),
                 },
                 "extract_nhs_number_from_bulk_upload_file_name": {},
             },
             "Incorrect NHS number or date format",
-        )
+        ),
     ],
 )
 def test_validate_record_filename_invalid(
-    mocker, test_service, original_filename, mock_details, expected_exception_message
+    mocker, test_service, original_filename, mock_details, expected_exception_message,
 ):
     mocks = {}
     for function_name, details in mock_details.items():
@@ -193,6 +194,65 @@ def test_validate_record_filename_invalid(
             mocks[function_name].assert_called_once_with(*details["args"])
         else:
             mocks[function_name].assert_not_called()
+
+
+def test_validate_record_filename_defaults_to_pdf_when_no_extension(
+    mocker, test_service,
+):
+    original_filename = "/M89002/01 of 02_Lloyd_George_Record_[Dwayne The Rock Johnson]_[9730787506]_[18-09-1974]"
+
+    mocker.patch(
+        "services.bulk_upload.metadata_general_preprocessor.extract_document_path_for_lloyd_george_record",
+        return_value=(
+            "/M89002/",
+            "01 of 02_Lloyd_George_Record_[Dwayne The Rock Johnson]_[9730787506]_[18-09-1974]",
+        ),
+    )
+    mocker.patch(
+        "services.bulk_upload.metadata_general_preprocessor.extract_document_number_bulk_upload_file_name",
+        return_value=(
+            "01",
+            "02",
+            "_Lloyd_George_Record_[Dwayne The Rock Johnson]_[9730787506]_[18-09-1974]",
+        ),
+    )
+    mocker.patch(
+        "services.bulk_upload.metadata_general_preprocessor.extract_lloyd_george_record_from_bulk_upload_file_name",
+        return_value="_[Dwayne The Rock Johnson]_[9730787506]_[18-09-1974]",
+    )
+    mocker.patch(
+        "services.bulk_upload.metadata_general_preprocessor.extract_patient_name_from_bulk_upload_file_name",
+        return_value=("Dwayne The Rock Johnson", "_[9730787506]_[18-09-1974]"),
+    )
+    mocker.patch(
+        "services.bulk_upload.metadata_general_preprocessor.extract_nhs_number_from_bulk_upload_file_name",
+        return_value=("9730787506", "_[18-09-1974]"),
+    )
+    mocker.patch(
+        "services.bulk_upload.metadata_general_preprocessor.extract_date_from_bulk_upload_file_name",
+        return_value=(datetime.date(1974, 9, 18), ""),
+    )
+    mocker.patch(
+        "services.bulk_upload.metadata_general_preprocessor.extract_file_extension_from_bulk_upload_file_name",
+        side_effect=InvalidFileNameException("Invalid file extension"),
+    )
+    mock_assemble = mocker.patch(
+        "services.bulk_upload.metadata_general_preprocessor.assemble_lg_valid_file_name_full_path",
+        return_value="final_filename.pdf",
+    )
+
+    result = test_service.validate_record_filename(original_filename)
+
+    assert result == "final_filename.pdf"
+    mock_assemble.assert_called_once_with(
+        "/M89002/",
+        "01",
+        "02",
+        "Dwayne The Rock Johnson",
+        "9730787506",
+        datetime.date(1974, 9, 18),
+        ".pdf",
+    )
 
 
 def test_validate_record_filename_invalid_digit_count(mocker, test_service, caplog):
@@ -257,17 +317,17 @@ def test_process_metadata_file_exists(
     mock_s3_service.file_exist_on_s3.return_value = True
     mock_s3_service.client.get_object.side_effect = (
         lambda Bucket, Key: mock_metadata_file_get_object(
-            test_preprocessed_metadata_file, Bucket, Key
+            test_preprocessed_metadata_file, Bucket, Key,
         )
     )
 
     test_service.process_metadata()
 
     expected_updated_rows = list(
-        csv.DictReader(expected_metadata_bytes.decode("utf-8-sig").splitlines())
+        csv.DictReader(expected_metadata_bytes.decode("utf-8-sig").splitlines()),
     )
     expected_rejected_reasons = list(
-        csv.DictReader(expected_rejected_bytes.decode("utf-8-sig").splitlines())
+        csv.DictReader(expected_rejected_bytes.decode("utf-8-sig").splitlines()),
     )
 
     assert mock_generate_and_save_csv_file.call_count == 2
@@ -287,8 +347,8 @@ def test_process_metadata_file_exists(
 
     # Sort lists of dictionaries for order-insensitive comparison
     assert sorted(actual_updated_rows, key=str) == sorted(
-        expected_updated_rows, key=str
+        expected_updated_rows, key=str,
     )
     assert sorted(actual_rejected_reasons, key=str) == sorted(
-        expected_rejected_reasons, key=str
+        expected_rejected_reasons, key=str,
     )

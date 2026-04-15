@@ -52,7 +52,7 @@ class MetadataUsbPreprocessorService(MetadataPreprocessorService):
         return renaming_map, rejected_rows, rejected_reasons
 
     def validate_record_filename(
-        self, file_path, metadata_nhs_number=None, *args, **kwargs
+        self, file_path, metadata_nhs_number=None, *args, **kwargs,
     ) -> str:
         self._validate_single_file_for_patient(metadata_nhs_number)
         directory_path, file_name = extract_document_path(file_path)
@@ -69,7 +69,7 @@ class MetadataUsbPreprocessorService(MetadataPreprocessorService):
 
         if nhs_number != metadata_nhs_number:
             logger.warning(
-                f"File as it does not match the metadata NHS number: {file_path}"
+                f"File as it does not match the metadata NHS number: {file_path}",
             )
 
         return assemble_lg_valid_file_name_full_path(
@@ -88,15 +88,18 @@ class MetadataUsbPreprocessorService(MetadataPreprocessorService):
     def _validate_single_file_for_patient(self, nhs_number):
         if self.nhs_number_counts[nhs_number] > 1:
             raise InvalidFileNameException(
-                f"More than one file is found for {nhs_number}"
+                f"More than one file is found for {nhs_number}",
             )
 
     def _validate_file_extension(self, file_name: str) -> str:
         file_extension = os.path.splitext(file_name)[1]
+        if file_extension == "":
+            logger.info("No file extension found, assuming PDF")
+            return ".pdf"
         if file_extension != ".pdf":
             logger.info("Rejecting file as it is not a PDF")
             raise InvalidFileNameException(
-                f"File extension {file_extension} is not supported"
+                f"File extension {file_extension} is not supported",
             )
         return file_extension
 
@@ -110,16 +113,16 @@ class MetadataUsbPreprocessorService(MetadataPreprocessorService):
             first_document_number, total_document_number, _ = numbers
             if first_document_number != 1 or total_document_number != 1:
                 logger.info(
-                    f"Rejecting file as it is part of a multi-part document: {file_path}"
+                    f"Rejecting file as it is part of a multi-part document: {file_path}",
                 )
                 raise InvalidFileNameException("Multi-part documents are not supported")
 
     def _extract_metadata_from_path(self, directory_path: str) -> tuple[str, str, date]:
         nhs_number, remaining_path = extract_nhs_number_from_bulk_upload_file_name(
-            directory_path
+            directory_path,
         )
         patient_name, remaining_path = extract_patient_name_from_bulk_upload_file_name(
-            remaining_path
+            remaining_path,
         )
         date_of_birth, _ = extract_date_from_bulk_upload_file_name(remaining_path)
         return nhs_number, patient_name, date_of_birth

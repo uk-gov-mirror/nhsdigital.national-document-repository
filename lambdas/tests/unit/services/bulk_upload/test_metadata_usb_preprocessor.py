@@ -4,6 +4,7 @@ from io import BytesIO
 
 import pytest
 from freezegun import freeze_time
+
 from models.staging_metadata import NHS_NUMBER_FIELD_NAME
 from services.bulk_upload.metadata_usb_preprocessor import (
     MetadataUsbPreprocessorService,
@@ -93,10 +94,15 @@ def mock_metadata_file_get_object():
             "/9876543210 Test Patient-01-Jan-2022/1 of 1_guid_unknown.pdf",
             "/9876543210 Test Patient-01-Jan-2022/1of1_Lloyd_George_Record_[Test Patient]_[9876543210]_[01-01-2022].pdf",
         ),
+        (
+            "/9876543210 Test Patient Name 01-Jan-2022/guid_unknown",
+            "/9876543210 Test Patient Name 01-Jan-2022/1of1_Lloyd_George_Record_[Test Patient Name]_[9876543210]_"
+            "[01-01-2022].pdf",
+        ),
     ],
 )
 def test_validate_record_filename_formats_valid_paths(
-    usb_preprocessor_service, file_path, expected
+    usb_preprocessor_service, file_path, expected,
 ):
     actual = usb_preprocessor_service.validate_record_filename(file_path)
     assert actual == expected
@@ -118,7 +124,7 @@ def test_validate_record_filename_formats_valid_paths(
     ],
 )
 def test_validate_record_filename_raises_for_invalid_paths(
-    usb_preprocessor_service, file_path
+    usb_preprocessor_service, file_path,
 ):
     with pytest.raises(InvalidFileNameException):
         usb_preprocessor_service.validate_record_filename(file_path)
@@ -148,6 +154,29 @@ def test_generate_renaming_map_with_mixed_file_types(usb_preprocessor_service):
     assert rejected_reasons[0]["REASON"] == "File extension .tiff is not supported"
 
 
+def test_validate_file_extension_defaults_to_pdf_when_no_extension(
+    usb_preprocessor_service,
+):
+    result = usb_preprocessor_service._validate_file_extension("guid_unknown")
+    assert result == ".pdf"
+
+
+def test_generate_renaming_map_with_no_extension_assumes_pdf(usb_preprocessor_service):
+    row = {
+        "FILEPATH": "9876543210 Test Patient Name 01-01-2022/guid_unknown",
+        "NHS-NO": "1111",
+        "SCAN-DATE": "10/10/2010",
+        "UPLOAD": "10/10/2010",
+    }
+    renaming_map, rejected_rows, rejected_reasons = (
+        usb_preprocessor_service.generate_renaming_map([row])
+    )
+
+    assert len(rejected_rows) == 0
+    assert len(rejected_reasons) == 0
+    assert len(renaming_map) == 1
+
+
 def test_generate_renaming_map_with_not_supported_file_types(usb_preprocessor_service):
     row1 = {"FILEPATH": "valid_file2.tiff", "NHS-NO": "1111", "SCAN-DATE": "10/10/2010"}
     row2 = {"FILEPATH": "valid_file.tiff", "NHS-NO": "1111", "SCAN-DATE": "10/10/2010"}
@@ -163,7 +192,7 @@ def test_generate_renaming_map_with_not_supported_file_types(usb_preprocessor_se
 
 
 def test_generate_renaming_map_for_usb_format_rejects_rows_with_duplicate_nhs_numbers(
-    set_env, usb_preprocessor_service
+    set_env, usb_preprocessor_service,
 ):
 
     metadata_rows = [
@@ -271,18 +300,18 @@ def test_process_metadata_file_e2e(
     mock_s3_client.file_exist_on_s3.return_value = True
     mock_s3_client.get_object.side_effect = (
         lambda Bucket, Key: mock_metadata_file_get_object(
-            test_preprocessed_metadata_file, Bucket, Key
+            test_preprocessed_metadata_file, Bucket, Key,
         )
     )
 
     usb_preprocessor_service.process_metadata()
 
     expected_rejected_reasons = list(
-        csv.DictReader(expected_rejected_bytes.decode("utf-8-sig").splitlines())
+        csv.DictReader(expected_rejected_bytes.decode("utf-8-sig").splitlines()),
     )
 
     expected_metadata_dict = list(
-        csv.DictReader(expected_metadata_bytes.decode("utf-8-sig").splitlines())
+        csv.DictReader(expected_metadata_bytes.decode("utf-8-sig").splitlines()),
     )
 
     assert mock_generate_and_save_csv_file.call_count == 2
@@ -299,8 +328,8 @@ def test_process_metadata_file_e2e(
 
     # Sort lists of dictionaries for order-insensitive comparison
     assert sorted(actual_metadata_rows, key=str) == sorted(
-        expected_metadata_dict, key=str
+        expected_metadata_dict, key=str,
     )
     assert sorted(actual_rejected_reasons, key=str) == sorted(
-        expected_rejected_reasons, key=str
+        expected_rejected_reasons, key=str,
     )
