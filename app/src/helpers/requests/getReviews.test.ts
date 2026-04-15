@@ -14,7 +14,7 @@ const mockIsLocal = vi.hoisted(() => ({ value: false }));
 
 vi.mock('axios');
 vi.mock('../utils/isLocal', () => ({
-    get isLocal() {
+    get isLocal(): boolean {
         return mockIsLocal.value;
     },
 }));
