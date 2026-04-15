@@ -407,4 +407,4 @@ def test_extract_file_extension_from_bulk_upload_file_name_with_incorrect_file_e
     with pytest.raises(InvalidFileNameException) as exc_info:
         extract_file_extension_from_bulk_upload_file_name(invalid_data)
 
-    assert str(exc_info.value) == "Invalid file extension"
+    assert str(exc_info.value) == "Failed to find a file extension"

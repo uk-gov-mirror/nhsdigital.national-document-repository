@@ -102,7 +102,9 @@ def mock_metadata_file_get_object():
     ],
 )
 def test_validate_record_filename_formats_valid_paths(
-    usb_preprocessor_service, file_path, expected,
+    usb_preprocessor_service,
+    file_path,
+    expected,
 ):
     actual = usb_preprocessor_service.validate_record_filename(file_path)
     assert actual == expected
@@ -124,7 +126,8 @@ def test_validate_record_filename_formats_valid_paths(
     ],
 )
 def test_validate_record_filename_raises_for_invalid_paths(
-    usb_preprocessor_service, file_path,
+    usb_preprocessor_service,
+    file_path,
 ):
     with pytest.raises(InvalidFileNameException):
         usb_preprocessor_service.validate_record_filename(file_path)
@@ -192,7 +195,8 @@ def test_generate_renaming_map_with_not_supported_file_types(usb_preprocessor_se
 
 
 def test_generate_renaming_map_for_usb_format_rejects_rows_with_duplicate_nhs_numbers(
-    set_env, usb_preprocessor_service,
+    set_env,
+    usb_preprocessor_service,
 ):
 
     metadata_rows = [
@@ -300,7 +304,9 @@ def test_process_metadata_file_e2e(
     mock_s3_client.file_exist_on_s3.return_value = True
     mock_s3_client.get_object.side_effect = (
         lambda Bucket, Key: mock_metadata_file_get_object(
-            test_preprocessed_metadata_file, Bucket, Key,
+            test_preprocessed_metadata_file,
+            Bucket,
+            Key,
         )
     )
 
@@ -328,8 +334,10 @@ def test_process_metadata_file_e2e(
 
     # Sort lists of dictionaries for order-insensitive comparison
     assert sorted(actual_metadata_rows, key=str) == sorted(
-        expected_metadata_dict, key=str,
+        expected_metadata_dict,
+        key=str,
     )
     assert sorted(actual_rejected_reasons, key=str) == sorted(
-        expected_rejected_reasons, key=str,
+        expected_rejected_reasons,
+        key=str,
     )

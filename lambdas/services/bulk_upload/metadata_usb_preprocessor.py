@@ -52,7 +52,11 @@ class MetadataUsbPreprocessorService(MetadataPreprocessorService):
         return renaming_map, rejected_rows, rejected_reasons
 
     def validate_record_filename(
-        self, file_path, metadata_nhs_number=None, *args, **kwargs,
+        self,
+        file_path,
+        metadata_nhs_number=None,
+        *args,
+        **kwargs,
     ) -> str:
         self._validate_single_file_for_patient(metadata_nhs_number)
         directory_path, file_name = extract_document_path(file_path)

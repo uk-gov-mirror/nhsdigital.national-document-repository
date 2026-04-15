@@ -112,7 +112,11 @@ def mock_metadata_file_get_object():
     ],
 )
 def test_validate_record_filename_valid(
-    test_service, mocker, original_filename, mock_details, expected_result,
+    test_service,
+    mocker,
+    original_filename,
+    mock_details,
+    expected_result,
 ):
     mocks = {}
     for function_name, details in mock_details.items():
@@ -173,7 +177,11 @@ def test_validate_record_filename_valid(
     ],
 )
 def test_validate_record_filename_invalid(
-    mocker, test_service, original_filename, mock_details, expected_exception_message,
+    mocker,
+    test_service,
+    original_filename,
+    mock_details,
+    expected_exception_message,
 ):
     mocks = {}
     for function_name, details in mock_details.items():
@@ -197,7 +205,8 @@ def test_validate_record_filename_invalid(
 
 
 def test_validate_record_filename_defaults_to_pdf_when_no_extension(
-    mocker, test_service,
+    mocker,
+    test_service,
 ):
     original_filename = "/M89002/01 of 02_Lloyd_George_Record_[Dwayne The Rock Johnson]_[9730787506]_[18-09-1974]"
 
@@ -317,7 +326,9 @@ def test_process_metadata_file_exists(
     mock_s3_service.file_exist_on_s3.return_value = True
     mock_s3_service.client.get_object.side_effect = (
         lambda Bucket, Key: mock_metadata_file_get_object(
-            test_preprocessed_metadata_file, Bucket, Key,
+            test_preprocessed_metadata_file,
+            Bucket,
+            Key,
         )
     )
 
@@ -347,8 +358,10 @@ def test_process_metadata_file_exists(
 
     # Sort lists of dictionaries for order-insensitive comparison
     assert sorted(actual_updated_rows, key=str) == sorted(
-        expected_updated_rows, key=str,
+        expected_updated_rows,
+        key=str,
     )
     assert sorted(actual_rejected_reasons, key=str) == sorted(
-        expected_rejected_reasons, key=str,
+        expected_rejected_reasons,
+        key=str,
     )
