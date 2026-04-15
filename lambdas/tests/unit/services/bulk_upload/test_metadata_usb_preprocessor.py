@@ -178,6 +178,7 @@ def test_generate_renaming_map_with_no_extension_assumes_pdf(usb_preprocessor_se
     assert len(rejected_rows) == 0
     assert len(rejected_reasons) == 0
     assert len(renaming_map) == 1
+    assert renaming_map[0][1]["FILEPATH"].endswith(".pdf")
 
 
 def test_generate_renaming_map_with_not_supported_file_types(usb_preprocessor_service):
