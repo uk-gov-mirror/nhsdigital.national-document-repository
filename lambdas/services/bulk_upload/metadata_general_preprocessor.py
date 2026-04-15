@@ -47,6 +47,7 @@ class MetadataGeneralPreprocessor(MetadataPreprocessorService):
                 current_file_name,
             )
         except InvalidFileNameException:
+            logger.info("Failed to extract file extension, assuming file extension is pdf")
             file_extension = ".pdf"
         file_name = assemble_lg_valid_file_name_full_path(
             file_path_prefix,
