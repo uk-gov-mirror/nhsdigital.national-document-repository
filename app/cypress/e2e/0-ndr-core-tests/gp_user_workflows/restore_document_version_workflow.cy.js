@@ -30,7 +30,7 @@ const featureFlags = {
 
 const bucketUrlIdentifier = 'document-store.s3.amazonaws.com';
 
-describe.skip('GP Workflow: Restore document version', () => {
+describe('GP Workflow: Restore document version', () => {
     const beforeEachConfiguration = (role) => {
         cy.login(role, featureFlags);
         cy.navigateToPatientSearchPage();
@@ -66,7 +66,7 @@ describe.skip('GP Workflow: Restore document version', () => {
         cy.intercept(
             {
                 method: 'GET',
-                url: '/DocumentReference/2a7a270e-aa1d-532e-8648-d5d8e3defb82',
+                url: '/DocumentReference/2a7a270e-aa1d-532e-8648-d5d8e3defb82*',
             },
             {
                 statusCode: 200,
@@ -106,20 +106,16 @@ describe.skip('GP Workflow: Restore document version', () => {
                 beforeEachConfiguration(Roles.GP_ADMIN);
                 navigateToVersionHistory();
 
-                // Assert version history page is shown
                 cy.contains('Version history').should('be.visible');
 
-                // Assert all 3 versions are displayed
                 cy.getByTestId('view-version-3').should('exist');
                 cy.getByTestId('view-version-2').should('exist');
                 cy.getByTestId('view-version-1').should('exist');
 
-                // Assert active version (v3) shows "This is the current version"
                 cy.contains("This is the current version shown in this patient's record").should(
                     'be.visible',
                 );
 
-                // Assert inactive versions have "Restore version" links
                 cy.getByTestId('restore-version-2').should('exist');
                 cy.getByTestId('restore-version-1').should('exist');
             },
@@ -146,17 +142,14 @@ describe.skip('GP Workflow: Restore document version', () => {
                 beforeEachConfiguration(Roles.GP_ADMIN);
                 navigateToRestoreConfirm();
 
-                // Assert restore confirm page is shown
                 cy.contains(
                     'Are you sure you want to restore this version of these scanned paper notes?',
                 ).should('be.visible');
 
-                // Assert radio options are present
                 cy.getByTestId('yes-radio-btn').should('exist');
                 cy.getByTestId('no-radio-btn').should('exist');
                 cy.getByTestId('continue-button').should('exist');
 
-                // Assert help and guidance link exists
                 cy.getByTestId('help-and-guidance-link').should('exist');
             },
         );
@@ -202,21 +195,29 @@ describe.skip('GP Workflow: Restore document version', () => {
         });
     });
 
-    context('Restore version uploading and completion', () => {
-        it(
-            'GP_ADMIN can successfully restore a previous version of a document',
-            { tags: 'regression' },
-            () => {
-                beforeEachConfiguration(Roles.GP_ADMIN);
-                navigateToRestoreConfirm();
+    // Version 2 of the document
+    const versionToRestoreDocId = 'c889dbbf-2e3a-5860-ab90-9421b5e29b86';
 
-                // Intercept the upload session / document reference call
-                cy.intercept('POST', '/DocumentReference*', {
-                    statusCode: 200,
-                    body: {
+    const setupRestoreUploadIntercepts = () => {
+        // GET for the version being restored (different document ID to the active version)
+        cy.intercept('GET', `/DocumentReference/${versionToRestoreDocId}/_history/*`, {
+            statusCode: 200,
+            body: {
+                url: baseUrl + '/browserconfig.xml',
+                contentType: 'application/pdf',
+            },
+        }).as('getVersionDocument');
+
+        // PUT upload session - restore uses PUT not POST, keyed by clientId from request
+        cy.intercept('PUT', '/DocumentReference/*', (req) => {
+            const attachment = req.body.content[0].attachment;
+            req.reply({
+                statusCode: 200,
+                body: {
+                    [attachment.clientId]: {
                         url: 'http://' + bucketUrlIdentifier,
                         fields: {
-                            key: 'test-key',
+                            key: '2a7a270e-aa1d-532e-8648-d5d8e3defb82',
                             'x-amz-algorithm': 'xxxx-xxxx-SHA256',
                             'x-amz-credential': 'xxxxxxxxxxx/20230904/eu-west-2/s3/aws4_request',
                             'x-amz-date': '20230904T125954Z',
@@ -224,27 +225,37 @@ describe.skip('GP Workflow: Restore document version', () => {
                             'x-amz-signature': '9xxxxxxxx',
                         },
                     },
-                }).as('uploadSession');
+                },
+            });
+        }).as('uploadSession');
 
-                // Intercept the S3 upload
-                cy.intercept('POST', '**' + bucketUrlIdentifier + '**', {
-                    statusCode: 204,
-                }).as('s3Upload');
+        cy.intercept('POST', '**' + bucketUrlIdentifier + '**', {
+            statusCode: 204,
+        }).as('s3Upload');
 
-                // Intercept virus scan / document status polling
-                cy.intercept('GET', '/DocumentStatus*', {
-                    statusCode: 200,
-                    body: {
-                        '2a7a270e-aa1d-532e-8648-d5d8e3defb82': {
-                            status: 'succeeded',
-                        },
-                    },
-                }).as('documentStatus');
+        // Document status - key must match fields.key, status must be 'final'
+        cy.intercept('GET', '/DocumentStatus*', {
+            statusCode: 200,
+            body: {
+                '2a7a270e-aa1d-532e-8648-d5d8e3defb82': {
+                    status: 'final',
+                },
+            },
+        }).as('documentStatus');
 
-                // Intercept the upload confirmation
-                cy.intercept('POST', '/UploadConfirm*', {
-                    statusCode: 204,
-                }).as('uploadConfirm');
+        cy.intercept('POST', '/UploadConfirm*', {
+            statusCode: 204,
+        }).as('uploadConfirm');
+    };
+
+    context('Restore version uploading and completion', () => {
+        it(
+            'GP_ADMIN can successfully restore a previous version of a document',
+            { tags: 'regression' },
+            () => {
+                beforeEachConfiguration(Roles.GP_ADMIN);
+                navigateToRestoreConfirm();
+                setupRestoreUploadIntercepts();
 
                 // Select "Yes" and continue
                 cy.getByTestId('yes-radio-btn').click();
@@ -274,39 +285,7 @@ describe.skip('GP Workflow: Restore document version', () => {
             () => {
                 beforeEachConfiguration(Roles.GP_ADMIN);
                 navigateToRestoreConfirm();
-
-                // Set up intercepts for the upload flow
-                cy.intercept('POST', '/DocumentReference*', {
-                    statusCode: 200,
-                    body: {
-                        url: 'http://' + bucketUrlIdentifier,
-                        fields: {
-                            key: 'test-key',
-                            'x-amz-algorithm': 'xxxx-xxxx-SHA256',
-                            'x-amz-credential': 'xxxxxxxxxxx/20230904/eu-west-2/s3/aws4_request',
-                            'x-amz-date': '20230904T125954Z',
-                            'x-amz-security-token': 'xxxxxxxxx',
-                            'x-amz-signature': '9xxxxxxxx',
-                        },
-                    },
-                }).as('uploadSession');
-
-                cy.intercept('POST', '**' + bucketUrlIdentifier + '**', {
-                    statusCode: 204,
-                }).as('s3Upload');
-
-                cy.intercept('GET', '/DocumentStatus*', {
-                    statusCode: 200,
-                    body: {
-                        '2a7a270e-aa1d-532e-8648-d5d8e3defb82': {
-                            status: 'succeeded',
-                        },
-                    },
-                }).as('documentStatus');
-
-                cy.intercept('POST', '/UploadConfirm*', {
-                    statusCode: 204,
-                }).as('uploadConfirm');
+                setupRestoreUploadIntercepts();
 
                 // Complete the restore
                 cy.getByTestId('yes-radio-btn').click();
