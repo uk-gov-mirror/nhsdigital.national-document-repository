@@ -11,7 +11,10 @@ import {
     routeChildren,
     routes,
 } from '../../../../types/generic/routes';
-import { ReviewUploadDocument } from '../../../../types/pages/UploadDocumentsPage/types';
+import {
+    ReviewUploadDocument,
+    UploadDocumentType,
+} from '../../../../types/pages/UploadDocumentsPage/types';
 import BackButton from '../../../generic/backButton/BackButton';
 import { CreatedByCard } from '../../../generic/createdBy/createdBy';
 import PatientSearchForm from '../../../generic/patientSearchForm/PatientSearchForm';
@@ -51,7 +54,7 @@ const ReviewDetailsPatientSearchStage = ({
 
     const downloadAction = (e: React.MouseEvent<HTMLElement>): void => {
         e.preventDefault();
-        for (const doc of uploadDocuments ?? []) {
+        for (const doc of reviewFiles()) {
             const anchor = document.createElement('a');
             const url = URL.createObjectURL(doc.blob!);
             anchor.href = url;
@@ -72,7 +75,13 @@ const ReviewDetailsPatientSearchStage = ({
         downloadAction,
     };
 
-    const files = uploadDocuments?.filter((f) => f.file?.name.endsWith('.pdf'));
+    const reviewFiles = (): ReviewUploadDocument[] => {
+        return (
+            uploadDocuments?.filter(
+                (f) => f.file.name.endsWith('.pdf') && f.type === UploadDocumentType.REVIEW,
+            ) || []
+        );
+    };
 
     return (
         <>
@@ -92,7 +101,7 @@ const ReviewDetailsPatientSearchStage = ({
             />
 
             <RecordLayout
-                heading={reviewConfig.content.viewDocumentTitle as string}
+                heading={reviewConfig.content.reviewDocumentTitle as string}
                 fullScreenHandler={null}
                 detailsElement={<RecordLoader {...recordDetailsProps} />}
                 isFullScreen={false}
@@ -100,7 +109,7 @@ const ReviewDetailsPatientSearchStage = ({
                 showMenu={false}
             >
                 <DocumentUploadLloydGeorgePreview
-                    documents={files || []}
+                    documents={reviewFiles() || []}
                     setMergedPdfBlob={(): void => {}}
                     documentConfig={reviewConfig}
                     isReview={true}
