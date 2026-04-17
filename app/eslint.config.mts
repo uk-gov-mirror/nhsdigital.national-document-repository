@@ -58,48 +58,64 @@ export default defineConfig([
         },
         rules: {
             // eslint-react rules
-            '@eslint-react/no-missing-key': 'off',
-            '@eslint-react/no-nested-component-definitions': 'off',
-            '@eslint-react/purity': 'off',
-            '@eslint-react/no-context-provider': 'off',
-            '@eslint-react/use-state': 'off',
-            '@eslint-react/component-hook-factories': 'off',
-            '@eslint-react/web-api-no-leaked-timeout': 'off',
-            '@eslint-react/no-forward-ref': 'off',
-            '@eslint-react/no-array-index-key': 'off',
+            '@eslint-react/no-missing-key': 'off', // 1
+            '@eslint-react/no-nested-component-definitions': 'off', // 4
+            '@eslint-react/purity': 'off', // 7
+            '@eslint-react/no-context-provider': 'off', // 8
+            '@eslint-react/use-state': 'off', // 7
+            '@eslint-react/component-hook-factories': 'off', // 10
+            '@eslint-react/web-api-no-leaked-timeout': 'off', // 3
+            '@eslint-react/no-forward-ref': 'off', // 3
+            '@eslint-react/no-array-index-key': 'off', // 2
             '@eslint-react/exhaustive-deps': 'off', // 36
             '@eslint-react/set-state-in-effect': 'off', // 31
-            '@eslint-react/naming-convention-ref-name': 'off',
-            '@eslint-react/no-children-to-array': 'off',
-            '@eslint-react/web-api-no-leaked-event-listener': 'off',
-            '@eslint-react/no-unnecessary-use-prefix': 'off',
-            '@eslint-react/no-use-context': 'off',
+            '@eslint-react/naming-convention-ref-name': 'off', // 16
+            '@eslint-react/no-children-to-array': 'off', // 1
+            '@eslint-react/web-api-no-leaked-event-listener': 'off', // 1
+            '@eslint-react/no-unnecessary-use-prefix': 'off', // 1
+            '@eslint-react/no-use-context': 'off', // 6
 
-            '@eslint-react/jsx-no-leaked-semicolon': 'off',
+            '@eslint-react/jsx-no-leaked-semicolon': 'off', // 1
 
-            'prefer-const': 'off',
-            'no-var': 'off',
-            'cypress/no-unnecessary-waiting': 'warn',
-            'object-curly-spacing': ['warn', 'always'],
+            'prefer-const': 'off', // 12
+            'no-var': 'off', // 1
 
             // typescript-eslint rules
-            '@typescript-eslint/no-unused-expressions': 'off',
-            '@typescript-eslint/no-non-null-asserted-optional-chain': 'off',
-            '@typescript-eslint/ban-ts-comment': 'off',
-            '@typescript-eslint/no-unsafe-function-type': 'off',
-            '@typescript-eslint/no-unused-vars': [
-                'error',
-                {
-                    vars: 'all',
-                    args: 'none',
-                },
-            ],
-            '@typescript-eslint/no-explicit-any': [
+            '@typescript-eslint/no-unused-expressions': 'off', // 1
+            '@typescript-eslint/no-non-null-asserted-optional-chain': 'off', // 6
+            '@typescript-eslint/ban-ts-comment': 'off', // 6
+            '@typescript-eslint/no-unsafe-function-type': 'off', // 0
+            
+            '@typescript-eslint/no-explicit-any': [ // 141
                 'off',
                 {
                     ignoreRestArgs: true,
                 },
             ],
+            
+            'import/prefer-default-export': 'off', // 20
+            'react/jsx-props-no-spreading': 'off',
+            'react/jsx-boolean-value': 'off',
+            'react/prop-types': 'off',
+            'react/no-unescaped-entities': 'off',
+            'react/jsx-one-expression-per-line': 'off',
+            'react/jsx-wrap-multilines': 'off',
+            'react/destructuring-assignment': 'off',
+            'react-hooks/exhaustive-deps': 'off', // 39
+            
+            // general rules
+            '@typescript-eslint/explicit-function-return-type': ['error', {
+                allowTypedFunctionExpressions: true,
+                allowHigherOrderFunctions: true,
+            }],
+            'no-console': 'warn',
+            'prettier/prettier': 'error',
+
+
+            'unused-imports/no-unused-imports': 'error',
+            'cypress/no-unnecessary-waiting': 'warn',
+            'object-curly-spacing': ['warn', 'always'],
+
             'max-len': [
                 'warn',
                 {
@@ -130,22 +146,13 @@ export default defineConfig([
                     ],
                 },
             ],
-            'react/jsx-props-no-spreading': 'off',
-            'import/prefer-default-export': 'off',
-            'react/jsx-boolean-value': 'off',
-            'react/prop-types': 'off',
-            'react/no-unescaped-entities': 'off',
-            'react/jsx-one-expression-per-line': 'off',
-            'react/jsx-wrap-multilines': 'off',
-            'react/destructuring-assignment': 'off',
-            'no-console': 'warn',
-            'prettier/prettier': 'error',
-            'react-hooks/exhaustive-deps': 'off',
-            '@typescript-eslint/explicit-function-return-type': ['error', {
-                allowTypedFunctionExpressions: true,
-                allowHigherOrderFunctions: true,
-            }],
-            'unused-imports/no-unused-imports': 'error',
+            '@typescript-eslint/no-unused-vars': [
+                'error',
+                {
+                    vars: 'all',
+                    args: 'none',
+                },
+            ],
         },
     },
     {
@@ -164,41 +171,51 @@ export default defineConfig([
             'react-hooks': pluginReactHooks as ESLint.Plugin,
         },
         rules: {
-            'jsx-a11y/anchor-has-content': 'off',
-            'jsx-a11y/no-redundant-roles': 'off',
-            'no-throw-literal': 'off',
-            'max-len': 'off',
-            'prefer-const': 'off',
-            'no-var': 'off',
+            'jsx-a11y/anchor-has-content': 'off', // 19
+            'jsx-a11y/no-redundant-roles': 'off', // 2
+            'no-throw-literal': 'off', // 2
+            'prefer-const': 'off', // 12
+            'no-var': 'off', // 1
 
             // testing-library rules
-            'testing-library/prefer-screen-queries': 'off',
+            'testing-library/prefer-screen-queries': 'off', // 1
             'testing-library/no-node-access': 'off', // 123
             'testing-library/no-unnecessary-act': 'off', // 59
-            'testing-library/no-container': 'off',
+            'testing-library/no-container': 'off', // 36
             'testing-library/await-async-events': 'off', // 16
-            'testing-library/render-result-naming-convention': 'off',
-            'testing-library/no-wait-for-multiple-assertions': 'off',
-            'testing-library/prefer-presence-queries': 'off',
-            'testing-library/no-render-in-lifecycle': 'off',
-            'testing-library/await-async-utils': 'off',
-            'testing-library/no-wait-for-side-effects': 'off',
+            'testing-library/render-result-naming-convention': 'off', // 15
+            'testing-library/no-wait-for-multiple-assertions': 'off', // 4
+            'testing-library/prefer-presence-queries': 'off', // 3
+            'testing-library/no-render-in-lifecycle': 'off', // 1
+            'testing-library/await-async-utils': 'off', // 1
+            'testing-library/no-wait-for-side-effects': 'off', // 10
 
             // eslint-react rules
-            '@eslint-react/purity': 'off',
-            '@eslint-react/use-state': 'off',
-            '@eslint-react/jsx-no-leaked-semicolon': 'off',
-            '@eslint-react/component-hook-factories': 'off',
+            '@eslint-react/purity': 'off', // 7
+            '@eslint-react/use-state': 'off', // 7
+            '@eslint-react/jsx-no-leaked-semicolon': 'off', // 1
+            '@eslint-react/component-hook-factories': 'off', // 10
 
             // typescript-eslint rules
-            '@typescript-eslint/ban-ts-comment': 'off',
-            '@typescript-eslint/no-unsafe-function-type': 'off',
-            '@typescript-eslint/no-unused-vars': 'off',
-            '@typescript-eslint/no-explicit-any': 'off', 
+            '@typescript-eslint/ban-ts-comment': 'off', // 6
+            '@typescript-eslint/no-unsafe-function-type': 'off', // 0
+            '@typescript-eslint/no-unused-vars': 'off', // 13
+            '@typescript-eslint/no-explicit-any': 'off', // 141
             '@typescript-eslint/explicit-function-return-type': ['error', {
                 allowTypedFunctionExpressions: true,
                 allowHigherOrderFunctions: true,
             }],
+
+            'max-len': [
+                'off', // 10
+                {
+                    code: 100,
+                    tabWidth: 4,
+                    ignoreStrings: true,
+                    ignoreTemplateLiterals: true,
+                    ignoreComments: true,
+                },
+            ],
 
             // disable jsx-a11y rules on test files.
             ...Object.fromEntries(              
@@ -215,25 +232,25 @@ export default defineConfig([
                     devDependencies: true,
                 },
             ],
-            '@typescript-eslint/explicit-function-return-type': 'off',
+            '@typescript-eslint/explicit-function-return-type': 'off', // 0
         },
     },
     {
         files: ['src/vite-env.d.ts'],
         rules: {
-            '@typescript-eslint/no-require-imports': 'off',
+            '@typescript-eslint/no-require-imports': 'off', // 1
         },
     },
     {
         files: ['src/main.tsx'],
         rules: {
-            '@typescript-eslint/no-namespace': 'off',
+            '@typescript-eslint/no-namespace': 'off', // 1
         },
     },
     {
         files: ['react-build-env-checker.js'],
         rules: {
-            '@typescript-eslint/no-require-imports': 'off',
+            '@typescript-eslint/no-require-imports': 'off', // 1
         },
     }
 ]);
