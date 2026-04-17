@@ -86,6 +86,12 @@ class BulkUploadMetadataProcessorService:
         self.metadata_formatter_service = metadata_formatter_service
         self.send_to_review_enabled = send_to_review_enabled
 
+        self.count_messages_sent_to_review = 0
+        self.count_messages_sent_to_bulk = 0
+        self.count_files_rejected = 0
+        self.count_files_hard_rejected = 0
+        self.count_files_renamed_by_formatter = 0
+
     def download_metadata_from_s3(self) -> str:
         local_file_path = f"{self.temp_download_dir}/{self.file_key.split('/')[-1]}"
 
@@ -189,6 +195,7 @@ class BulkUploadMetadataProcessorService:
             self.process_metadata_row(row, patients, failed_files)
 
         if self.send_to_review_enabled:
+            logger.info(f"Sending {len(failed_files)} messages to review queue")
             self.send_failed_files_to_review_queue(failed_files)
         else:
             logger.info(
@@ -213,6 +220,20 @@ class BulkUploadMetadataProcessorService:
             file_metadata = self.apply_fixed_values(file_metadata)
 
         nhs_number, ods_code = self.extract_patient_info(file_metadata)
+
+        if not is_valid_ods_code(ods_code):
+            error_msg = f"Invalid ods code: {ods_code}"
+            logger.error(error_msg, {"Result": UNSUCCESSFUL})
+            error = OdsErrorException(error_msg)
+            self.handle_invalid_filename(
+                file_metadata,
+                error,
+                nhs_number,
+                ods_code,
+                failed_files,
+                skip_review=True,
+            )
+            return
 
         try:
             correct_file_name = self.validate_and_correct_filename(file_metadata)
@@ -286,10 +307,12 @@ class BulkUploadMetadataProcessorService:
             validate_file_name(file_metadata.file_path.split("/")[-1])
             return file_metadata.file_path
         except LGInvalidFilesException:
-            return self.metadata_formatter_service.validate_record_filename(
+            renamed = self.metadata_formatter_service.validate_record_filename(
                 file_metadata.file_path,
                 file_metadata.nhs_number,
             )
+            self.count_files_renamed_by_formatter += 1
+            return renamed
 
     def validate_expedite_file(self, s3_object_key: str):
         """Validate and extract fields from an expedite S3 key.
@@ -361,14 +384,16 @@ class BulkUploadMetadataProcessorService:
     def handle_invalid_filename(
         self,
         file_metadata: MetadataFile,
-        error: InvalidFileNameException,
+        error: Exception,
         nhs_number: str,
         ods_code: str,
         failed_files: dict[tuple[str, str], list[BulkUploadQueueMetadata]],
+        skip_review: bool = False,
     ) -> None:
         """Handle invalid filenames by logging, storing failure in Dynamo, and tracking for review.
         Files that do not exist on the staging bucket are marked as failed only —
         they are never added to the review queue since they cannot be reviewed.
+        If skip_review is True, the file is never added to the review queue regardless.
         """
         logger.error(
             f"Failed to process {file_metadata.file_path} due to error: {error}",
@@ -380,7 +405,11 @@ class BulkUploadMetadataProcessorService:
         failed_file.file_path = self.add_directory_path_to_file_path(file_metadata)
 
         file_exists = self.s3_repo.file_exists_on_staging_bucket(failed_file.file_path)
-        if not file_exists:
+        if skip_review:
+            logger.info(
+                f"Skipping review queue for {failed_file.file_path}.",
+            )
+        elif not file_exists:
             logger.info(
                 f"File {failed_file.file_path} not found on staging bucket. Will not send to review.",
             )
@@ -389,12 +418,15 @@ class BulkUploadMetadataProcessorService:
 
         failed_entry = StagingSqsMetadata(nhs_number=nhs_number, files=[failed_file])
         failed_entry.nhs_number = nhs_number
+        send_to_review = self.send_to_review_enabled and file_exists and not skip_review
         self.dynamo_repository.write_report_upload_to_dynamo(
             failed_entry,
             UploadStatus.FAILED,
             str(error),
-            sent_to_review=self.send_to_review_enabled and file_exists,
+            sent_to_review=send_to_review,
         )
+        self.count_files_rejected += 1
+        self.count_files_hard_rejected += 1 if not send_to_review else 0
 
     def send_failed_files_to_review_queue(
         self,
@@ -410,6 +442,7 @@ class BulkUploadMetadataProcessorService:
                 uploader_ods=ods_code,
                 failure_reason=DocumentReviewReason.UNSUCCESSFUL_UPLOAD,
             )
+        self.count_messages_sent_to_review = len(failed_files)
 
     def send_metadata_to_fifo_sqs(
         self,
@@ -425,7 +458,10 @@ class BulkUploadMetadataProcessorService:
                 nhs_number=nhs_number,
                 group_id=f"bulk_upload_{nhs_number}",
             )
-        logger.info("Sent bulk upload metadata to sqs queue")
+        logger.info(
+            f"Sent {len(staging_sqs_metadata_list)} messages of bulk upload metadata to sqs queue",
+        )
+        self.count_messages_sent_to_bulk = len(staging_sqs_metadata_list)
 
     def send_metadata_to_expedite_sqs(
         self,
@@ -441,6 +477,7 @@ class BulkUploadMetadataProcessorService:
             nhs_number=nhs_number,
             group_id=sqs_group_id,
         )
+        self.count_messages_sent_to_bulk = 1
 
     def copy_metadata_to_dated_folder(self):
         """Copy processed metadata CSV into a dated archive folder in S3."""

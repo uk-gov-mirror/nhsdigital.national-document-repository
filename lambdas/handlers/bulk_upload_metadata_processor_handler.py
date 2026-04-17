@@ -58,13 +58,13 @@ def lambda_handler(event, _context):
         logger.info("Handling EventBridge event from S3")
 
         metadata_service.handle_expedite_event(event)
-        return
+        return None
 
     if not input_file_location:
         logger.error(
             "Failed to start metadata processing due to missing field: inputFileLocation",
         )
-        return
+        return None
 
     logger.info(
         f"Starting metadata processing for file location: {input_file_location}",
@@ -83,3 +83,13 @@ def lambda_handler(event, _context):
         send_to_review_enabled=send_to_review_enabled,
     )
     metadata_service.process_metadata()
+
+    result_summary = {
+        "Messages sent to bulk upload": metadata_service.count_messages_sent_to_bulk,
+        "Messages sent to review": metadata_service.count_messages_sent_to_review,
+        "Number of rejected files (including review)": metadata_service.count_files_rejected,
+        "Number of hard rejected files": metadata_service.count_files_hard_rejected,
+        "Files renamed by the formatter": metadata_service.count_files_renamed_by_formatter,
+    }
+    logger.info("Result summary:", result_summary)
+    return result_summary

@@ -20,6 +20,13 @@ class MetadataBase(BaseModel):
     gp_practice_code: str = Field(min_length=1)
     scan_date: str
 
+    @field_validator("gp_practice_code", mode="before")
+    @classmethod
+    def strip_gp_practice_code(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
 
 class BulkUploadQueueMetadata(MetadataBase):
     stored_file_name: str
