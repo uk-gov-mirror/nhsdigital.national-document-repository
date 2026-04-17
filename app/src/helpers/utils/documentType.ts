@@ -86,8 +86,6 @@ export type ContentKeys =
     | 'chosenToRemovePagesSubtitle'
     | 'reassignPagesLinkLabel';
 
-export interface IndividualDocumentTypeContent extends Record<ContentKeys, string | string[]> {}
-
 /**
  * A type-safe content store for a document type's UI strings.
  *
@@ -136,16 +134,6 @@ export type IndividualDocumentTypeContentUtil<K extends string, V> = Record<K, V
         obj: object,
     ): TReturn | undefined;
 };
-
-/**
- * Convenience interface representing a fully-populated content util containing
- * every possible content key across all document types (`AllContentKeys`).
- * Useful as a loose type when the specific doc type is not known.
- */
-export interface IndividualDocumentTypeContent extends IndividualDocumentTypeContentUtil<
-    AllContentKeys,
-    string | string[]
-> {}
 
 /**
  * Factory that builds an `IndividualDocumentTypeContentUtil` from a plain record.
@@ -235,7 +223,7 @@ export type DOCUMENT_TYPE_CONFIG_GENERIC<K extends string> = {
 };
 
 export type DocumentTypeContentKey = 'uploadTitle' | 'uploadDescription';
-export interface DocumentTypeContent extends Record<DocumentTypeContentKey, string> {}
+export type DocumentTypeContent = Record<DocumentTypeContentKey, string>;
 
 // The document type as defined in the documentTypesConfig.json
 export interface DocumentType {

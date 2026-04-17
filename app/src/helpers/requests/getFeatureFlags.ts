@@ -22,7 +22,7 @@ const getFeatureFlags = async ({ baseUrl, baseHeaders }: Args): Promise<FeatureF
             },
         });
         return data;
-    } catch (e) {
+    } catch {
         return defaultFeatureFlags;
     }
 };

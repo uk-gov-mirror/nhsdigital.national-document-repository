@@ -101,8 +101,7 @@ describe('getPdfObjectUrl.ts', () => {
                         mockSetPdfObjectUrl,
                         mockSetDownloadStage,
                     );
-                } catch (error) {
-                    // Expected error
+                } catch {
                 }
 
                 expect(mockSetPdfObjectUrl).not.toHaveBeenCalled();

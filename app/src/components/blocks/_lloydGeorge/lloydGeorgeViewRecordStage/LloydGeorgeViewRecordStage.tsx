@@ -116,7 +116,7 @@ const LloydGeorgeViewRecordStage = ({
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
 
-        return () => {
+        return (): void => {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
     }, [session, setUserSession]);

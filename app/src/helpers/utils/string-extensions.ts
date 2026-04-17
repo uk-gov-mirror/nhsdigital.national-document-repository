@@ -4,7 +4,6 @@ declare global {
     }
 }
 
-// eslint-disable-next-line no-extend-native
 String.prototype.toSentenceCase = function (): string {
     if (this.length === 0) {
         return '';

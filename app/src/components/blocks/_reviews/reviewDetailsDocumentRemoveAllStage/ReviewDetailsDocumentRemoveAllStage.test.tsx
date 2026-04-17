@@ -15,7 +15,7 @@ const mockNavigate = vi.fn();
 const mockReviewId = 'test-review-789';
 const mockSetDocuments = vi.fn();
 
-vi.mock('react-router-dom', async (): Promise<{}> => {
+vi.mock('react-router-dom', async (): Promise<unknown> => {
     const actual = await vi.importActual('react-router-dom');
     return {
         ...actual,

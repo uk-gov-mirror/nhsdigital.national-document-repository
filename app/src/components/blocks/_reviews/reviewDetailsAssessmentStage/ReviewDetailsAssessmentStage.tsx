@@ -383,7 +383,7 @@ const ReviewDetailsAssessmentStage = ({
                                         (f) => f.fileName === uploadDoc.file.name,
                                     );
                                     if (!file) {
-                                        return <></>;
+                                        return;
                                     }
                                     const date = getFormattedDateFromString(file.uploadDate);
                                     return (

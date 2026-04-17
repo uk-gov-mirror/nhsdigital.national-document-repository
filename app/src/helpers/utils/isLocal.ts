@@ -6,6 +6,5 @@ export const isLocal =
 export const isMock = (err: AxiosError): boolean => isLocal && err.code === 'ERR_NETWORK';
 
 export const isRunningInCypress = (): boolean => {
-    //@ts-ignore
     return Boolean(window?.Cypress) || typeof vitest !== 'undefined';
 };

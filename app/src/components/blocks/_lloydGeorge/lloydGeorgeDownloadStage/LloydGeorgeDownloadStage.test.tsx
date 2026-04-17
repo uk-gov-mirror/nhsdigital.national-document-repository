@@ -124,7 +124,6 @@ describe('LloydGeorgeDownloadStage', () => {
                 data: { message: 'An error occurred', err_code: 'SP_1001' },
             },
         };
-        // eslint-disable-next-line prefer-promise-reject-errors
         vi.mocked(getPresignedUrlForZip).mockImplementation(() => Promise.reject(errorResponse));
 
         renderComponent(history);
@@ -168,7 +167,6 @@ describe('LloydGeorgeDownloadStage', () => {
                 data: { message: 'Unauthorised' },
             },
         };
-        // eslint-disable-next-line prefer-promise-reject-errors
         vi.mocked(getPresignedUrlForZip).mockImplementation(() => Promise.reject(errorResponse));
 
         renderComponent(history);

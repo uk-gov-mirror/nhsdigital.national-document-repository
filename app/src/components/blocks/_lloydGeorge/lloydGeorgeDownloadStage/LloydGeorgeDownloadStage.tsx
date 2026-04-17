@@ -13,6 +13,7 @@ import useConfig from '../../../../helpers/hooks/useConfig';
 import useTitle from '../../../../helpers/hooks/useTitle';
 import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- fixed by other pr
 const FakeProgress = require('fake-progress');
 
 export type Props = {

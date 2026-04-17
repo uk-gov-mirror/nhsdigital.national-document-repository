@@ -84,7 +84,7 @@ const DocumentView = ({
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
 
-        return () => {
+        return (): void => {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
     }, [session, setUserSession, documentReference, getPdfObjectUrl]);
