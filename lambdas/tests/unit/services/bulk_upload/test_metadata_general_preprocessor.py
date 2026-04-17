@@ -92,7 +92,7 @@ def mock_metadata_file_get_object():
                 },
                 "extract_file_extension_from_bulk_upload_file_name": {
                     "args": (".pdf",),
-                    "return_value": "pdf",
+                    "return_value": ".pdf",
                 },
                 "assemble_lg_valid_file_name_full_path": {
                     "args": (
@@ -102,7 +102,7 @@ def mock_metadata_file_get_object():
                         "Dwayne The Rock Johnson",
                         "9730787506",
                         datetime.date(1974, 9, 18),
-                        "pdf",
+                        ".pdf",
                     ),
                     "return_value": "final_filename.pdf",
                 },
@@ -288,6 +288,15 @@ def test_validate_record_filename_invalid_digit_count(mocker, test_service, capl
         test_service.validate_record_filename(bad_filename)
 
     assert str(exc_info.value) == "Incorrect NHS number or date format"
+
+
+def test_validate_record_filename_rejects_non_pdf_extension(mocker, test_service):
+    original_filename = "/M89002/01 of 02_Lloyd_George_Record_[Dwayne The Rock Johnson]_[9730787506]_[18-09-1974].png"
+
+    with pytest.raises(InvalidFileNameException) as exc_info:
+        test_service.validate_record_filename(original_filename)
+
+    assert str(exc_info.value) == "File extension .png is not supported"
 
 
 @freeze_time("2025-01-01T12:00:00")

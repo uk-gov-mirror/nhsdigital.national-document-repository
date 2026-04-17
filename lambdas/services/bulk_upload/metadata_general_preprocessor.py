@@ -51,6 +51,11 @@ class MetadataGeneralPreprocessor(MetadataPreprocessorService):
                 "Failed to extract file extension, assuming file extension is pdf",
             )
             file_extension = ".pdf"
+        if file_extension != ".pdf":
+            logger.info("Rejecting file as it is not a PDF")
+            raise InvalidFileNameException(
+                f"File extension {file_extension} is not supported",
+            )
         file_name = assemble_lg_valid_file_name_full_path(
             file_path_prefix,
             first_document_number,
