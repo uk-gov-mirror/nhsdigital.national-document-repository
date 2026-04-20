@@ -14,6 +14,7 @@ import { DOCUMENT_TYPE } from '../../../../helpers/utils/documentType';
 import {
     ReviewUploadDocument,
     DOCUMENT_UPLOAD_STATE,
+    UploadDocumentType,
 } from '../../../../types/pages/UploadDocumentsPage/types';
 import { incorrectFormatMessage } from '../../../generic/patientSearchForm/PatientSearchForm';
 
@@ -809,6 +810,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
 
             const mockBlob1 = new Blob(['content1'], { type: 'application/pdf' });
             const mockBlob2 = new Blob(['content2'], { type: 'application/pdf' });
+            const mockBlob3 = new Blob(['content3'], { type: 'application/pdf' });
             const mockUploadDocuments = [
                 {
                     file: new File(['content1'], 'test1.pdf', { type: 'application/pdf' }),
@@ -816,6 +818,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '1',
                     docType: '16521000000101' as DOCUMENT_TYPE,
+                    type: UploadDocumentType.REVIEW,
                 },
                 {
                     file: new File(['content2'], 'test2.pdf', { type: 'application/pdf' }),
@@ -823,6 +826,17 @@ describe('ReviewDetailsPatientSearchPage', () => {
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '2',
                     docType: '16521000000101' as DOCUMENT_TYPE,
+                    type: UploadDocumentType.REVIEW,
+                },
+                {
+                    file: new File(['content'], 'existing-file.pdf', {
+                        type: 'application/pdf',
+                    }),
+                    blob: mockBlob3,
+                    state: DOCUMENT_UPLOAD_STATE.SELECTED,
+                    id: '1',
+                    docType: '16521000000101' as DOCUMENT_TYPE,
+                    type: UploadDocumentType.EXISTING,
                 },
             ] as ReviewUploadDocument[];
 
@@ -860,6 +874,7 @@ describe('ReviewDetailsPatientSearchPage', () => {
                     state: DOCUMENT_UPLOAD_STATE.SELECTED,
                     id: '1',
                     docType: '16521000000101' as DOCUMENT_TYPE,
+                    type: UploadDocumentType.REVIEW,
                 },
             ] as ReviewUploadDocument[];
 
