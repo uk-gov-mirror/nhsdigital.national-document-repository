@@ -1,29 +1,46 @@
 import { Roles } from '../../../support/roles';
-import dbItem from '../../../fixtures/dynamo-db-items/active-patient-h81109.json';
+import dbItem1 from '../../../fixtures/dynamo-db-items/restore-data/active-patient-h81109-v1.json';
+import dbItem2 from '../../../fixtures/dynamo-db-items/restore-data/active-patient-h81109-v2.json';
 
 const workspace = Cypress.env('WORKSPACE');
-dbItem.FileLocation = dbItem.FileLocation.replace('{env}', workspace);
-const activePatient = 9730154708; //9730154708,9730154376
+dbItem1.FileLocation = dbItem1.FileLocation.replace('{env}', workspace);
+dbItem2.FileLocation = dbItem2.FileLocation.replace('{env}', workspace);
+
+const activePatient = '9730154708'; //9730154708,9730154376
 const bucketName = `${workspace}-lloyd-george-store`;
 const tableName = `${workspace}_LloydGeorgeReferenceMetadata`;
-const fileName = `${activePatient}/e4a6d7f7-01f3-44be-8964-515b2c0ec180`;
+const fileName = `${activePatient}/c165a49e-71b3-4662-8494-49c6b08070ba`;
 
 const patientVerifyUrl = '/patient/verify';
 const documentViewUrl = '/patient/documents';
 
-// inital test works if you prepopulate the data need to sort out populating database
-describe.skip('GP Workflow: restore version history', () => {
+describe('GP Workflow: restore version history', () => {
     context('Version history button is visible on document view page', () => {
         beforeEach(() => {
-            cy.deleteFileFromS3(bucketName, fileName);
-            cy.deleteItemFromDynamoDb(tableName, dbItem.ID);
-            cy.addPdfFileToS3(bucketName, fileName, 'test_patient_record.pdf');
-            cy.addItemToDynamoDb(tableName, dbItem);
+            try {
+                cy.addPdfFileToS3(bucketName, fileName, 'lg-files/simple_pdf_pages/6.pdf').then(
+                    (v1Response) => {
+                        dbItem1.S3VersionID = v1Response.VersionId;
+                        cy.addPdfFileToS3(
+                            bucketName,
+                            fileName,
+                            'lg-files/simple_pdf_pages/7.pdf',
+                        ).then((v2Response) => {
+                            dbItem2.S3VersionID = v2Response.VersionId;
+                            cy.addItemToDynamoDb(tableName, dbItem1);
+                            cy.addItemToDynamoDb(tableName, dbItem2);
+                        });
+                    },
+                );
+            } catch (error) {
+                cy.log('Error in beforeEach setup:', error);
+            }
         });
 
         afterEach(() => {
-            cy.deleteFileFromS3(bucketName, fileName);
-            cy.deleteItemFromDynamoDb(tableName, dbItem.ID);
+            cy.deleteAllFilesFromS3Prefix(bucketName, fileName);
+            cy.deleteItemFromDynamoDb(tableName, dbItem1.ID);
+            cy.deleteItemFromDynamoDb(tableName, dbItem2.ID);
         });
 
         it(
