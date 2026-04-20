@@ -68,6 +68,9 @@ class LoginService:
                 userinfo, selected_role_id
             )
 
+            if org_ods_codes == "F86074":
+                raise AuthorisationException("ODS code F86074 not permitted to access the NDR")
+
             smartcard_role_code, user_id = self.oidc_service.fetch_user_role_code(
                 userinfo, selected_role_id, "R"
             )
