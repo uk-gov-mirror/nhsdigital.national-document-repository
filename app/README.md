@@ -72,6 +72,36 @@ make cypress-run
 
 This will open a new Chromium window with the options to either run the E2E tests or Component tests
 
+### 3. Smoke Tests
+
+Smoke tests are a subset of E2E tests that run against a real deployed environment. They live under `cypress/e2e/1-ndr-smoke-tests/`.
+
+Before running smoke tests, all of the following environment variables **must** be set in your `.env` file. Tests will fail without them:
+
+| Environment Variable | Description |
+| -------------------- | ----------- |
+| `CYPRESS_BASE_URL` | URL of the deployed environment to test against, e.g. `https://ndr-dev.access-request-fulfilment.patient-deductions.nhs.uk/` |
+| `CYPRESS_KEY` | Mock CIS2 key used to authenticate on the login page |
+| `CYPRESS_ODSCODE` | ODS code of the practice to log in as, e.g. `H81109` or `M85143` |
+| `CYPRESS_WORKSPACE` | Workspace name used to resolve patient fixture data, e.g. `ndr-dev`, `sandbox` |
+| `AWS_ACCESS_KEY_ID` | AWS access key used to seed DynamoDB/S3 test data |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key used to seed DynamoDB/S3 test data |
+| `AWS_SESSION_TOKEN` | AWS session token — required when using temporary credentials (e.g. assumed role) |
+| `AWS_REGION` | AWS region, defaults to `eu-west-2` if not set |
+| `CYPRESS_OUTPUT_VIDEO` | Set to any value to enable Cypress video recording of test runs |
+
+You can then run the smoke tests by running
+
+```bash
+make cypress-open
+```
+
+If you wish to run a CLI only test run, you can use the following command
+
+```bash
+make cypress-run
+```
+
 ## Accessibility
 
 - [WAVE Chrome extension](https://chrome.google.com/webstore/detail/wave-evaluation-tool/jbbplnpkjmmeebjpijfedlgcdilocofh)

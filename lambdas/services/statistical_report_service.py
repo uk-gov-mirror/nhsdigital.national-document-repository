@@ -143,6 +143,7 @@ class StatisticalReportService:
         weekly_unique_user_aggs = [
             pl.concat_list(user_id_column)
             .flatten()
+            .drop_nulls()
             .unique()
             .len()
             .alias(daily_count_column.replace("daily", "weekly"))
@@ -157,6 +158,7 @@ class StatisticalReportService:
             column_select.matches("daily")
             .exclude(custom_managed_daily_columns)
             .sum()
+            .fill_null(0)
             .name.map(lambda column_name: column_name.replace("daily", "weekly"))
         )
         take_average_for_patient_record = (
