@@ -109,3 +109,5 @@ lambdas/tests/e2e/apim/*.pdf
 tests/bulk-upload/output/**
 tests/bulk-upload/test_patients_data/**
 tests/bulk-upload/scripts/scenario_report.txt
+
+**/ingestions/**

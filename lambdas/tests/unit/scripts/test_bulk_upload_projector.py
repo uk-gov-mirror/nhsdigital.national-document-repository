@@ -60,7 +60,7 @@ def test_projector_uses_custom_formatter(mock_formatter):
 
 def test_valid_row_produces_staging_metadata(projector, tmp_path):
     csv_path = make_csv(tmp_path, [BASE_ROW])
-    result, failed, row_results, file_paths = projector.csv_to_sqs_metadata(csv_path)
+    result, failed, row_results = projector.csv_to_sqs_metadata(csv_path)
 
     assert len(result) == 1
     assert result[0].nhs_number == VALID_NHS
@@ -81,7 +81,7 @@ def test_multiple_files_for_same_patient_are_grouped(projector, tmp_path):
         },
     ]
     csv_path = make_csv(tmp_path, rows)
-    result, failed, _, _ = projector.csv_to_sqs_metadata(csv_path)
+    result, failed, _ = projector.csv_to_sqs_metadata(csv_path)
 
     assert len(result) == 1
     assert len(result[0].files) == 2
@@ -98,7 +98,7 @@ def test_different_patients_produce_separate_entries(projector, tmp_path):
         },
     ]
     csv_path = make_csv(tmp_path, rows)
-    result, _, _, _ = projector.csv_to_sqs_metadata(csv_path)
+    result, _, _ = projector.csv_to_sqs_metadata(csv_path)
 
     assert len(result) == 2
 
@@ -109,7 +109,7 @@ def test_invalid_filename_goes_to_review_not_ingested(projector, tmp_path):
     )
     rows = [{**BASE_ROW, "FILEPATH": INVALID_FILENAME}]
     csv_path = make_csv(tmp_path, rows)
-    result, failed, _, _ = projector.csv_to_sqs_metadata(csv_path)
+    result, failed, _ = projector.csv_to_sqs_metadata(csv_path)
 
     assert len(result) == 0
     assert len(failed) == 1
@@ -121,16 +121,9 @@ def test_hard_rejected_rows_counted(projector, tmp_path):
         {"NHS-NO": "", "FILEPATH": "", "GP-PRACTICE-CODE": "", "SCAN-DATE": ""},
     ]
     csv_path = make_csv(tmp_path, rows)
-    _, _, row_results, _ = projector.csv_to_sqs_metadata(csv_path)
+    _, _, row_results = projector.csv_to_sqs_metadata(csv_path)
 
     assert sum(1 for r in row_results if r["status"] == "hard_rejected") == 1
-
-
-def test_file_paths_collected(projector, tmp_path):
-    csv_path = make_csv(tmp_path, [BASE_ROW])
-    _, _, _, file_paths = projector.csv_to_sqs_metadata(csv_path)
-
-    assert VALID_FILEPATH in file_paths
 
 
 def test_empty_csv_raises(projector, tmp_path):
@@ -206,27 +199,12 @@ def test_fixed_values_overwrite_fields(projector):
     assert result.gp_practice_code == "Z99999"
 
 
-# --- _log_summary ---
-
-
-def test_log_summary_infers_top_level_folders(projector, monkeypatch):
-    monkeypatch.setenv("STAGING_STORE_BUCKET_NAME", "my-staging-bucket")
-    file_paths = ["abc123/1of1_file.pdf", "def456/1of1_file.pdf"]
-    # Should not raise and should log folder names
-    projector._log_summary([], {}, 0, 0, file_paths)
-
-
-def test_log_summary_handles_flat_file_paths(projector):
-    # File paths with no subdirectory — should not raise
-    projector._log_summary([], {}, 0, 0, ["flat_file.pdf"])
-
-
 # --- run ---
 
 
 def test_run_returns_staging_metadata_list(projector, tmp_path):
     csv_path = make_csv(tmp_path, [BASE_ROW])
-    result = projector.run(str(csv_path))
+    result = projector.run(str(csv_path), expected_count=1)
 
     assert len(result) == 1
     assert result[0].nhs_number == VALID_NHS
@@ -241,7 +219,7 @@ def test_run_with_mix_of_valid_and_invalid(projector, tmp_path):
         {**BASE_ROW, "NHS-NO": "9000000025", "FILEPATH": INVALID_FILENAME},
     ]
     csv_path = make_csv(tmp_path, rows)
-    result = projector.run(str(csv_path))
+    result = projector.run(str(csv_path), expected_count=2)
 
     assert len(result) == 1
     assert result[0].nhs_number == VALID_NHS
@@ -255,7 +233,7 @@ def find_output_file(tmp_path: Path, suffix: str) -> Path:
 
 def test_run_writes_rows_file(projector, tmp_path):
     csv_path = make_csv(tmp_path, [BASE_ROW])
-    projector.run(str(csv_path))
+    projector.run(str(csv_path), expected_count=1)
 
     rows_file = find_output_file(tmp_path, "_projection_rows_*.csv")
     with open(rows_file) as f:
@@ -268,7 +246,7 @@ def test_run_writes_rows_file(projector, tmp_path):
 
 def test_run_writes_summary_file(projector, tmp_path):
     csv_path = make_csv(tmp_path, [BASE_ROW])
-    projector.run(str(csv_path))
+    projector.run(str(csv_path), expected_count=1)
 
     summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
     content = summary_file.read_text()
@@ -282,7 +260,7 @@ def test_rows_file_captures_review_status(projector, tmp_path):
     )
     rows = [{**BASE_ROW, "FILEPATH": INVALID_FILENAME}]
     csv_path = make_csv(tmp_path, rows)
-    projector.run(str(csv_path))
+    projector.run(str(csv_path), expected_count=1)
 
     rows_file = find_output_file(tmp_path, "_projection_rows_*.csv")
     with open(rows_file) as f:
@@ -298,7 +276,7 @@ def test_rows_file_captures_hard_rejected(projector, tmp_path):
         {"NHS-NO": "", "FILEPATH": "", "GP-PRACTICE-CODE": "", "SCAN-DATE": ""},
     ]
     csv_path = make_csv(tmp_path, rows)
-    projector.run(str(csv_path))
+    projector.run(str(csv_path), expected_count=2)
 
     rows_file = find_output_file(tmp_path, "_projection_rows_*.csv")
     with open(rows_file) as f:
@@ -368,7 +346,7 @@ def test_summary_file_includes_ods_breakdown(projector, tmp_path):
         },
     ]
     csv_path = make_csv(tmp_path, rows)
-    projector.run(str(csv_path))
+    projector.run(str(csv_path), expected_count=2)
 
     summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
     content = summary_file.read_text()
@@ -381,7 +359,7 @@ def test_summary_file_ods_counts_correct(projector, tmp_path):
     rows = [BASE_ROW, {**BASE_ROW, "NHS-NO": "9000000025",
                        "FILEPATH": "9000000025/1of1_Lloyd_George_Record_[Jane Doe]_[9000000025]_[01-01-2020].pdf"}]
     csv_path = make_csv(tmp_path, rows)
-    projector.run(str(csv_path))
+    projector.run(str(csv_path), expected_count=2)
 
     summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
     content = summary_file.read_text()
@@ -400,7 +378,7 @@ def test_summary_shows_preprocessed_count(projector, tmp_path):
         {**BASE_ROW, "NHS-NO": "9000000025", "FILEPATH": "not_a_valid_lloyd_george_file.pdf"},
     ]
     csv_path = make_csv(tmp_path, rows)
-    projector.run(str(csv_path))
+    projector.run(str(csv_path), expected_count=2)
 
     summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
     content = summary_file.read_text()
@@ -409,8 +387,47 @@ def test_summary_shows_preprocessed_count(projector, tmp_path):
 
 def test_no_preprocessed_files_shows_zero(projector, tmp_path):
     csv_path = make_csv(tmp_path, [BASE_ROW])
-    projector.run(str(csv_path))
+    projector.run(str(csv_path), expected_count=1)
 
     summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
     content = summary_file.read_text()
     assert "Files pre-processed     : 0" in content
+
+
+# --- expected count check ---
+
+
+def test_count_check_passes_when_correct(projector, tmp_path):
+    csv_path = make_csv(tmp_path, [BASE_ROW])
+    projector.run(str(csv_path), expected_count=1)
+
+    summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
+    content = summary_file.read_text()
+    assert "Expected count check    : PASSED (1)" in content
+
+
+def test_count_check_mismatch_shown_in_summary(projector, tmp_path):
+    csv_path = make_csv(tmp_path, [BASE_ROW])
+    projector.run(str(csv_path), expected_count=99)
+
+    summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
+    content = summary_file.read_text()
+    assert "*** COUNT MISMATCH: expected 99, got 1 ***" in content
+
+
+def test_count_check_includes_review_and_hard_rejected(projector, tmp_path):
+    projector.metadata_formatter_service.validate_record_filename.side_effect = (
+        InvalidFileNameException("bad name")
+    )
+    rows = [
+        BASE_ROW,
+        {**BASE_ROW, "NHS-NO": "9000000025", "FILEPATH": INVALID_FILENAME},
+        {"NHS-NO": "", "FILEPATH": "", "GP-PRACTICE-CODE": "", "SCAN-DATE": ""},
+    ]
+    csv_path = make_csv(tmp_path, rows)
+    # 1 ingested + 1 review + 1 hard rejected = 3
+    projector.run(str(csv_path), expected_count=3)
+
+    summary_file = find_output_file(tmp_path, "_projection_summary_*.txt")
+    content = summary_file.read_text()
+    assert "Expected count check    : PASSED (3)" in content

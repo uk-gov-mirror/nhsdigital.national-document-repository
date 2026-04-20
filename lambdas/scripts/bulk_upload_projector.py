@@ -60,10 +60,10 @@ class BulkUploadProjector:
         self.format_type = format_type
         self.metadata_mapping_validator_service = MetadataMappingValidatorService()
 
-    def run(self, local_csv_path: str) -> list[StagingSqsMetadata]:
+    def run(self, local_csv_path: str, expected_count: int) -> list[StagingSqsMetadata]:
         logger.info(f"Running BulkUploadProjector on: {local_csv_path}")
 
-        staging_metadata_list, review_patients, row_results, file_paths = (
+        staging_metadata_list, review_patients, row_results = (
             self.csv_to_sqs_metadata(local_csv_path)
         )
 
@@ -73,6 +73,8 @@ class BulkUploadProjector:
         )
         preprocessed_count = sum(1 for r in row_results if r["stored_file_name"])
         ods_ingested, ods_review = self._count_patients_per_ods(row_results)
+        actual_count = len(staging_metadata_list) + len(review_patients) + hard_rejected_count
+        count_mismatch = actual_count != expected_count
         rows_filename, summary_filename = _output_filenames(local_csv_path)
 
         self._write_rows_file(output_dir, rows_filename, row_results)
@@ -83,18 +85,22 @@ class BulkUploadProjector:
             review_patients,
             hard_rejected_count,
             preprocessed_count,
-            file_paths,
             ods_ingested,
             ods_review,
+            expected_count=expected_count,
+            actual_count=actual_count,
+            count_mismatch=count_mismatch,
         )
         self._log_summary(
             staging_metadata_list,
             review_patients,
             hard_rejected_count,
             preprocessed_count,
-            file_paths,
             ods_ingested,
             ods_review,
+            expected_count=expected_count,
+            actual_count=actual_count,
+            count_mismatch=count_mismatch,
         )
 
         return staging_metadata_list
@@ -107,7 +113,6 @@ class BulkUploadProjector:
         failed_files: defaultdict[tuple[str, str], list[BulkUploadQueueMetadata]] = (
             defaultdict(list)
         )
-        all_file_paths: list[str] = []
         row_results: list[dict] = []
 
         with open(
@@ -151,7 +156,6 @@ class BulkUploadProjector:
                 row,
                 patients,
                 failed_files,
-                all_file_paths,
                 row_results,
             )
 
@@ -166,14 +170,13 @@ class BulkUploadProjector:
             for (nhs_number, _), files in patients.items()
         ]
 
-        return staging_metadata_list, failed_files, row_results, all_file_paths
+        return staging_metadata_list, failed_files, row_results
 
     def _process_metadata_row(
         self,
         row: dict,
         patients: dict,
         failed_files: dict,
-        all_file_paths: list,
         row_results: list,
     ) -> None:
         file_metadata = MetadataFile.model_validate(row)
@@ -183,7 +186,6 @@ class BulkUploadProjector:
 
         nhs_number = file_metadata.nhs_number
         ods_code = file_metadata.gp_practice_code
-        all_file_paths.append(file_metadata.file_path)
 
         try:
             correct_file_name = self._validate_and_correct_filename(file_metadata)
@@ -287,16 +289,12 @@ class BulkUploadProjector:
         review_patients: dict,
         hard_rejected_count: int,
         preprocessed_count: int,
-        file_paths: list[str],
         ods_ingested: Counter = None,
         ods_review: Counter = None,
+        expected_count: int = None,
+        actual_count: int = None,
+        count_mismatch: bool = False,
     ) -> None:
-        all_top_level_folders = sorted(
-            {p.lstrip("/").split("/")[0] for p in file_paths if "/" in p.lstrip("/")},
-        )
-        top_level_folders = all_top_level_folders[:5]
-        extra_folders = len(all_top_level_folders) - len(top_level_folders)
-
         import json
 
         payload = {
@@ -319,6 +317,12 @@ class BulkUploadProjector:
             f"Patients sent for review: {len(review_patients)}",
             f"Hard rejected rows      : {hard_rejected_count}",
             f"Files pre-processed     : {preprocessed_count}",
+        ]
+        if count_mismatch:
+            lines.append(f"*** COUNT MISMATCH: expected {expected_count}, got {actual_count} ***")
+        else:
+            lines.append(f"Expected count check    : PASSED ({actual_count})")
+        lines += [
             "",
             "Per ODS code:",
         ]
@@ -331,16 +335,6 @@ class BulkUploadProjector:
             if review:
                 parts.append(f"{review} for review")
             lines.append(f"  {ods}: {', '.join(parts)}")
-        lines += [
-            "",
-            "Where to place metadata file in S3:",
-            "  Place your metadata file one level above these folder(s):",
-        ]
-        for folder in top_level_folders:
-            lines.append(f"    {folder}/")
-        if extra_folders:
-            lines.append(f"    ... and {extra_folders} more folder(s)")
-
         lines += [
             "",
             "Lambda payload JSON:",
@@ -358,16 +352,12 @@ class BulkUploadProjector:
         review_patients: dict,
         hard_rejected_count: int,
         preprocessed_count: int,
-        file_paths: list[str],
         ods_ingested: Counter = None,
         ods_review: Counter = None,
+        expected_count: int = None,
+        actual_count: int = None,
+        count_mismatch: bool = False,
     ) -> None:
-        all_top_level_folders = sorted(
-            {p.lstrip("/").split("/")[0] for p in file_paths if "/" in p.lstrip("/")},
-        )
-        top_level_folders = all_top_level_folders[:5]
-        extra_folders = len(all_top_level_folders) - len(top_level_folders)
-
         ods_ingested = ods_ingested or Counter()
         ods_review = ods_review or Counter()
         all_ods_codes = sorted(set(ods_ingested) | set(ods_review))
@@ -378,6 +368,10 @@ class BulkUploadProjector:
         logger.info(f"  Patients sent for review: {len(review_patients)}")
         logger.info(f"  Hard rejected rows      : {hard_rejected_count}")
         logger.info(f"  Files pre-processed     : {preprocessed_count}")
+        if count_mismatch:
+            logger.warning(f"  *** COUNT MISMATCH: expected {expected_count}, got {actual_count} ***")
+        else:
+            logger.info(f"  Expected count check    : PASSED ({actual_count})")
         logger.info("  Per ODS code:")
         for ods in all_ods_codes:
             ingested = ods_ingested.get(ods, 0)
@@ -399,13 +393,6 @@ class BulkUploadProjector:
         if self.fixed_values:
             payload["fixedValues"] = self.fixed_values
 
-        logger.info("  Where to place metadata file in S3:")
-        logger.info("    Place your metadata file one level above these folder(s):")
-        for folder in top_level_folders:
-            logger.info(f"      {folder}/")
-        if extra_folders:
-            logger.info(f"      ... and {extra_folders} more folder(s)")
-
         logger.info("  Lambda payload JSON:")
         logger.info(json.dumps(payload, indent=2))
         logger.info("=" * 60)
@@ -418,6 +405,7 @@ if __name__ == "__main__":
         description="Project a bulk upload metadata CSV without AWS interaction.",
     )
     parser.add_argument("csv_path", help="Path to the local metadata CSV file")
+    parser.add_argument("expected_count", type=int, help="Expected total number of patients to be processed (ingested + review + hard rejected)")
     parser.add_argument(
         "--format-type",
         choices=["general", "usb"],
@@ -465,4 +453,4 @@ if __name__ == "__main__":
         fixed_values=fixed_values,
         format_type=args.format_type,
     )
-    projector.run(args.csv_path)
+    projector.run(args.csv_path, args.expected_count)

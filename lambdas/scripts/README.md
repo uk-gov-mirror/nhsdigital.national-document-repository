@@ -2,7 +2,7 @@
 
 Emulates the bulk upload metadata processor against a local CSV file without making any AWS calls (no S3, SQS, or DynamoDB interactions).
 
-Use it to validate a metadata CSV before a real upload — it tells you which patients would be ingested, which would be sent for review, and which rows would be hard rejected, along with where to place the file in S3.
+Use it to validate a metadata CSV before a real upload — it tells you which patients would be ingested, which would be sent for review, and which rows would be hard rejected.
 
 ## Setup
 
@@ -15,8 +15,10 @@ source venv/bin/activate
 ## Usage
 
 ```bash
-python -m scripts.bulk_upload_projector <path_to_csv> [options]
+python -m scripts.bulk_upload_projector <path_to_csv> <expected_count> [options]
 ```
+
+`expected_count` is the total number of patients you expect to be processed (ingested + sent for review + hard rejected combined). The script reports whether the actual count matches.
 
 ### Options
 
@@ -30,17 +32,17 @@ python -m scripts.bulk_upload_projector <path_to_csv> [options]
 
 **Standard general format:**
 ```bash
-python -m scripts.bulk_upload_projector metadata.csv
+python -m scripts.bulk_upload_projector metadata.csv 42
 ```
 
 **USB format:**
 ```bash
-python -m scripts.bulk_upload_projector metadata.csv --format-type usb
+python -m scripts.bulk_upload_projector metadata.csv 42 --format-type usb
 ```
 
 **With column remappings and fixed values:**
 ```bash
-python -m scripts.bulk_upload_projector metadata.csv \
+python -m scripts.bulk_upload_projector metadata.csv 42 \
   --remap "NHS-NO=nhsnumber" "FILEPATH=file" \
   --fixed "GP-PRACTICE-CODE=M85143" "SCAN-DATE=01/01/2022"
 ```
@@ -68,7 +70,7 @@ A summary including:
 - Count of patients to be ingested
 - Count of patients sent for review
 - Count of hard rejected rows
-- Expected S3 location for the metadata file based on the file paths found in the CSV
+- Whether the actual total matches the expected count (`PASSED` or `*** COUNT MISMATCH ***`)
 
 ## Status definitions
 
