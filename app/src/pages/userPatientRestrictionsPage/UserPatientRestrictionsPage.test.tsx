@@ -6,7 +6,10 @@ import * as ReactRouter from 'react-router-dom';
 import { createMemoryHistory, MemoryHistory } from 'history';
 import usePatient from '../../helpers/hooks/usePatient';
 import { buildPatientDetails } from '../../helpers/test/testBuilders';
-import useUserPatientRestrictionsPage from './useUserPatientRestrictionsPageHook';
+import useUserPatientRestrictionsPage, {
+    UserPatientRestrictionsJourneyState,
+    UseUserPatientRestrictionsPageReturn,
+} from './useUserPatientRestrictionsPageHook';
 import { UserPatientRestrictionsSubRoute } from '../../types/generic/userPatientRestriction';
 
 vi.mock('../../styles/right-chevron-circle.svg', () => ({
@@ -48,13 +51,18 @@ const renderPage = (): void => {
     );
 };
 
-const pageHookResult = {
-    isEnabled: true,
+const pageHookResult: UseUserPatientRestrictionsPageReturn = {
     subRoute: null,
     setSubRoute: (): void => {},
     restrictionToRemove: null,
     confirmVerifyPatientDetails: (): void => {},
     onRemoveRestriction: (): void => {},
+    setExistingRestrictions: (): void => {},
+    existingRestrictions: [],
+    setUserInformation: (): void => {},
+    userInformation: null,
+    journeyState: UserPatientRestrictionsJourneyState.INITIAL,
+    setJourneyState: (): void => {},
 };
 
 describe('UserRestrictionsPage', () => {
@@ -69,11 +77,6 @@ describe('UserRestrictionsPage', () => {
 
     describe('Rendering', () => {
         it('renders user patient restrictions index stage', () => {
-            mockUseUserPatientRestrictionsPage.mockReturnValueOnce({
-                ...pageHookResult,
-                isEnabled: true,
-            });
-
             renderPage();
 
             expect(
@@ -89,7 +92,6 @@ describe('UserRestrictionsPage', () => {
             const setSubRouteMock = vi.fn();
             mockUseUserPatientRestrictionsPage.mockReturnValueOnce({
                 ...pageHookResult,
-                isEnabled: true,
                 subRoute: null,
                 setSubRoute: setSubRouteMock,
             });
@@ -107,7 +109,6 @@ describe('UserRestrictionsPage', () => {
             const setSubRouteMock = vi.fn();
             mockUseUserPatientRestrictionsPage.mockReturnValueOnce({
                 ...pageHookResult,
-                isEnabled: true,
                 subRoute: null,
                 setSubRoute: setSubRouteMock,
             });

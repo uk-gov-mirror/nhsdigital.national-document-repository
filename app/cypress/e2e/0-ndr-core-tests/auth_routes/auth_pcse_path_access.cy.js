@@ -18,8 +18,6 @@ const patient = {
 const baseUrl = Cypress.config('baseUrl');
 const documentsUrl = '/patient/documents';
 
-const forbiddenRoutes = [routes.documentUpload];
-
 describe('PCSE user role has access to the expected GP_ADMIN workflow paths', () => {
     context('PCSE role has access to expected routes', () => {
         it('PCSE role has access to Download View', { tags: 'regression' }, () => {
@@ -52,14 +50,12 @@ describe('PCSE user role has access to the expected GP_ADMIN workflow paths', ()
     });
 });
 
-describe('PCSE user role cannot access expected forbidden routes', () => {
-    context('PCSE role has no access to forbidden routes', () => {
-        forbiddenRoutes.forEach((forbiddenRoute) => {
-            it('PCSE role cannot access route' + forbiddenRoute, { tags: 'regression' }, () => {
-                cy.login(Roles.PCSE);
-                cy.visit(forbiddenRoute);
-                cy.url().should('include', 'unauthorised');
-            });
+describe('PCSE user role cannot access document upload', () => {
+    context('PCSE role has no access to document upload', () => {
+        it('PCSE role cannot access document upload', { tags: 'regression' }, () => {
+            cy.login(Roles.PCSE);
+            cy.visit(routes.documentUpload);
+            cy.url().should('include', 'unauthorised');
         });
     });
 });
