@@ -38,7 +38,6 @@ def test_lambda_handler_returns_201_on_success(
     mock_service,
     mock_request_context,
     mock_pds_service_with_matching_ods,
-    mock_user_restriction_enabled,
 ):
     mock_service.create_restriction.return_value = TEST_UUID
 
@@ -59,7 +58,6 @@ def test_lambda_handler_calls_service_with_correct_args(
     mock_service,
     mock_request_context,
     mock_pds_service_with_matching_ods,
-    mock_user_restriction_enabled,
 ):
     mock_service.create_restriction.return_value = TEST_UUID
 
@@ -77,7 +75,6 @@ def test_lambda_handler_returns_400_when_body_missing(
     context,
     set_env,
     mock_request_context,
-    mock_user_restriction_enabled,
 ):
     event = {
         "httpMethod": "POST",
@@ -105,7 +102,6 @@ def test_lambda_handler_returns_400_when_smart_card_id_missing(
     context,
     set_env,
     mock_request_context,
-    mock_user_restriction_enabled,
 ):
     event = {
         "httpMethod": "POST",
@@ -134,7 +130,6 @@ def test_lambda_handler_returns_400_when_nhs_number_missing(
     context,
     set_env,
     mock_request_context,
-    mock_user_restriction_enabled,
 ):
     event = {
         "httpMethod": "POST",
@@ -164,7 +159,6 @@ def test_lambda_handler_returns_400_when_creator_missing(
     context,
     set_env,
     mocker,
-    mock_user_restriction_enabled,
 ):
     mock_ctx = mocker.patch("utils.ods_utils.request_context")
     mock_ctx.authorization = {
@@ -192,7 +186,6 @@ def test_lambda_handler_returns_400_when_ods_code_missing(
     context,
     set_env,
     mocker,
-    mock_user_restriction_enabled,
 ):
     mock_ctx = mocker.patch("utils.ods_utils.request_context")
     mock_ctx.authorization = {"nhs_user_id": MOCK_CREATOR_ID}
@@ -219,7 +212,6 @@ def test_lambda_handler_returns_409_when_restriction_already_exists(
     mock_service,
     mock_request_context,
     mock_pds_service_with_matching_ods,
-    mock_user_restriction_enabled,
 ):
     mock_service.create_restriction.side_effect = UserRestrictionAlreadyExistsException(
         "A restriction already exists for this user and patient",
@@ -246,7 +238,6 @@ def test_lambda_handler_returns_400_on_value_error(
     context,
     set_env,
     mocker,
-    mock_user_restriction_enabled,
 ):
     # Mock request context where creator's ID equals the restricted smartcard ID
     mock_ctx = mocker.patch("utils.ods_utils.request_context")
@@ -277,7 +268,6 @@ def test_lambda_handler_returns_correct_status_on_healthcare_worker_api_exceptio
     mock_service,
     mock_request_context,
     mock_pds_service_with_matching_ods,
-    mock_user_restriction_enabled,
 ):
     mock_service.create_restriction.side_effect = HealthcareWorkerAPIException(
         status_code=404,
@@ -303,7 +293,6 @@ def test_lambda_handler_returns_400_when_patient_id_does_not_match_nhs_number(
     context,
     set_env,
     mock_request_context,
-    mock_user_restriction_enabled,
 ):
     event = {
         "httpMethod": "POST",
@@ -336,7 +325,6 @@ def test_lambda_handler_returns_500_on_practitioner_model_exception(
     mock_service,
     mock_request_context,
     mock_pds_service_with_matching_ods,
-    mock_user_restriction_enabled,
 ):
     mock_service.create_restriction.side_effect = (
         HealthcareWorkerPractitionerModelException()
@@ -358,33 +346,10 @@ def test_lambda_handler_returns_500_on_practitioner_model_exception(
     assert actual == expected
 
 
-def test_lambda_handler_returns_404_feature_flag_disabled(
-    valid_create_restriction_event,
-    context,
-    mock_user_restriction_disabled,
-    set_env,
-):
-    body = {
-        "message": LambdaError.FeatureFlagDisabled.value["message"],
-        "err_code": LambdaError.FeatureFlagDisabled.value["err_code"],
-        "interaction_id": MOCK_INTERACTION_ID,
-    }
-
-    expected = ApiGatewayResponse(
-        status_code=404,
-        body=json.dumps(body),
-        methods="POST",
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(valid_create_restriction_event, context)
-    assert actual == expected
-
-
 def test_lambda_handler_returns_404_when_patient_not_found_in_pds(
     valid_create_restriction_event,
     context,
     mock_request_context,
-    mock_user_restriction_enabled,
     mocker,
     set_env,
 ):
@@ -413,7 +378,6 @@ def test_lambda_handler_returns_403_when_patient_ods_does_not_match_requester_od
     valid_create_restriction_event,
     context,
     mock_request_context,
-    mock_user_restriction_enabled,
     mocker,
     set_env,
 ):

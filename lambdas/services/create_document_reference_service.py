@@ -11,7 +11,6 @@ from enums.upload_forbidden_file_extensions import is_file_type_allowed
 from models.document_reference import DocumentReference, UploadRequestDocument
 from models.fhir.R4.fhir_document_reference import Attachment, DocumentReferenceInfo
 from services.base.ssm_service import SSMService
-from services.feature_flags_service import FeatureFlagService
 from services.post_fhir_document_reference_service import (
     PostFhirDocumentReferenceService,
 )
@@ -53,7 +52,6 @@ class CreateDocumentReferenceService:
     def __init__(self):
         self.post_fhir_doc_ref_service = PostFhirDocumentReferenceService()
         self.ssm_service = SSMService()
-        self.feature_flag_service = FeatureFlagService()
 
         self.lg_dynamo_table = os.getenv("LLOYD_GEORGE_DYNAMODB_NAME")
         self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
@@ -76,7 +74,6 @@ class CreateDocumentReferenceService:
                 pds_patient_details.get_ods_code_or_inactive_status_for_gp()
             )
             self.validate_patient_user_ods_codes_match(user_ods_code, patient_ods_code)
-            self.check_if_user_ods_code_is_in_pilot(user_ods_code)
 
             for validated_doc in upload_request_documents:
                 snomed_code = validated_doc.doc_type
@@ -199,14 +196,6 @@ class CreateDocumentReferenceService:
         )
 
         return doc_ref_info
-
-    def check_if_user_ods_code_is_in_pilot(self, ods_code) -> bool:
-        pilot_ods_codes = (
-            self.feature_flag_service.get_allowed_list_of_ods_codes_for_upload_pilot()
-        )
-        if ods_code in pilot_ods_codes or pilot_ods_codes == []:
-            return True
-        raise OdsErrorException()
 
     def parse_documents_list(
         self,

@@ -2,11 +2,9 @@ import json
 
 from pydantic import ValidationError
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from models.document_review import DocumentReviewUploadEvent
-from services.feature_flags_service import FeatureFlagService
 from services.post_document_review_service import PostDocumentReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -32,10 +30,6 @@ logger = LoggingService("__name__")
 @handle_lambda_exceptions
 def lambda_handler(event, context):
     request_context.app_interaction = LoggingAppInteraction.POST_REVIEW_DOCUMENTS.value
-    feature_flag_service = FeatureFlagService()
-    feature_flag_service.validate_feature_flag(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED,
-    )
 
     try:
         validated_event_body = validate_event_body(event["body"])

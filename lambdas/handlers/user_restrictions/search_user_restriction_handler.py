@@ -1,12 +1,10 @@
 import json
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from enums.user_restriction_accepted_querystring_parameters import (
     UserRestrictionQuerystringParameters,
 )
-from services.feature_flags_service import FeatureFlagService
 from services.user_restrictions.search_user_restriction_service import (
     DEFAULT_LIMIT,
     SearchUserRestrictionService,
@@ -45,10 +43,6 @@ def lambda_handler(event, _context):
     try:
         request_context.app_interaction = (
             LoggingAppInteraction.SEARCH_USER_RESTRICTION.value
-        )
-        feature_flag_service = FeatureFlagService()
-        feature_flag_service.validate_feature_flag(
-            FeatureFlags.USER_RESTRICTION_ENABLED.value,
         )
         ods_code = extract_ods_code_from_request_context()
         logger.info(f"Starting user restriction search process for ods code {ods_code}")

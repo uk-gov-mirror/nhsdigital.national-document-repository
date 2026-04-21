@@ -1,7 +1,5 @@
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
-from services.feature_flags_service import FeatureFlagService
 from services.search_patient_details_service import SearchPatientDetailsService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -30,7 +28,8 @@ def lambda_handler(event, context):
     user_ods_code, user_role = "", ""
     if isinstance(request_context.authorization, dict):
         user_ods_code = request_context.authorization.get(
-            "selected_organisation", {}
+            "selected_organisation",
+            {},
         ).get("org_ods_code", "")
         user_role = request_context.authorization.get("repository_role", "")
     if not user_role or not user_ods_code:
@@ -40,27 +39,16 @@ def lambda_handler(event, context):
         )
         raise SearchPatientException(400, LambdaError.SearchPatientMissing)
 
-    feature_flag_service = FeatureFlagService()
-    feature_flag = feature_flag_service.get_feature_flags_by_flag(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
-    )
-    document_upload_iteration3_enabled = feature_flag[
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
-    ]
-    can_access_not_my_record = (
-        feature_flag_service.check_if_ods_code_is_in_pilot()
-        and document_upload_iteration3_enabled
-    )
-
     search_service = SearchPatientDetailsService(
-        user_role=user_role, user_ods_code=user_ods_code
+        user_role=user_role,
+        user_ods_code=user_ods_code,
     )
 
     # Get patient details from service
     patient_details = search_service.handle_search_patient_request(
         nhs_number=nhs_number,
         update_session=True,
-        can_access_not_my_record=can_access_not_my_record,
+        can_access_not_my_record=True,
     )
     formatted_response = patient_details.model_dump_json(
         by_alias=True,
@@ -71,5 +59,7 @@ def lambda_handler(event, context):
     )
 
     return ApiGatewayResponse(
-        200, formatted_response, "GET"
+        200,
+        formatted_response,
+        "GET",
     ).create_api_gateway_response()

@@ -3,20 +3,19 @@ import os
 from json import JSONDecodeError
 
 from botocore.exceptions import ClientError
-from enums.feature_flags import FeatureFlags
+
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from enums.supported_document_types import SupportedDocumentTypes
 from enums.virus_scan_result import VirusScanResult
 from services.base.dynamo_service import DynamoDBService
-from services.feature_flags_service import FeatureFlagService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.decorators.validate_patient_id import validate_patient_id
-from utils.lambda_exceptions import FeatureFlagsException, VirusScanResultException
+from utils.lambda_exceptions import VirusScanResultException
 from utils.lambda_response import ApiGatewayResponse
 from utils.request_context import request_context
 from utils.utilities import get_virus_scan_service
@@ -35,21 +34,13 @@ logger = LoggingService(__name__)
         "LLOYD_GEORGE_DYNAMODB_NAME",
         "STAGING_STORE_BUCKET_NAME",
         "VIRUS_SCAN_STUB",
-    ]
+    ],
 )
 @override_error_check
 @handle_lambda_exceptions
 def lambda_handler(event, context):
     request_context.app_interaction = LoggingAppInteraction.VIRUS_SCAN.value
-    feature_flag_service = FeatureFlagService()
-    upload_flag_name = FeatureFlags.UPLOAD_LAMBDA_ENABLED.value
-    upload_lambda_enabled_flag_object = feature_flag_service.get_feature_flags_by_flag(
-        upload_flag_name
-    )
 
-    if not upload_lambda_enabled_flag_object[upload_flag_name]:
-        logger.info("Feature flag not enabled, event will not be processed")
-        raise FeatureFlagsException(500, LambdaError.FeatureFlagDisabled)
     try:
         event_body = json.loads(event["body"])
         if not event_body:
@@ -71,7 +62,8 @@ def lambda_handler(event, context):
     lg_table_name = os.getenv("LLOYD_GEORGE_DYNAMODB_NAME")
     virus_scan_service = get_virus_scan_service()
     scan_result = virus_scan_service.scan_file(
-        document_reference, nhs_number=nhs_number
+        document_reference,
+        nhs_number=nhs_number,
     )
 
     dynamo_service = DynamoDBService()
@@ -92,7 +84,8 @@ def lambda_handler(event, context):
 
     if scan_result == VirusScanResult.CLEAN:
         return ApiGatewayResponse(
-            200, "Virus Scan was successful", "POST"
+            200,
+            "Virus Scan was successful",
+            "POST",
         ).create_api_gateway_response()
-    else:
-        raise VirusScanResultException(400, LambdaError.VirusScanUnclean)
+    raise VirusScanResultException(400, LambdaError.VirusScanUnclean)

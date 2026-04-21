@@ -1,9 +1,7 @@
 import json
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
-from services.feature_flags_service import FeatureFlagService
 from services.user_restrictions.utilities import get_healthcare_worker_api_service
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -28,11 +26,6 @@ logger = LoggingService(__name__)
 @handle_lambda_exceptions
 def lambda_handler(event, context):
     try:
-        feature_flag_service = FeatureFlagService()
-        feature_flag_service.validate_feature_flag(
-            FeatureFlags.USER_RESTRICTION_ENABLED,
-        )
-
         request_context.app_interaction = LoggingAppInteraction.GET_USER_INFO.value
 
         logger.info("Processing request to retrieve user information.")

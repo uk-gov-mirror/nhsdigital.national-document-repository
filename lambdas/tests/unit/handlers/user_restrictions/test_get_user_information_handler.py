@@ -7,7 +7,6 @@ from handlers.user_restrictions.get_user_information_handler import lambda_handl
 from services.mock_data.user_restrictions.build_mock_data import (
     build_mock_response_and_practitioner,
 )
-from tests.unit.conftest import MOCK_INTERACTION_ID
 from tests.unit.services.user_restriction.conftest import MOCK_IDENTIFIER
 from utils.exceptions import (
     HealthcareWorkerAPIException,
@@ -47,35 +46,12 @@ def mock_invalid_event_empty_querystring(event):
     yield event
 
 
-def test_lambda_handler_returns_404_feature_flag_disabled(
-    event,
-    context,
-    mock_user_restriction_disabled,
-    set_env,
-):
-    body = {
-        "message": LambdaError.FeatureFlagDisabled.value["message"],
-        "err_code": LambdaError.FeatureFlagDisabled.value["err_code"],
-        "interaction_id": MOCK_INTERACTION_ID,
-    }
-
-    expected = ApiGatewayResponse(
-        status_code=404,
-        body=json.dumps(body),
-        methods="GET",
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(event, context)
-    assert actual == expected
-
-
 def test_lambda_handler_happy_path(
     mock_healthcare_worker_api_service,
     monkeypatch,
     context,
     mock_valid_event,
     set_env,
-    mock_user_restriction_enabled,
 ):
     _, _, mock_practitioner = build_mock_response_and_practitioner(MOCK_IDENTIFIER)
     mock_healthcare_worker_api_service.get_practitioner.return_value = mock_practitioner
@@ -101,7 +77,6 @@ def test_lambda_handler_returns_400_invalid_event(
     mock_invalid_event_missing_identifier,
     mock_invalid_event_empty_querystring,
     set_env,
-    mock_user_restriction_enabled,
 ):
 
     invalid_events = [
@@ -130,7 +105,6 @@ def test_lambda_handler_handles_non_200_response_from_get_practitioner(
     context,
     status_code,
     set_env,
-    mock_user_restriction_enabled,
 ):
     api_error = HealthcareWorkerAPIException(status_code=status_code)
 
@@ -155,7 +129,6 @@ def test_lambda_handler_handles_validation_error_from_get_practitioner(
     mock_valid_event,
     context,
     set_env,
-    mock_user_restriction_enabled,
 ):
     mock_healthcare_worker_api_service.get_practitioner.side_effect = (
         HealthcareWorkerPractitionerModelException

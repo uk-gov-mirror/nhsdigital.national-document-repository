@@ -2,11 +2,9 @@ import json
 
 import pytest
 
-from enums.feature_flags import FeatureFlags
 from enums.report_distribution_action import ReportDistributionAction
 from models.pds_models import PatientDetails
 from repositories.reporting.reporting_dynamo_repository import ReportingDynamoRepository
-from services.feature_flags_service import FeatureFlagService
 from tests.unit.conftest import (
     MOCK_CREATOR_ID,
     MOCK_SMART_CARD_ID,
@@ -118,122 +116,6 @@ def missing_id_event():
 
 
 @pytest.fixture
-def mock_upload_lambda_enabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_upload_lambda_feature_flag = mock_function.return_value = {
-        "uploadLambdaEnabled": True,
-    }
-    yield mock_upload_lambda_feature_flag
-
-
-@pytest.fixture
-def mock_upload_lambda_disabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_upload_lambda_feature_flag = mock_function.return_value = {
-        "uploadLambdaEnabled": False,
-    }
-    yield mock_upload_lambda_feature_flag
-
-
-@pytest.fixture
-def mock_upload_document_iteration2_enabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_function.side_effect = [
-        {"uploadLambdaEnabled": True},
-        {"uploadDocumentIteration2Enabled": True},
-    ]
-    yield mock_function
-
-
-@pytest.fixture
-def mock_upload_document_iteration2_disabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_function.side_effect = [
-        {"uploadLambdaEnabled": True},
-        {"uploadDocumentIteration2Enabled": False},
-    ]
-    yield mock_function
-
-
-@pytest.fixture
-def mock_upload_document_iteration3_enabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_function.side_effect = [
-        {"uploadLambdaEnabled": True},
-        {"uploadDocumentIteration3Enabled": True},
-    ]
-    yield mock_function
-
-
-@pytest.fixture
-def mock_upload_document_iteration3_disabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_function.side_effect = [
-        {"uploadLambdaEnabled": True},
-        {"uploadDocumentIteration3Enabled": False},
-    ]
-    yield mock_function
-
-
-@pytest.fixture
-def mock_validation_strict_and_bulk_upload_send_to_review_disabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_upload_lambda_feature_flag = mock_function.return_value = {
-        "lloydGeorgeValidationStrictModeEnabled": False,
-        "bulkUploadSendToReviewEnabled": False,
-    }
-    yield mock_upload_lambda_feature_flag
-
-
-@pytest.fixture
-def mock_validation_strict_and_bulk_upload_send_to_review_enabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_upload_lambda_feature_flag = mock_function.return_value = {
-        "lloydGeorgeValidationStrictModeEnabled": True,
-        "bulkUploadSendToReviewEnabled": True,
-    }
-    yield mock_upload_lambda_feature_flag
-
-
-@pytest.fixture
-def mock_validation_strict_enabled_send_to_review_disabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_upload_lambda_feature_flag = mock_function.return_value = {
-        "lloydGeorgeValidationStrictModeEnabled": True,
-        "bulkUploadSendToReviewEnabled": False,
-    }
-    yield mock_upload_lambda_feature_flag
-
-
-@pytest.fixture
-def mock_validation_strict_disabled_send_to_review_enabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_upload_lambda_feature_flag = mock_function.return_value = {
-        "lloydGeorgeValidationStrictModeEnabled": False,
-        "bulkUploadSendToReviewEnabled": True,
-    }
-    yield mock_upload_lambda_feature_flag
-
-
-@pytest.fixture
-def mock_upload_document_iteration_3_enabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_feature_flag = mock_function.return_value = {
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: True,
-    }
-    yield mock_feature_flag
-
-
-@pytest.fixture
-def mock_upload_document_iteration_3_disabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_feature_flag = mock_function.return_value = {
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED: False,
-    }
-    yield mock_feature_flag
-
-
-@pytest.fixture
 def required_report_distribution_env(monkeypatch):
     monkeypatch.setenv("REPORT_BUCKET_NAME", "my-report-bucket")
     monkeypatch.setenv("CONTACT_TABLE_NAME", "contact-table")
@@ -331,25 +213,6 @@ def mock_report_orchestration_wiring(mocker):
         "mock_window": mock_window,
         "mock_report_date": mock_report_date,
     }
-
-
-@pytest.fixture
-def mock_user_restriction_enabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_feature_flag = mock_function.return_value = {
-        FeatureFlags.USER_RESTRICTION_ENABLED: True,
-        FeatureFlags.USE_SMARTCARD_AUTH: False,
-    }
-    yield mock_feature_flag
-
-
-@pytest.fixture
-def mock_user_restriction_disabled(mocker):
-    mock_function = mocker.patch.object(FeatureFlagService, "get_feature_flags_by_flag")
-    mock_feature_flag = mock_function.return_value = {
-        FeatureFlags.USER_RESTRICTION_ENABLED: False,
-    }
-    yield mock_feature_flag
 
 
 @pytest.fixture

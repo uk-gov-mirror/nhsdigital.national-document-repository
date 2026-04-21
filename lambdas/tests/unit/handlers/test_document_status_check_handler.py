@@ -1,6 +1,7 @@
 import json
 
 import pytest
+
 from enums.lambda_error import LambdaError
 from handlers.document_status_check_handler import lambda_handler
 from tests.unit.conftest import MOCK_INTERACTION_ID, TEST_NHS_NUMBER
@@ -28,7 +29,7 @@ MOCK_EMPTY_DOC_IDS_EVENT = {
 
 
 @pytest.fixture
-def mock_get_document_upload_status_service(mocker, mock_upload_lambda_enabled):
+def mock_get_document_upload_status_service(mocker):
     mock_service_obj = mocker.MagicMock()
     mocked_class = mocker.patch(
         "handlers.document_status_check_handler.GetDocumentUploadStatusService",
@@ -44,11 +45,15 @@ def mock_get_document_upload_status_service(mocker, mock_upload_lambda_enabled):
 
 
 def test_document_status_check_handler_success(
-    set_env, context, mock_get_document_upload_status_service
+    set_env,
+    context,
+    mock_get_document_upload_status_service,
 ):
     expected_body = json.dumps({"test-doc-id": {"status": "SUCCESS"}})
     expected = ApiGatewayResponse(
-        200, expected_body, "GET"
+        200,
+        expected_body,
+        "GET",
     ).create_api_gateway_response()
 
     actual = lambda_handler(MOCK_VALID_EVENT, context)
@@ -56,12 +61,15 @@ def test_document_status_check_handler_success(
     assert expected == actual
 
     mock_get_document_upload_status_service.get_document_references_by_id.assert_called_with(
-        document_ids=set(["doc-id-1", "doc-id-2"]), nhs_number=TEST_NHS_NUMBER
+        document_ids=set(["doc-id-1", "doc-id-2"]),
+        nhs_number=TEST_NHS_NUMBER,
     )
 
 
 def test_document_status_check_handler_empty_result(
-    set_env, context, mock_get_document_upload_status_service
+    set_env,
+    context,
+    mock_get_document_upload_status_service,
 ):
     mock_get_document_upload_status_service.get_document_references_by_id.return_value = (
         []
@@ -73,12 +81,14 @@ def test_document_status_check_handler_empty_result(
 
     assert expected == actual
     mock_get_document_upload_status_service.get_document_references_by_id.assert_called_with(
-        document_ids=set(["doc-id-1", "doc-id-2"]), nhs_number=TEST_NHS_NUMBER
+        document_ids=set(["doc-id-1", "doc-id-2"]),
+        nhs_number=TEST_NHS_NUMBER,
     )
 
 
 def test_lambda_handler_missing_patient_id(
-    context, set_env, mock_upload_lambda_enabled
+    context,
+    set_env,
 ):
     expected_body = {
         "message": "An error occurred due to missing key",
@@ -96,7 +106,7 @@ def test_lambda_handler_missing_patient_id(
     assert expected == actual
 
 
-def test_lambda_handler_missing_doc_ids(context, set_env, mock_upload_lambda_enabled):
+def test_lambda_handler_missing_doc_ids(context, set_env):
     expected_body = {
         "message": "Missing GET request query parameters",
         "err_code": "UC_4001",
@@ -113,7 +123,7 @@ def test_lambda_handler_missing_doc_ids(context, set_env, mock_upload_lambda_ena
     assert expected == actual
 
 
-def test_lambda_handler_empty_doc_ids(context, set_env, mock_upload_lambda_enabled):
+def test_lambda_handler_empty_doc_ids(context, set_env):
     expected_body = {
         "message": "Missing GET request query parameters",
         "err_code": "UC_4001",
@@ -134,10 +144,10 @@ def test_lambda_handler_service_raises_error(
     context,
     set_env,
     mock_get_document_upload_status_service,
-    mock_upload_lambda_enabled,
 ):
     mock_get_document_upload_status_service.get_document_references_by_id.side_effect = UploadConfirmResultException(
-        400, LambdaError.MockError
+        400,
+        LambdaError.MockError,
     )
 
     actual = lambda_handler(MOCK_VALID_EVENT, context)
@@ -149,24 +159,6 @@ def test_lambda_handler_service_raises_error(
     ).create_api_gateway_response()
     assert expected == actual
     mock_get_document_upload_status_service.get_document_references_by_id.assert_called_with(
-        document_ids=set(["doc-id-1", "doc-id-2"]), nhs_number=TEST_NHS_NUMBER
+        document_ids=set(["doc-id-1", "doc-id-2"]),
+        nhs_number=TEST_NHS_NUMBER,
     )
-
-
-def test_no_event_processing_when_upload_lambda_flag_not_enabled(
-    set_env, context, mock_upload_lambda_disabled
-):
-    expected_body = json.dumps(
-        {
-            "message": "Feature is not enabled",
-            "err_code": "FFL_5003",
-            "interaction_id": MOCK_INTERACTION_ID,
-        }
-    )
-    expected = ApiGatewayResponse(
-        500, expected_body, "GET"
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(MOCK_VALID_EVENT, context)
-
-    assert actual == expected

@@ -2,6 +2,7 @@ import json
 from enum import Enum
 
 import pytest
+
 from handlers.update_upload_state_handler import lambda_handler
 from tests.unit.helpers.data.update_upload_state import (
     MOCK_INVALID_BODY_EVENT,
@@ -22,9 +23,9 @@ class MockError(Enum):
 
 
 @pytest.fixture
-def mock_update_upload_state_service(mocker, mock_upload_lambda_enabled):
+def mock_update_upload_state_service(mocker):
     mocked_class = mocker.patch(
-        "handlers.update_upload_state_handler.UpdateUploadStateService"
+        "handlers.update_upload_state_handler.UpdateUploadStateService",
     )
     mocker.patch.object(mocked_class, "handle_update_state")
     mocked_instance = mocked_class.return_value
@@ -32,7 +33,9 @@ def mock_update_upload_state_service(mocker, mock_upload_lambda_enabled):
 
 
 def test_update_upload_state_handler_success_lg(
-    set_env, context, mock_update_upload_state_service
+    set_env,
+    context,
+    mock_update_upload_state_service,
 ):
     expected = ApiGatewayResponse(204, "", "POST").create_api_gateway_response()
 
@@ -42,7 +45,9 @@ def test_update_upload_state_handler_success_lg(
 
 
 def test_update_upload_state_handler_success_arf(
-    set_env, context, mock_update_upload_state_service
+    set_env,
+    context,
+    mock_update_upload_state_service,
 ):
     expected = ApiGatewayResponse(204, "", "POST").create_api_gateway_response()
 
@@ -52,7 +57,8 @@ def test_update_upload_state_handler_success_arf(
 
 
 def test_update_upload_state_handler_both_doc_types_raise_error(
-    set_env, context, mock_upload_lambda_enabled
+    set_env,
+    context,
 ):
     expected_body = {
         "message": "Missing fields",
@@ -60,7 +66,9 @@ def test_update_upload_state_handler_both_doc_types_raise_error(
         "interaction_id": "88888888-4444-4444-4444-121212121212",
     }
     expected = ApiGatewayResponse(
-        400, json.dumps(expected_body), "POST"
+        400,
+        json.dumps(expected_body),
+        "POST",
     ).create_api_gateway_response()
 
     actual = lambda_handler(MOCK_INVALID_TYPE_EVENT, context)
@@ -103,7 +111,6 @@ def test_lambda_handler_missing_environment_variables_returns_500(
 def test_lambda_handler_invalid_body_raises_exception(
     set_env,
     context,
-    mock_upload_lambda_enabled,
 ):
     expected_body = {
         "message": "Invalid request body",
@@ -120,7 +127,8 @@ def test_lambda_handler_invalid_body_raises_exception(
 
 
 def test_lambda_handler_missing_body_raises_exception(
-    set_env, context, mock_upload_lambda_enabled
+    set_env,
+    context,
 ):
     expected_body = {
         "message": "Missing request body",
@@ -134,23 +142,3 @@ def test_lambda_handler_missing_body_raises_exception(
     ).create_api_gateway_response()
     actual = lambda_handler(MOCK_NO_BODY_EVENT, context)
     assert expected == actual
-
-
-def test_no_event_processing_when_upload_lambda_flag_not_enabled(
-    set_env, context, mock_upload_lambda_disabled
-):
-
-    expected_body = json.dumps(
-        {
-            "message": "Feature is not enabled",
-            "err_code": "FFL_5003",
-            "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
-    )
-    expected = ApiGatewayResponse(
-        500, expected_body, "POST"
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(MOCK_VALID_ARF_EVENT, context)
-
-    assert actual == expected

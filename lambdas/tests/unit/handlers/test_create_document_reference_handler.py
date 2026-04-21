@@ -2,6 +2,7 @@ import json
 from enum import Enum
 
 import pytest
+
 from enums.lambda_error import LambdaError
 from handlers.create_document_reference_handler import lambda_handler
 from models.document_reference import CreateEventModel
@@ -95,13 +96,18 @@ def mock_invalid_nhs_number_exception(mocker):
 
 
 def test_create_document_reference_valid_both_lg_and_arf_type_returns_200(
-    set_env, both_type_event, context, mock_cdr_service, mock_upload_lambda_enabled
+    set_env,
+    both_type_event,
+    context,
+    mock_cdr_service,
 ):
     mock_cdr_service.create_document_reference_request.return_value = (
         LG_AND_ARF_MOCK_RESPONSE
     )
     expected = ApiGatewayResponse(
-        200, json.dumps(LG_AND_ARF_MOCK_RESPONSE), "POST"
+        200,
+        json.dumps(LG_AND_ARF_MOCK_RESPONSE),
+        "POST",
     ).create_api_gateway_response()
 
     actual = lambda_handler(both_type_event, context)
@@ -110,18 +116,26 @@ def test_create_document_reference_valid_both_lg_and_arf_type_returns_200(
 
 
 def test_create_document_reference_valid_lg_type_returns_presigned_urls_and_200(
-    set_env, lg_type_event, context, mock_cdr_service, mock_upload_lambda_enabled
+    set_env,
+    lg_type_event,
+    context,
+    mock_cdr_service,
 ):
     mock_cdr_service.create_document_reference_request.return_value = LG_MOCK_RESPONSE
     expected = ApiGatewayResponse(
-        200, json.dumps(LG_MOCK_RESPONSE), "POST"
+        200,
+        json.dumps(LG_MOCK_RESPONSE),
+        "POST",
     ).create_api_gateway_response()
     actual = lambda_handler(lg_type_event, context)
     assert actual == expected
 
 
 def test_create_document_reference_with_nhs_number_not_in_pds_returns_404(
-    set_env, lg_type_event, context, mock_cdr_service, mock_upload_lambda_enabled
+    set_env,
+    lg_type_event,
+    context,
+    mock_cdr_service,
 ):
     mock_cdr_service.create_document_reference_request.side_effect = (
         SearchPatientException(404, LambdaError.SearchPatientNoPDS)
@@ -134,14 +148,19 @@ def test_create_document_reference_with_nhs_number_not_in_pds_returns_404(
     }
 
     expected = ApiGatewayResponse(
-        404, json.dumps(expected_body), "POST"
+        404,
+        json.dumps(expected_body),
+        "POST",
     ).create_api_gateway_response()
     actual = lambda_handler(lg_type_event, context)
     assert actual == expected
 
 
 def test_cdr_request_including_non_pdf_files_returns_400(
-    set_env, lg_type_event, context, mock_cdr_service, mock_upload_lambda_enabled
+    set_env,
+    lg_type_event,
+    context,
+    mock_cdr_service,
 ):
     mock_cdr_service.create_document_reference_request.side_effect = (
         DocumentRefException(400, LambdaError.DocRefInvalidFiles)
@@ -154,14 +173,19 @@ def test_cdr_request_including_non_pdf_files_returns_400(
     }
 
     expected = ApiGatewayResponse(
-        400, json.dumps(expected_body), "POST"
+        400,
+        json.dumps(expected_body),
+        "POST",
     ).create_api_gateway_response()
     actual = lambda_handler(lg_type_event, context)
     assert actual == expected
 
 
 def test_cdr_request_when_lgr_already_exists_returns_422(
-    set_env, lg_type_event, context, mock_cdr_service, mock_upload_lambda_enabled
+    set_env,
+    lg_type_event,
+    context,
+    mock_cdr_service,
 ):
     mock_cdr_service.create_document_reference_request.side_effect = (
         DocumentRefException(422, LambdaError.DocRefRecordAlreadyInPlace)
@@ -174,7 +198,9 @@ def test_cdr_request_when_lgr_already_exists_returns_422(
     }
 
     expected = ApiGatewayResponse(
-        422, json.dumps(expected_body), "POST"
+        422,
+        json.dumps(expected_body),
+        "POST",
     ).create_api_gateway_response()
     actual = lambda_handler(lg_type_event, context)
     assert actual == expected
@@ -183,7 +209,10 @@ def test_cdr_request_when_lgr_already_exists_returns_422(
 
 
 def test_cdr_request_when_lgr_is_in_process_of_uploading_returns_423(
-    set_env, lg_type_event, context, mock_cdr_service, mock_upload_lambda_enabled
+    set_env,
+    lg_type_event,
+    context,
+    mock_cdr_service,
 ):
     mock_cdr_service.create_document_reference_request.side_effect = (
         DocumentRefException(423, LambdaError.UploadInProgressError)
@@ -196,7 +225,9 @@ def test_cdr_request_when_lgr_is_in_process_of_uploading_returns_423(
     }
 
     expected = ApiGatewayResponse(
-        423, json.dumps(expected_body), "POST"
+        423,
+        json.dumps(expected_body),
+        "POST",
     ).create_api_gateway_response()
     actual = lambda_handler(lg_type_event, context)
     assert actual == expected
@@ -289,7 +320,6 @@ def test_lambda_handler_processing_event_details_raise_error(
     context,
     set_env,
     mock_process_event_body,
-    mock_upload_lambda_enabled,
 ):
     mock_process_event_body.side_effect = DocumentRefException(400, MockError.Error)
     expected = ApiGatewayResponse(
@@ -308,7 +338,6 @@ def test_lambda_handler_valid(
     context,
     set_env,
     mock_process_event_body,
-    mock_upload_lambda_enabled,
     mock_cdr_service,
 ):
     mock_process_event_body.return_value = (TEST_NHS_NUMBER, ARF_FILE_LIST)
@@ -323,28 +352,6 @@ def test_lambda_handler_valid(
     validated_event = CreateEventModel.model_validate(arf_type_event)
     assert expected == actual
     mock_process_event_body.assert_called_with(validated_event)
-
-
-def test_no_event_processing_when_upload_lambda_flag_disabled(
-    set_env,
-    lg_type_event,
-    context,
-    mock_process_event_body,
-    mock_upload_lambda_disabled,
-):
-    expected_body = {
-        "message": "Feature is not enabled",
-        "err_code": "FFL_5003",
-        "interaction_id": "88888888-4444-4444-4444-121212121212",
-    }
-
-    expected = ApiGatewayResponse(
-        404, json.dumps(expected_body), "POST"
-    ).create_api_gateway_response()
-    actual = lambda_handler(lg_type_event, context)
-
-    assert expected == actual
-    mock_process_event_body.assert_not_called()
 
 
 def test_invalid_nhs_number_returns_400(
@@ -367,26 +374,3 @@ def test_invalid_nhs_number_returns_400(
 
     mock_process_event_body.assert_not_called()
     mock_cdr_service.assert_not_called()
-
-
-def test_ods_code_not_in_pilot_returns_404(
-    set_env, context, lg_type_event, mock_cdr_service, mock_upload_lambda_enabled
-):
-    mock_cdr_service.create_document_reference_request.side_effect = (
-        DocumentRefException(404, LambdaError.DocRefOdsCodeNotAllowed)
-    )
-
-    expected_body = {
-        "message": "ODS code does not match any of the allowed.",
-        "err_code": "DR_4009",
-        "interaction_id": "88888888-4444-4444-4444-121212121212",
-    }
-
-    expected = ApiGatewayResponse(
-        404, json.dumps(expected_body), "POST"
-    ).create_api_gateway_response()
-    actual = lambda_handler(lg_type_event, context)
-
-    assert actual == expected
-
-    mock_cdr_service.create_document_reference_request.create_document_reference.assert_not_called()

@@ -9,7 +9,6 @@ from models.document_reference import UploadRequestDocument
 from models.fhir.R4.fhir_document_reference import Attachment, DocumentReferenceInfo
 from services.base.ssm_service import SSMService
 from services.document_service import DocumentService
-from services.feature_flags_service import FeatureFlagService
 from services.put_fhir_document_reference_service import PutFhirDocumentReferenceService
 from utils.audit_logging_setup import LoggingService
 from utils.common_query_filters import CurrentStatusFile, NotDeleted
@@ -42,7 +41,6 @@ class UpdateDocumentReferenceService:
         self.fhir_doc_ref_service = PutFhirDocumentReferenceService()
         self.document_service = DocumentService()
         self.ssm_service = SSMService()
-        self.feature_flag_service = FeatureFlagService()
         self.doctype_table_router = DocTypeTableRouter()
 
     def update_document_reference_request(
@@ -67,7 +65,6 @@ class UpdateDocumentReferenceService:
                 patient_ods_code = (
                     pds_patient_details.get_ods_code_or_inactive_status_for_gp()
                 )
-                self.check_if_ods_code_is_in_pilot(user_ods_code)
 
             self.validate_user_patient_ods_match(patient_ods_code, user_ods_code)
 
@@ -194,14 +191,6 @@ class UpdateDocumentReferenceService:
         )
 
         return doc_ref_info
-
-    def check_if_ods_code_is_in_pilot(self, ods_code) -> bool:
-        pilot_ods_codes = (
-            self.feature_flag_service.get_allowed_list_of_ods_codes_for_upload_pilot()
-        )
-        if ods_code in pilot_ods_codes or pilot_ods_codes == []:
-            return True
-        raise OdsErrorException()
 
     def parse_document(self, document: dict) -> UploadRequestDocument:
         try:

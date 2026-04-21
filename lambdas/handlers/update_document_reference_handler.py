@@ -1,11 +1,10 @@
 import json
 
-from enums.feature_flags import FeatureFlags
+from pydantic import ValidationError
+
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from models.document_reference import UpdateEventModel
-from pydantic import ValidationError
-from services.feature_flags_service import FeatureFlagService
 from services.update_document_reference_service import UpdateDocumentReferenceService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -37,19 +36,12 @@ logger = LoggingService(__name__)
         "STAGING_STORE_BUCKET_NAME",
         "DOCUMENT_STORE_BUCKET_NAME",
         "PRESIGNED_ASSUME_ROLE",
-    ]
+    ],
 )
 @override_error_check
 @handle_lambda_exceptions
 def lambda_handler(event, context):
     request_context.app_interaction = LoggingAppInteraction.UPDATE_RECORD.value
-
-    feature_flag_service = FeatureFlagService()
-    feature_flag_service.validate_feature_flag(FeatureFlags.UPLOAD_LAMBDA_ENABLED.value)
-
-    feature_flag_service.validate_feature_flag(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED.value
-    )
 
     logger.info("Starting document reference update process")
 
@@ -71,7 +63,9 @@ def lambda_handler(event, context):
         update_doc_ref_service = UpdateDocumentReferenceService()
 
         url_responses = update_doc_ref_service.update_document_reference_request(
-            nhs_number_query, document, doc_ref_id
+            nhs_number_query,
+            document,
+            doc_ref_id,
         )
 
     except ValidationError as e:
@@ -82,5 +76,7 @@ def lambda_handler(event, context):
         raise DocumentRefException(400, LambdaError.DocRefNoParse)
 
     return ApiGatewayResponse(
-        200, json.dumps(url_responses), "PUT"
+        200,
+        json.dumps(url_responses),
+        "PUT",
     ).create_api_gateway_response()

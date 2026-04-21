@@ -24,7 +24,6 @@ def test_lambda_handler_processes_single_message_successfully(
     mock_bulk_upload_service_instance,
     context,
     set_env,
-    mock_validation_strict_and_bulk_upload_send_to_review_disabled,
 ):
     response = lambda_handler(TEST_EVENT_WITH_ONE_SQS_MESSAGE, context)
 
@@ -41,7 +40,6 @@ def test_lambda_handler_processes_multiple_messages_successfully(
     mock_bulk_upload_service_instance,
     context,
     set_env,
-    mock_validation_strict_and_bulk_upload_send_to_review_disabled,
 ):
     response = lambda_handler(TEST_EVENT_WITH_SQS_MESSAGES, context)
 
@@ -58,7 +56,6 @@ def test_lambda_handler_handles_bulk_upload_exception(
     mock_bulk_upload_service_instance,
     context,
     set_env,
-    mock_validation_strict_and_bulk_upload_send_to_review_disabled,
 ):
     mock_bulk_upload_service_instance.process_message_queue.side_effect = (
         BulkUploadException()
@@ -77,7 +74,6 @@ def test_lambda_handler_handles_empty_records_list(
     mock_bulk_upload_service_instance,
     context,
     set_env,
-    mock_validation_strict_and_bulk_upload_send_to_review_disabled,
 ):
     response = lambda_handler(TEST_EVENT_WITH_NO_SQS_MESSAGES, context)
 
@@ -88,71 +84,3 @@ def test_lambda_handler_handles_empty_records_list(
     ).create_api_gateway_response()
     assert response == expected
     mock_bulk_upload_service_instance.process_message_queue.assert_not_called()
-
-
-def test_lambda_handler_instantiates_service_with_both_flags_disabled(
-    mock_bulk_upload_service_class,
-    context,
-    set_env,
-    mock_validation_strict_and_bulk_upload_send_to_review_disabled,
-):
-    lambda_handler(TEST_EVENT_WITH_ONE_SQS_MESSAGE, context)
-
-    mock_bulk_upload_service_class.assert_called_once_with(
-        strict_mode=False, bypass_pds=False, send_to_review_enabled=False
-    )
-
-
-def test_lambda_handler_instantiates_service_with_both_flags_enabled(
-    mock_bulk_upload_service_class,
-    context,
-    set_env,
-    mock_validation_strict_and_bulk_upload_send_to_review_enabled,
-):
-    lambda_handler(TEST_EVENT_WITH_ONE_SQS_MESSAGE, context)
-
-    mock_bulk_upload_service_class.assert_called_once_with(
-        strict_mode=True, bypass_pds=False, send_to_review_enabled=True
-    )
-
-
-def test_lambda_handler_instantiates_service_with_validation_strict_enabled_only(
-    mock_bulk_upload_service_class,
-    context,
-    set_env,
-    mock_validation_strict_enabled_send_to_review_disabled,
-):
-    lambda_handler(TEST_EVENT_WITH_ONE_SQS_MESSAGE, context)
-
-    mock_bulk_upload_service_class.assert_called_once_with(
-        strict_mode=True, bypass_pds=False, send_to_review_enabled=False
-    )
-
-
-def test_lambda_handler_instantiates_service_with_send_to_review_enabled_only(
-    mock_bulk_upload_service_class,
-    context,
-    set_env,
-    mock_validation_strict_disabled_send_to_review_enabled,
-):
-    lambda_handler(TEST_EVENT_WITH_ONE_SQS_MESSAGE, context)
-
-    mock_bulk_upload_service_class.assert_called_once_with(
-        strict_mode=False, bypass_pds=False, send_to_review_enabled=True
-    )
-
-
-def test_lambda_handler_instantiates_service_with_bypass_pds_enabled(
-    mock_bulk_upload_service_class,
-    context,
-    set_env,
-    mock_validation_strict_and_bulk_upload_send_to_review_disabled,
-    monkeypatch,
-):
-    monkeypatch.setenv("BYPASS_PDS", "true")
-
-    lambda_handler(TEST_EVENT_WITH_ONE_SQS_MESSAGE, context)
-
-    mock_bulk_upload_service_class.assert_called_once_with(
-        strict_mode=False, bypass_pds=True, send_to_review_enabled=False
-    )

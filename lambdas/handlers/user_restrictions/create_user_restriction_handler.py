@@ -1,9 +1,7 @@
 import json
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
-from services.feature_flags_service import FeatureFlagService
 from services.user_restrictions.create_user_restriction_service import (
     CreateUserRestrictionService,
 )
@@ -65,10 +63,6 @@ def parse_body(body: str | None) -> tuple[str, str]:
 def lambda_handler(event, context):
     request_context.app_interaction = LoggingAppInteraction.USER_RESTRICTION.value
 
-    feature_flag_service = FeatureFlagService()
-    feature_flag_service.validate_feature_flag(
-        FeatureFlags.USER_RESTRICTION_ENABLED,
-    )
     logger.info("Starting create user restriction process")
 
     restricted_smartcard_id, nhs_number = parse_body(event.get("body"))

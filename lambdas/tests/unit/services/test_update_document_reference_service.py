@@ -112,25 +112,6 @@ def mock_process_fhir_document_reference(mocker):
 
 
 @pytest.fixture
-def mock_get_allowed_list_of_ods_codes_for_upload_pilot(
-    mock_update_doc_ref_service,
-    mocker,
-):
-    return mocker.patch.object(
-        mock_update_doc_ref_service.feature_flag_service,
-        "get_allowed_list_of_ods_codes_for_upload_pilot",
-    )
-
-
-@pytest.fixture
-def mock_check_if_ods_code_is_in_pilot(mock_update_doc_ref_service, mocker):
-    return mocker.patch.object(
-        mock_update_doc_ref_service,
-        "check_if_ods_code_is_in_pilot",
-    )
-
-
-@pytest.fixture
 def mock_fetch_document_by_type(mocker, mock_update_doc_ref_service):
     mock = mocker.patch.object(
         mock_update_doc_ref_service.document_service,
@@ -153,15 +134,11 @@ def test_update_document_reference_request_with_lg_list_happy_path(
     mock_update_doc_ref_service,
     mock_getting_patient_info_from_pds,
     mock_stop_if_upload_is_in_progress,
-    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_process_fhir_document_reference,
     mock_validate_files_for_access_and_store,
     mock_pds_patient,
     mock_fetch_documents_from_table,
 ):
-    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
-        TEST_CURRENT_GP_ODS,
-    ]
     mock_getting_patient_info_from_pds.return_value = mock_pds_patient
     mock_fetch_documents_from_table.return_value = create_test_doc_store_refs()
 
@@ -183,43 +160,10 @@ def test_update_document_reference_request_with_lg_list_happy_path(
     mock_stop_if_upload_is_in_progress.assert_called_with(TEST_NHS_NUMBER)
 
 
-def test_ods_code_not_in_pilot_raises_exception(
-    mock_fhir_doc_ref_base_service,
-    mock_update_doc_ref_service,
-    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
-    mock_process_fhir_document_reference,
-    mock_validate_files_for_access_and_store,
-    mock_stop_if_upload_is_in_progress,
-    mock_getting_patient_info_from_pds,
-    mock_pds_patient,
-    mock_fetch_documents_from_table,
-):
-    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = ["DISALLOWED"]
-    mock_getting_patient_info_from_pds.return_value = mock_pds_patient
-    mock_fetch_documents_from_table.return_value = create_test_doc_store_refs()
-
-    with pytest.raises(DocumentRefException) as exc_info:
-        mock_update_doc_ref_service.update_document_reference_request(
-            TEST_NHS_NUMBER,
-            LG_FILE,
-            TEST_UUID,
-        )
-
-    mock_process_fhir_document_reference.assert_not_called()
-    mock_validate_files_for_access_and_store.assert_not_called()
-    mock_stop_if_upload_is_in_progress.assert_not_called()
-
-    exception = exc_info.value
-    assert isinstance(exception, DocumentRefException)
-    assert exception.status_code == 404
-    assert exception.message == "ODS code does not match any of the allowed."
-
-
 def test_nhs_number_not_found_raises_exception(
     mock_fhir_doc_ref_base_service,
     mock_getting_patient_info_from_pds,
     mock_update_doc_ref_service,
-    mock_check_if_ods_code_is_in_pilot,
     mock_process_fhir_document_reference,
     mock_fetch_documents_from_table,
 ):
@@ -238,7 +182,6 @@ def test_nhs_number_not_found_raises_exception(
     assert exception.status_code == 404
     assert exception.message == "Patient does not exist for given NHS number"
 
-    mock_check_if_ods_code_is_in_pilot.assert_not_called()
     mock_process_fhir_document_reference.assert_not_called()
 
 
@@ -246,7 +189,6 @@ def test_general_pds_error_raises_exception(
     mock_fhir_doc_ref_base_service,
     mock_getting_patient_info_from_pds,
     mock_update_doc_ref_service,
-    mock_check_if_ods_code_is_in_pilot,
     mock_process_fhir_document_reference,
     mock_fetch_documents_from_table,
 ):
@@ -264,7 +206,6 @@ def test_general_pds_error_raises_exception(
     assert isinstance(exception, DocumentRefException)
     assert exception.status_code == 400
 
-    mock_check_if_ods_code_is_in_pilot.assert_not_called()
     mock_process_fhir_document_reference.assert_not_called()
 
 
@@ -275,15 +216,11 @@ def test_invalid_files_raises_exception(
     mock_validate_files_for_access_and_store,
     mock_getting_patient_info_from_pds,
     mock_pds_patient,
-    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_process_fhir_document_reference,
     mock_stop_if_upload_is_in_progress,
     mock_fetch_documents_from_table,
 ):
     mock_getting_patient_info_from_pds.return_value = mock_pds_patient
-    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
-        TEST_CURRENT_GP_ODS,
-    ]
     mock_validate_files_for_access_and_store.side_effect = LGInvalidFilesException
     mock_fetch_documents_from_table.return_value = create_test_doc_store_refs()
 
@@ -307,7 +244,6 @@ def test_upload_already_in_progress_raises_exception(
     mock_fhir_doc_ref_base_service,
     mock_update_doc_ref_service,
     mock_fetch_document_by_type,
-    mock_get_allowed_list_of_ods_codes_for_upload_pilot,
     mock_getting_patient_info_from_pds,
     mock_pds_patient,
     mock_process_fhir_document_reference,
@@ -315,9 +251,6 @@ def test_upload_already_in_progress_raises_exception(
     mock_fetch_documents_from_table,
 ):
     mock_getting_patient_info_from_pds.return_value = mock_pds_patient
-    mock_get_allowed_list_of_ods_codes_for_upload_pilot.return_value = [
-        TEST_CURRENT_GP_ODS,
-    ]
     mock_fetch_documents_from_table.return_value = create_test_doc_store_refs()
     two_minutes_ago = 1698661380  # 2023-10-30T10:23:00
     mock_records_upload_in_process = create_test_lloyd_george_doc_store_refs(

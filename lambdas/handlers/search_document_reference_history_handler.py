@@ -1,9 +1,7 @@
 import json
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
-from services.feature_flags_service import FeatureFlagService
 from services.get_fhir_document_reference_history_service import (
     GetFhirDocumentReferenceHistoryService,
 )
@@ -39,11 +37,6 @@ logger = LoggingService(__name__)
 @override_error_check
 def lambda_handler(event, context):
     request_context.app_interaction = LoggingAppInteraction.SEARCH_HISTORY.value
-
-    feature_flag_service = FeatureFlagService()
-    feature_flag_service.validate_feature_flag(
-        FeatureFlags.VERSION_HISTORY_ENABLED.value,
-    )
 
     logger.info("Starting a document reference history search")
 

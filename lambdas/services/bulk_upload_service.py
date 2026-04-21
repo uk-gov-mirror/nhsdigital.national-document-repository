@@ -44,7 +44,6 @@ from utils.lloyd_george_validator import (
     allowed_to_ingest_ods_code,
     getting_patient_info_from_pds,
     validate_filename_with_patient_details_lenient,
-    validate_filename_with_patient_details_strict,
     validate_lg_file_names,
     validate_scan_date,
 )
@@ -60,17 +59,15 @@ logger = LoggingService(__name__)
 
 
 class BulkUploadService:
-    def __init__(self, strict_mode, bypass_pds=False, send_to_review_enabled=False):
+    def __init__(self, bypass_pds=False):
         self.dynamo_repository = BulkUploadDynamoRepository()
         self.sqs_repository = BulkUploadSqsRepository()
         self.bulk_upload_s3_repository = BulkUploadS3Repository()
-        self.strict_mode = strict_mode
         self.pdf_content_type = "application/pdf"
         self.unhandled_messages = []
         self.file_path_cache = {}
         self.pdf_stitching_queue_url = os.environ["PDF_STITCHING_SQS_URL"]
         self.bypass_pds = bypass_pds
-        self.send_to_review_enabled = send_to_review_enabled
 
     def process_message_queue(self, records: list):
         for index, message in enumerate(records, start=1):
@@ -178,25 +175,17 @@ class BulkUploadService:
             validate_lg_file_names(file_names, staging_metadata.nhs_number)
 
             if not self.bypass_pds:
-                if not self.strict_mode:
-                    (
-                        name_validation_accepted_reason,
-                        is_name_validation_based_on_historic_name,
-                    ) = validate_filename_with_patient_details_lenient(
-                        file_names,
-                        pds_patient_details,
-                    )
-                    accepted_reason = self.concatenate_acceptance_reason(
-                        accepted_reason,
-                        name_validation_accepted_reason,
-                    )
-                else:
-                    is_name_validation_based_on_historic_name = (
-                        validate_filename_with_patient_details_strict(
-                            file_names,
-                            pds_patient_details,
-                        )
-                    )
+                (
+                    name_validation_accepted_reason,
+                    is_name_validation_based_on_historic_name,
+                ) = validate_filename_with_patient_details_lenient(
+                    file_names,
+                    pds_patient_details,
+                )
+                accepted_reason = self.concatenate_acceptance_reason(
+                    accepted_reason,
+                    name_validation_accepted_reason,
+                )
                 if is_name_validation_based_on_historic_name:
                     accepted_reason = self.concatenate_acceptance_reason(
                         accepted_reason,
@@ -253,7 +242,7 @@ class BulkUploadService:
                 UploadStatus.FAILED,
                 str(error),
                 patient_ods_code,
-                sent_to_review=self.send_to_review_enabled,
+                sent_to_review=True,
             )
             if isinstance(error, (InvalidNhsNumberException, PatientNotFoundException)):
                 logger.info("Invalid NHS number detected. Will set as placeholder")
@@ -504,9 +493,6 @@ class BulkUploadService:
         staging_metadata: StagingSqsMetadata,
         uploader_ods: str,
     ):
-        if not self.send_to_review_enabled:
-            return
-
         review_reason = DocumentReviewReason.UNSUCCESSFUL_UPLOAD
 
         try:

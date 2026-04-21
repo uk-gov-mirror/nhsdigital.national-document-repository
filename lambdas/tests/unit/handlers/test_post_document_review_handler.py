@@ -1,6 +1,7 @@
 import json
 
 import pytest
+
 from enums.lambda_error import LambdaError
 from enums.snomed_codes import SnomedCodes
 from handlers.post_document_review_handler import lambda_handler, validate_event_body
@@ -67,7 +68,7 @@ def valid_event():
                 "nhsNumber": TEST_NHS_NUMBER,
                 "snomedCode": SnomedCodes.LLOYD_GEORGE.value.code,
                 "documents": ["testFile.pdf"],
-            }
+            },
         ),
     }
     yield event
@@ -97,34 +98,15 @@ def mocked_request_context_with_ods(mocker):
 @pytest.fixture
 def mock_service(set_env, mocker):
     mock_service = mocker.patch(
-        "handlers.post_document_review_handler.PostDocumentReviewService"
+        "handlers.post_document_review_handler.PostDocumentReviewService",
     )
     mocked_instance = mock_service.return_value
     yield mocked_instance
 
 
-def test_lambda_handler_returns_404_feature_flag_disabled(
-    valid_event, context, mock_upload_document_iteration_3_disabled, set_env
-):
-    body = {
-        "message": LambdaError.FeatureFlagDisabled.value["message"],
-        "err_code": LambdaError.FeatureFlagDisabled.value["err_code"],
-        "interaction_id": MOCK_INTERACTION_ID,
-    }
-
-    expected = ApiGatewayResponse(
-        status_code=404, body=json.dumps(body), methods="POST"
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(valid_event, context)
-
-    assert actual == expected
-
-
 def test_lambda_handler_returns_200_feature_flag_enabled(
     valid_event,
     context,
-    mock_upload_document_iteration_3_enabled,
     set_env,
     mocked_request_context_with_ods,
     mock_service,
@@ -136,7 +118,7 @@ def test_lambda_handler_returns_200_feature_flag_enabled(
             {
                 "fileName": json.loads(valid_event["body"])["documents"][0],
                 "presignedUrl": TEST_PRESIGNED_URL_1,
-            }
+            },
         ],
         "documentSnomedCodeType": SnomedCodes.LLOYD_GEORGE.value.code,
     }
@@ -144,7 +126,9 @@ def test_lambda_handler_returns_200_feature_flag_enabled(
     mock_service.process_event.return_value = expected_body
 
     expected = ApiGatewayResponse(
-        status_code=200, body=json.dumps(expected_body), methods="POST"
+        status_code=200,
+        body=json.dumps(expected_body),
+        methods="POST",
     ).create_api_gateway_response()
 
     actual = lambda_handler(valid_event, context)
@@ -153,7 +137,9 @@ def test_lambda_handler_returns_200_feature_flag_enabled(
 
 
 def test_lambda_handler_returns_400_invalid_event(
-    invalid_event, context, mock_upload_document_iteration_3_enabled, set_env
+    invalid_event,
+    context,
+    set_env,
 ):
     body = {
         "message": LambdaError.DocumentReviewInvalidBody.value["message"],
@@ -162,7 +148,9 @@ def test_lambda_handler_returns_400_invalid_event(
     }
 
     expected = ApiGatewayResponse(
-        status_code=400, body=json.dumps(body), methods="POST"
+        status_code=400,
+        body=json.dumps(body),
+        methods="POST",
     ).create_api_gateway_response()
 
     actual = lambda_handler(invalid_event, context)
@@ -173,7 +161,6 @@ def test_lambda_handler_returns_400_invalid_event(
 def test_lambda_handler_returns_400_no_body_in_event(
     invalid_event_missing_body,
     context,
-    mock_upload_document_iteration_3_enabled,
     set_env,
 ):
     body = {
@@ -183,7 +170,9 @@ def test_lambda_handler_returns_400_no_body_in_event(
     }
 
     expected = ApiGatewayResponse(
-        status_code=400, body=json.dumps(body), methods="POST"
+        status_code=400,
+        body=json.dumps(body),
+        methods="POST",
     ).create_api_gateway_response()
 
     actual = lambda_handler(invalid_event_missing_body, context)
@@ -192,10 +181,13 @@ def test_lambda_handler_returns_400_no_body_in_event(
 
 
 def test_lambda_handler_calls_validate_event_body_with_event_body(
-    mocker, valid_event, context, mock_upload_document_iteration_3_enabled, set_env
+    mocker,
+    valid_event,
+    context,
+    set_env,
 ):
     mock_validate = mocker.patch(
-        "handlers.post_document_review_handler.validate_event_body"
+        "handlers.post_document_review_handler.validate_event_body",
     )
 
     lambda_handler(valid_event, context)
@@ -241,7 +233,9 @@ def test_validate_event_body_throws_error_unsupported_file_type(invalid_event):
 
 
 def test_lambda_handler_calls_service_with_validated_event(
-    mock_service, context, mock_upload_document_iteration_3_enabled, valid_event
+    mock_service,
+    context,
+    valid_event,
 ):
 
     lambda_handler(valid_event, context)

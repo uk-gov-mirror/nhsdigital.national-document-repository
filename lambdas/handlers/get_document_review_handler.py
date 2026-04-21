@@ -1,9 +1,7 @@
 import json
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
-from services.feature_flags_service import FeatureFlagService
 from services.get_document_review_service import GetDocumentReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -27,7 +25,7 @@ logger = LoggingService(__name__)
         "PRESIGNED_ASSUME_ROLE",
         "EDGE_REFERENCE_TABLE",
         "CLOUDFRONT_URL",
-    ]
+    ],
 )
 @override_error_check
 @handle_lambda_exceptions
@@ -35,10 +33,6 @@ def lambda_handler(event, context):
     request_context.app_interaction = LoggingAppInteraction.GET_REVIEW_DOCUMENTS.value
 
     logger.info("Get Document Review handler has been triggered")
-    feature_flag_service = FeatureFlagService()
-    feature_flag_service.validate_feature_flag(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
-    )
 
     query_params = event.get("queryStringParameters", {})
     patient_id = query_params.get("patientId", "")
@@ -46,7 +40,8 @@ def lambda_handler(event, context):
     if not patient_id:
         logger.error("Missing patient_id in query string parameters")
         raise DocumentReviewLambdaException(
-            400, LambdaError.DocumentReferenceMissingParameters
+            400,
+            LambdaError.DocumentReferenceMissingParameters,
         )
 
     document_id, document_version = validate_review_path_parameters(event)
@@ -54,7 +49,7 @@ def lambda_handler(event, context):
     request_context.patient_nhs_no = patient_id
 
     logger.info(
-        f"Retrieving document review for patient_id: {patient_id}, document_id: {document_id}"
+        f"Retrieving document review for patient_id: {patient_id}, document_id: {document_id}",
     )
 
     document_review_service = GetDocumentReviewService()
@@ -70,15 +65,16 @@ def lambda_handler(event, context):
             {"Result": "Successful document review retrieval"},
         )
         return ApiGatewayResponse(
-            200, json.dumps(document_review), "GET"
-        ).create_api_gateway_response()
-    else:
-        logger.error(
-            "Document review not found",
-            {"Result": "No document review available"},
-        )
-        return ApiGatewayResponse(
-            404,
-            LambdaError.DocumentReferenceNotFound.create_error_body(),
+            200,
+            json.dumps(document_review),
             "GET",
         ).create_api_gateway_response()
+    logger.error(
+        "Document review not found",
+        {"Result": "No document review available"},
+    )
+    return ApiGatewayResponse(
+        404,
+        LambdaError.DocumentReferenceNotFound.create_error_body(),
+        "GET",
+    ).create_api_gateway_response()

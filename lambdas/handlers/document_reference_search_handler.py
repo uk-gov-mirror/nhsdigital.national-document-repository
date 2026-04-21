@@ -1,10 +1,8 @@
 import json
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from services.document_reference_search_service import DocumentReferenceSearchService
-from services.feature_flags_service import FeatureFlagService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
@@ -42,15 +40,10 @@ def lambda_handler(event, context):
     request_context.patient_nhs_no = nhs_number
 
     document_reference_search_service = DocumentReferenceSearchService()
-    upload_lambda_enabled_flag_object = FeatureFlagService().get_feature_flags_by_flag(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED,
-    )
-    doc_upload_iteration2_enabled = upload_lambda_enabled_flag_object[
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED
-    ]
-    additional_filters = {}
-    if doc_upload_iteration2_enabled:
-        additional_filters["doc_status"] = "final"
+
+    additional_filters = {
+        "doc_status": "final",
+    }
     if document_snomed_code:
         additional_filters["document_snomed_code"] = document_snomed_code[0].value
 

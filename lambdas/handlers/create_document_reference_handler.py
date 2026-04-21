@@ -2,13 +2,12 @@ import json
 import os
 import sys
 
-from enums.feature_flags import FeatureFlags
+from pydantic import ValidationError
+
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from models.document_reference import CreateEventModel
-from pydantic import ValidationError
 from services.create_document_reference_service import CreateDocumentReferenceService
-from services.feature_flags_service import FeatureFlagService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
@@ -41,15 +40,12 @@ logger = LoggingService(__name__)
         "STAGING_STORE_BUCKET_NAME",
         "DOCUMENT_STORE_BUCKET_NAME",
         "PRESIGNED_ASSUME_ROLE",
-    ]
+    ],
 )
 @override_error_check
 @handle_lambda_exceptions
 def lambda_handler(event, context):
     request_context.app_interaction = LoggingAppInteraction.UPLOAD_RECORD.value
-
-    feature_flag_service = FeatureFlagService()
-    feature_flag_service.validate_feature_flag(FeatureFlags.UPLOAD_LAMBDA_ENABLED.value)
 
     logger.info("Starting document reference creation process")
 
@@ -69,7 +65,8 @@ def lambda_handler(event, context):
         create_doc_ref_service = CreateDocumentReferenceService()
 
         url_references = create_doc_ref_service.create_document_reference_request(
-            nhs_number_query, doc_list
+            nhs_number_query,
+            doc_list,
         )
 
     except ValidationError as e:
@@ -80,5 +77,7 @@ def lambda_handler(event, context):
         raise DocumentRefException(400, LambdaError.DocRefNoParse)
 
     return ApiGatewayResponse(
-        200, json.dumps(url_references), "POST"
+        200,
+        json.dumps(url_references),
+        "POST",
     ).create_api_gateway_response()

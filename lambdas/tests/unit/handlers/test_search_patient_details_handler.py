@@ -4,9 +4,9 @@ from enum import Enum
 from unittest.mock import patch
 
 import pytest
+
 from handlers.search_patient_details_handler import lambda_handler
 from models.pds_models import PatientDetails
-from services.feature_flags_service import FeatureFlagService
 from utils.lambda_exceptions import SearchPatientException
 from utils.lambda_response import ApiGatewayResponse
 
@@ -37,17 +37,9 @@ def mocked_context(mocker):
         "repository_role": "GP_ADMIN",
     }
     yield mocker.patch(
-        "handlers.search_patient_details_handler.request_context", mocked_context
+        "handlers.search_patient_details_handler.request_context",
+        mocked_context,
     )
-
-
-@pytest.fixture
-def mock_check_if_ods_code_is_in_pilot(mocker):
-    mock_function = mocker.patch.object(
-        FeatureFlagService, "check_if_ods_code_is_in_pilot"
-    )
-    ods_in_pilot = mock_function.return_value = True
-    yield ods_in_pilot
 
 
 def test_lambda_handler_valid_id_returns_200(
@@ -56,8 +48,6 @@ def test_lambda_handler_valid_id_returns_200(
     context,
     mocker,
     mocked_context,
-    mock_upload_document_iteration_3_enabled,
-    mock_check_if_ods_code_is_in_pilot,
 ):
     patient_details_object = PatientDetails(
         givenName=["Jane"],
@@ -87,7 +77,9 @@ def test_lambda_handler_valid_id_returns_200(
 
     mocked_service.handle_search_patient_request.return_value = patient_details_object
     expected = ApiGatewayResponse(
-        200, patient_details, "GET"
+        200,
+        patient_details,
+        "GET",
     ).create_api_gateway_response()
 
     actual = lambda_handler(valid_id_event_with_auth_header, context)
@@ -102,7 +94,7 @@ def test_lambda_handler_invalid_id_returns_400(invalid_id_event, context):
             "message": f"Invalid patient number {nhs_number}",
             "err_code": "PN_4001",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
+        },
     )
     expected = ApiGatewayResponse(400, body, "GET").create_api_gateway_response()
 
@@ -117,8 +109,6 @@ def test_lambda_handler_valid_id_not_in_pds_returns_404(
     context,
     mocker,
     mocked_context,
-    mock_upload_document_iteration_3_enabled,
-    mock_check_if_ods_code_is_in_pilot,
 ):
     mocker.patch(
         "handlers.search_patient_details_handler.SearchPatientDetailsService.handle_search_patient_request",
@@ -137,14 +127,16 @@ def test_lambda_handler_valid_id_not_in_pds_returns_404(
 
 
 def test_lambda_handler_missing_id_in_query_params_returns_400(
-    set_env, missing_id_event, context
+    set_env,
+    missing_id_event,
+    context,
 ):
     body = json.dumps(
         {
             "message": "An error occurred due to missing key",
             "err_code": "PN_4002",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
+        },
     )
     expected = ApiGatewayResponse(400, body, "GET").create_api_gateway_response()
 
@@ -154,19 +146,23 @@ def test_lambda_handler_missing_id_in_query_params_returns_400(
 
 
 def test_lambda_handler_missing_auth_returns_400(
-    set_env, valid_id_event_with_auth_header, context, mocker
+    set_env,
+    valid_id_event_with_auth_header,
+    context,
+    mocker,
 ):
     mocked_context = mocker.MagicMock()
     mocked_context.authorization = {"selected_organisation": {"org_ods_code": ""}}
     mocker.patch(
-        "handlers.search_patient_details_handler.request_context", mocked_context
+        "handlers.search_patient_details_handler.request_context",
+        mocked_context,
     )
     body = json.dumps(
         {
             "message": "Missing user details",
             "err_code": "SP_4001",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
+        },
     )
     expected = ApiGatewayResponse(
         400,

@@ -63,7 +63,6 @@ def test_lambda_handler_returns_400_missing_patient_id(
     invalid_event_missing_patient_id,
     context,
     set_env,
-    mock_user_restriction_enabled,
 ):
 
     expected = ApiGatewayResponse(
@@ -76,31 +75,8 @@ def test_lambda_handler_returns_400_missing_patient_id(
     assert actual == expected
 
 
-def test_lambda_handler_returns_404_feature_flag_disabled(
-    valid_event,
-    context,
-    mock_user_restriction_disabled,
-    set_env,
-):
-    body = {
-        "message": LambdaError.FeatureFlagDisabled.value["message"],
-        "err_code": LambdaError.FeatureFlagDisabled.value["err_code"],
-        "interaction_id": MOCK_INTERACTION_ID,
-    }
-
-    expected = ApiGatewayResponse(
-        status_code=404,
-        body=json.dumps(body),
-        methods="PATCH",
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(valid_event, context)
-    assert actual == expected
-
-
 def test_lambda_handler_returns_200_restriction_already_inactive(
     context,
-    mock_user_restriction_enabled,
     set_env,
     mock_service,
     valid_event,
@@ -128,7 +104,6 @@ def test_lambda_handler_returns_200_restriction_already_inactive(
 
 def test_lambda_handler_happy_path(
     context,
-    mock_user_restriction_enabled,
     mock_service,
     valid_event,
     mock_request_context,

@@ -2,6 +2,7 @@ import json
 
 import pytest
 from botocore.exceptions import ClientError
+
 from enums.lambda_error import LambdaError
 from enums.virus_scan_result import VirusScanResult
 from handlers.virus_scan_result_handler import lambda_handler
@@ -11,19 +12,15 @@ from utils.lambda_response import ApiGatewayResponse
 
 INVALID_DOCUMENT_REFERENCE = {"documentReference": "FILE_REF_TEST"}
 VALID_DOCUMENT_REFERENCE = {
-    "documentReference": f"test/ARF/{TEST_NHS_NUMBER}/1111111111"
+    "documentReference": f"test/ARF/{TEST_NHS_NUMBER}/1111111111",
 }
 VALID_DOCUMENT_REFERENCE_LOWERCASE = {
-    "documentReference": f"test/arf/{TEST_NHS_NUMBER}/1111111111"
+    "documentReference": f"test/arf/{TEST_NHS_NUMBER}/1111111111",
 }
 
 
 @pytest.fixture
-def mock_virus_scan_service(
-    mocker,
-    mock_upload_lambda_enabled,
-):
-
+def mock_virus_scan_service(mocker):
     mock = mocker.patch("handlers.virus_scan_result_handler.get_virus_scan_service")
     mocked_class = mocker.MagicMock()
     mock.return_value = mocked_class
@@ -38,7 +35,10 @@ def mock_dynamo_service(mocker):
 
 
 def test_lambda_handler_respond_with_200(
-    context, set_env, mock_virus_scan_service, mock_dynamo_service
+    context,
+    set_env,
+    mock_virus_scan_service,
+    mock_dynamo_service,
 ):
     valid_event = {
         "httpMethod": "POST",
@@ -47,7 +47,9 @@ def test_lambda_handler_respond_with_200(
     }
     mock_virus_scan_service.scan_file.return_value = VirusScanResult.CLEAN
     expected = ApiGatewayResponse(
-        200, "Virus Scan was successful", "POST"
+        200,
+        "Virus Scan was successful",
+        "POST",
     ).create_api_gateway_response()
 
     actual = lambda_handler(valid_event, context)
@@ -63,7 +65,10 @@ def test_lambda_handler_respond_with_200(
 
 
 def test_lambda_handler_respond_with_infected_file(
-    context, set_env, mock_virus_scan_service, mock_dynamo_service
+    context,
+    set_env,
+    mock_virus_scan_service,
+    mock_dynamo_service,
 ):
     valid_event = {
         "httpMethod": "POST",
@@ -76,10 +81,12 @@ def test_lambda_handler_respond_with_infected_file(
             "message": "Virus scanner failed",
             "err_code": "VSR_4002",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
+        },
     )
     expected = ApiGatewayResponse(
-        400, expected_body, "POST"
+        400,
+        expected_body,
+        "POST",
     ).create_api_gateway_response()
 
     actual = lambda_handler(valid_event, context)
@@ -98,7 +105,10 @@ def test_lambda_handler_respond_with_infected_file(
 
 
 def test_lambda_handler_responds_with_200_when_doctype_lowercase(
-    context, set_env, mock_virus_scan_service, mock_dynamo_service
+    context,
+    set_env,
+    mock_virus_scan_service,
+    mock_dynamo_service,
 ):
     valid_event = {
         "httpMethod": "POST",
@@ -108,7 +118,9 @@ def test_lambda_handler_responds_with_200_when_doctype_lowercase(
     mock_virus_scan_service.scan_file.return_value = VirusScanResult.CLEAN
 
     expected = ApiGatewayResponse(
-        200, "Virus Scan was successful", "POST"
+        200,
+        "Virus Scan was successful",
+        "POST",
     ).create_api_gateway_response()
 
     actual = lambda_handler(valid_event, context)
@@ -118,7 +130,10 @@ def test_lambda_handler_responds_with_200_when_doctype_lowercase(
 
 
 def test_lambda_handler_respond_with_400_when_file_unclean(
-    context, set_env, mock_virus_scan_service, mock_dynamo_service
+    context,
+    set_env,
+    mock_virus_scan_service,
+    mock_dynamo_service,
 ):
     valid_event = {
         "httpMethod": "POST",
@@ -127,12 +142,15 @@ def test_lambda_handler_respond_with_400_when_file_unclean(
     }
 
     mock_virus_scan_service.scan_file.side_effect = VirusScanResultException(
-        400, LambdaError.MockError
+        400,
+        LambdaError.MockError,
     )
     actual = lambda_handler(valid_event, context)
 
     expected = ApiGatewayResponse(
-        400, LambdaError.MockError.create_error_body(), "POST"
+        400,
+        LambdaError.MockError.create_error_body(),
+        "POST",
     ).create_api_gateway_response()
 
     assert actual == expected
@@ -141,7 +159,10 @@ def test_lambda_handler_respond_with_400_when_file_unclean(
 
 
 def test_lambda_handler_respond_with_400_when_no_body(
-    context, set_env, mock_virus_scan_service, mock_dynamo_service
+    context,
+    set_env,
+    mock_virus_scan_service,
+    mock_dynamo_service,
 ):
     valid_event = {
         "httpMethod": "POST",
@@ -152,12 +173,14 @@ def test_lambda_handler_respond_with_400_when_no_body(
             "message": "Missing event body",
             "err_code": "VSR_4001",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
+        },
     )
     actual = lambda_handler(valid_event, context)
 
     expected = ApiGatewayResponse(
-        400, expected_body, "POST"
+        400,
+        expected_body,
+        "POST",
     ).create_api_gateway_response()
 
     assert actual == expected
@@ -166,7 +189,10 @@ def test_lambda_handler_respond_with_400_when_no_body(
 
 
 def test_lambda_handler_respond_with_400_when_invalid_body(
-    context, set_env, mock_virus_scan_service, mock_dynamo_service
+    context,
+    set_env,
+    mock_virus_scan_service,
+    mock_dynamo_service,
 ):
     valid_event = {
         "httpMethod": "POST",
@@ -178,12 +204,14 @@ def test_lambda_handler_respond_with_400_when_invalid_body(
             "message": "Missing event body",
             "err_code": "VSR_4001",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
+        },
     )
     actual = lambda_handler(valid_event, context)
 
     expected = ApiGatewayResponse(
-        400, expected_body, "POST"
+        400,
+        expected_body,
+        "POST",
     ).create_api_gateway_response()
 
     assert actual == expected
@@ -192,7 +220,10 @@ def test_lambda_handler_respond_with_400_when_invalid_body(
 
 
 def test_lambda_handler_responds_with_400_when_no_doc_type_in_document_reference(
-    context, set_env, mock_virus_scan_service, mock_dynamo_service
+    context,
+    set_env,
+    mock_virus_scan_service,
+    mock_dynamo_service,
 ):
     no_doc_type_event = {
         "httpMethod": "POST",
@@ -204,10 +235,12 @@ def test_lambda_handler_responds_with_400_when_no_doc_type_in_document_reference
             "message": "Document reference is missing a document type",
             "err_code": "VSR_4003",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
+        },
     )
     expected = ApiGatewayResponse(
-        400, expected_body, "POST"
+        400,
+        expected_body,
+        "POST",
     ).create_api_gateway_response()
 
     actual = lambda_handler(no_doc_type_event, context)
@@ -217,7 +250,10 @@ def test_lambda_handler_responds_with_400_when_no_doc_type_in_document_reference
 
 
 def test_lambda_handler_responds_with_400_when_nhs_number_does_not_match_in_document_reference(
-    context, set_env, mock_virus_scan_service, mock_dynamo_service
+    context,
+    set_env,
+    mock_virus_scan_service,
+    mock_dynamo_service,
 ):
     no_doc_type_event = {
         "httpMethod": "POST",
@@ -229,10 +265,12 @@ def test_lambda_handler_responds_with_400_when_nhs_number_does_not_match_in_docu
             "message": "An error occurred due to patient number mismatch",
             "err_code": "PN_4003",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
+        },
     )
     expected = ApiGatewayResponse(
-        400, expected_body, "POST"
+        400,
+        expected_body,
+        "POST",
     ).create_api_gateway_response()
 
     actual = lambda_handler(no_doc_type_event, context)
@@ -241,33 +279,11 @@ def test_lambda_handler_responds_with_400_when_nhs_number_does_not_match_in_docu
     mock_virus_scan_service.scan_file.assert_not_called()
 
 
-def test_no_event_processing_when_upload_lambda_flag_not_enabled(
-    set_env, context, mock_upload_lambda_disabled
-):
-
-    valid_event = {
-        "httpMethod": "POST",
-        "body": json.dumps(VALID_DOCUMENT_REFERENCE_LOWERCASE),
-        "queryStringParameters": {"patientId": TEST_NHS_NUMBER},
-    }
-    expected_body = json.dumps(
-        {
-            "message": "Feature is not enabled",
-            "err_code": "FFL_5003",
-            "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
-    )
-    expected = ApiGatewayResponse(
-        500, expected_body, "POST"
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(valid_event, context)
-
-    assert actual == expected
-
-
 def test_scan_file_when_update_dynamo_table_throws_client_error(
-    set_env, context, mock_dynamo_service, mock_virus_scan_service
+    set_env,
+    context,
+    mock_dynamo_service,
+    mock_virus_scan_service,
 ):
     valid_event = {
         "httpMethod": "POST",
@@ -276,17 +292,20 @@ def test_scan_file_when_update_dynamo_table_throws_client_error(
     }
     mock_virus_scan_service.scan_file.return_value = VirusScanResult.CLEAN
     mock_dynamo_service.update_item.side_effect = ClientError(
-        {"Error": {"Code": "500", "Message": "mocked error"}}, "test"
+        {"Error": {"Code": "500", "Message": "mocked error"}},
+        "test",
     )
     expected_body = json.dumps(
         {
             "message": "Error occurred with an AWS service",
             "err_code": "VSR_5004",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
+        },
     )
     expected = ApiGatewayResponse(
-        500, expected_body, "POST"
+        500,
+        expected_body,
+        "POST",
     ).create_api_gateway_response()
     actual = lambda_handler(valid_event, context)
     assert actual == expected

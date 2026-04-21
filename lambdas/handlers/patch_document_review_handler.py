@@ -1,10 +1,8 @@
 from pydantic import ValidationError
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
 from models.document_review import PatchDocumentReviewRequest
-from services.feature_flags_service import FeatureFlagService
 from services.update_document_review_service import UpdateDocumentReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -35,10 +33,6 @@ def lambda_handler(event, context):
     request_context.app_interaction = LoggingAppInteraction.UPDATE_REVIEW.value
 
     logger.info("Patch Document Review handler has been triggered")
-    feature_flag_service = FeatureFlagService()
-    feature_flag_service.validate_feature_flag(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED,
-    )
 
     query_params = event.get("queryStringParameters", {})
     patient_id = query_params.get("patientId")

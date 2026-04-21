@@ -1,7 +1,5 @@
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
-from services.feature_flags_service import FeatureFlagService
 from services.user_restrictions.update_status_user_restriction_service import (
     UpdateStatusUserRestrictionService,
 )
@@ -33,11 +31,6 @@ logger = LoggingService(__name__)
 )
 def lambda_handler(event, context):
     try:
-        feature_flag_service = FeatureFlagService()
-        feature_flag_service.validate_feature_flag(
-            FeatureFlags.USER_RESTRICTION_ENABLED,
-        )
-
         request_context.app_interaction = (
             LoggingAppInteraction.RESTRICTION_SOFT_DELETE.value
         )

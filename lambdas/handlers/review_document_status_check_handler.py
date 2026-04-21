@@ -1,9 +1,7 @@
 import json
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
-from services.feature_flags_service import FeatureFlagService
 from services.review_document_status_check_service import (
     ReviewDocumentStatusCheckService,
 )
@@ -43,10 +41,6 @@ def lambda_handler(event, context):
     try:
         request_context.app_interaction = (
             LoggingAppInteraction.CHECK_REVIEW_STATUS.value
-        )
-        feature_flag_service = FeatureFlagService()
-        feature_flag_service.validate_feature_flag(
-            FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED,
         )
 
         ods_code = extract_ods_code_from_request_context()

@@ -63,7 +63,6 @@ class BulkUploadMetadataProcessorService:
         metadata_heading_remap: dict,
         input_file_location: str = "",
         fixed_values: dict = None,
-        send_to_review_enabled: bool = False,
     ):
         self.staging_bucket_name = os.getenv("STAGING_STORE_BUCKET_NAME")
         self.metadata_queue_url = os.getenv("METADATA_SQS_QUEUE_URL")
@@ -84,7 +83,6 @@ class BulkUploadMetadataProcessorService:
         self.metadata_mapping_validator_service = MetadataMappingValidatorService()
 
         self.metadata_formatter_service = metadata_formatter_service
-        self.send_to_review_enabled = send_to_review_enabled
 
     def download_metadata_from_s3(self) -> str:
         local_file_path = f"{self.temp_download_dir}/{self.file_key.split('/')[-1]}"
@@ -188,12 +186,7 @@ class BulkUploadMetadataProcessorService:
         for row in validated_rows:
             self.process_metadata_row(row, patients, failed_files)
 
-        if self.send_to_review_enabled:
-            self.send_failed_files_to_review_queue(failed_files)
-        else:
-            logger.info(
-                f"Send to review is disabled. Skipping review queue for {len(failed_files)} failed file",
-            )
+        self.send_failed_files_to_review_queue(failed_files)
 
         return [
             StagingSqsMetadata(nhs_number=nhs_number, files=files)
@@ -393,7 +386,7 @@ class BulkUploadMetadataProcessorService:
             failed_entry,
             UploadStatus.FAILED,
             str(error),
-            sent_to_review=self.send_to_review_enabled and file_exists,
+            sent_to_review=file_exists,
         )
 
     def send_failed_files_to_review_queue(

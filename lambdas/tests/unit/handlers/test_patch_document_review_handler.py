@@ -1,6 +1,7 @@
 import json
 
 import pytest
+
 from enums.document_review_status import DocumentReviewStatus
 from enums.lambda_error import LambdaError
 from handlers.patch_document_review_handler import lambda_handler
@@ -26,7 +27,7 @@ def valid_put_document_review_event_approved():
             {
                 "reviewStatus": "APPROVED",
                 "documentReferenceId": TEST_DOCUMENT_REFERENCE_ID,
-            }
+            },
         ),
     }
 
@@ -51,7 +52,7 @@ def missing_patient_id_event():
             {
                 "reviewStatus": "APPROVED",
                 "documentReferenceId": TEST_DOCUMENT_REFERENCE_ID,
-            }
+            },
         ),
     }
 
@@ -66,7 +67,7 @@ def missing_document_id_event():
             {
                 "reviewStatus": "APPROVED",
                 "documentReferenceId": TEST_DOCUMENT_REFERENCE_ID,
-            }
+            },
         ),
     }
 
@@ -101,7 +102,7 @@ def invalid_version_event():
             {
                 "reviewStatus": "APPROVED",
                 "documentReferenceId": TEST_DOCUMENT_REFERENCE_ID,
-            }
+            },
         ),
     }
 
@@ -116,7 +117,7 @@ def missing_version_event():
             {
                 "reviewStatus": "APPROVED",
                 "documentReferenceId": TEST_DOCUMENT_REFERENCE_ID,
-            }
+            },
         ),
     }
 
@@ -124,7 +125,7 @@ def missing_version_event():
 @pytest.fixture
 def mocked_service(set_env, mocker):
     mocked_class = mocker.patch(
-        "handlers.patch_document_review_handler.UpdateDocumentReviewService"
+        "handlers.patch_document_review_handler.UpdateDocumentReviewService",
     )
     mocked_service = mocked_class.return_value
     yield mocked_service
@@ -133,14 +134,14 @@ def mocked_service(set_env, mocker):
 @pytest.fixture
 def mock_authorization(mocker):
     return mocker.patch(
-        "handlers.patch_document_review_handler.extract_ods_code_from_request_context"
+        "handlers.patch_document_review_handler.extract_ods_code_from_request_context",
     )
 
 
 @pytest.fixture
 def mock_missing_authorization(mocker):
     mock_auth = mocker.patch(
-        "handlers.patch_document_review_handler.extract_ods_code_from_request_context"
+        "handlers.patch_document_review_handler.extract_ods_code_from_request_context",
     )
     mock_auth.side_effect = OdsErrorException()
     yield mock_auth
@@ -152,7 +153,6 @@ def test_lambda_handler_returns_200_when_document_review_approved(
     context,
     set_env,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     mocked_service.update_document_review.return_value = None
     mock_authorization.return_value = TEST_CURRENT_GP_ODS
@@ -180,7 +180,6 @@ def test_lambda_handler_returns_200_when_document_review_rejected(
     context,
     set_env,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     mocked_service.update_document_review.return_value = None
     mock_authorization.return_value = TEST_CURRENT_GP_ODS
@@ -205,14 +204,15 @@ def test_lambda_handler_returns_400_when_patient_id_missing(
     missing_patient_id_event,
     context,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     mock_authorization.return_value = TEST_CURRENT_GP_ODS
 
     actual = lambda_handler(missing_patient_id_event, context)
 
     expected = ApiGatewayResponse(
-        400, LambdaError.PatientIdNoKey.create_error_body(), "PATCH"
+        400,
+        LambdaError.PatientIdNoKey.create_error_body(),
+        "PATCH",
     ).create_api_gateway_response()
     assert expected == actual
 
@@ -222,12 +222,13 @@ def test_lambda_handler_returns_400_when_document_id_missing(
     missing_document_id_event,
     context,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     actual = lambda_handler(missing_document_id_event, context)
 
     expected = ApiGatewayResponse(
-        400, LambdaError.DocumentReferenceMissingParameters.create_error_body(), "PATCH"
+        400,
+        LambdaError.DocumentReferenceMissingParameters.create_error_body(),
+        "PATCH",
     ).create_api_gateway_response()
     assert expected == actual
 
@@ -237,12 +238,13 @@ def test_lambda_handler_returns_400_when_body_invalid_json(
     invalid_body_event,
     context,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     actual = lambda_handler(invalid_body_event, context)
 
     expected = ApiGatewayResponse(
-        400, LambdaError.DocumentReviewInvalidBody.create_error_body(), "PATCH"
+        400,
+        LambdaError.DocumentReviewInvalidBody.create_error_body(),
+        "PATCH",
     ).create_api_gateway_response()
     assert expected == actual
     assert actual["statusCode"] == 400
@@ -253,12 +255,13 @@ def test_lambda_handler_returns_400_when_approved_without_document_reference_id(
     approved_without_document_reference_id_event,
     context,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     actual = lambda_handler(approved_without_document_reference_id_event, context)
 
     expected = ApiGatewayResponse(
-        400, LambdaError.DocumentReviewInvalidBody.create_error_body(), "PATCH"
+        400,
+        LambdaError.DocumentReviewInvalidBody.create_error_body(),
+        "PATCH",
     ).create_api_gateway_response()
     assert actual["statusCode"] == 400
     assert expected == actual
@@ -269,12 +272,13 @@ def test_lambda_handler_returns_401_when_ods_code_missing(
     valid_put_document_review_event_approved,
     context,
     mock_missing_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     actual = lambda_handler(valid_put_document_review_event_approved, context)
 
     expected = ApiGatewayResponse(
-        401, LambdaError.DocumentReferenceUnauthorised.create_error_body(), "PATCH"
+        401,
+        LambdaError.DocumentReferenceUnauthorised.create_error_body(),
+        "PATCH",
     ).create_api_gateway_response()
     assert expected == actual
 
@@ -285,16 +289,18 @@ def test_lambda_handler_returns_500_when_service_raises_exception(
     context,
     set_env,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     mocked_service.update_document_review.side_effect = UpdateDocumentReviewException(
-        500, LambdaError.DocumentReferenceGeneralError
+        500,
+        LambdaError.DocumentReferenceGeneralError,
     )
 
     actual = lambda_handler(valid_put_document_review_event_approved, context)
 
     expected = ApiGatewayResponse(
-        500, LambdaError.DocumentReferenceGeneralError.create_error_body(), "PATCH"
+        500,
+        LambdaError.DocumentReferenceGeneralError.create_error_body(),
+        "PATCH",
     ).create_api_gateway_response()
     assert expected == actual
 
@@ -305,16 +311,18 @@ def test_lambda_handler_returns_404_when_document_not_found(
     context,
     set_env,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     mocked_service.update_document_review.side_effect = UpdateDocumentReviewException(
-        404, LambdaError.DocumentReferenceMissingParameters
+        404,
+        LambdaError.DocumentReferenceMissingParameters,
     )
 
     actual = lambda_handler(valid_put_document_review_event_approved, context)
 
     expected = ApiGatewayResponse(
-        404, LambdaError.DocumentReferenceMissingParameters.create_error_body(), "PATCH"
+        404,
+        LambdaError.DocumentReferenceMissingParameters.create_error_body(),
+        "PATCH",
     ).create_api_gateway_response()
     assert expected == actual
 
@@ -325,7 +333,6 @@ def test_lambda_handler_returns_500_when_environment_variable_missing(
     valid_put_document_review_event_approved,
     context,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     monkeypatch.delenv("DOCUMENT_REVIEW_DYNAMODB_NAME")
 
@@ -334,10 +341,12 @@ def test_lambda_handler_returns_500_when_environment_variable_missing(
             "message": "An error occurred due to missing environment variable: 'DOCUMENT_REVIEW_DYNAMODB_NAME'",
             "err_code": "ENV_5001",
             "interaction_id": "88888888-4444-4444-4444-121212121212",
-        }
+        },
     )
     expected = ApiGatewayResponse(
-        500, expected_body, "PATCH"
+        500,
+        expected_body,
+        "PATCH",
     ).create_api_gateway_response()
     actual = lambda_handler(valid_put_document_review_event_approved, context)
     assert expected == actual
@@ -348,12 +357,13 @@ def test_lambda_handler_returns_400_when_version_invalid(
     invalid_version_event,
     context,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     actual = lambda_handler(invalid_version_event, context)
 
     expected = ApiGatewayResponse(
-        400, LambdaError.DocumentReferenceMissingParameters.create_error_body(), "PATCH"
+        400,
+        LambdaError.DocumentReferenceMissingParameters.create_error_body(),
+        "PATCH",
     ).create_api_gateway_response()
     assert expected == actual
 
@@ -363,11 +373,12 @@ def test_lambda_handler_returns_400_when_version_missing(
     missing_version_event,
     context,
     mock_authorization,
-    mock_upload_document_iteration_3_enabled,
 ):
     actual = lambda_handler(missing_version_event, context)
 
     expected = ApiGatewayResponse(
-        400, LambdaError.DocumentReferenceMissingParameters.create_error_body(), "PATCH"
+        400,
+        LambdaError.DocumentReferenceMissingParameters.create_error_body(),
+        "PATCH",
     ).create_api_gateway_response()
     assert expected == actual

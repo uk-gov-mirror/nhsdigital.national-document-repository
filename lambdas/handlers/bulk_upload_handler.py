@@ -1,9 +1,7 @@
 import os
 
-from enums.feature_flags import FeatureFlags
 from enums.logging_app_interaction import LoggingAppInteraction
 from services.bulk_upload_service import BulkUploadService
-from services.feature_flags_service import FeatureFlagService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
 from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
@@ -23,28 +21,8 @@ logger = LoggingService(__name__)
 def lambda_handler(event, _context):
     request_context.app_interaction = LoggingAppInteraction.BULK_UPLOAD.value
     logger.info("Received event. Starting bulk upload process")
-    feature_flag_service = FeatureFlagService()
-    validation_strict_mode_flag_object = feature_flag_service.get_feature_flags_by_flag(
-        FeatureFlags.LLOYD_GEORGE_VALIDATION_STRICT_MODE_ENABLED.value,
-    )
-    validation_strict_mode = validation_strict_mode_flag_object[
-        FeatureFlags.LLOYD_GEORGE_VALIDATION_STRICT_MODE_ENABLED.value
-    ]
-
-    send_to_review_flag_object = feature_flag_service.get_feature_flags_by_flag(
-        FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value,
-    )
-    send_to_review_enabled = send_to_review_flag_object[
-        FeatureFlags.BULK_UPLOAD_SEND_TO_REVIEW_ENABLED.value
-    ]
 
     bypass_pds = os.getenv("BYPASS_PDS", "false").lower() == "true"
-
-    if validation_strict_mode:
-        logger.info("Lloyd George validation strict mode is enabled")
-
-    if send_to_review_enabled:
-        logger.info("Bulk upload send to review queue is enabled")
 
     if "Records" not in event or len(event["Records"]) < 1:
         http_status_code = 400
@@ -59,9 +37,8 @@ def lambda_handler(event, _context):
         ).create_api_gateway_response()
 
     bulk_upload_service = BulkUploadService(
-        strict_mode=validation_strict_mode,
+        strict_mode=False,
         bypass_pds=bypass_pds,
-        send_to_review_enabled=send_to_review_enabled,
     )
 
     try:

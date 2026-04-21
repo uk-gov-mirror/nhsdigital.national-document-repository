@@ -1,6 +1,7 @@
 import json
 
 import pytest
+
 from enums.lambda_error import LambdaError
 from handlers.update_document_reference_handler import lambda_handler
 from tests.unit.conftest import MOCK_STAGING_STORE_BUCKET, TEST_NHS_NUMBER, TEST_UUID
@@ -74,14 +75,14 @@ def test_update_document_reference_valid_lg_type_returns_presigned_urls_and_200(
     lg_type_event,
     context,
     mock_udr_service,
-    mock_upload_lambda_enabled,
-    mock_upload_document_iteration2_enabled,
 ):
     mock_udr_service.update_document_reference_request.return_value = (
         LG_MOCK_RESPONSE_SINGLE_FILE
     )
     expected = ApiGatewayResponse(
-        200, json.dumps(LG_MOCK_RESPONSE_SINGLE_FILE), "PUT"
+        200,
+        json.dumps(LG_MOCK_RESPONSE_SINGLE_FILE),
+        "PUT",
     ).create_api_gateway_response()
     actual = lambda_handler(lg_type_event, context)
     assert actual == expected
@@ -92,8 +93,6 @@ def test_udr_request_with_invalid_or_duplicate_files_returns_400(
     lg_type_event,
     context,
     mock_udr_service,
-    mock_upload_lambda_enabled,
-    mock_upload_document_iteration2_enabled,
 ):
     mock_udr_service.update_document_reference_request.side_effect = (
         DocumentRefException(400, LambdaError.DocRefInvalidFiles)
@@ -106,7 +105,9 @@ def test_udr_request_with_invalid_or_duplicate_files_returns_400(
     }
 
     expected = ApiGatewayResponse(
-        400, json.dumps(expected_body), "PUT"
+        400,
+        json.dumps(expected_body),
+        "PUT",
     ).create_api_gateway_response()
     actual = lambda_handler(lg_type_event, context)
     assert actual == expected
@@ -117,8 +118,6 @@ def test_udr_request_when_lgr_is_in_process_of_uploading_returns_423(
     lg_type_event,
     context,
     mock_udr_service,
-    mock_upload_lambda_enabled,
-    mock_upload_document_iteration2_enabled,
 ):
     mock_udr_service.update_document_reference_request.side_effect = (
         DocumentRefException(423, LambdaError.UploadInProgressError)
@@ -131,7 +130,9 @@ def test_udr_request_when_lgr_is_in_process_of_uploading_returns_423(
     }
 
     expected = ApiGatewayResponse(
-        423, json.dumps(expected_body), "PUT"
+        423,
+        json.dumps(expected_body),
+        "PUT",
     ).create_api_gateway_response()
     actual = lambda_handler(lg_type_event, context)
     assert actual == expected
@@ -144,8 +145,6 @@ def test_update_document_reference_with_nhs_number_not_in_pds_returns_404(
     lg_type_event,
     context,
     mock_udr_service,
-    mock_upload_lambda_enabled,
-    mock_upload_document_iteration2_enabled,
 ):
     mock_udr_service.update_document_reference_request.side_effect = (
         SearchPatientException(404, LambdaError.SearchPatientNoPDS)
@@ -158,7 +157,9 @@ def test_update_document_reference_with_nhs_number_not_in_pds_returns_404(
     }
 
     expected = ApiGatewayResponse(
-        404, json.dumps(expected_body), "PUT"
+        404,
+        json.dumps(expected_body),
+        "PUT",
     ).create_api_gateway_response()
     actual = lambda_handler(lg_type_event, context)
     assert actual == expected
@@ -185,88 +186,11 @@ def test_invalid_nhs_number_returns_400(
     mock_udr_service.assert_not_called()
 
 
-def test_no_event_processing_when_upload_lambda_flag_disabled(
-    set_env,
-    lg_type_event,
-    context,
-    mock_udr_service,
-    mock_processing_event_details,
-    mock_upload_lambda_disabled,
-):
-    expected_body = {
-        "message": "Feature is not enabled",
-        "err_code": "FFL_5003",
-        "interaction_id": "88888888-4444-4444-4444-121212121212",
-    }
-
-    expected = ApiGatewayResponse(
-        404, json.dumps(expected_body), "PUT"
-    ).create_api_gateway_response()
-    actual = lambda_handler(lg_type_event, context)
-
-    assert expected == actual
-    mock_processing_event_details.assert_not_called()
-    mock_udr_service.assert_not_called()
-
-
-def test_no_event_processing_when_upload_document_iteration2_flag_disabled(
-    set_env,
-    lg_type_event,
-    context,
-    mock_udr_service,
-    mock_processing_event_details,
-    mock_upload_lambda_enabled,
-    mock_upload_document_iteration2_disabled,
-):
-    expected_body = {
-        "message": "Feature is not enabled",
-        "err_code": "FFL_5003",
-        "interaction_id": "88888888-4444-4444-4444-121212121212",
-    }
-
-    expected = ApiGatewayResponse(
-        404, json.dumps(expected_body), "PUT"
-    ).create_api_gateway_response()
-    actual = lambda_handler(lg_type_event, context)
-
-    assert expected == actual
-    mock_processing_event_details.assert_not_called()
-    mock_udr_service.assert_not_called()
-
-
-def test_ods_code_not_in_pilot_returns_404(
-    set_env,
-    context,
-    lg_type_event,
-    mock_udr_service,
-    mock_upload_lambda_enabled,
-    mock_upload_document_iteration2_enabled,
-):
-    mock_udr_service.update_document_reference_request.side_effect = (
-        DocumentRefException(404, LambdaError.DocRefOdsCodeNotAllowed)
-    )
-
-    expected_body = {
-        "message": "ODS code does not match any of the allowed.",
-        "err_code": "DR_4009",
-        "interaction_id": "88888888-4444-4444-4444-121212121212",
-    }
-
-    expected = ApiGatewayResponse(
-        404, json.dumps(expected_body), "PUT"
-    ).create_api_gateway_response()
-    actual = lambda_handler(lg_type_event, context)
-
-    assert actual == expected
-
-
 def test_multiple_attachments_returns_400(
     set_env,
     context,
     lg_invalid_event,
     mock_udr_service,
-    mock_upload_lambda_enabled,
-    mock_upload_document_iteration2_enabled,
 ):
     expected_body = {
         "message": "Failed to parse document upload request data",
@@ -275,7 +199,9 @@ def test_multiple_attachments_returns_400(
     }
 
     expected = ApiGatewayResponse(
-        400, json.dumps(expected_body), "PUT"
+        400,
+        json.dumps(expected_body),
+        "PUT",
     ).create_api_gateway_response()
     actual = lambda_handler(lg_invalid_event, context)
 

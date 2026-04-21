@@ -3,10 +3,8 @@ import json
 from enums.document_review_accepted_querystring_parameters import (
     DocumentReviewQuerystringParameters,
 )
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from enums.logging_app_interaction import LoggingAppInteraction
-from services.feature_flags_service import FeatureFlagService
 from services.search_document_review_service import SearchDocumentReviewService
 from utils.audit_logging_setup import LoggingService
 from utils.decorators.ensure_env_var import ensure_environment_variables
@@ -14,7 +12,6 @@ from utils.decorators.handle_lambda_exceptions import handle_lambda_exceptions
 from utils.decorators.override_error_check import override_error_check
 from utils.decorators.set_audit_arg import set_request_context_for_logging
 from utils.exceptions import OdsErrorException
-from utils.lambda_exceptions import DocumentReviewLambdaException
 from utils.lambda_response import ApiGatewayResponse
 from utils.ods_utils import extract_ods_code_from_request_context
 from utils.request_context import request_context
@@ -48,19 +45,6 @@ def lambda_handler(event, context):
         LoggingAppInteraction.SEARCH_REVIEW_DOCUMENTS.value
     )
     try:
-        feature_flag_service = FeatureFlagService()
-        upload_lambda_enabled_flag_object = (
-            feature_flag_service.get_feature_flags_by_flag(
-                FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED,
-            )
-        )
-
-        if not upload_lambda_enabled_flag_object[
-            FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
-        ]:
-            logger.info("Feature flag not enabled, event will not be processed")
-            raise DocumentReviewLambdaException(403, LambdaError.FeatureFlagDisabled)
-
         ods_code = extract_ods_code_from_request_context()
 
         params = parse_querystring_parameters(event)
