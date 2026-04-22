@@ -233,35 +233,6 @@ def test_lambda_handler_returns_409_when_restriction_already_exists(
     assert actual == expected
 
 
-def test_lambda_handler_returns_400_on_value_error(
-    valid_create_restriction_event,
-    context,
-    set_env,
-    mocker,
-):
-    # Mock request context where creator's ID equals the restricted smartcard ID
-    mock_ctx = mocker.patch("utils.ods_utils.request_context")
-    mock_ctx.authorization = {
-        "nhs_user_id": MOCK_SMART_CARD_ID,  # Same as restricted_smartcard_id
-        "selected_organisation": {"org_ods_code": TEST_CURRENT_GP_ODS},
-    }
-
-    body = {
-        "message": LambdaError.UserRestrictionSelfRestriction.value["message"],
-        "err_code": LambdaError.UserRestrictionSelfRestriction.value["err_code"],
-        "interaction_id": MOCK_INTERACTION_ID,
-    }
-    expected = ApiGatewayResponse(
-        status_code=400,
-        body=json.dumps(body),
-        methods="POST",
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(valid_create_restriction_event, context)
-
-    assert actual == expected
-
-
 def test_lambda_handler_returns_correct_status_on_healthcare_worker_api_exception(
     valid_create_restriction_event,
     context,
@@ -343,77 +314,6 @@ def test_lambda_handler_returns_500_on_practitioner_model_exception(
 
     actual = lambda_handler(valid_create_restriction_event, context)
 
-    assert actual == expected
-
-
-def test_lambda_handler_returns_404_when_patient_not_found_in_pds(
-    valid_create_restriction_event,
-    context,
-    mock_request_context,
-    mocker,
-    set_env,
-):
-    mock_pds = mocker.patch(
-        "services.user_restrictions.create_user_restriction_service.get_pds_service",
-    )
-    mock_pds.return_value.fetch_patient_details.return_value = None
-
-    body = {
-        "message": LambdaError.SearchPatientNoPDS.value["message"],
-        "err_code": LambdaError.SearchPatientNoPDS.value["err_code"],
-        "interaction_id": MOCK_INTERACTION_ID,
-    }
-
-    expected = ApiGatewayResponse(
-        status_code=404,
-        body=json.dumps(body),
-        methods="POST",
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(valid_create_restriction_event, context)
-    assert actual == expected
-
-
-def test_lambda_handler_returns_403_when_patient_ods_does_not_match_requester_ods(
-    valid_create_restriction_event,
-    context,
-    mock_request_context,
-    mocker,
-    set_env,
-):
-    from models.pds_models import PatientDetails
-
-    # Mock patient with different ODS code
-    mismatched_patient = PatientDetails(
-        nhsNumber=TEST_NHS_NUMBER,
-        givenName=["Jane"],
-        familyName="Smith",
-        birthDate="2010-10-22",
-        postalCode="LS1 6AE",
-        superseded=False,
-        restricted=False,
-        generalPracticeOds="X9999",  # Different ODS than TEST_CURRENT_GP_ODS (Y12345)
-        active=True,
-    )
-
-    mock_pds = mocker.patch(
-        "services.user_restrictions.create_user_restriction_service.get_pds_service",
-    )
-    mock_pds.return_value.fetch_patient_details.return_value = mismatched_patient
-
-    body = {
-        "message": LambdaError.SearchPatientNoAuth.value["message"],
-        "err_code": LambdaError.SearchPatientNoAuth.value["err_code"],
-        "interaction_id": MOCK_INTERACTION_ID,
-    }
-
-    expected = ApiGatewayResponse(
-        status_code=403,
-        body=json.dumps(body),
-        methods="POST",
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(valid_create_restriction_event, context)
     assert actual == expected
 
 

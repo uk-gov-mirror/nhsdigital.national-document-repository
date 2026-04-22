@@ -3,7 +3,6 @@ import json
 
 import pytest
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from handlers.user_restrictions.search_user_restriction_handler import (
     lambda_handler,
@@ -20,7 +19,6 @@ from utils.exceptions import (
     UserRestrictionException,
     UserRestrictionValidationException,
 )
-from utils.lambda_exceptions import FeatureFlagsException
 from utils.lambda_response import ApiGatewayResponse
 
 TEST_SMARTCARD_ID = "123456789012"
@@ -40,17 +38,7 @@ MOCK_RESTRICTION = {
 
 
 @pytest.fixture
-def mock_feature_flag_service(mocker):
-    mocked_class = mocker.patch(
-        "handlers.user_restrictions.search_user_restriction_handler.FeatureFlagService",
-    )
-    mocked_instance = mocked_class.return_value
-    mocked_instance.validate_feature_flag.return_value = None
-    yield mocked_instance
-
-
-@pytest.fixture
-def mock_service(mocker, mock_feature_flag_service):
+def mock_service(mocker):
     mocked_class = mocker.patch(
         "handlers.user_restrictions.search_user_restriction_handler.SearchUserRestrictionService",
     )
@@ -333,25 +321,3 @@ def test_handler_returns_500_when_service_raises_db_error(
 
     actual = lambda_handler(event, context)
     assert actual == expected
-
-
-def test_handler_returns_404_when_feature_flag_disabled(
-    event,
-    set_env,
-    mock_service,
-    mock_feature_flag_service,
-    mocked_extract_ods,
-    context,
-):
-    mock_feature_flag_service.validate_feature_flag.side_effect = FeatureFlagsException(
-        404,
-        LambdaError.FeatureFlagDisabled,
-    )
-
-    actual = lambda_handler(event, context)
-
-    assert actual["statusCode"] == 404
-    mock_feature_flag_service.validate_feature_flag.assert_called_once_with(
-        FeatureFlags.USER_RESTRICTION_ENABLED.value,
-    )
-    mock_service.process_request.assert_not_called()

@@ -4,19 +4,11 @@ from unittest.mock import patch
 
 import pytest
 
-from enums.feature_flags import FeatureFlags
 from enums.lambda_error import LambdaError
 from handlers.get_document_reference_handler import lambda_handler
 from utils.error_response import ErrorResponse
 from utils.lambda_exceptions import GetDocumentRefException
 from utils.lambda_response import ApiGatewayResponse
-
-
-@pytest.fixture
-def mock_feature_flag_service(mocker):
-    yield mocker.patch(
-        "handlers.get_document_reference_handler.FeatureFlagService",
-    ).return_value
 
 
 @pytest.fixture
@@ -29,11 +21,6 @@ def mock_get_document_service(mocker):
 @pytest.fixture
 def mock_valid_nhs_number():
     yield "4407064188"
-
-
-@pytest.fixture
-def feature_flag():
-    yield FeatureFlags.UPLOAD_DOCUMENT_ITERATION_3_ENABLED
 
 
 @pytest.fixture
@@ -59,12 +46,10 @@ def mocked_bad_env_vars():
 @pytest.mark.parametrize("version", ["1", None])
 def test_handler_valid_request_returns_200(
     valid_id_event_with_auth_header,
-    mock_feature_flag_service,
     mock_get_document_service,
     mock_valid_nhs_number,
     context,
     set_env,
-    feature_flag,
     version,
 ):
     mock_document_id = "1"
@@ -96,9 +81,6 @@ def test_handler_valid_request_returns_200(
     assert result == expected_result
     assert result["body"] == json.dumps(expected_body)
 
-    mock_feature_flag_service.validate_feature_flag.assert_called_once_with(
-        feature_flag,
-    )
     mock_get_document_service.get_document_url_by_id.assert_called_once_with(
         mock_document_id,
         mock_valid_nhs_number,
@@ -108,13 +90,11 @@ def test_handler_valid_request_returns_200(
 
 def test_version_not_found_returns_404(
     valid_id_event_with_auth_header,
-    mock_feature_flag_service,
     mock_get_document_service,
     mock_valid_nhs_number,
     context,
     set_env,
     mock_interaction_id,
-    feature_flag,
 ):
     mock_document_id = "test_id"
     version = "test_version"
@@ -125,10 +105,6 @@ def test_version_not_found_returns_404(
     }
     valid_id_event_with_auth_header["queryStringParameters"] = {
         "patientId": mock_valid_nhs_number,
-    }
-
-    mock_feature_flag_service.get_feature_flags_by_flag.return_value = {
-        FeatureFlags.VERSION_HISTORY_ENABLED.value: True,
     }
 
     mock_get_document_service.get_document_url_by_id.side_effect = (
@@ -157,9 +133,6 @@ def test_version_not_found_returns_404(
 
     assert result == expected_result
 
-    mock_feature_flag_service.validate_feature_flag.assert_called_once_with(
-        feature_flag,
-    )
     mock_get_document_service.get_document_url_by_id.assert_called_once_with(
         mock_document_id,
         mock_valid_nhs_number,
@@ -167,63 +140,10 @@ def test_version_not_found_returns_404(
     )
 
 
-def test_version_provided_but_feature_flag_disabled_returns_400(
-    valid_id_event_with_auth_header,
-    mock_feature_flag_service,
-    mock_get_document_service,
-    mock_valid_nhs_number,
-    context,
-    set_env,
-    feature_flag,
-    mock_interaction_id,
-):
-    mock_document_id = "1"
-    version = "3"
-
-    valid_id_event_with_auth_header["pathParameters"] = {
-        "id": mock_document_id,
-        "version": version,
-    }
-    valid_id_event_with_auth_header["queryStringParameters"] = {
-        "patientId": mock_valid_nhs_number,
-    }
-
-    mock_feature_flag_service.get_feature_flags_by_flag.return_value = {
-        FeatureFlags.VERSION_HISTORY_ENABLED.value: False,
-    }
-
-    expected_error = GetDocumentRefException(
-        400,
-        LambdaError.FeatureFlagDisabled,
-    )
-
-    expected_result = ApiGatewayResponse(
-        status_code=400,
-        body=ErrorResponse(
-            err_code=expected_error.err_code,
-            message=expected_error.message,
-            interaction_id=mock_interaction_id,
-        ).create(),
-        methods="GET",
-    ).create_api_gateway_response()
-
-    result = lambda_handler(valid_id_event_with_auth_header, context)
-
-    assert result == expected_result
-
-    mock_get_document_service.get_document_url_by_id.assert_not_called()
-
-    mock_feature_flag_service.validate_feature_flag.assert_called_once_with(
-        feature_flag,
-    )
-
-
 def test_missing_nhs_number_errors(
     valid_id_event_with_auth_header,
-    mock_feature_flag_service,
     context,
     set_env,
-    feature_flag,
 ):
     valid_id_event_with_auth_header["pathParameters"] = {"id": "1"}
     valid_id_event_with_auth_header["queryStringParameters"].pop("patientId")
@@ -241,11 +161,9 @@ def test_missing_nhs_number_errors(
 
 def test_missing_document_id_errors(
     valid_id_event_with_auth_header,
-    mock_feature_flag_service,
     mock_valid_nhs_number,
     context,
     set_env,
-    feature_flag,
     mock_interaction_id,
 ):
     valid_id_event_with_auth_header["pathParameters"] = {}
@@ -267,10 +185,6 @@ def test_missing_document_id_errors(
         ).create(),
         methods="GET",
     ).create_api_gateway_response()
-
-    mock_feature_flag_service.get_feature_flags_by_flag.return_value = {
-        feature_flag: True,
-    }
 
     result = lambda_handler(valid_id_event_with_auth_header, context)
 

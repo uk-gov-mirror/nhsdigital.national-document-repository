@@ -1,4 +1,5 @@
 import pytest
+
 from handlers.bulk_upload_metadata_processor_handler import lambda_handler
 from services.bulk_upload_metadata_processor_service import (
     BulkUploadMetadataProcessorService,
@@ -55,7 +56,7 @@ def test_metadata_processor_lambda_handler_s3_event_triggers_expedite(
         "detail": {
             "object": {
                 "key": "expedite/folder/file.pdf",
-            }
+            },
         },
     }
 
@@ -87,7 +88,7 @@ def test_s3_event_with_expedite_key_processes(
     mock_metadata_service,
 ):
     event = eventbridge_event_with_s3_key(
-        "expedite%2F1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf"
+        "expedite%2F1of1_Lloyd_George_Record_[John Michael SMITH]_[1234567890]_[15-05-1990].pdf",
     )
 
     lambda_handler(event, context)

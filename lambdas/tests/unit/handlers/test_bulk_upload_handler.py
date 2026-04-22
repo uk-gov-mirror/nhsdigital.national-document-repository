@@ -1,4 +1,5 @@
 import pytest
+
 from handlers.bulk_upload_handler import lambda_handler
 from tests.unit.helpers.data.bulk_upload.test_data import (
     TEST_EVENT_WITH_NO_SQS_MESSAGES,
@@ -28,11 +29,13 @@ def test_lambda_handler_processes_single_message_successfully(
     response = lambda_handler(TEST_EVENT_WITH_ONE_SQS_MESSAGE, context)
 
     expected = ApiGatewayResponse(
-        200, "Finished processing all 1 messages", "GET"
+        200,
+        "Finished processing all 1 messages",
+        "GET",
     ).create_api_gateway_response()
     assert response == expected
     mock_bulk_upload_service_instance.process_message_queue.assert_called_once_with(
-        TEST_EVENT_WITH_ONE_SQS_MESSAGE["Records"]
+        TEST_EVENT_WITH_ONE_SQS_MESSAGE["Records"],
     )
 
 
@@ -44,11 +47,13 @@ def test_lambda_handler_processes_multiple_messages_successfully(
     response = lambda_handler(TEST_EVENT_WITH_SQS_MESSAGES, context)
 
     expected = ApiGatewayResponse(
-        200, "Finished processing all 3 messages", "GET"
+        200,
+        "Finished processing all 3 messages",
+        "GET",
     ).create_api_gateway_response()
     assert response == expected
     mock_bulk_upload_service_instance.process_message_queue.assert_called_once_with(
-        TEST_EVENT_WITH_SQS_MESSAGES["Records"]
+        TEST_EVENT_WITH_SQS_MESSAGES["Records"],
     )
 
 
@@ -64,7 +69,9 @@ def test_lambda_handler_handles_bulk_upload_exception(
     response = lambda_handler(TEST_EVENT_WITH_SQS_MESSAGES, context)
 
     expected = ApiGatewayResponse(
-        500, "Bulk upload failed with error: ", "GET"
+        500,
+        "Bulk upload failed with error: ",
+        "GET",
     ).create_api_gateway_response()
     assert response == expected
     mock_bulk_upload_service_instance.process_message_queue.assert_called_once()

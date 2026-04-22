@@ -3,7 +3,7 @@ from copy import deepcopy
 from enum import Enum
 
 import pytest
-from enums.feature_flags import FeatureFlags
+
 from enums.snomed_codes import SnomedCodes
 from handlers.document_reference_search_handler import (
     extract_querystring_params,
@@ -32,19 +32,10 @@ def mocked_service(set_env, mocker):
     yield mocked_service
 
 
-@pytest.fixture
-def mocked_feature_flags(mocker):
-    feature_flag_service = mocker.patch(
-        "handlers.document_reference_search_handler.FeatureFlagService",
-    )
-    yield feature_flag_service.return_value
-
-
 def test_lambda_handler_returns_200(
     mocked_service,
     valid_id_event_without_auth_header,
     context,
-    mocked_feature_flags,
 ):
     mocked_service.get_paginated_references_by_nhs_number.return_value = {
         "references": EXPECTED_RESPONSE * 2,
@@ -66,7 +57,6 @@ def test_lambda_handler_raises_exception_returns_500(
     mocked_service,
     valid_id_event_without_auth_header,
     context,
-    mocked_feature_flags,
 ):
     mocked_service.get_paginated_references_by_nhs_number.side_effect = (
         DocumentRefSearchException(500, MockError.Error)
@@ -84,7 +74,6 @@ def test_lambda_handler_when_id_not_valid_returns_400(
     set_env,
     invalid_id_event,
     context,
-    mocked_feature_flags,
 ):
     expected_body = json.dumps(
         {
@@ -106,7 +95,6 @@ def test_lambda_handler_when_id_not_supplied_returns_400(
     set_env,
     missing_id_event,
     context,
-    mocked_feature_flags,
 ):
     expected_body = json.dumps(
         {
@@ -127,7 +115,6 @@ def test_lambda_handler_when_id_not_supplied_returns_400(
 def test_lambda_handler_when_dynamo_tables_env_variable_not_supplied_then_return_500_response(
     valid_id_event_without_auth_header,
     context,
-    mocked_feature_flags,
 ):
     expected_body = json.dumps(
         {
@@ -145,20 +132,15 @@ def test_lambda_handler_when_dynamo_tables_env_variable_not_supplied_then_return
     assert expected == actual
 
 
-def test_lambda_handler_with_feature_flag_enabled_applies_doc_status_filter(
+def test_lambda_handler_applies_doc_status_filter(
     set_env,
     valid_id_event_without_auth_header,
     context,
     mocked_service,
-    mocked_feature_flags,
 ):
     mocked_service.get_paginated_references_by_nhs_number.return_value = {
         "references": EXPECTED_RESPONSE,
         "next_page_token": None,
-    }
-
-    mocked_feature_flags.get_feature_flags_by_flag.return_value = {
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED: True,
     }
 
     expected = ApiGatewayResponse(
@@ -175,9 +157,7 @@ def test_lambda_handler_with_feature_flag_enabled_applies_doc_status_filter(
     actual = lambda_handler(valid_id_event_without_auth_header, context)
 
     assert expected == actual
-    mocked_feature_flags.get_feature_flags_by_flag.assert_called_once_with(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED,
-    )
+
     mocked_service.get_paginated_references_by_nhs_number.assert_called_once_with(
         nhs_number=TEST_NHS_NUMBER,
         limit=None,
@@ -186,62 +166,15 @@ def test_lambda_handler_with_feature_flag_enabled_applies_doc_status_filter(
     )
 
 
-def test_lambda_handler_with_feature_flag_disabled_no_doc_status_filter(
-    set_env,
-    valid_id_event_without_auth_header,
-    context,
-    mocked_service,
-    mocked_feature_flags,
-):
-
-    mocked_service.get_paginated_references_by_nhs_number.return_value = {
-        "references": EXPECTED_RESPONSE,
-        "next_page_token": None,
-    }
-
-    mocked_feature_flags.get_feature_flags_by_flag.return_value = {
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED: False,
-    }
-
-    expected = ApiGatewayResponse(
-        200,
-        json.dumps(
-            {
-                "references": EXPECTED_RESPONSE,
-                "nextPageToken": None,
-            },
-        ),
-        "GET",
-    ).create_api_gateway_response()
-
-    actual = lambda_handler(valid_id_event_without_auth_header, context)
-
-    assert expected == actual
-    mocked_feature_flags.get_feature_flags_by_flag.assert_called_once_with(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED,
-    )
-    mocked_service.get_paginated_references_by_nhs_number.assert_called_once_with(
-        nhs_number=TEST_NHS_NUMBER,
-        limit=None,
-        next_page_token=None,
-        filter={},
-    )
-
-
 def test_lambda_handler_with_doc_type_applies_doc_type_filter(
     set_env,
     valid_id_event_without_auth_header,
     context,
     mocked_service,
-    mocked_feature_flags,
 ):
     mocked_service.get_paginated_references_by_nhs_number.return_value = {
         "references": EXPECTED_RESPONSE,
         "next_page_token": None,
-    }
-
-    mocked_feature_flags.get_feature_flags_by_flag.return_value = {
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED: False,
     }
 
     expected = ApiGatewayResponse(
@@ -256,15 +189,13 @@ def test_lambda_handler_with_doc_type_applies_doc_type_filter(
     actual = lambda_handler(valid_id_event_without_auth_header, context)
 
     assert expected == actual
-    mocked_feature_flags.get_feature_flags_by_flag.assert_called_once_with(
-        FeatureFlags.UPLOAD_DOCUMENT_ITERATION_2_ENABLED,
-    )
+
     mocked_service.get_paginated_references_by_nhs_number.assert_called_once_with(
         nhs_number=TEST_NHS_NUMBER,
         limit=None,
         next_page_token=None,
         # check_upload_completed=True,
-        filter={"document_snomed_code": doc_type},
+        filter={"document_snomed_code": doc_type, "doc_status": "final"},
     )
 
 
@@ -303,7 +234,6 @@ def test_handler_uses_pagination_expected_params_passed(
     valid_id_event_without_auth_header,
     mocked_service,
     context,
-    mocked_feature_flags,
 ):
 
     limit_event = deepcopy(valid_id_event_without_auth_header)
@@ -324,7 +254,6 @@ def test_lambda_handler_with_invalid_doc_type_returns_400(
     valid_id_event_without_auth_header,
     context,
     mocked_service,
-    mocked_feature_flags,
 ):
 
     invalid_doc_type = "invalid_doc_type"
