@@ -1,7 +1,6 @@
 import { defineConfig, PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
-// import commonjs from 'vite-plugin-commonjs';
 // @ts-ignore - Type issues with vite-plugin-eslint exports
 import eslint from 'vite-plugin-eslint';
 import { IncomingMessage, ServerResponse } from 'http';

@@ -600,11 +600,11 @@ describe('getReviews.ts', () => {
         });
 
         describe('local development mode', () => {
-            beforeEach(() => {
+            beforeAll(() => {
                 mockIsLocal.value = true;
             });
 
-            afterEach(() => {
+            afterAll(() => {
                 mockIsLocal.value = false;
             });
 
