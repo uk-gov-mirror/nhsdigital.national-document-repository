@@ -67,7 +67,7 @@ def repo_under_test(set_env, mocker):
     mocker.patch("services.bulk_upload_service.BulkUploadDynamoRepository")
     mocker.patch("services.bulk_upload_service.BulkUploadSqsRepository")
     mocker.patch("services.bulk_upload_service.BulkUploadS3Repository")
-    service = BulkUploadService(strict_mode=True)
+    service = BulkUploadService()
     yield service
 
 
@@ -81,9 +81,7 @@ def repo_with_review_enabled(set_env, mocker):
         return_value=True,
     )
     service = BulkUploadService(
-        strict_mode=True,
         bypass_pds=False,
-        send_to_review_enabled=True,
     )
     yield service
 
@@ -143,13 +141,6 @@ def mock_pds_validation_lenient(mocker):
     yield mocker.patch(
         "services.bulk_upload_service.validate_filename_with_patient_details_lenient",
         return_value=("test string", True),
-    )
-
-
-@pytest.fixture
-def mock_pds_validation_strict(mocker):
-    yield mocker.patch(
-        "services.bulk_upload_service.validate_filename_with_patient_details_strict",
     )
 
 
@@ -237,7 +228,7 @@ def test_handle_sqs_message_happy_path(
     repo_under_test,
     mock_validate_files,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     TEST_STAGING_METADATA.retries = 0
@@ -261,7 +252,7 @@ def test_handle_sqs_message_happy_path(
         TEST_STAGING_METADATA,
         TEST_CURRENT_GP_ODS,
     )
-    mock_pds_validation_strict.assert_called()
+    mock_pds_validation_lenient.assert_called()
     mock_report_upload_complete.assert_called()
     mock_remove_ingested_file_from_source_bucket.assert_called()
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_called()
@@ -274,7 +265,7 @@ def test_handle_sqs_message_happy_path_single_file(
     repo_under_test,
     mock_validate_files,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     TEST_STAGING_METADATA.retries = 0
@@ -368,7 +359,7 @@ def test_handle_sqs_message_happy_path_with_non_ascii_filenames(
     mock_validate_files,
     patient_name_on_s3,
     patient_name_in_metadata_file,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_pds_service,
     mock_ods_validation,
 ):
@@ -394,7 +385,7 @@ def test_handle_sqs_message_calls_report_upload_failure_when_patient_record_alre
     mock_uuid,
     mock_validate_files,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
 ):
     TEST_STAGING_METADATA.retries = 0
 
@@ -424,7 +415,7 @@ def test_handle_sqs_message_calls_report_upload_failure_when_patient_record_alre
         UploadStatus.FAILED,
         str(mocked_error),
         "Y12345",
-        sent_to_review=False,
+        sent_to_review=True,
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
@@ -436,7 +427,7 @@ def test_handle_sqs_message_calls_report_upload_failure_when_lg_file_name_invali
     mock_uuid,
     mock_validate_files,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
 ):
     TEST_STAGING_METADATA.retries = 0
     mock_create_lg_records_and_copy_files = mocker.patch.object(
@@ -465,7 +456,7 @@ def test_handle_sqs_message_calls_report_upload_failure_when_lg_file_name_invali
         UploadStatus.FAILED,
         str(mocked_error),
         "Y12345",
-        sent_to_review=False,
+        sent_to_review=True,
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
@@ -478,7 +469,7 @@ def test_handle_sqs_message_report_failure_when_document_is_infected(
     mock_validate_files,
     mock_check_virus_result,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     TEST_STAGING_METADATA.retries = 0
@@ -550,7 +541,7 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_is_forma
     mock_validate_files,
     mock_check_virus_result,
     mock_pds_service_patient_deceased_formal,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     mock_create_lg_records_and_copy_files = mocker.patch.object(
@@ -560,7 +551,7 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_is_forma
     mock_remove_ingested_file_from_source_bucket = (
         repo_under_test.bulk_upload_s3_repository.remove_ingested_file_from_source_bucket
     )
-    mock_pds_validation_strict.return_value = False
+    mock_pds_validation_lenient.return_value = ("test string", False)
     mock_put_staging_metadata_back_to_queue = (
         repo_under_test.sqs_repository.put_staging_metadata_back_to_queue
     )
@@ -575,7 +566,7 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_is_forma
     mock_report_upload.assert_called_with(
         TEST_STAGING_METADATA,
         UploadStatus.COMPLETE,
-        "Patient is deceased - FORMAL",
+        "test string, Patient is deceased - FORMAL",
         PatientOdsInactiveStatus.DECEASED,
     )
 
@@ -588,14 +579,17 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_is_infor
     mock_validate_files,
     mock_check_virus_result,
     mock_pds_service_patient_deceased_informal,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     mock_create_lg_records_and_copy_files = mocker.patch.object(
         BulkUploadService,
         "create_lg_records_and_copy_files",
     )
-    mock_pds_validation_strict.return_value = True
+    mock_pds_validation_lenient.return_value = (
+        "Patient matched on historical name",
+        False,
+    )
     mock_remove_ingested_file_from_source_bucket = (
         repo_under_test.bulk_upload_s3_repository.remove_ingested_file_from_source_bucket
     )
@@ -626,14 +620,14 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_has_hist
     mock_validate_files,
     mock_check_virus_result,
     mock_pds_service_patient_restricted,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     mock_create_lg_records_and_copy_files = mocker.patch.object(
         BulkUploadService,
         "create_lg_records_and_copy_files",
     )
-    mock_pds_validation_strict.return_value = True
+    mock_pds_validation_lenient.return_value = ("test", True)
     mock_remove_ingested_file_from_source_bucket = (
         repo_under_test.bulk_upload_s3_repository.remove_ingested_file_from_source_bucket
     )
@@ -651,7 +645,7 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_has_hist
     mock_report_upload.assert_called_with(
         TEST_STAGING_METADATA,
         UploadStatus.COMPLETE,
-        "Patient matched on historical name, PDS record is restricted",
+        "test, Patient matched on historical name, PDS record is restricted",
         "REST",
     )
 
@@ -664,14 +658,14 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_is_infor
     mock_validate_files,
     mock_check_virus_result,
     mock_pds_service_patient_deceased_informal,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     mock_create_lg_records_and_copy_files = mocker.patch.object(
         BulkUploadService,
         "create_lg_records_and_copy_files",
     )
-    mock_pds_validation_strict.return_value = False
+    mock_pds_validation_lenient.return_value = ("test", False)
     mock_remove_ingested_file_from_source_bucket = (
         repo_under_test.bulk_upload_s3_repository.remove_ingested_file_from_source_bucket
     )
@@ -689,7 +683,7 @@ def test_handle_sqs_message_calls_report_upload_successful_when_patient_is_infor
     mock_report_upload.assert_called_with(
         TEST_STAGING_METADATA,
         UploadStatus.COMPLETE,
-        "Patient is deceased - INFORMAL",
+        "test, Patient is deceased - INFORMAL",
         "Y12345",
     )
 
@@ -702,7 +696,7 @@ def test_handle_sqs_message_put_staging_metadata_back_to_queue_when_virus_scan_r
     mock_validate_files,
     mock_check_virus_result,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     TEST_STAGING_METADATA.retries = 0
@@ -757,7 +751,7 @@ def test_handle_sqs_message_rollback_transaction_when_validation_pass_but_file_t
     mock_check_virus_result,
     mock_validate_files,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     repo_under_test.bulk_upload_s3_repository.lg_bucket_name = MOCK_LG_BUCKET
@@ -1033,7 +1027,7 @@ def test_reject_document_reference_if_missing_scan_date(
         UploadStatus.FAILED,
         "Invalid scan date format",
         "Y12345",
-        sent_to_review=False,
+        sent_to_review=True,
     )
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
 
@@ -1045,7 +1039,7 @@ def test_raise_client_error_from_ssm_with_pds_service(
     repo_under_test,
     mock_validate_files,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
 ):
     mock_client_error = ClientError(
         {"Error": {"Code": "500", "Message": "test error"}},
@@ -1063,7 +1057,7 @@ def test_mismatch_ods_with_pds_service(
     mock_uuid,
     mock_validate_files,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
 ):
     mock_ods_validation.return_value = False
 
@@ -1086,7 +1080,7 @@ def test_create_lg_records_and_copy_files_client_error(
     mock_check_virus_result,
     mock_validate_files,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     TEST_STAGING_METADATA.retries = 0
@@ -1124,7 +1118,7 @@ def test_handle_sqs_message_happy_path_historical_name(
     repo_under_test,
     mock_validate_files,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     TEST_STAGING_METADATA.retries = 0
@@ -1141,7 +1135,7 @@ def test_handle_sqs_message_happy_path_historical_name(
         "remove_ingested_file_from_source_bucket",
     )
     mocker.patch.object(repo_under_test.bulk_upload_s3_repository, "check_virus_result")
-    mock_pds_validation_strict.return_value = True
+    mock_pds_validation_lenient.return_value = ("test text", True)
 
     repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
 
@@ -1153,7 +1147,7 @@ def test_handle_sqs_message_happy_path_historical_name(
     mock_report_upload_complete.assert_called_with(
         TEST_STAGING_METADATA,
         UploadStatus.COMPLETE,
-        "Patient matched on historical name",
+        "test text, Patient matched on historical name",
         "Y12345",
     )
     mock_remove_ingested_file_from_source_bucket.assert_called()
@@ -1166,11 +1160,10 @@ def test_handle_sqs_message_lenient_mode_happy_path(
     mock_validate_files,
     mock_pds_service,
     mock_pds_validation_lenient,
-    mock_pds_validation_strict,
     mock_ods_validation,
 ):
     TEST_STAGING_METADATA.retries = 0
-    service = BulkUploadService(strict_mode=False)
+    service = BulkUploadService()
     mocker.patch.object(service, "dynamo_repository")
     mocker.patch.object(service, "sqs_repository")
     mocker.patch.object(service, "bulk_upload_s3_repository")
@@ -1194,7 +1187,6 @@ def test_handle_sqs_message_lenient_mode_happy_path(
         TEST_CURRENT_GP_ODS,
     )
     mock_pds_validation_lenient.assert_called()
-    mock_pds_validation_strict.assert_not_called()
     mock_report_upload_complete.assert_called()
     mock_remove_ingested_file_from_source_bucket.assert_called()
 
@@ -1308,7 +1300,7 @@ def test_handle_sqs_message_report_failure_when_pdf_is_corrupt(
     mock_validate_files,
     mock_check_virus_result,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     TEST_STAGING_METADATA.retries = 0
@@ -1349,7 +1341,7 @@ def test_handle_sqs_message_report_failure_when_pdf_integrity_check_file_not_fou
     mock_validate_files,
     mock_check_virus_result,
     mock_pds_service,
-    mock_pds_validation_strict,
+    mock_pds_validation_lenient,
     mock_ods_validation,
 ):
     TEST_STAGING_METADATA.retries = 0
@@ -1381,12 +1373,6 @@ def test_handle_sqs_message_report_failure_when_pdf_integrity_check_file_not_fou
     mock_create_lg_records_and_copy_files.assert_not_called()
     mock_remove_ingested_file_from_source_bucket.assert_not_called()
     repo_under_test.sqs_repository.send_message_to_pdf_stitching_queue.assert_not_called()
-
-
-def test_does_not_send_when_feature_flag_disabled(repo_under_test):
-    repo_under_test.send_to_review_queue_if_enabled(TEST_SQS_MESSAGE, "Y12345")
-
-    repo_under_test.sqs_repository.send_message_to_review_queue.assert_not_called()
 
 
 def test_sends_demographic_error_when_flag_enabled(set_env, repo_with_review_enabled):
@@ -1553,25 +1539,4 @@ def test_report_upload_sets_sent_to_review_true_when_validation_fails_and_review
         str(mocked_error),
         "Y12345",
         sent_to_review=True,
-    )
-
-
-def test_report_upload_sets_sent_to_review_false_when_validation_fails_and_review_disabled(
-    repo_under_test,
-    mock_validate_files,
-    mock_pds_service,
-):
-    mocked_error = LGInvalidFilesException(
-        "One or more of the files do not match naming convention",
-    )
-    mock_validate_files.side_effect = mocked_error
-
-    repo_under_test.handle_sqs_message(message=TEST_SQS_MESSAGE)
-
-    repo_under_test.dynamo_repository.write_report_upload_to_dynamo.assert_called_with(
-        TEST_STAGING_METADATA,
-        UploadStatus.FAILED,
-        str(mocked_error),
-        "Y12345",
-        sent_to_review=False,
     )
