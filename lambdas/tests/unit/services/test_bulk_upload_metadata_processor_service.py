@@ -85,7 +85,6 @@ def test_service(mocker, set_env, mock_tempfile):
         ),
         metadata_heading_remap={},
         input_file_location=TEST_MOCK_METADATA_CSV,
-        send_to_review_enabled=False,
     )
 
     mocker.patch.object(service, "s3_service")
@@ -116,7 +115,6 @@ def test_service_with_review_enabled(mocker, set_env, mock_tempfile):
         ),
         metadata_heading_remap={},
         input_file_location=TEST_MOCK_METADATA_CSV,
-        send_to_review_enabled=True,
     )
 
     mocker.patch.object(service, "s3_service")
@@ -556,7 +554,6 @@ def test_process_metadata_row_adds_to_existing_entry(mocker):
         metadata_formatter_service=preprocessor,
         metadata_heading_remap={},
         input_file_location="test_practice_directory/metadata.csv",
-        send_to_review_enabled=False,
     )
 
     service.process_metadata_row(row, patients, failed_files)
@@ -621,7 +618,7 @@ def test_handle_invalid_filename_writes_failed_entry_to_dynamo(
         mock_staging_metadata.return_value,
         UploadStatus.FAILED,
         str(error),
-        sent_to_review=False,
+        sent_to_review=True,
     )
 
     assert (nhs_number, ods_code) in failed_files
@@ -755,31 +752,6 @@ def test_csv_to_sqs_metadata_sends_failed_files_to_review_queue_when_enabled(
     assert (
         test_service_with_review_enabled.sqs_repository.send_message_to_review_queue.called
     )
-    assert len(result) == 0
-
-
-def test_csv_to_sqs_metadata_does_not_send_to_review_when_disabled(
-    mocker,
-    test_service,
-    mock_csv_content,
-):
-    mocker.patch("builtins.open", mocker.mock_open(read_data=mock_csv_content))
-
-    mocker.patch.object(
-        test_service.metadata_mapping_validator_service,
-        "validate_and_normalize_metadata",
-        side_effect=lambda records, fixed_values, remappings: (records, [], []),
-    )
-
-    mocker.patch.object(
-        test_service,
-        "validate_and_correct_filename",
-        side_effect=InvalidFileNameException("invalid"),
-    )
-
-    result = test_service.csv_to_sqs_metadata(MOCK_METADATA_CSV)
-
-    assert not test_service.sqs_repository.send_message_to_review_queue.called
     assert len(result) == 0
 
 
@@ -1097,7 +1069,6 @@ def mock_service_remapping_mandatory_fields(mocker, set_env, mock_tempfile):
             "UPLOAD": "Upload Date",
         },
         input_file_location="test_practice_directory/metadata.csv",
-        send_to_review_enabled=False,
     )
 
     mocker.patch.object(
@@ -1456,7 +1427,6 @@ def test_apply_fixed_values_single_field(mocker, base_metadata_file):
         ),
         metadata_heading_remap={},
         fixed_values={"SECTION": "AR"},
-        send_to_review_enabled=False,
     )
     mocker.patch.object(service, "s3_service")
 
@@ -1478,7 +1448,6 @@ def test_apply_fixed_values_multiple_fields(mocker, base_metadata_file):
             "SUB-SECTION": "Mental Health",
             "SCAN-ID": "FIXED_SCAN_ID",
         },
-        send_to_review_enabled=False,
     )
     mocker.patch.object(service, "s3_service")
 
@@ -1500,7 +1469,6 @@ def test_apply_fixed_values_overwrites_existing_value(mocker, base_metadata_file
         ),
         metadata_heading_remap={},
         fixed_values={"SECTION": "AR"},
-        send_to_review_enabled=False,
     )
     mocker.patch.object(service, "s3_service")
 
@@ -1517,7 +1485,6 @@ def test_apply_fixed_values_logs_applied_values(mocker, base_metadata_file, capl
         ),
         metadata_heading_remap={},
         fixed_values={"SECTION": "AR", "SCAN-ID": "TEST_ID"},
-        send_to_review_enabled=False,
     )
     mocker.patch.object(service, "s3_service")
 
@@ -1540,7 +1507,6 @@ def test_apply_fixed_values_returns_valid_metadata_file(mocker, base_metadata_fi
         ),
         metadata_heading_remap={},
         fixed_values={"SECTION": "AR"},
-        send_to_review_enabled=False,
     )
     mocker.patch.object(service, "s3_service")
 
