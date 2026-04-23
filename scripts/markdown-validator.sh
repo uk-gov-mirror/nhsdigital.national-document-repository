@@ -15,10 +15,10 @@ files=$((git diff --diff-filter=ACMRT --name-only origin/${BRANCH_NAME:-main}.. 
 #files=$((find . -name "*.md" -printf '%P\n') | sort | uniq)
 
 if [ -n "$files" ]; then
-  image=ghcr.io/igorshubovych/markdownlint-cli@sha256:b771097d3d9ec6b368fefcea5f0c05c8710293d9251fca17e31c8e10987b50ef # v0.46.0
+  image=ghcr.io/igorshubovych/markdownlint-cli@sha256:c97f19b52cf7371ff767c080e3e15c15f1cbd3336fc41aeca7a93bb2cdb9843c # v0.48.0
   docker run --rm \
     -v $PWD:/workdir \
     $image \
       $files \
-      --disable MD013 MD033 MD060 # MD060 disabled until VS Code support is available
+      --disable MD013 MD033
 fi
