@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from models.report.statistics import (
     ApplicationData,
@@ -21,11 +22,12 @@ START_DATE = datetime(2024, 5, 28, 10, 25, 0)
 END_DATE = datetime(2024, 6, 4, 10, 25, 0)
 START_DATE_STR = START_DATE.strftime("%Y%m%d")
 END_DATE_STR = END_DATE.strftime("%Y%m%d")
+COLLECTION_END_DATE_STR = (START_DATE + timedelta(days=6)).strftime("%Y%m%d")
 
 MOCK_RECORD_STORE_DATA = [
     RecordStoreData(
         statistic_id=TEST_UUID,
-        date=START_DATE_STR,
+        date=COLLECTION_END_DATE_STR,
         ods_code="H81109",
         total_number_of_records=6,
         number_of_document_types=2,
@@ -35,7 +37,7 @@ MOCK_RECORD_STORE_DATA = [
     ),
     RecordStoreData(
         statistic_id=TEST_UUID,
-        date=START_DATE_STR,
+        date=COLLECTION_END_DATE_STR,
         ods_code="Y12345",
         total_number_of_records=2,
         number_of_document_types=2,
@@ -130,7 +132,22 @@ def get_weekly_data(statistics: list[StatisticData]):
     return weekly_data
 
 
-MOCK_WEEKLY_ORGANISATION_DATA = get_weekly_data(MOCK_ORGANISATION_DATA)
+def get_weekly_organisation_data(statistics: list[OrganisationData]):
+    weekly_data = []
+    for i in range(7):
+        is_last_day = i == 6
+        for record in statistics:
+            new_record = record.model_copy()
+            new_date = datetime.strptime(record.date, "%Y%m%d")
+            new_record.date = (new_date + timedelta(days=i)).strftime("%Y%m%d")
+            if not is_last_day:
+                new_record.number_of_patients = 0
+                new_record.average_records_per_patient = Decimal("0")
+            weekly_data.append(new_record)
+    return weekly_data
+
+
+MOCK_WEEKLY_ORGANISATION_DATA = get_weekly_organisation_data(MOCK_ORGANISATION_DATA)
 MOCK_WEEKLY_APPLICATION_DATA = get_weekly_data(MOCK_APPLICATION_DATA)
 ALL_MOCK_WEEKLY_DATA = (
     MOCK_RECORD_STORE_DATA

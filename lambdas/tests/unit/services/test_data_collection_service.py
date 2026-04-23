@@ -19,6 +19,7 @@ from tests.unit.conftest import (
 from tests.unit.helpers.data.statistic.mock_collected_data import (
     ALL_MOCK_DATA_AS_JSON_LIST,
     ALL_MOCK_WEEKLY_DATA,
+    COLLECTION_END_DATE_STR,
     END_DATE,
     MOCK_APPLICATION_DATA,
     MOCK_ORGANISATION_DATA,
@@ -230,6 +231,7 @@ def test_collect_all_data_and_write_to_dynamodb(mock_service, mocker):
 
 def test_collect_all_data(mock_uuid, mock_service, mock_generate_daily_ranges):
     mock_service.today_date = START_DATE_STR
+    mock_service.collection_end_date = COLLECTION_END_DATE_STR
 
     expected = unordered(ALL_MOCK_WEEKLY_DATA)
 
@@ -276,6 +278,7 @@ def test_get_all_s3_files_info(mock_s3_list_all_objects, mock_service):
 
 def test_get_record_store_data(mock_uuid, mock_service):
     mock_service.today_date = START_DATE_STR
+    mock_service.collection_end_date = COLLECTION_END_DATE_STR
 
     mock_dynamo_scan_result = MOCK_LG_SCAN_RESULT
     s3_list_objects_result = MOCK_LG_LIST_OBJECTS_RESULT

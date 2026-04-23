@@ -1,4 +1,5 @@
 import tempfile
+from decimal import Decimal
 from random import shuffle
 from unittest.mock import call
 
@@ -7,7 +8,7 @@ import pytest
 from freezegun import freeze_time
 from polars.testing import assert_frame_equal
 
-from models.report.statistics import ApplicationData, OrganisationData
+from models.report.statistics import ApplicationData, OrganisationData, RecordStoreData
 from services.base.dynamo_service import DynamoDBService
 from services.base.s3_service import S3Service
 from services.statistical_report_service import StatisticalReportService
@@ -90,6 +91,67 @@ def test_datetime_correctly_configured_during_initialise(set_env):
     assert service.report_period == "20240530-20240605"
 
 
+def test_init_with_explicit_start_and_end_date(set_env):
+    service = StatisticalReportService(start_date="20240501", end_date="20240507")
+
+    assert service.dates_to_collect == [
+        "20240501",
+        "20240502",
+        "20240503",
+        "20240504",
+        "20240505",
+        "20240506",
+        "20240507",
+    ]
+    assert service.report_period == "20240501-20240507"
+
+
+def test_init_with_start_date_only(set_env):
+    service = StatisticalReportService(start_date="20240501")
+
+    assert service.dates_to_collect == [
+        "20240501",
+        "20240502",
+        "20240503",
+        "20240504",
+        "20240505",
+        "20240506",
+        "20240507",
+    ]
+    assert service.report_period == "20240501-20240507"
+
+
+def test_init_with_end_date_only(set_env):
+    service = StatisticalReportService(end_date="20240605")
+    assert service.dates_to_collect == [
+        "20240530",
+        "20240531",
+        "20240601",
+        "20240602",
+        "20240603",
+        "20240604",
+        "20240605",
+    ]
+    assert service.report_period == "20240530-20240605"
+
+
+def test_init_raises_on_invalid_date_format(set_env):
+    with pytest.raises(ValueError):
+        StatisticalReportService(start_date="not-a-date")
+
+
+def test_init_raises_when_start_date_after_end_date(set_env):
+    with pytest.raises(ValueError, match="must not be after"):
+        StatisticalReportService(start_date="20240510", end_date="20240501")
+
+
+def test_init_single_day_range(set_env):
+    service = StatisticalReportService(start_date="20240501", end_date="20240501")
+
+    assert service.dates_to_collect == ["20240501"]
+    assert service.report_period == "20240501-20240501"
+
+
 @freeze_time("20240512T07:00:00Z")
 def test_make_weekly_summary(set_env, mocker):
     data = ALL_MOCKED_STATISTIC_DATA
@@ -167,10 +229,9 @@ def test_summarise_record_store_data_larger_mock_data(mock_service):
 
     latest_record_in_h81109 = max(mock_data_h81109, key=lambda record: record.date)
     latest_record_in_y12345 = max(mock_data_y12345, key=lambda record: record.date)
-    expected = pl.DataFrame([latest_record_in_h81109, latest_record_in_y12345]).drop(
-        "date",
-        "statistic_id",
-    )
+    expected = mock_service.load_data_to_polars(
+        [latest_record_in_h81109, latest_record_in_y12345],
+    ).drop("date", "statistic_id")
 
     actual = mock_service.summarise_record_store_data(mock_record_store_data)
 
@@ -717,3 +778,261 @@ def test_store_report_to_s3(set_env, mock_s3_service, mock_temp_folder):
         file_key=f"statistic-reports/{expected_date_folder}/{expected_filename}",
         file_name=f"{mock_temp_folder}/{expected_filename}",
     )
+
+
+def test_load_data_to_polars_casts_decimal_to_float():
+    data = [
+        RecordStoreData(
+            date="20240510",
+            ods_code="X99001",
+            total_size_of_records_in_megabytes=Decimal("1.5"),
+            average_size_of_documents_per_patient_in_megabytes=Decimal("0.75"),
+        ),
+    ]
+    result = StatisticalReportService.load_data_to_polars(data)
+
+    assert result["total_size_of_records_in_megabytes"].dtype == pl.Float64
+    assert (
+        result["average_size_of_documents_per_patient_in_megabytes"].dtype == pl.Float64
+    )
+    assert result.item(0, "total_size_of_records_in_megabytes") == 1.5
+    assert result.item(0, "average_size_of_documents_per_patient_in_megabytes") == 0.75
+
+
+def test_load_data_to_polars_preserves_non_decimal_fields():
+    data = [
+        RecordStoreData(
+            date="20240510",
+            ods_code="X99001",
+            total_number_of_records=42,
+            number_of_document_types=3,
+        ),
+    ]
+    result = StatisticalReportService.load_data_to_polars(data)
+
+    assert result.item(0, "ods_code") == "X99001"
+    assert result.item(0, "total_number_of_records") == 42
+    assert result.item(0, "number_of_document_types") == 3
+
+
+def test_summarise_application_data_single_item(mock_service):
+    data = [
+        ApplicationData(
+            date="20240510",
+            ods_code="X99001",
+            active_user_ids_hashed=["hash_abc", "hash_def"],
+        ),
+    ]
+    result = mock_service.summarise_application_data(data)
+
+    assert result.item(0, "active_users_count") == 2
+    assert result.item(0, "unique_active_user_ids_hashed") == str(
+        sorted(["hash_abc", "hash_def"]),
+    )
+
+
+def test_summarise_application_data_unique_ids_are_sorted(mock_service):
+    data = [
+        ApplicationData(
+            date="20240510",
+            ods_code="X99001",
+            active_user_ids_hashed=["hash_z", "hash_a", "hash_m"],
+        ),
+        ApplicationData(
+            date="20240511",
+            ods_code="X99001",
+            active_user_ids_hashed=["hash_b", "hash_z"],
+        ),
+    ]
+    result = mock_service.summarise_application_data(data)
+
+    expected_string = str(["hash_a", "hash_b", "hash_m", "hash_z"])
+    assert result.item(0, "unique_active_user_ids_hashed") == expected_string
+    assert result.item(0, "active_users_count") == 4
+
+
+def test_summarise_organisation_data_zero_value_dynamic_column_still_appears(
+    mock_service,
+):
+    org_data = [
+        OrganisationData(
+            date="20240510",
+            ods_code="X99001",
+            daily_count_upload=0,
+            daily_count_upload_lloyd_george_record_folder=0,
+        ),
+    ]
+    actual = mock_service.summarise_organisation_data(org_data)
+
+    assert "weekly_count_upload_lloyd_george_record_folder" in actual.columns
+    assert actual.item(0, "weekly_count_upload_lloyd_george_record_folder") == 0
+
+
+def test_make_weekly_summary_with_only_record_store_data(mock_service, mocker):
+    record_store = [
+        RecordStoreData(
+            date="20240510",
+            ods_code="X05286",
+            total_number_of_records=12,
+        ),
+    ]
+    mock_service.get_statistic_data = mocker.MagicMock(
+        return_value=(record_store, [], []),
+    )
+    result = mock_service.make_weekly_summary()
+
+    row = result.filter(pl.col("ODS code") == "X05286")
+    assert not row.is_empty()
+    assert row.item(0, "Total number of records") == 12
+    assert "Number of patients" not in result.columns
+    assert "Active users count" not in result.columns
+
+
+def test_make_weekly_summary_with_only_application_data(mock_service, mocker):
+    app_data = [
+        ApplicationData(
+            date="20240510",
+            ods_code="C33633",
+            active_user_ids_hashed=["hash_abc"],
+        ),
+    ]
+    mock_service.get_statistic_data = mocker.MagicMock(return_value=([], [], app_data))
+    result = mock_service.make_weekly_summary()
+
+    row = result.filter(pl.col("ODS code") == "C33633")
+    assert not row.is_empty()
+    assert row.item(0, "Active users count") == 1
+    assert "Total number of records" not in result.columns
+
+
+def test_make_weekly_summary_with_org_and_record_store_no_app(mock_service, mocker):
+    record_store = [
+        RecordStoreData(date="20240510", ods_code="X84016", total_number_of_records=6),
+    ]
+    org_data = [
+        OrganisationData(
+            date="20240510",
+            ods_code="X84016",
+            number_of_patients=6,
+            daily_count_upload=0,
+        ),
+    ]
+    mock_service.get_statistic_data = mocker.MagicMock(
+        return_value=(record_store, org_data, []),
+    )
+    result = mock_service.make_weekly_summary()
+
+    row = result.filter(pl.col("ODS code") == "X84016")
+    assert row.item(0, "Number of patients") == 6
+    assert row.item(0, "Total number of records") == 6
+    assert "Active users count" not in result.columns
+
+
+def test_make_weekly_summary_with_org_and_app_no_record_store(mock_service, mocker):
+    org_data = [
+        OrganisationData(
+            date="20240510",
+            ods_code="X82023",
+            number_of_patients=1,
+            daily_count_upload=3,
+            daily_user_ids_uploaded=["user_a"],
+        ),
+    ]
+    app_data = [
+        ApplicationData(
+            date="20240510",
+            ods_code="X82023",
+            active_user_ids_hashed=["hash_x", "hash_y"],
+        ),
+    ]
+    mock_service.get_statistic_data = mocker.MagicMock(
+        return_value=([], org_data, app_data),
+    )
+    result = mock_service.make_weekly_summary()
+
+    row = result.filter(pl.col("ODS code") == "X82023")
+    assert row.item(0, "Weekly count upload") == 3
+    assert row.item(0, "Active users count") == 2
+    assert "Total number of records" not in result.columns
+
+
+def test_make_weekly_summary_uploads_without_file_type_breakdown(mock_service, mocker):
+    org_data = [
+        OrganisationData(
+            date="20240510",
+            ods_code="X82023",
+            daily_count_upload=2,
+            daily_count_upload_review=1,
+        ),
+        OrganisationData(
+            date="20240511",
+            ods_code="X82023",
+            daily_count_upload=1,
+            daily_count_upload_review=0,
+        ),
+    ]
+    mock_service.get_statistic_data = mocker.MagicMock(return_value=([], org_data, []))
+    result = mock_service.make_weekly_summary()
+
+    row = result.filter(pl.col("ODS code") == "X82023")
+    assert row.item(0, "Weekly count upload") == 3
+    assert row.item(0, "Weekly count upload review") == 1
+    assert "Weekly count upload lloyd george record folder" not in result.columns
+    assert "Weekly count upload review lloyd george record folder" not in result.columns
+
+
+def test_make_weekly_summary_uploads_with_file_type_breakdown(mock_service, mocker):
+
+    org_data = [
+        OrganisationData(
+            date="20240510",
+            ods_code="X82023",
+            daily_count_upload=2,
+            daily_count_upload_review=1,
+            daily_count_upload_lloyd_george_record_folder=2,
+            daily_count_upload_review_lloyd_george_record_folder=1,
+        ),
+        OrganisationData(
+            date="20240511",
+            ods_code="X82023",
+            daily_count_upload=1,
+            daily_count_upload_review=0,
+            daily_count_upload_lloyd_george_record_folder=1,
+            daily_count_upload_review_lloyd_george_record_folder=0,
+        ),
+    ]
+    mock_service.get_statistic_data = mocker.MagicMock(return_value=([], org_data, []))
+    result = mock_service.make_weekly_summary()
+
+    row = result.filter(pl.col("ODS code") == "X82023")
+    assert row.item(0, "Weekly count upload") == 3
+    assert row.item(0, "Weekly count upload lloyd george record folder") == 3
+    assert row.item(0, "Weekly count upload review") == 1
+    assert row.item(0, "Weekly count upload review lloyd george record folder") == 1
+
+
+def test_make_weekly_summary_mixed_orgs_dynamic_columns_absent_org_gets_zero(
+    mock_service,
+    mocker,
+):
+    org_data = [
+        OrganisationData(
+            date="20240510",
+            ods_code="WITH_BREAKDOWN",
+            daily_count_upload=3,
+            daily_count_upload_lloyd_george_record_folder=3,
+        ),
+        OrganisationData(
+            date="20240510",
+            ods_code="NO_BREAKDOWN",
+            daily_count_upload=5,
+        ),
+    ]
+    mock_service.get_statistic_data = mocker.MagicMock(return_value=([], org_data, []))
+    result = mock_service.make_weekly_summary()
+
+    row_with = result.filter(pl.col("ODS code") == "WITH_BREAKDOWN")
+    row_without = result.filter(pl.col("ODS code") == "NO_BREAKDOWN")
+
+    assert row_with.item(0, "Weekly count upload lloyd george record folder") == 3
+    assert row_without.item(0, "Weekly count upload lloyd george record folder") == 0

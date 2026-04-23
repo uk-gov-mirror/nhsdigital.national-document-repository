@@ -69,6 +69,9 @@ class DataCollectionService:
         self.weekly_collection_start_date = int(self.start_date.timestamp())
         self.weekly_collection_end_date = int(self.end_date.timestamp())
         self.today_date = datetime.today().strftime("%Y%m%d")
+        self.collection_end_date = (self.end_date - timedelta(days=1)).strftime(
+            "%Y%m%d",
+        )
 
     def collect_all_data_and_write_to_dynamodb(self):
         logger.info(
@@ -95,14 +98,17 @@ class DataCollectionService:
         organisation_data = []
         application_data = []
 
-        for day_start in self.generate_daily_ranges():
+        daily_ranges = self.generate_daily_ranges()
+        for day_start in daily_ranges:
             day_end = day_start + timedelta(days=1)
             logger.info(f"Collecting data for day: {day_start} to {day_end}")
 
+            is_most_recent_day = day_start == daily_ranges[-1]
             organisation_data += self.get_organisation_data(
                 dynamodb_scan_result,
                 day_start,
                 day_end,
+                include_snapshot_metrics=is_most_recent_day,
             )
             application_data += self.get_application_data(day_start, day_end)
 
@@ -185,7 +191,7 @@ class DataCollectionService:
 
         record_store_data_for_all_ods_code = [
             RecordStoreData(
-                date=self.today_date,
+                date=self.collection_end_date,
                 **record_store_data_properties,
             )
             for record_store_data_properties in joined_query_result
@@ -198,11 +204,18 @@ class DataCollectionService:
         dynamodb_scan_result: list[dict],
         start_date: datetime,
         end_date: datetime,
+        include_snapshot_metrics: bool = True,
     ) -> list[OrganisationData]:
 
-        number_of_patients = self.get_number_of_patients(dynamodb_scan_result)
-        average_records_per_patient = self.get_average_number_of_files_per_patient(
-            dynamodb_scan_result,
+        number_of_patients = (
+            self.get_number_of_patients(dynamodb_scan_result)
+            if include_snapshot_metrics
+            else []
+        )
+        average_records_per_patient = (
+            self.get_average_number_of_files_per_patient(dynamodb_scan_result)
+            if include_snapshot_metrics
+            else []
         )
         daily_count_viewed = self.get_cloud_watch_query_result(
             LloydGeorgeRecordsViewed,

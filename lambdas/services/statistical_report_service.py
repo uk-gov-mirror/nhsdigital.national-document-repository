@@ -25,19 +25,44 @@ logger = LoggingService(__name__)
 
 
 class StatisticalReportService:
-    def __init__(self):
+    def __init__(
+        self,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ):
         self.dynamo_service = DynamoDBService()
         self.statistic_table = os.environ["STATISTICS_TABLE"]
 
         self.s3_service = S3Service()
         self.reports_bucket = os.environ["STATISTICAL_REPORTS_BUCKET"]
 
-        last_seven_days = [
-            datetime.today() - timedelta(days=i) for i in range(7, 0, -1)
-        ]
+        try:
+            end = (
+                datetime.strptime(end_date, "%Y%m%d")
+                if end_date
+                else datetime.today() - timedelta(days=1)
+            )
+            start = (
+                datetime.strptime(start_date, "%Y%m%d")
+                if start_date
+                else end - timedelta(days=6)
+            )
+            if start_date and not end_date:
+                end = start + timedelta(days=6)
+            if start > end:
+                raise ValueError(
+                    f"start_date {start.strftime('%Y%m%d')} must not be after end_date {end.strftime('%Y%m%d')}.",
+                )
+        except ValueError as e:
+            logger.error(f"Invalid date range: {e}")
+            raise
+
+        delta = (end - start).days
+
         self.dates_to_collect: list[str] = [
-            date.strftime("%Y%m%d") for date in last_seven_days
+            (start + timedelta(days=i)).strftime("%Y%m%d") for i in range(delta + 1)
         ]
+
         self.report_period = f"{self.dates_to_collect[0]}-{self.dates_to_collect[-1]}"
 
     def make_weekly_summary_and_output_to_bucket(self) -> None:
@@ -93,11 +118,14 @@ class StatisticalReportService:
 
     @staticmethod
     def load_data_to_polars(data: list[StatisticData]) -> pl.DataFrame:
-        cast_decimal_to_float = column_select.by_dtype(pl.datatypes.Decimal).cast(
-            pl.Float64,
+        data_frame = pl.from_dicts(
+            [item.model_dump() for item in data],
+            infer_schema_length=len(data),
         )
-        loaded_data = pl.DataFrame([item.model_dump() for item in data]).with_columns(
-            cast_decimal_to_float,
+        loaded_data = data_frame.with_columns(
+            column_select.by_dtype(pl.datatypes.Decimal).cast(pl.Float64),
+        ).with_columns(
+            column_select.matches(r"^daily_count_").cast(pl.Int64),
         )
         return loaded_data
 
@@ -141,8 +169,8 @@ class StatisticalReportService:
         }
 
         weekly_unique_user_aggs = [
-            pl.concat_list(user_id_column)
-            .flatten()
+            pl.col(user_id_column)
+            .explode()
             .drop_nulls()
             .unique()
             .len()
@@ -186,22 +214,27 @@ class StatisticalReportService:
 
         df = self.load_data_to_polars(application_data)
 
-        summarised_data = df.group_by("ods_code").agg(
-            [
-                pl.concat_list("active_user_ids_hashed")
-                .flatten()
-                .unique()
-                .map_elements(
-                    lambda col: str(col.sort().to_list()),
+        summarised_data = (
+            df.group_by("ods_code")
+            .agg(
+                [
+                    pl.col("active_user_ids_hashed")
+                    .explode()
+                    .unique()
+                    .alias("unique_active_user_ids_hashed"),
+                    pl.col("active_user_ids_hashed")
+                    .explode()
+                    .unique()
+                    .len()
+                    .alias("active_users_count"),
+                ],
+            )
+            .with_columns(
+                pl.col("unique_active_user_ids_hashed").map_elements(
+                    lambda lst: str(sorted(lst)),
                     return_dtype=pl.Utf8,
-                )
-                .alias("unique_active_user_ids_hashed"),
-                pl.concat_list("active_user_ids_hashed")
-                .flatten()
-                .unique()
-                .len()
-                .alias("active_users_count"),
-            ],
+                ),
+            )
         )
 
         return summarised_data
