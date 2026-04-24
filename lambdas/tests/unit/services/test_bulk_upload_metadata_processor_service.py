@@ -369,11 +369,11 @@ def test_duplicates_csv_to_sqs_metadata(mocker, test_service):
         '"1234567890","LG","","03/09/2022","NEC","NEC","04/10/2023"'
     )
     line3 = (
-        '/1234567890/1of2_Lloyd_George_Record_[Joe Bloggs]_[1234567890]_[25-12-2019].pdf,"","Y6789",'
+        '/1234567890/1of2_Lloyd_George_Record_[Joe Bloggs]_[1234567890]_[25-12-2019].pdf,"","Y67891",'
         '"1234567890","LG","","03/09/2022","NEC","NEC","04/10/2023"'
     )
     line4 = (
-        '/1234567890/2of2_Lloyd_George_Record_[Joe Bloggs]_[1234567890]_[25-12-2019].pdf,"","Y6789",'
+        '/1234567890/2of2_Lloyd_George_Record_[Joe Bloggs]_[1234567890]_[25-12-2019].pdf,"","Y67891",'
         '"1234567890","LG","","03/09/2022","NEC","NEC","04/10/2023"'
     )
     line5 = (
@@ -381,7 +381,7 @@ def test_duplicates_csv_to_sqs_metadata(mocker, test_service):
         '"123456789","LG","","04/09/2022","NEC","NEC","04/10/2023"'
     )
     line6 = (
-        '1of1_Lloyd_George_Record_[Joe Bloggs_invalid]_[123456789]_[25-12-2019].txt,"","Y6789",'
+        '1of1_Lloyd_George_Record_[Joe Bloggs_invalid]_[123456789]_[25-12-2019].txt,"","Y67891",'
         '"123456789","LG","","04/09/2022","NEC","NEC","04/10/2023"'
     )
     line7 = (
@@ -389,7 +389,7 @@ def test_duplicates_csv_to_sqs_metadata(mocker, test_service):
         '"NEC","NEC","04/10/2023"'
     )
     line8 = (
-        '1of1_Lloyd_George_Record_[Jane Smith]_[1234567892]_[25-12-2019].txt,"","Y6789","","LG","","04/09/2022",'
+        '1of1_Lloyd_George_Record_[Jane Smith]_[1234567892]_[25-12-2019].txt,"","Y67891","","LG","","04/09/2022",'
         '"NEC","NEC","04/10/2023"'
     )
 
@@ -438,6 +438,7 @@ def test_send_metadata_to_sqs(set_env, mocker, mock_sqs_service, test_service):
         expected_calls,
     )
     assert mock_sqs_service.send_message_with_nhs_number_attr_fifo.call_count == 2
+    assert test_service.count_messages_sent_to_bulk == 2
 
 
 def test_send_metadata_to_sqs_raise_error_when_fail_to_send_message(
@@ -457,6 +458,29 @@ def test_send_metadata_to_sqs_raise_error_when_fail_to_send_message(
 
     with pytest.raises(ClientError):
         test_service.send_metadata_to_fifo_sqs(EXPECTED_PARSED_METADATA)
+
+
+def test_send_metadata_to_expedite_sqs_sets_count(
+    set_env,
+    mock_sqs_service,
+    test_service,
+):
+    staging_metadata = StagingSqsMetadata(
+        nhs_number="1234567890",
+        files=[
+            BulkUploadQueueMetadata(
+                file_path="expedite/A12345/1of1_file.pdf",
+                stored_file_name="expedite/A12345/1of1_file.pdf",
+                gp_practice_code="A12345",
+                scan_date="2025-01-01",
+            ),
+        ],
+    )
+
+    test_service.send_metadata_to_expedite_sqs(staging_metadata)
+
+    mock_sqs_service.send_message_with_nhs_number_attr_fifo.assert_called_once()
+    assert test_service.count_messages_sent_to_bulk == 1
 
 
 def test_clear_temp_storage(set_env, mocker, mock_tempfile, test_service):
@@ -511,6 +535,7 @@ def test_process_metadata_row_success(mocker, test_service):
 
     assert patients[key] == [expected_sqs_metadata]
     assert len(failed_files) == 0
+    assert test_service.count_files_renamed_by_formatter == 1
 
 
 def test_process_metadata_row_adds_to_existing_entry(mocker):
@@ -575,6 +600,111 @@ def test_extract_patient_info(test_service, base_metadata_file):
     assert ods_code == "Y12345"
 
 
+def test_process_metadata_row_rejects_invalid_ods_code(mocker, test_service):
+    patients = defaultdict(list)
+    failed_files = defaultdict(list)
+    row = {
+        "FILEPATH": "some/path/file.pdf",
+        "GP-PRACTICE-CODE": "bad",  # too short, not 6 chars
+        "NHS-NO": "1234567890",
+        "PAGE COUNT": "1",
+        "SECTION": "LG",
+        "SUB-SECTION": "",
+        "SCAN-DATE": "01/01/2023",
+        "SCAN-ID": "SID123",
+        "USER-ID": "UID123",
+        "UPLOAD": "01/01/2023",
+    }
+
+    metadata = MetadataFile.model_validate(row)
+    mocker.patch(
+        f"{SERVICE_PATH}.MetadataFile.model_validate",
+        return_value=metadata,
+    )
+    mock_handle = mocker.patch.object(test_service, "handle_invalid_filename")
+
+    test_service.process_metadata_row(row, patients, failed_files)
+
+    mock_handle.assert_called_once()
+    kwargs = mock_handle.call_args[1]
+    assert kwargs.get("skip_review") is True
+    assert len(patients) == 0
+
+
+@pytest.mark.parametrize(
+    "ods_code",
+    [
+        "bad",
+        "G123456",
+        "g12345",
+    ],
+)
+def test_process_metadata_row_rejects_various_invalid_ods_codes(
+    mocker,
+    test_service,
+    ods_code,
+):
+    patients = defaultdict(list)
+    failed_files = defaultdict(list)
+    row = {
+        "FILEPATH": "some/path/file.pdf",
+        "GP-PRACTICE-CODE": ods_code,
+        "NHS-NO": "1234567890",
+        "PAGE COUNT": "1",
+        "SECTION": "LG",
+        "SUB-SECTION": "",
+        "SCAN-DATE": "01/01/2023",
+        "SCAN-ID": "SID123",
+        "USER-ID": "UID123",
+        "UPLOAD": "01/01/2023",
+    }
+
+    metadata = MetadataFile.model_validate(
+        {**row, "GP-PRACTICE-CODE": ods_code},
+    )
+    metadata.gp_practice_code = ods_code
+
+    mock_handle = mocker.patch.object(test_service, "handle_invalid_filename")
+
+    test_service.process_metadata_row(row, patients, failed_files)
+
+    mock_handle.assert_called_once()
+    _, error_arg, _, _, _ = mock_handle.call_args[0]
+    assert isinstance(error_arg, OdsErrorException)
+    assert len(patients) == 0
+
+
+def test_process_metadata_row_accepts_valid_ods_code_with_whitespace(
+    mocker,
+    test_service,
+):
+    patients = defaultdict(list)
+    failed_files = defaultdict(list)
+    row = {
+        "FILEPATH": "some/path/file.pdf",
+        "GP-PRACTICE-CODE": "  Y12345  ",
+        "NHS-NO": "1234567890",
+        "PAGE COUNT": "1",
+        "SECTION": "LG",
+        "SUB-SECTION": "",
+        "SCAN-DATE": "01/01/2023",
+        "SCAN-ID": "SID123",
+        "USER-ID": "UID123",
+        "UPLOAD": "01/01/2023",
+    }
+
+    mocker.patch(
+        "services.bulk_upload_metadata_processor_service.validate_file_name",
+        return_value=True,
+    )
+
+    test_service.process_metadata_row(row, patients, failed_files)
+
+    assert ("1234567890", "Y12345") in patients
+    assert len(failed_files) == 0
+    assert test_service.count_files_renamed_by_formatter == 0
+
+
 def test_handle_invalid_filename_writes_failed_entry_to_dynamo(
     mocker,
     test_service,
@@ -626,6 +756,8 @@ def test_handle_invalid_filename_writes_failed_entry_to_dynamo(
 
     assert (nhs_number, ods_code) in failed_files
     assert failed_files[(nhs_number, ods_code)] == [expected_file]
+    assert test_service.count_files_rejected == 1
+    assert test_service.count_files_hard_rejected == 1
 
 
 def test_handle_invalid_filename_sets_sent_to_review_true_when_review_enabled(
@@ -662,6 +794,8 @@ def test_handle_invalid_filename_sets_sent_to_review_true_when_review_enabled(
         sent_to_review=True,
     )
     assert (nhs_number, ods_code) in failed_files
+    assert test_service_with_review_enabled.count_files_rejected == 1
+    assert test_service_with_review_enabled.count_files_hard_rejected == 0
 
 
 def test_handle_invalid_filename_does_not_send_to_review_when_file_missing(
@@ -698,6 +832,47 @@ def test_handle_invalid_filename_does_not_send_to_review_when_file_missing(
         sent_to_review=False,
     )
     assert (nhs_number, ods_code) not in failed_files
+    assert test_service_with_review_enabled.count_files_rejected == 1
+    assert test_service_with_review_enabled.count_files_hard_rejected == 1
+
+
+def test_handle_invalid_filename_with_skip_review_never_adds_to_review_queue(
+    mocker,
+    test_service_with_review_enabled,
+    base_metadata_file,
+):
+    nhs_number = "1234567890"
+    ods_code = "Y12345"
+    failed_files = defaultdict(list)
+    error = OdsErrorException("Invalid ODS code")
+
+    test_service_with_review_enabled.s3_repo.file_exists_on_staging_bucket.return_value = (
+        True
+    )
+    mock_write = mocker.patch.object(
+        test_service_with_review_enabled.dynamo_repository,
+        "write_report_upload_to_dynamo",
+    )
+    mocker.patch("services.bulk_upload_metadata_processor_service.StagingSqsMetadata")
+
+    test_service_with_review_enabled.handle_invalid_filename(
+        base_metadata_file,
+        error,
+        nhs_number,
+        ods_code,
+        failed_files,
+        skip_review=True,
+    )
+
+    mock_write.assert_called_once_with(
+        mocker.ANY,
+        UploadStatus.FAILED,
+        str(error),
+        sent_to_review=False,
+    )
+    assert (nhs_number, ods_code) not in failed_files
+    assert test_service_with_review_enabled.count_files_rejected == 1
+    assert test_service_with_review_enabled.count_files_hard_rejected == 1
 
 
 def test_handle_invalid_filename_preserves_original_nhs_number_in_report(
@@ -756,6 +931,7 @@ def test_csv_to_sqs_metadata_sends_failed_files_to_review_queue_when_enabled(
         test_service_with_review_enabled.sqs_repository.send_message_to_review_queue.called
     )
     assert len(result) == 0
+    assert test_service_with_review_enabled.count_messages_sent_to_review == 2
 
 
 def test_csv_to_sqs_metadata_does_not_send_to_review_when_disabled(
@@ -847,6 +1023,7 @@ def test_validate_and_correct_filename_returns_happy_path(
     result = test_service.validate_and_correct_filename(base_metadata_file)
 
     assert result == base_metadata_file.file_path
+    assert test_service.count_files_renamed_by_formatter == 0
 
 
 def test_validate_and_correct_filename_sad_path(
@@ -871,6 +1048,7 @@ def test_validate_and_correct_filename_sad_path(
         base_metadata_file.nhs_number,
     )
     assert result == "corrected/path/file_corrected.pdf"
+    assert test_service.count_files_renamed_by_formatter == 1
 
 
 @freeze_time("2025-02-03T10:00:00")
@@ -1033,9 +1211,9 @@ def test_csv_to_sqs_metadata_groups_patients_correctly(mocker, test_service):
     data = "\n".join(
         [
             header,
-            "/file1.pdf,Y123,1111111111,01/01/2023",
-            "/file2.pdf,Y123,1111111111,01/02/2023",
-            "/file3.pdf,Y999,2222222222,01/03/2023",
+            "/file1.pdf,Y12345,1111111111,01/01/2023",
+            "/file2.pdf,Y12345,1111111111,01/02/2023",
+            "/file3.pdf,Y99945,2222222222,01/03/2023",
         ],
     )
     mocker.patch("builtins.open", mocker.mock_open(read_data=data))
